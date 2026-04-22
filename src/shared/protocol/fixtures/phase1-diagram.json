@@ -1,0 +1,370 @@
+{
+  "contractVersion": "1.0",
+  "analyzer": {
+    "contractVersion": "1.0",
+    "summary": {
+      "workspaceRoot": "/workspace/demo-django-project",
+      "discoveredAppCount": 3,
+      "discoveredModelCount": 4,
+      "diagnosticCount": 1
+    },
+    "models": [
+      {
+        "identity": {
+          "id": "blog.Post",
+          "appLabel": "blog",
+          "modelName": "Post",
+          "modulePath": "blog/models.py"
+        },
+        "declaredBaseClasses": ["models.Model"],
+        "fields": [
+          {
+            "name": "id",
+            "fieldType": "BigAutoField",
+            "persistence": "stored",
+            "nullable": false,
+            "primaryKey": true
+          },
+          {
+            "name": "title",
+            "fieldType": "CharField",
+            "persistence": "stored",
+            "nullable": false,
+            "primaryKey": false
+          },
+          {
+            "name": "status",
+            "fieldType": "CharField",
+            "persistence": "stored",
+            "nullable": false,
+            "primaryKey": false,
+            "choiceMetadata": {
+              "isChoiceField": true,
+              "isFullyResolved": true,
+              "options": [
+                { "value": "draft", "label": "Draft", "valueKind": "string" },
+                { "value": "published", "label": "Published", "valueKind": "string" }
+              ]
+            }
+          },
+          {
+            "name": "author",
+            "fieldType": "ForeignKey",
+            "persistence": "stored",
+            "nullable": false,
+            "primaryKey": false,
+            "relation": {
+              "kind": "foreign_key",
+              "target": {
+                "rawReference": "accounts.Author",
+                "resolutionState": "resolved",
+                "resolvedModelId": "accounts.Author"
+              },
+              "reverseAccessorName": "posts"
+            }
+          },
+          {
+            "name": "tags",
+            "fieldType": "ManyToManyField",
+            "persistence": "stored",
+            "nullable": false,
+            "primaryKey": false,
+            "relation": {
+              "kind": "many_to_many",
+              "target": {
+                "rawReference": "taxonomy.Tag",
+                "resolutionState": "resolved",
+                "resolvedModelId": "taxonomy.Tag"
+              }
+            }
+          }
+        ],
+        "properties": [
+          {
+            "name": "display_title",
+            "returnType": "str"
+          }
+        ],
+        "methods": [
+          {
+            "name": "publish",
+            "visibility": "public",
+            "relatedModels": [
+              {
+                "targetModelId": "accounts.Author",
+                "confidence": "high",
+                "evidence": "self.author.notify_publication()"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "identity": {
+          "id": "accounts.Author",
+          "appLabel": "accounts",
+          "modelName": "Author",
+          "modulePath": "accounts/models.py"
+        },
+        "declaredBaseClasses": ["models.Model"],
+        "fields": [
+          {
+            "name": "id",
+            "fieldType": "BigAutoField",
+            "persistence": "stored",
+            "nullable": false,
+            "primaryKey": true
+          },
+          {
+            "name": "email",
+            "fieldType": "EmailField",
+            "persistence": "stored",
+            "nullable": false,
+            "primaryKey": false
+          }
+        ],
+        "properties": [],
+        "methods": [
+          {
+            "name": "featured_posts",
+            "visibility": "public",
+            "relatedModels": [
+              {
+                "targetModelId": "blog.Post",
+                "confidence": "medium",
+                "evidence": "self.posts.filter(status='published')"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "identity": {
+          "id": "taxonomy.Tag",
+          "appLabel": "taxonomy",
+          "modelName": "Tag",
+          "modulePath": "taxonomy/models.py"
+        },
+        "declaredBaseClasses": ["models.Model"],
+        "fields": [
+          {
+            "name": "id",
+            "fieldType": "BigAutoField",
+            "persistence": "stored",
+            "nullable": false,
+            "primaryKey": true
+          },
+          {
+            "name": "name",
+            "fieldType": "CharField",
+            "persistence": "stored",
+            "nullable": false,
+            "primaryKey": false
+          }
+        ],
+        "properties": [],
+        "methods": []
+      },
+      {
+        "identity": {
+          "id": "audit.AuditLog",
+          "appLabel": "audit",
+          "modelName": "AuditLog",
+          "modulePath": "audit/models.py"
+        },
+        "declaredBaseClasses": ["models.Model"],
+        "fields": [
+          {
+            "name": "id",
+            "fieldType": "BigAutoField",
+            "persistence": "stored",
+            "nullable": false,
+            "primaryKey": true
+          },
+          {
+            "name": "payload",
+            "fieldType": "JSONField",
+            "persistence": "stored",
+            "nullable": true,
+            "primaryKey": false
+          }
+        ],
+        "properties": [],
+        "methods": []
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "partial_inference",
+        "severity": "warning",
+        "message": "One method-level reference in audit.AuditLog could not be resolved statically.",
+        "relatedModelId": "audit.AuditLog",
+        "location": {
+          "filePath": "audit/models.py",
+          "symbolName": "AuditLog.emit",
+          "range": {
+            "startLine": 18,
+            "startColumn": 5,
+            "endLine": 21,
+            "endColumn": 28
+          }
+        }
+      }
+    ]
+  },
+  "graph": {
+    "nodes": [
+      { "modelId": "blog.Post", "appLabel": "blog", "modelName": "Post" },
+      { "modelId": "accounts.Author", "appLabel": "accounts", "modelName": "Author" },
+      { "modelId": "taxonomy.Tag", "appLabel": "taxonomy", "modelName": "Tag" },
+      { "modelId": "audit.AuditLog", "appLabel": "audit", "modelName": "AuditLog" }
+    ],
+    "structuralEdges": [
+      {
+        "id": "edge-post-author",
+        "sourceModelId": "blog.Post",
+        "targetModelId": "accounts.Author",
+        "kind": "foreign_key",
+        "provenance": "declared"
+      },
+      {
+        "id": "edge-post-tags",
+        "sourceModelId": "blog.Post",
+        "targetModelId": "taxonomy.Tag",
+        "kind": "many_to_many",
+        "provenance": "declared"
+      },
+      {
+        "id": "edge-author-posts",
+        "sourceModelId": "accounts.Author",
+        "targetModelId": "blog.Post",
+        "kind": "reverse_foreign_key",
+        "provenance": "derived_reverse"
+      }
+    ],
+    "methodAssociations": [
+      {
+        "id": "assoc-post-publish-author",
+        "sourceModelId": "blog.Post",
+        "targetModelId": "accounts.Author",
+        "methodName": "publish",
+        "confidence": "high",
+        "provenance": "method_inference"
+      },
+      {
+        "id": "assoc-author-featured-posts",
+        "sourceModelId": "accounts.Author",
+        "targetModelId": "blog.Post",
+        "methodName": "featured_posts",
+        "confidence": "medium",
+        "provenance": "method_inference"
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "partial_inference",
+        "severity": "info",
+        "message": "Graph preserved an isolated model with no structural edges.",
+        "relatedModelId": "audit.AuditLog"
+      }
+    ]
+  },
+  "layout": {
+    "mode": "hierarchical",
+    "nodes": [
+      {
+        "modelId": "accounts.Author",
+        "position": { "x": 60, "y": 80 },
+        "size": { "width": 240, "height": 180 }
+      },
+      {
+        "modelId": "blog.Post",
+        "position": { "x": 380, "y": 80 },
+        "size": { "width": 280, "height": 280 }
+      },
+      {
+        "modelId": "taxonomy.Tag",
+        "position": { "x": 740, "y": 80 },
+        "size": { "width": 220, "height": 160 }
+      },
+      {
+        "modelId": "audit.AuditLog",
+        "position": { "x": 380, "y": 430 },
+        "size": { "width": 260, "height": 140 }
+      }
+    ],
+    "routedEdges": [
+      {
+        "edgeId": "edge-post-author",
+        "points": [
+          { "x": 380, "y": 160 },
+          { "x": 300, "y": 160 }
+        ],
+        "crossingIds": []
+      },
+      {
+        "edgeId": "edge-post-tags",
+        "points": [
+          { "x": 660, "y": 210 },
+          { "x": 740, "y": 210 }
+        ],
+        "crossingIds": ["crossing-1"]
+      },
+      {
+        "edgeId": "edge-author-posts",
+        "points": [
+          { "x": 300, "y": 220 },
+          { "x": 380, "y": 220 },
+          { "x": 380, "y": 320 }
+        ],
+        "crossingIds": ["crossing-1"]
+      }
+    ],
+    "crossings": [
+      {
+        "id": "crossing-1",
+        "edgeIds": ["edge-post-tags", "edge-author-posts"],
+        "position": { "x": 380, "y": 220 },
+        "markerStyle": "bridge"
+      }
+    ]
+  },
+  "view": {
+    "layoutMode": "hierarchical",
+    "selectedModelId": "blog.Post",
+    "selectedMethodContext": {
+      "modelId": "blog.Post",
+      "methodName": "publish"
+    },
+    "tableOptions": [
+      {
+        "modelId": "accounts.Author",
+        "hidden": false,
+        "showMethods": true,
+        "showProperties": true,
+        "showMethodHighlights": true
+      },
+      {
+        "modelId": "blog.Post",
+        "hidden": false,
+        "showMethods": true,
+        "showProperties": true,
+        "showMethodHighlights": true
+      },
+      {
+        "modelId": "taxonomy.Tag",
+        "hidden": false,
+        "showMethods": false,
+        "showProperties": true,
+        "showMethodHighlights": false
+      },
+      {
+        "modelId": "audit.AuditLog",
+        "hidden": false,
+        "showMethods": false,
+        "showProperties": false,
+        "showMethodHighlights": false
+      }
+    ]
+  }
+}

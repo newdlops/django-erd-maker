@@ -1,0 +1,42 @@
+{
+  "diagnostics": [],
+  "methodAssociations": [],
+  "nodes": [
+    {
+      "appLabel": "audit",
+      "modelId": "audit.AuditLog",
+      "modelName": "AuditLog"
+    },
+    {
+      "appLabel": "crm",
+      "modelId": "crm.Lead",
+      "modelName": "Lead"
+    },
+    {
+      "appLabel": "sales",
+      "modelId": "sales.Receipt",
+      "modelName": "Receipt"
+    },
+    {
+      "appLabel": "sales",
+      "modelId": "sales.Store",
+      "modelName": "Store"
+    }
+  ],
+  "structuralEdges": [
+    {
+      "id": "edge:declared:sales.Receipt:store",
+      "kind": "foreign_key",
+      "provenance": "declared",
+      "sourceModelId": "sales.Receipt",
+      "targetModelId": "sales.Store"
+    },
+    {
+      "id": "edge:reverse:sales.Receipt:store",
+      "kind": "reverse_foreign_key",
+      "provenance": "derived_reverse",
+      "sourceModelId": "sales.Store",
+      "targetModelId": "sales.Receipt"
+    }
+  ]
+}

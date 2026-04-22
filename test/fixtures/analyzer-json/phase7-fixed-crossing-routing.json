@@ -1,0 +1,97 @@
+{
+  "crossings": [
+    {
+      "edgeIds": [
+        "edge:a",
+        "edge:b"
+      ],
+      "id": "cross:edge:a:edge:b:0",
+      "markerStyle": "bridge",
+      "position": {
+        "x": 420.0,
+        "y": 230.0
+      }
+    }
+  ],
+  "mode": "hierarchical",
+  "nodes": [
+    {
+      "modelId": "mesh.Alpha",
+      "position": {
+        "x": 0.0,
+        "y": 170.0
+      },
+      "size": {
+        "height": 120.0,
+        "width": 220.0
+      }
+    },
+    {
+      "modelId": "mesh.Beta",
+      "position": {
+        "x": 310.0,
+        "y": 0.0
+      },
+      "size": {
+        "height": 120.0,
+        "width": 220.0
+      }
+    },
+    {
+      "modelId": "mesh.Gamma",
+      "position": {
+        "x": 310.0,
+        "y": 340.0
+      },
+      "size": {
+        "height": 120.0,
+        "width": 220.0
+      }
+    },
+    {
+      "modelId": "mesh.Delta",
+      "position": {
+        "x": 620.0,
+        "y": 170.0
+      },
+      "size": {
+        "height": 120.0,
+        "width": 220.0
+      }
+    }
+  ],
+  "routedEdges": [
+    {
+      "crossingIds": [
+        "cross:edge:a:edge:b:0"
+      ],
+      "edgeId": "edge:a",
+      "points": [
+        {
+          "x": 220.0,
+          "y": 230.0
+        },
+        {
+          "x": 620.0,
+          "y": 230.0
+        }
+      ]
+    },
+    {
+      "crossingIds": [
+        "cross:edge:a:edge:b:0"
+      ],
+      "edgeId": "edge:b",
+      "points": [
+        {
+          "x": 420.0,
+          "y": 120.0
+        },
+        {
+          "x": 420.0,
+          "y": 340.0
+        }
+      ]
+    }
+  ]
+}

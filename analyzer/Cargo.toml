@@ -1,0 +1,13 @@
+[package]
+name = "django-erd-maker-analyzer"
+version = "0.0.1"
+edition = "2024"
+
+[[bin]]
+name = "django-erd-maker-analyzer"
+path = "src/main.rs"
+
+[dependencies]
+rustpython-parser = "0.4.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"

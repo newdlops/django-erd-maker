@@ -1,0 +1,76 @@
+{
+  "diagnostics": [],
+  "methodAssociations": [
+    {
+      "confidence": "medium",
+      "id": "assoc:accounts.Author:featured_posts:0",
+      "methodName": "featured_posts",
+      "provenance": "method_inference",
+      "sourceModelId": "accounts.Author",
+      "targetModelId": "blog.Post"
+    },
+    {
+      "confidence": "high",
+      "id": "assoc:blog.Post:publish:0",
+      "methodName": "publish",
+      "provenance": "method_inference",
+      "sourceModelId": "blog.Post",
+      "targetModelId": "accounts.Author"
+    },
+    {
+      "confidence": "high",
+      "id": "assoc:blog.Post:tag_names:0",
+      "methodName": "tag_names",
+      "provenance": "method_inference",
+      "sourceModelId": "blog.Post",
+      "targetModelId": "taxonomy.Tag"
+    }
+  ],
+  "nodes": [
+    {
+      "appLabel": "accounts",
+      "modelId": "accounts.Author",
+      "modelName": "Author"
+    },
+    {
+      "appLabel": "blog",
+      "modelId": "blog.Post",
+      "modelName": "Post"
+    },
+    {
+      "appLabel": "taxonomy",
+      "modelId": "taxonomy.Tag",
+      "modelName": "Tag"
+    }
+  ],
+  "structuralEdges": [
+    {
+      "id": "edge:declared:blog.Post:author",
+      "kind": "foreign_key",
+      "provenance": "declared",
+      "sourceModelId": "blog.Post",
+      "targetModelId": "accounts.Author"
+    },
+    {
+      "id": "edge:declared:blog.Post:tags",
+      "kind": "many_to_many",
+      "provenance": "declared",
+      "sourceModelId": "blog.Post",
+      "targetModelId": "taxonomy.Tag"
+    },
+    {
+      "id": "edge:reverse:blog.Post:author",
+      "kind": "reverse_foreign_key",
+      "provenance": "derived_reverse",
+      "sourceModelId": "accounts.Author",
+      "targetModelId": "blog.Post"
+    },
+    {
+      "id": "edge:reverse:blog.Post:tags",
+      "kind": "reverse_many_to_many",
+      "provenance": "derived_reverse",
+      "sourceModelId": "taxonomy.Tag",
+      "targetModelId": "blog.Post"
+    }
+  ]
+}

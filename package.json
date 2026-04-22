@@ -1,0 +1,54 @@
+{
+  "name": "django-erd-maker",
+  "displayName": "Django ERD Maker",
+  "description": "VS Code extension scaffold for visualizing Django model ERDs.",
+  "version": "0.0.1",
+  "private": true,
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "activationEvents": [
+    "onCommand:djangoErd.openDiagram",
+    "onCommand:djangoErd.refreshDiagram",
+    "onCommand:djangoErd.showLog"
+  ],
+  "main": "./out/extension/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "djangoErd.openDiagram",
+        "title": "Django ERD: Open Diagram",
+        "category": "Django ERD"
+      },
+      {
+        "command": "djangoErd.refreshDiagram",
+        "title": "Django ERD: Refresh Diagram",
+        "category": "Django ERD"
+      },
+      {
+        "command": "djangoErd.showLog",
+        "title": "Django ERD: Show Logs",
+        "category": "Django ERD"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "npm run build:extension && npm run build:analyzer",
+    "build:analyzer": "cargo build --manifest-path analyzer/Cargo.toml",
+    "build:extension": "npm exec --yes --package typescript -- tsc -p .",
+    "typecheck": "npm exec --yes --package typescript -- tsc -p . --noEmit",
+    "lint": "npm run typecheck",
+    "test:phase2": "npm run build && node --test test/integration/phase2-discovery.test.mjs",
+    "verify:release": "npm run build && node scripts/verify-release-artifacts.mjs",
+    "test:e2e": "npm run build && node test/e2e/run-e2e.mjs",
+    "test": "npm run typecheck && cargo test --manifest-path analyzer/Cargo.toml",
+    "analyzer:run": "cargo run --manifest-path analyzer/Cargo.toml"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "crossings": [],
+  "mode": "clustered",
+  "nodes": [
+    {
+      "modelId": "accounts.Author",
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "size": {
+        "height": 76.0,
+        "width": 192.0
+      }
+    },
+    {
+      "modelId": "blog.Post",
+      "position": {
+        "x": 300.0,
+        "y": 0.0
+      },
+      "size": {
+        "height": 76.0,
+        "width": 180.0
+      }
+    },
+    {
+      "modelId": "taxonomy.Tag",
+      "position": {
+        "x": 0.0,
+        "y": 196.0
+      },
+      "size": {
+        "height": 76.0,
+        "width": 180.0
+      }
+    }
+  ],
+  "routedEdges": [
+    {
+      "crossingIds": [],
+      "edgeId": "edge:declared:blog.Post:author",
+      "points": [
+        {
+          "x": 300.0,
+          "y": 31.0
+        },
+        {
+          "x": 192.0,
+          "y": 31.0
+        }
+      ]
+    },
+    {
+      "crossingIds": [],
+      "edgeId": "edge:declared:blog.Post:tags",
+      "points": [
+        {
+          "x": 300.0,
+          "y": 31.0
+        },
+        {
+          "x": 240.0,
+          "y": 31.0
+        },
+        {
+          "x": 240.0,
+          "y": 227.0
+        },
+        {
+          "x": 180.0,
+          "y": 227.0
+        }
+      ]
+    },
+    {
+      "crossingIds": [],
+      "edgeId": "edge:reverse:blog.Post:author",
+      "points": [
+        {
+          "x": 192.0,
+          "y": 45.0
+        },
+        {
+          "x": 300.0,
+          "y": 45.0
+        }
+      ]
+    },
+    {
+      "crossingIds": [],
+      "edgeId": "edge:reverse:blog.Post:tags",
+      "points": [
+        {
+          "x": 180.0,
+          "y": 241.0
+        },
+        {
+          "x": 240.0,
+          "y": 241.0
+        },
+        {
+          "x": 240.0,
+          "y": 45.0
+        },
+        {
+          "x": 300.0,
+          "y": 45.0
+        }
+      ]
+    }
+  ]
+}
