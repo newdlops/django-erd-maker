@@ -1,24 +1,651 @@
 export function getBrowserCanvasDrawSource(): string {
   return `
-        function drawCanvas() {
+        const CATALOG_BUCKET_SIZE = 768;
+        const CATALOG_TILE_SIZE = 1024;
+        const CATALOG_TILE_PRELOAD_WORLD_PADDING = 160;
+        const CATALOG_TILE_RASTER_BUDGET_MS = 6;
+        const CATALOG_TILE_WARMUP_LIMIT = 2;
+
+        let panSnapshotCanvas = null;
+        let panSnapshotContext = null;
+        let lastDrawViewport = null;
+        let catalogSpatialBuckets = null;
+        let catalogTableBoundsById = null;
+        let catalogTileCache = new Map();
+        let catalogRasterQueue = [];
+        let catalogQueuedTiles = new Set();
+        let catalogRasterFrame = 0;
+        let catalogSceneVersion = 1;
+        let catalogWarmVersion = 0;
+
+        function invalidateCatalogSceneCache() {
+          catalogSceneVersion += 1;
+          catalogSpatialBuckets = null;
+          catalogTableBoundsById = null;
+          catalogTileCache.clear();
+          catalogRasterQueue = [];
+          catalogQueuedTiles.clear();
+          catalogWarmVersion = 0;
+
+          if (catalogRasterFrame) {
+            window.cancelAnimationFrame(catalogRasterFrame);
+            catalogRasterFrame = 0;
+          }
+        }
+
+        function drawCanvas(renderMode) {
           resizeDrawingCanvas();
-          drawingContext.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+
+          if (renderModel.modelCatalogMode) {
+            drawCatalogCanvas();
+            lastDrawViewport = {
+              panX: state.viewport.panX,
+              panY: state.viewport.panY,
+              zoom: state.viewport.zoom,
+            };
+            return;
+          }
+
+          const viewportRect = getViewportRect();
+          const currentViewport = {
+            panX: state.viewport.panX,
+            panY: state.viewport.panY,
+            zoom: state.viewport.zoom,
+          };
+
+          if (renderMode === "viewport" && canReusePanSnapshot(currentViewport, viewportRect)) {
+            drawCanvasFromPanSnapshot(currentViewport, viewportRect);
+          } else {
+            drawingContext.clearRect(0, 0, viewportRect.width, viewportRect.height);
+            drawScene(getVisibleWorldBounds(), null);
+          }
+
+          updatePanSnapshot();
+          lastDrawViewport = currentViewport;
+        }
+
+        function drawCatalogCanvas() {
+          const viewportRect = getViewportRect();
+          const visibleBounds = getVisibleWorldBounds(CATALOG_TILE_PRELOAD_WORLD_PADDING);
+          const visibleTiles = collectVisibleCatalogTiles(visibleBounds);
+
+          warmCatalogTiles(visibleTiles);
+          queueCatalogTilesForRaster(visibleTiles);
+
+          drawingContext.clearRect(0, 0, viewportRect.width, viewportRect.height);
           drawingContext.save();
           drawingContext.translate(state.viewport.panX, state.viewport.panY);
           drawingContext.scale(state.viewport.zoom, state.viewport.zoom);
-          drawEdges();
-          drawMethodOverlays();
-          drawCrossings();
-          drawTables();
+
+          for (const tile of visibleTiles) {
+            if (tile.renderedVersion !== catalogSceneVersion || !tile.canvas) {
+              continue;
+            }
+
+            drawingContext.drawImage(tile.canvas, tile.x, tile.y, tile.width, tile.height);
+          }
+
+          drawCatalogDynamicTableOverlays(visibleBounds);
+          drawingContext.restore();
+          scheduleCatalogTileRasterization();
+        }
+
+        function drawCatalogDynamicTableOverlays(visibleBounds) {
+          if (drag && drag.kind === "table") {
+            const meta = tableMetaById.get(drag.modelId);
+            const table = tableRenderById.get(drag.modelId);
+            const position = meta ? getCurrentPosition(drag.modelId) : null;
+            if (
+              meta &&
+              table &&
+              position &&
+              rectIntersectsBounds(position.x, position.y, meta.width, meta.height, visibleBounds, 56)
+            ) {
+              drawCatalogSelectionOverlay(position, meta, "dragging");
+            }
+          }
+
+          const selectedModelId = state.selectedModelId;
+          if (!selectedModelId || (drag && drag.kind === "table" && drag.modelId === selectedModelId)) {
+            return;
+          }
+
+          const meta = tableMetaById.get(selectedModelId);
+          const table = tableRenderById.get(selectedModelId);
+          const options = meta ? getTableOptions(state, selectedModelId) : null;
+          if (!meta || !table || (options && options.hidden)) {
+            return;
+          }
+
+          const position = getCurrentPosition(selectedModelId);
+          if (!rectIntersectsBounds(position.x, position.y, meta.width, meta.height, visibleBounds, 56)) {
+            return;
+          }
+
+          drawCatalogSelectionOverlay(position, meta, "selected");
+        }
+
+        function drawCatalogSelectionOverlay(position, meta, variant) {
+          drawingContext.save();
+          drawingContext.strokeStyle = variant === "dragging"
+            ? "rgba(168, 216, 255, 0.72)"
+            : "rgba(109, 208, 176, 0.62)";
+          drawingContext.lineWidth = 2.2;
+          drawRoundRectOn(drawingContext, position.x, position.y, meta.width, meta.height, 7);
+          drawingContext.stroke();
           drawingContext.restore();
         }
 
-        function drawCrossings() {
+        function collectVisibleCatalogTiles(visibleBounds) {
+          const paddedBounds = {
+            bottom: visibleBounds.bottom,
+            left: visibleBounds.left,
+            right: visibleBounds.right,
+            top: visibleBounds.top,
+          };
+          const range = getTileRangeForBounds(paddedBounds);
+          const tiles = [];
+
+          for (let row = range.startRow; row <= range.endRow; row += 1) {
+            for (let column = range.startColumn; column <= range.endColumn; column += 1) {
+              tiles.push(getOrCreateCatalogTile(column, row));
+            }
+          }
+
+          return tiles;
+        }
+
+        function queueCatalogTilesForRaster(tiles) {
+          for (const tile of tiles) {
+            if (tile.renderedVersion === catalogSceneVersion) {
+              continue;
+            }
+
+            const key = getCatalogTileKey(tile.column, tile.row);
+            if (catalogQueuedTiles.has(key)) {
+              continue;
+            }
+
+            catalogQueuedTiles.add(key);
+            catalogRasterQueue.push(key);
+          }
+        }
+
+        function warmCatalogTiles(tiles) {
+          if (catalogWarmVersion === catalogSceneVersion) {
+            return;
+          }
+
+          const startedAt = performance.now();
+          let warmed = 0;
+
+          for (const tile of tiles) {
+            if (tile.renderedVersion === catalogSceneVersion) {
+              continue;
+            }
+
+            rasterizeCatalogTile(tile);
+            warmed += 1;
+            if (
+              warmed >= CATALOG_TILE_WARMUP_LIMIT ||
+              performance.now() - startedAt >= CATALOG_TILE_RASTER_BUDGET_MS
+            ) {
+              break;
+            }
+          }
+
+          catalogWarmVersion = catalogSceneVersion;
+        }
+
+        function scheduleCatalogTileRasterization() {
+          if (!catalogRasterQueue.length || catalogRasterFrame) {
+            return;
+          }
+
+          catalogRasterFrame = window.requestAnimationFrame(() => {
+            catalogRasterFrame = 0;
+            rasterizeCatalogTileBatch();
+          });
+        }
+
+        function rasterizeCatalogTileBatch() {
+          const startedAt = performance.now();
+          let renderedAny = false;
+
+          while (catalogRasterQueue.length > 0) {
+            const key = catalogRasterQueue.shift();
+            catalogQueuedTiles.delete(key);
+            const tile = catalogTileCache.get(key);
+            if (!tile || tile.renderedVersion === catalogSceneVersion) {
+              continue;
+            }
+
+            rasterizeCatalogTile(tile);
+            renderedAny = true;
+
+            if (performance.now() - startedAt >= CATALOG_TILE_RASTER_BUDGET_MS) {
+              break;
+            }
+          }
+
+          if (renderedAny) {
+            scheduleViewportRender();
+          }
+
+          if (catalogRasterQueue.length > 0) {
+            scheduleCatalogTileRasterization();
+          }
+        }
+
+        function rasterizeCatalogTile(tile) {
+          ensureCatalogSceneIndex();
+          ensureCatalogTileCanvas(tile);
+
+          if (!tile.context) {
+            return;
+          }
+
+          tile.context.setTransform(1, 0, 0, 1, 0, 0);
+          tile.context.clearRect(0, 0, tile.canvas.width, tile.canvas.height);
+          tile.context.setTransform(getDeviceScale(), 0, 0, getDeviceScale(), 0, 0);
+
+          const tableIds = collectCatalogTableIdsInBounds(tile.bounds);
+          for (const modelId of tableIds) {
+            const meta = tableMetaById.get(modelId);
+            const table = tableRenderById.get(modelId);
+            const bounds = catalogTableBoundsById.get(modelId);
+            if (!meta || !table || !bounds) {
+              continue;
+            }
+
+            drawCatalogCachedTable(tile.context, bounds.x - tile.x, bounds.y - tile.y, meta, table);
+          }
+
+          tile.renderedVersion = catalogSceneVersion;
+        }
+
+        function drawCatalogCachedTable(context, localX, localY, meta, table) {
+          const tableName = table.databaseTableName || meta.tableName || table.modelName;
+          const modelName = table.modelName || meta.modelName || table.modelId;
+
+          context.save();
+          context.fillStyle = "#0f1e2c";
+          context.strokeStyle = "rgba(123, 196, 170, 0.22)";
+          context.lineWidth = 1.2;
+          drawRoundRectOn(context, localX, localY, meta.width, meta.height, 7);
+          context.fill();
+          context.stroke();
+
+          context.fillStyle = "rgba(123, 196, 170, 0.11)";
+          context.save();
+          drawRoundRectOn(context, localX, localY, meta.width, meta.height, 7);
+          context.clip();
+          context.fillRect(localX + 1, localY + 1, meta.width - 2, 32);
+          context.restore();
+
+          context.strokeStyle = "rgba(154, 184, 177, 0.18)";
+          context.beginPath();
+          context.moveTo(localX, localY + 33);
+          context.lineTo(localX + meta.width, localY + 33);
+          context.stroke();
+
+          context.textAlign = "left";
+          context.textBaseline = "middle";
+          drawFittedTextOn(
+            context,
+            modelName,
+            localX + 12,
+            localY + 17,
+            meta.width - 24,
+            "#f1f7f4",
+            "700 13px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+          );
+          drawFittedTextOn(
+            context,
+            tableName,
+            localX + 12,
+            localY + 55,
+            meta.width - 24,
+            "#9fb7b0",
+            "500 12px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+          );
+          context.restore();
+        }
+
+        function ensureCatalogSceneIndex() {
+          if (catalogSpatialBuckets && catalogTableBoundsById) {
+            return;
+          }
+
+          catalogSpatialBuckets = new Map();
+          catalogTableBoundsById = new Map();
+
+          for (const [modelId, meta] of tableMetaById.entries()) {
+            const options = getTableOptions(state, modelId);
+            if (options.hidden) {
+              continue;
+            }
+
+            const table = tableRenderById.get(modelId);
+            if (!table) {
+              continue;
+            }
+
+            const position = getCurrentPosition(modelId);
+            const bounds = {
+              height: meta.height,
+              width: meta.width,
+              x: position.x,
+              y: position.y,
+            };
+
+            catalogTableBoundsById.set(modelId, bounds);
+            addCatalogTableToBuckets(modelId, bounds);
+          }
+        }
+
+        function addCatalogTableToBuckets(modelId, bounds) {
+          const range = getBucketRangeForBounds({
+            bottom: bounds.y + bounds.height,
+            left: bounds.x,
+            right: bounds.x + bounds.width,
+            top: bounds.y,
+          });
+
+          for (let row = range.startRow; row <= range.endRow; row += 1) {
+            for (let column = range.startColumn; column <= range.endColumn; column += 1) {
+              const key = getCatalogBucketKey(column, row);
+              if (!catalogSpatialBuckets.has(key)) {
+                catalogSpatialBuckets.set(key, []);
+              }
+              catalogSpatialBuckets.get(key).push(modelId);
+            }
+          }
+        }
+
+        function collectCatalogTableIdsInBounds(bounds) {
+          ensureCatalogSceneIndex();
+          const ids = new Set();
+          const range = getBucketRangeForBounds(bounds);
+
+          for (let row = range.startRow; row <= range.endRow; row += 1) {
+            for (let column = range.startColumn; column <= range.endColumn; column += 1) {
+              const key = getCatalogBucketKey(column, row);
+              const bucket = catalogSpatialBuckets.get(key);
+              if (!bucket) {
+                continue;
+              }
+
+              for (const modelId of bucket) {
+                const tableBounds = catalogTableBoundsById.get(modelId);
+                if (!tableBounds) {
+                  continue;
+                }
+
+                if (
+                  rectIntersectsBounds(
+                    tableBounds.x,
+                    tableBounds.y,
+                    tableBounds.width,
+                    tableBounds.height,
+                    bounds,
+                    0,
+                  )
+                ) {
+                  ids.add(modelId);
+                }
+              }
+            }
+          }
+
+          return Array.from(ids).sort((left, right) => left.localeCompare(right));
+        }
+
+        function getCatalogTableIdsNearPoint(point) {
+          ensureCatalogSceneIndex();
+          const range = getBucketRangeForBounds({
+            bottom: point.y,
+            left: point.x,
+            right: point.x,
+            top: point.y,
+          });
+          const ids = new Set();
+
+          for (let row = range.startRow; row <= range.endRow; row += 1) {
+            for (let column = range.startColumn; column <= range.endColumn; column += 1) {
+              const bucket = catalogSpatialBuckets && catalogSpatialBuckets.get(getCatalogBucketKey(column, row));
+              if (!bucket) {
+                continue;
+              }
+
+              for (const modelId of bucket) {
+                ids.add(modelId);
+              }
+            }
+          }
+
+          return Array.from(ids);
+        }
+
+        function getOrCreateCatalogTile(column, row) {
+          const key = getCatalogTileKey(column, row);
+          const existing = catalogTileCache.get(key);
+          if (existing) {
+            return existing;
+          }
+
+          const tile = {
+            bounds: {
+              bottom: (row + 1) * CATALOG_TILE_SIZE,
+              left: column * CATALOG_TILE_SIZE,
+              right: (column + 1) * CATALOG_TILE_SIZE,
+              top: row * CATALOG_TILE_SIZE,
+            },
+            canvas: null,
+            column,
+            context: null,
+            height: CATALOG_TILE_SIZE,
+            key,
+            renderedVersion: 0,
+            row,
+            width: CATALOG_TILE_SIZE,
+            x: column * CATALOG_TILE_SIZE,
+            y: row * CATALOG_TILE_SIZE,
+          };
+
+          catalogTileCache.set(key, tile);
+          return tile;
+        }
+
+        function ensureCatalogTileCanvas(tile) {
+          if (!tile.canvas) {
+            tile.canvas = document.createElement("canvas");
+            tile.context = tile.canvas.getContext("2d");
+          }
+
+          if (!tile.context) {
+            return;
+          }
+
+          const deviceScale = getDeviceScale();
+          const pixelWidth = Math.max(1, Math.round(tile.width * deviceScale));
+          const pixelHeight = Math.max(1, Math.round(tile.height * deviceScale));
+          if (tile.canvas.width !== pixelWidth || tile.canvas.height !== pixelHeight) {
+            tile.canvas.width = pixelWidth;
+            tile.canvas.height = pixelHeight;
+          }
+        }
+
+        function getCatalogBucketKey(column, row) {
+          return column + ":" + row;
+        }
+
+        function getCatalogTileKey(column, row) {
+          return column + ":" + row;
+        }
+
+        function getBucketRangeForBounds(bounds) {
+          return {
+            endColumn: Math.floor(bounds.right / CATALOG_BUCKET_SIZE),
+            endRow: Math.floor(bounds.bottom / CATALOG_BUCKET_SIZE),
+            startColumn: Math.floor(bounds.left / CATALOG_BUCKET_SIZE),
+            startRow: Math.floor(bounds.top / CATALOG_BUCKET_SIZE),
+          };
+        }
+
+        function getTileRangeForBounds(bounds) {
+          return {
+            endColumn: Math.floor(bounds.right / CATALOG_TILE_SIZE),
+            endRow: Math.floor(bounds.bottom / CATALOG_TILE_SIZE),
+            startColumn: Math.floor(bounds.left / CATALOG_TILE_SIZE),
+            startRow: Math.floor(bounds.top / CATALOG_TILE_SIZE),
+          };
+        }
+
+        function drawScene(visibleBounds, clipRect) {
+          drawingContext.save();
+          if (clipRect) {
+            drawingContext.beginPath();
+            drawingContext.rect(clipRect.x, clipRect.y, clipRect.width, clipRect.height);
+            drawingContext.clip();
+          }
+          drawingContext.translate(state.viewport.panX, state.viewport.panY);
+          drawingContext.scale(state.viewport.zoom, state.viewport.zoom);
+          drawEdges(visibleBounds);
+          drawMethodOverlays(visibleBounds);
+          drawCrossings(visibleBounds);
+          drawTables(visibleBounds);
+          drawingContext.restore();
+        }
+
+        function drawCanvasFromPanSnapshot(currentViewport, viewportRect) {
+          const deltaX = currentViewport.panX - lastDrawViewport.panX;
+          const deltaY = currentViewport.panY - lastDrawViewport.panY;
+          drawingContext.clearRect(0, 0, viewportRect.width, viewportRect.height);
+          drawingContext.drawImage(
+            panSnapshotCanvas,
+            deltaX,
+            deltaY,
+            viewportRect.width,
+            viewportRect.height,
+          );
+
+          for (const clipRect of getExposedScreenRects(deltaX, deltaY, viewportRect)) {
+            drawScene(getWorldBoundsForScreenRect(clipRect), clipRect);
+          }
+        }
+
+        function canReusePanSnapshot(currentViewport, viewportRect) {
+          if (!lastDrawViewport || !panSnapshotCanvas) {
+            return false;
+          }
+
+          if (currentViewport.zoom !== lastDrawViewport.zoom) {
+            return false;
+          }
+
+          const deltaX = currentViewport.panX - lastDrawViewport.panX;
+          const deltaY = currentViewport.panY - lastDrawViewport.panY;
+          if (deltaX === 0 && deltaY === 0) {
+            return false;
+          }
+
+          return (
+            Math.abs(deltaX) < viewportRect.width &&
+            Math.abs(deltaY) < viewportRect.height &&
+            panSnapshotCanvas.width === drawingCanvas.width &&
+            panSnapshotCanvas.height === drawingCanvas.height
+          );
+        }
+
+        function updatePanSnapshot() {
+          if (!panSnapshotCanvas) {
+            panSnapshotCanvas = document.createElement("canvas");
+            panSnapshotContext = panSnapshotCanvas.getContext("2d");
+          }
+
+          if (!panSnapshotContext) {
+            return;
+          }
+
+          if (
+            panSnapshotCanvas.width !== drawingCanvas.width ||
+            panSnapshotCanvas.height !== drawingCanvas.height
+          ) {
+            panSnapshotCanvas.width = drawingCanvas.width;
+            panSnapshotCanvas.height = drawingCanvas.height;
+          }
+
+          panSnapshotContext.setTransform(1, 0, 0, 1, 0, 0);
+          panSnapshotContext.clearRect(0, 0, panSnapshotCanvas.width, panSnapshotCanvas.height);
+          panSnapshotContext.drawImage(
+            drawingCanvas,
+            0,
+            0,
+            drawingCanvas.width,
+            drawingCanvas.height,
+            0,
+            0,
+            panSnapshotCanvas.width,
+            panSnapshotCanvas.height,
+          );
+        }
+
+        function getExposedScreenRects(deltaX, deltaY, viewportRect) {
+          const rects = [];
+          if (deltaX > 0) {
+            rects.push({ x: 0, y: 0, width: deltaX, height: viewportRect.height });
+          } else if (deltaX < 0) {
+            rects.push({
+              x: viewportRect.width + deltaX,
+              y: 0,
+              width: -deltaX,
+              height: viewportRect.height,
+            });
+          }
+
+          if (deltaY > 0) {
+            rects.push({ x: 0, y: 0, width: viewportRect.width, height: deltaY });
+          } else if (deltaY < 0) {
+            rects.push({
+              x: 0,
+              y: viewportRect.height + deltaY,
+              width: viewportRect.width,
+              height: -deltaY,
+            });
+          }
+
+          return rects.filter((rect) => rect.width > 0 && rect.height > 0);
+        }
+
+        function getViewportRect() {
+          const rect = canvas.getBoundingClientRect();
+          return {
+            height: rect.height,
+            width: rect.width,
+          };
+        }
+
+        function getWorldBoundsForScreenRect(screenRect) {
+          const zoom = Math.max(state.viewport.zoom, 0.05);
+          return {
+            bottom: (screenRect.y + screenRect.height - state.viewport.panY) / zoom,
+            left: (screenRect.x - state.viewport.panX) / zoom,
+            right: (screenRect.x + screenRect.width - state.viewport.panX) / zoom,
+            top: (screenRect.y - state.viewport.panY) / zoom,
+          };
+        }
+
+        function drawCrossings(visibleBounds) {
           drawingContext.save();
           drawingContext.strokeStyle = "rgba(255, 191, 105, 0.92)";
           drawingContext.fillStyle = "#0c141c";
           drawingContext.lineWidth = 1.4;
           for (const crossing of renderedCrossings) {
+            if (!pointInBounds(crossing.position.x, crossing.position.y, visibleBounds, 20)) {
+              continue;
+            }
+
             drawingContext.beginPath();
             drawingContext.arc(crossing.position.x, crossing.position.y, 6.5, 0, Math.PI * 2);
             drawingContext.fill();
@@ -36,8 +663,12 @@ export function getBrowserCanvasDrawSource(): string {
           drawingContext.restore();
         }
 
-        function drawEdges() {
+        function drawEdges(visibleBounds) {
           for (const edge of renderedEdges) {
+            if (!polylineIntersectsBounds(edge.points, visibleBounds, 48)) {
+              continue;
+            }
+
             drawingContext.save();
             drawingContext.strokeStyle = edge.meta.cssKind.includes("many-to-many")
               ? "#f7d18a"
@@ -55,9 +686,21 @@ export function getBrowserCanvasDrawSource(): string {
           }
         }
 
-        function drawMethodOverlays() {
+        function drawMethodOverlays(visibleBounds) {
           for (const overlay of renderedOverlays) {
             if (!overlay.active) {
+              continue;
+            }
+            if (
+              !segmentIntersectsBounds(
+                overlay.x1,
+                overlay.y1,
+                overlay.x2,
+                overlay.y2,
+                visibleBounds,
+                32,
+              )
+            ) {
               continue;
             }
 
@@ -73,7 +716,7 @@ export function getBrowserCanvasDrawSource(): string {
           }
         }
 
-        function drawTables() {
+        function drawTables(visibleBounds) {
           for (const [modelId, meta] of tableMetaById.entries()) {
             const options = getTableOptions(state, modelId);
             if (options.hidden) {
@@ -86,6 +729,10 @@ export function getBrowserCanvasDrawSource(): string {
             }
 
             const position = getCurrentPosition(modelId);
+            if (!rectIntersectsBounds(position.x, position.y, meta.width, meta.height, visibleBounds, 56)) {
+              continue;
+            }
+
             drawTableFrame(position, meta, table, options);
             drawModelTableContent(position, meta, table);
           }
@@ -109,13 +756,13 @@ export function getBrowserCanvasDrawSource(): string {
                 ? "rgba(109, 208, 176, 0.62)"
                 : "rgba(123, 196, 170, 0.26)";
           drawingContext.lineWidth = selected || methodTarget || dragging ? 2.2 : 1.4;
-          drawRoundRect(position.x, position.y, meta.width, meta.height, 7);
+          drawRoundRectOn(drawingContext, position.x, position.y, meta.width, meta.height, 7);
           drawingContext.fill();
           drawingContext.stroke();
           drawingContext.shadowColor = "transparent";
           drawingContext.fillStyle = selected ? "rgba(109, 208, 176, 0.16)" : "rgba(123, 196, 170, 0.11)";
           drawingContext.save();
-          drawRoundRect(position.x, position.y, meta.width, meta.height, 7);
+          drawRoundRectOn(drawingContext, position.x, position.y, meta.width, meta.height, 7);
           drawingContext.clip();
           drawingContext.fillRect(position.x + 1, position.y + 1, meta.width - 2, 32);
           drawingContext.restore();
@@ -134,8 +781,24 @@ export function getBrowserCanvasDrawSource(): string {
           drawingContext.save();
           drawingContext.textAlign = "left";
           drawingContext.textBaseline = "middle";
-          drawFittedText(modelName, position.x + 12, position.y + 17, meta.width - 24, "#f1f7f4", "700 13px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif");
-          drawFittedText(tableName, position.x + 12, position.y + 55, meta.width - 24, "#9fb7b0", "500 12px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif");
+          drawFittedTextOn(
+            drawingContext,
+            modelName,
+            position.x + 12,
+            position.y + 17,
+            meta.width - 24,
+            "#f1f7f4",
+            "700 13px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+          );
+          drawFittedTextOn(
+            drawingContext,
+            tableName,
+            position.x + 12,
+            position.y + 55,
+            meta.width - 24,
+            "#9fb7b0",
+            "500 12px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+          );
           drawingContext.restore();
         }
 
@@ -152,23 +815,23 @@ export function getBrowserCanvasDrawSource(): string {
           drawingContext.stroke();
         }
 
-        function drawRoundRect(x, y, width, height, radius) {
-          drawingContext.beginPath();
-          if (drawingContext.roundRect) {
-            drawingContext.roundRect(x, y, width, height, radius);
+        function drawRoundRectOn(context, x, y, width, height, radius) {
+          context.beginPath();
+          if (context.roundRect) {
+            context.roundRect(x, y, width, height, radius);
             return;
           }
 
-          drawingContext.moveTo(x + radius, y);
-          drawingContext.lineTo(x + width - radius, y);
-          drawingContext.quadraticCurveTo(x + width, y, x + width, y + radius);
-          drawingContext.lineTo(x + width, y + height - radius);
-          drawingContext.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-          drawingContext.lineTo(x + radius, y + height);
-          drawingContext.quadraticCurveTo(x, y + height, x, y + height - radius);
-          drawingContext.lineTo(x, y + radius);
-          drawingContext.quadraticCurveTo(x, y, x + radius, y);
-          drawingContext.closePath();
+          context.moveTo(x + radius, y);
+          context.lineTo(x + width - radius, y);
+          context.quadraticCurveTo(x + width, y, x + width, y + radius);
+          context.lineTo(x + width, y + height - radius);
+          context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+          context.lineTo(x + radius, y + height);
+          context.quadraticCurveTo(x, y + height, x, y + height - radius);
+          context.lineTo(x, y + radius);
+          context.quadraticCurveTo(x, y, x + radius, y);
+          context.closePath();
         }
 
         function drawText(text, x, y, color, font) {
@@ -177,20 +840,24 @@ export function getBrowserCanvasDrawSource(): string {
           drawingContext.fillText(String(text), x, y);
         }
 
-        function drawFittedText(text, x, y, maxWidth, color, font) {
+        function drawFittedTextOn(context, text, x, y, maxWidth, color, font) {
           const value = String(text);
-          drawingContext.fillStyle = color;
-          drawingContext.font = font;
-          if (drawingContext.measureText(value).width <= maxWidth) {
-            drawingContext.fillText(value, x, y);
+          context.fillStyle = color;
+          context.font = font;
+          if (context.measureText(value).width <= maxWidth) {
+            context.fillText(value, x, y);
             return;
           }
 
           let truncated = value;
-          while (truncated.length > 1 && drawingContext.measureText(truncated + "…").width > maxWidth) {
+          while (truncated.length > 1 && context.measureText(truncated + "…").width > maxWidth) {
             truncated = truncated.slice(0, -1);
           }
-          drawingContext.fillText(truncated.length > 1 ? truncated + "…" : "…", x, y);
+          context.fillText(truncated.length > 1 ? truncated + "…" : "…", x, y);
+        }
+
+        function drawFittedText(text, x, y, maxWidth, color, font) {
+          drawFittedTextOn(drawingContext, text, x, y, maxWidth, color, font);
         }
 
         function resizeDrawingCanvas() {
@@ -199,7 +866,7 @@ export function getBrowserCanvasDrawSource(): string {
             return;
           }
 
-          const deviceScale = window.devicePixelRatio || 1;
+          const deviceScale = getDeviceScale();
           const width = Math.max(1, Math.round(rect.width * deviceScale));
           const height = Math.max(1, Math.round(rect.height * deviceScale));
           if (drawingCanvas.width !== width || drawingCanvas.height !== height) {
@@ -207,6 +874,82 @@ export function getBrowserCanvasDrawSource(): string {
             drawingCanvas.height = height;
           }
           drawingContext.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
+        }
+
+        function getDeviceScale() {
+          return window.devicePixelRatio || 1;
+        }
+
+        function getVisibleWorldBounds(padding) {
+          const rect = canvas.getBoundingClientRect();
+          const zoom = Math.max(state.viewport.zoom, 0.05);
+          const extra = padding || 0;
+          return {
+            bottom: (rect.height - state.viewport.panY) / zoom + extra,
+            left: -state.viewport.panX / zoom - extra,
+            right: (rect.width - state.viewport.panX) / zoom + extra,
+            top: -state.viewport.panY / zoom - extra,
+          };
+        }
+
+        function pointInBounds(x, y, bounds, padding) {
+          return (
+            x >= bounds.left - padding &&
+            x <= bounds.right + padding &&
+            y >= bounds.top - padding &&
+            y <= bounds.bottom + padding
+          );
+        }
+
+        function rectIntersectsBounds(x, y, width, height, bounds, padding) {
+          return !(
+            x + width < bounds.left - padding ||
+            x > bounds.right + padding ||
+            y + height < bounds.top - padding ||
+            y > bounds.bottom + padding
+          );
+        }
+
+        function polylineIntersectsBounds(points, bounds, padding) {
+          if (points.length === 0) {
+            return false;
+          }
+
+          let minX = Number.POSITIVE_INFINITY;
+          let minY = Number.POSITIVE_INFINITY;
+          let maxX = Number.NEGATIVE_INFINITY;
+          let maxY = Number.NEGATIVE_INFINITY;
+
+          for (const point of points) {
+            minX = Math.min(minX, point.x);
+            minY = Math.min(minY, point.y);
+            maxX = Math.max(maxX, point.x);
+            maxY = Math.max(maxY, point.y);
+          }
+
+          return rectIntersectsBounds(
+            minX,
+            minY,
+            Math.max(1, maxX - minX),
+            Math.max(1, maxY - minY),
+            bounds,
+            padding,
+          );
+        }
+
+        function segmentIntersectsBounds(x1, y1, x2, y2, bounds, padding) {
+          const minX = Math.min(x1, x2);
+          const minY = Math.min(y1, y2);
+          const maxX = Math.max(x1, x2);
+          const maxY = Math.max(y1, y2);
+          return rectIntersectsBounds(
+            minX,
+            minY,
+            Math.max(1, maxX - minX),
+            Math.max(1, maxY - minY),
+            bounds,
+            padding,
+          );
         }
   `;
 }

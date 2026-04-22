@@ -49,9 +49,23 @@ export interface DiagramReadyMessage {
   type: "diagram.ready";
 }
 
+export interface DiagramInteractionSettingsSnapshot {
+  panSpeed: number;
+  zoomSpeed: number;
+}
+
 export interface RequestRefreshMessage {
+  settings?: DiagramInteractionSettingsSnapshot;
   type: "diagram.requestRefresh";
 }
 
+export interface UpdateSetupSettingsMessage {
+  settings: DiagramInteractionSettingsSnapshot;
+  type: "diagram.updateSetupSettings";
+}
+
 export type ExtensionToWebviewMessage = InitializeDiagramMessage | RefreshDiagramMessage;
-export type WebviewToExtensionMessage = DiagramReadyMessage | RequestRefreshMessage;
+export type WebviewToExtensionMessage =
+  | DiagramReadyMessage
+  | RequestRefreshMessage
+  | UpdateSetupSettingsMessage;

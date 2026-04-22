@@ -6,16 +6,17 @@ import { renderCanvasScene } from "../render/renderCanvasScene";
 import { renderInspector } from "../render/renderInspector";
 import { createDiagramRenderModel } from "../state/createDiagramRenderModel";
 import { createDiagramInteractionState } from "../state/diagramInteractionState";
+import type { DiagramInteractionSettings } from "../state/interactionSettings";
 import { getDocumentStyles } from "../styles/documentStyles";
 
 export function renderDiagramDocument(
   payload: DiagramBootstrapPayload,
   discovery?: DjangoWorkspaceDiscoveryResult,
+  settingsOverride?: Partial<DiagramInteractionSettings>,
 ): string {
   const viewModel = createDiagramRenderModel(payload, discovery);
-  const initialStateJson = serializeJsonForScriptTag(
-    createDiagramInteractionState(payload.view),
-  );
+  const initialState = createDiagramInteractionState(payload.view, settingsOverride);
+  const initialStateJson = serializeJsonForScriptTag(initialState);
   const nonce = createNonce();
 
   return `<!DOCTYPE html>
@@ -33,7 +34,7 @@ export function renderDiagramDocument(
       data-erd-root
     >
       <script id="erd-initial-state" type="application/json">${initialStateJson}</script>
-      ${renderInspector(viewModel)}
+      ${renderInspector(viewModel, initialState)}
       ${renderCanvasScene(viewModel)}
     </main>
     ${getBrowserControllerScript(nonce)}

@@ -123,6 +123,41 @@ export function getDocumentStyles(): string {
 
     .erd-list__item--enum-option { color: #e4d3a7; }
 
+    .erd-settings {
+      display: grid;
+      gap: 12px;
+    }
+
+    .erd-setting {
+      display: grid;
+      gap: 8px;
+    }
+
+    .erd-setting__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+    }
+
+    .erd-setting__label {
+      color: var(--text);
+    }
+
+    .erd-setting__value {
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .erd-setting__range {
+      width: 100%;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
     .erd-badge {
       justify-self: start;
       padding: 2px 8px;

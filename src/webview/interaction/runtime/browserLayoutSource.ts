@@ -149,7 +149,12 @@ export function getBrowserLayoutSource(): string {
 
         function findTableAtCanvasPoint(event) {
           const point = toWorldPoint(event);
-          const orderedTables = Array.from(tableMetaById.values()).reverse();
+          const orderedTables = renderModel.modelCatalogMode
+            ? getCatalogTableIdsNearPoint(point)
+                .map((modelId) => tableMetaById.get(modelId))
+                .filter(Boolean)
+                .reverse()
+            : Array.from(tableMetaById.values()).reverse();
 
           return orderedTables.find((table) => {
             if (!isVisibleModel(table.modelId)) {

@@ -1,20 +1,76 @@
 export function getBrowserRenderSource(): string {
   return `
+        let viewportRenderFrame = 0;
+
         function applyState() {
           viewport.dataset.transform =
             "translate(" + state.viewport.panX + " " + state.viewport.panY + ") scale(" + state.viewport.zoom + ")";
           renderSummary();
+          renderSetupControls();
           renderTables();
           renderEdgesAndCrossings();
           renderOverlays();
           renderPanels();
           renderHiddenTableList();
-          drawCanvas();
+          drawCanvas("full");
+        }
+
+        function applyViewportState() {
+          viewport.dataset.transform =
+            "translate(" + state.viewport.panX + " " + state.viewport.panY + ") scale(" + state.viewport.zoom + ")";
+          drawCanvas("viewport");
+        }
+
+        function cancelViewportRender() {
+          if (!viewportRenderFrame) {
+            return;
+          }
+
+          window.cancelAnimationFrame(viewportRenderFrame);
+          viewportRenderFrame = 0;
+        }
+
+        function scheduleViewportRender() {
+          if (viewportRenderFrame) {
+            return;
+          }
+
+          viewportRenderFrame = window.requestAnimationFrame(() => {
+            viewportRenderFrame = 0;
+            applyViewportState();
+          });
         }
 
         function dispatch(action) {
           state = reduceState(state, action);
+          if (action.type === "set-viewport-pan" || action.type === "set-viewport-zoom") {
+            scheduleViewportRender();
+            return;
+          }
+
+          if (action.type === "set-interaction-setting") {
+            renderSetupControls();
+            return;
+          }
+
+          if (renderModel.modelCatalogMode && isCatalogSceneAction(action)) {
+            invalidateCatalogSceneCache();
+          }
+
+          cancelViewportRender();
           applyState();
+        }
+
+        function isCatalogSceneAction(action) {
+          switch (action.type) {
+            case "reset-view":
+            case "set-layout-mode":
+            case "set-table-hidden":
+            case "set-table-manual-position":
+              return true;
+            default:
+              return false;
+          }
         }
 
         function isVisibleModel(modelId) {
@@ -210,6 +266,29 @@ export function getBrowserRenderSource(): string {
 
           for (const button of layoutButtons) {
             button.classList.toggle("is-active", button.dataset.layoutMode === state.layoutMode);
+          }
+        }
+
+        function renderSetupControls() {
+          for (const control of setupControls) {
+            const key = control.dataset.setupControl;
+            if (!key) {
+              continue;
+            }
+
+            const nextValue = getInteractionSetting(state, key);
+            if (Number(control.value) !== nextValue) {
+              control.value = String(nextValue);
+            }
+          }
+
+          for (const element of setupValueReadouts) {
+            const key = element.dataset.setupValue;
+            if (!key) {
+              continue;
+            }
+
+            element.textContent = formatInteractionSettingValue(key);
           }
         }
 

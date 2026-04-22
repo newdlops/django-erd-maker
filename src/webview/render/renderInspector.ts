@@ -1,7 +1,15 @@
 import type { DiagramRenderModel } from "../state/createDiagramRenderModel";
+import type { DiagramInteractionState } from "../state/diagramInteractionState";
+import {
+  formatInteractionSettingValue,
+  INTERACTION_SETTING_DESCRIPTORS,
+} from "../state/interactionSettings";
 import { escapeHtml } from "./escapeHtml";
 
-export function renderInspector(viewModel: DiagramRenderModel): string {
+export function renderInspector(
+  viewModel: DiagramRenderModel,
+  initialState: DiagramInteractionState,
+): string {
   return `
     <aside class="erd-sidebar">
       <section class="erd-summary">
@@ -16,6 +24,7 @@ export function renderInspector(viewModel: DiagramRenderModel): string {
         ${viewModel.modelCatalogMode ? "<p class=\"erd-summary__meta\">Model catalog mode: model and DB table names only.</p>" : ""}
         ${renderTimingSummary(viewModel)}
       </section>
+      ${renderSetupSection(initialState)}
       <section class="erd-inspector">
         ${viewModel.tables.map(renderModelPanel).join("")}
       </section>
@@ -23,6 +32,38 @@ export function renderInspector(viewModel: DiagramRenderModel): string {
       ${renderDiscovery(viewModel)}
       ${renderDiagnostics(viewModel)}
     </aside>
+  `;
+}
+
+function renderSetupSection(initialState: DiagramInteractionState): string {
+  return `
+    <section class="erd-sidebar__section">
+      <h2>Setup</h2>
+      <div class="erd-settings">
+        ${INTERACTION_SETTING_DESCRIPTORS.map((descriptor) => {
+          const value = initialState.settings[descriptor.key];
+
+          return `
+            <label class="erd-setting">
+              <span class="erd-setting__header">
+                <span class="erd-setting__label">${escapeHtml(descriptor.label)}</span>
+                <span class="erd-setting__value" data-setup-value="${escapeHtml(descriptor.key)}">${escapeHtml(formatInteractionSettingValue(value))}</span>
+              </span>
+              <input
+                type="range"
+                class="erd-setting__range"
+                data-setup-control="${escapeHtml(descriptor.key)}"
+                min="${descriptor.min}"
+                max="${descriptor.max}"
+                step="${descriptor.step}"
+                value="${value}"
+              />
+              <span class="erd-sidebar__meta">${escapeHtml(descriptor.hint)}</span>
+            </label>
+          `;
+        }).join("")}
+      </div>
+    </section>
   `;
 }
 

@@ -1,5 +1,16 @@
+import {
+  DEFAULT_INTERACTION_SETTINGS,
+  INTERACTION_SETTING_DESCRIPTORS,
+} from "../../state/interactionSettings";
+
 export function getBrowserStateSource(): string {
+  const defaultInteractionSettingsJson = JSON.stringify(DEFAULT_INTERACTION_SETTINGS);
+  const interactionSettingDescriptorsJson = JSON.stringify(INTERACTION_SETTING_DESCRIPTORS);
+
   return `
+        const defaultInteractionSettings = ${defaultInteractionSettingsJson};
+        const interactionSettingDescriptors = ${interactionSettingDescriptorsJson};
+
         function cloneState(source) {
           return JSON.parse(JSON.stringify(source));
         }
@@ -25,6 +36,7 @@ export function getBrowserStateSource(): string {
 
           return {
             layoutMode: value.layoutMode || "hierarchical",
+            settings: normalizeInteractionSettings(value.settings),
             selectedMethodContext: value.selectedMethodContext,
             selectedModelId: value.selectedModelId || fallbackModelId,
             tableOptions: Array.isArray(value.tableOptions) ? value.tableOptions : [],
@@ -116,6 +128,14 @@ export function getBrowserStateSource(): string {
           };
         }
 
+        function normalizeInteractionSettings(settings) {
+          const source = settings || {};
+          return {
+            panSpeed: clampInteractionSetting("panSpeed", source.panSpeed),
+            zoomSpeed: clampInteractionSetting("zoomSpeed", source.zoomSpeed),
+          };
+        }
+
         function isPlaceholderViewport(viewport) {
           return (
             !viewport ||
@@ -131,10 +151,45 @@ export function getBrowserStateSource(): string {
           return Math.max(0.05, Math.min(2.2, value));
         }
 
+        function clampInteractionSetting(key, value) {
+          const descriptor = interactionSettingDescriptors.find((item) => item.key === key);
+          const fallback = defaultInteractionSettings[key];
+          if (!descriptor || !Number.isFinite(value)) {
+            return fallback;
+          }
+
+          return roundToStep(
+            Math.max(descriptor.min, Math.min(descriptor.max, value)),
+            descriptor.step,
+          );
+        }
+
+        function formatInteractionSettingValue(key) {
+          return Math.round(getInteractionSetting(state, key) * 100) + "%";
+        }
+
+        function getInteractionSetting(currentState, key) {
+          if (!currentState || !currentState.settings) {
+            return defaultInteractionSettings[key];
+          }
+
+          const value = currentState.settings[key];
+          return Number.isFinite(value) ? value : defaultInteractionSettings[key];
+        }
+
+        function roundToStep(value, step) {
+          return Math.round(Math.round(value / step) * step * 100) / 100;
+        }
+
         function reduceState(currentState, action) {
           switch (action.type) {
             case "reset-view":
-              return cloneState(action.initialState);
+              return {
+                ...cloneState(action.initialState),
+                settings: {
+                  ...currentState.settings,
+                },
+              };
             case "select-model":
               return {
                 ...currentState,
@@ -193,6 +248,14 @@ export function getBrowserStateSource(): string {
                 ...options,
                 showProperties: action.showProperties,
               }));
+            case "set-interaction-setting":
+              return {
+                ...currentState,
+                settings: {
+                  ...currentState.settings,
+                  [action.key]: clampInteractionSetting(action.key, action.value),
+                },
+              };
             case "set-viewport-pan":
               return {
                 ...currentState,

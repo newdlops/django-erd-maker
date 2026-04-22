@@ -27,6 +27,8 @@ export function getBrowserControllerScript(nonce: string): string {
         const hiddenModelItems = Array.from(document.querySelectorAll("[data-hidden-model-item]"));
         const showHiddenButtons = Array.from(document.querySelectorAll("[data-show-hidden-model]"));
         const tableToggleButtons = Array.from(document.querySelectorAll("[data-table-toggle]"));
+        const setupControls = Array.from(document.querySelectorAll("[data-setup-control]"));
+        const setupValueReadouts = Array.from(document.querySelectorAll("[data-setup-value]"));
         const zoomButtons = Array.from(document.querySelectorAll("[data-zoom-action]"));
         const layoutReadouts = Array.from(document.querySelectorAll("[data-layout-readout]"));
         const hiddenCountReadouts = Array.from(document.querySelectorAll("[data-hidden-count]"));

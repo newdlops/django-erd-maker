@@ -5,6 +5,13 @@ import type {
   SelectedMethodContext,
   TableViewOptions,
 } from "../../shared/protocol/webviewContract";
+import {
+  clampInteractionSetting,
+  DEFAULT_INTERACTION_SETTINGS,
+  normalizeInteractionSettings,
+  type DiagramInteractionSettingKey,
+  type DiagramInteractionSettings,
+} from "./interactionSettings";
 
 export interface DiagramViewportState {
   panX: number;
@@ -13,6 +20,7 @@ export interface DiagramViewportState {
 }
 
 export interface DiagramInteractionState extends InitialViewState {
+  settings: DiagramInteractionSettings;
   viewport: DiagramViewportState;
 }
 
@@ -25,6 +33,7 @@ export type DiagramInteractionAction =
   | { modelId: ModelId; showMethodHighlights: boolean; type: "set-table-show-method-highlights" }
   | { modelId: ModelId; showMethods: boolean; type: "set-table-show-methods" }
   | { modelId: ModelId; showProperties: boolean; type: "set-table-show-properties" }
+  | { key: DiagramInteractionSettingKey; type: "set-interaction-setting"; value: number }
   | { panX: number; panY: number; type: "set-viewport-pan" }
   | { type: "set-viewport-zoom"; zoom: number }
   | { initialState: DiagramInteractionState; type: "reset-view" };
@@ -37,9 +46,11 @@ export const DEFAULT_VIEWPORT: DiagramViewportState = {
 
 export function createDiagramInteractionState(
   view: InitialViewState,
+  settingsOverride?: Partial<DiagramInteractionSettings>,
 ): DiagramInteractionState {
   return {
     layoutMode: view.layoutMode,
+    settings: normalizeInteractionSettings(settingsOverride ?? DEFAULT_INTERACTION_SETTINGS),
     selectedMethodContext: cloneSelectedMethodContext(view.selectedMethodContext),
     selectedModelId: view.selectedModelId,
     tableOptions: view.tableOptions.map(cloneTableViewOptions),
@@ -53,7 +64,10 @@ export function reduceDiagramInteractionState(
 ): DiagramInteractionState {
   switch (action.type) {
     case "reset-view":
-      return cloneDiagramInteractionState(action.initialState);
+      return {
+        ...cloneDiagramInteractionState(action.initialState),
+        settings: { ...state.settings },
+      };
     case "select-model":
       return {
         ...state,
@@ -109,6 +123,14 @@ export function reduceDiagramInteractionState(
         ...options,
         showProperties: action.showProperties,
       }));
+    case "set-interaction-setting":
+      return {
+        ...state,
+        settings: {
+          ...state.settings,
+          [action.key]: clampInteractionSetting(action.key, action.value),
+        },
+      };
     case "set-viewport-pan":
       return {
         ...state,
@@ -134,6 +156,7 @@ export function cloneDiagramInteractionState(
 ): DiagramInteractionState {
   return {
     layoutMode: state.layoutMode,
+    settings: { ...state.settings },
     selectedMethodContext: cloneSelectedMethodContext(state.selectedMethodContext),
     selectedModelId: state.selectedModelId,
     tableOptions: state.tableOptions.map(cloneTableViewOptions),

@@ -42,7 +42,10 @@ export function getBrowserEventSource(): string {
 
         for (const button of document.querySelectorAll("[data-panel-refresh]")) {
           button.addEventListener("click", () => {
-            vscode?.postMessage({ type: "diagram.requestRefresh" });
+            vscode?.postMessage({
+              settings: { ...state.settings },
+              type: "diagram.requestRefresh",
+            });
           });
         }
 
@@ -98,19 +101,40 @@ export function getBrowserEventSource(): string {
           });
         }
 
+        for (const control of setupControls) {
+          control.addEventListener("input", () => {
+            const key = control.dataset.setupControl;
+            if (!key) {
+              return;
+            }
+
+            dispatch({
+              key,
+              type: "set-interaction-setting",
+              value: Number(control.value),
+            });
+            vscode?.postMessage({
+              settings: { ...state.settings },
+              type: "diagram.updateSetupSettings",
+            });
+          });
+        }
+
         for (const button of zoomButtons) {
           button.addEventListener("click", () => {
+            const zoomDelta = 0.12 * getInteractionSetting(state, "zoomSpeed");
+
             switch (button.dataset.zoomAction) {
               case "in":
                 dispatch({
                   type: "set-viewport-zoom",
-                  zoom: state.viewport.zoom + 0.12,
+                  zoom: state.viewport.zoom + zoomDelta,
                 });
                 break;
               case "out":
                 dispatch({
                   type: "set-viewport-zoom",
-                  zoom: state.viewport.zoom - 0.12,
+                  zoom: state.viewport.zoom - zoomDelta,
                 });
                 break;
               default:
@@ -167,8 +191,8 @@ export function getBrowserEventSource(): string {
 
           if (drag.kind === "canvas") {
             dispatch({
-              panX: drag.panX + (event.clientX - drag.originX),
-              panY: drag.panY + (event.clientY - drag.originY),
+              panX: drag.panX + (event.clientX - drag.originX) * getInteractionSetting(state, "panSpeed"),
+              panY: drag.panY + (event.clientY - drag.originY) * getInteractionSetting(state, "panSpeed"),
               type: "set-viewport-pan",
             });
             return;
@@ -212,9 +236,10 @@ export function getBrowserEventSource(): string {
 
         canvas.addEventListener("wheel", (event) => {
           event.preventDefault();
+          const zoomDelta = 0.08 * getInteractionSetting(state, "zoomSpeed");
           dispatch({
             type: "set-viewport-zoom",
-            zoom: state.viewport.zoom + (event.deltaY < 0 ? 0.08 : -0.08),
+            zoom: state.viewport.zoom + (event.deltaY < 0 ? zoomDelta : -zoomDelta),
           });
         }, { passive: false });
   `;

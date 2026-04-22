@@ -1,6 +1,9 @@
 import * as vscode from "vscode";
 
-import type { WebviewToExtensionMessage } from "../../shared/protocol/webviewContract";
+import type {
+  DiagramInteractionSettingsSnapshot,
+  WebviewToExtensionMessage,
+} from "../../shared/protocol/webviewContract";
 import type { LiveDiagramResult } from "../services/diagram/loadLiveDiagram";
 import type { DiagramBootstrapPayload } from "../../shared/protocol/webviewContract";
 import { mergePipelineTimings } from "../../shared/protocol/mergePipelineTimings";
@@ -47,6 +50,7 @@ export class ErdPanel {
       timeout: ReturnType<typeof setTimeout>;
     }
   >();
+  private persistedSetupSettings: DiagramInteractionSettingsSnapshot | undefined;
   private refreshLoader: RefreshLoader | undefined;
   private webviewReady = false;
 
@@ -126,7 +130,17 @@ export class ErdPanel {
         this.webviewReady = true;
         this.resolveAllReadyWaiters();
         return;
+      case "diagram.updateSetupSettings":
+        this.persistedSetupSettings = {
+          ...message.settings,
+        };
+        return;
       case "diagram.requestRefresh":
+        if (message.settings) {
+          this.persistedSetupSettings = {
+            ...message.settings,
+          };
+        }
         await this.refresh();
         return;
       case "diagram.test.error":
@@ -156,11 +170,19 @@ export class ErdPanel {
     this.webviewReady = false;
     this.rejectAllReadyWaiters("Webview was reloaded before becoming ready.");
     const renderStarted = Date.now();
-    renderDiagramDocument(liveDiagram.payload, liveDiagram.discovery);
+    renderDiagramDocument(
+      liveDiagram.payload,
+      liveDiagram.discovery,
+      this.persistedSetupSettings,
+    );
     liveDiagram.payload.timings = mergePipelineTimings(liveDiagram.payload.timings, {
       renderDocumentMs: Date.now() - renderStarted,
     });
-    const html = renderDiagramDocument(liveDiagram.payload, liveDiagram.discovery);
+    const html = renderDiagramDocument(
+      liveDiagram.payload,
+      liveDiagram.discovery,
+      this.persistedSetupSettings,
+    );
     this.currentState = {
       discovery: liveDiagram.discovery,
       html,
