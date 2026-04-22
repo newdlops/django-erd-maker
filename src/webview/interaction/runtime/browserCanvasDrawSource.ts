@@ -637,7 +637,7 @@ export function getBrowserCanvasDrawSource(): string {
         }
 
         function getWorldBoundsForScreenRect(screenRect) {
-          const zoom = Math.max(state.viewport.zoom, 0.05);
+          const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
           return {
             bottom: (screenRect.y + screenRect.height - state.viewport.panY) / zoom,
             left: (screenRect.x - state.viewport.panX) / zoom,
@@ -892,7 +892,7 @@ export function getBrowserCanvasDrawSource(): string {
 
         function getVisibleWorldBounds(padding) {
           const rect = canvas.getBoundingClientRect();
-          const zoom = Math.max(state.viewport.zoom, 0.05);
+          const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
           const extra = padding || 0;
           return {
             bottom: (rect.height - state.viewport.panY) / zoom + extra,

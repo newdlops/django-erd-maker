@@ -10,6 +10,7 @@ export function getBrowserStateSource(): string {
   return `
         const defaultInteractionSettings = ${defaultInteractionSettingsJson};
         const interactionSettingDescriptors = ${interactionSettingDescriptorsJson};
+        const MIN_VIEWPORT_ZOOM = 0.005;
 
         function cloneState(source) {
           return JSON.parse(JSON.stringify(source));
@@ -50,10 +51,11 @@ export function getBrowserStateSource(): string {
           return computeViewportForLayout(
             initialValue.layoutMode || "hierarchical",
             Array.isArray(initialValue.tableOptions) ? initialValue.tableOptions : [],
+            { keepCatalogReadable: true },
           );
         }
 
-        function computeViewportForLayout(layoutMode, tableOptions) {
+        function computeViewportForLayout(layoutMode, tableOptions, options) {
           const canvasRect = canvas.getBoundingClientRect();
           const canvasWidth = Math.max(1, canvasRect.width);
           const canvasHeight = Math.max(1, canvasRect.height);
@@ -108,8 +110,8 @@ export function getBrowserStateSource(): string {
           const worldWidth = Math.max(1, maxX - minX + worldPadding * 2);
           const worldHeight = Math.max(1, maxY - minY + worldPadding * 2);
           const fittedZoom = Math.min(
-            Math.max(0.05, (canvasWidth - screenPadding * 2) / worldWidth),
-            Math.max(0.05, (canvasHeight - screenPadding * 2) / worldHeight),
+            Math.max(MIN_VIEWPORT_ZOOM, (canvasWidth - screenPadding * 2) / worldWidth),
+            Math.max(MIN_VIEWPORT_ZOOM, (canvasHeight - screenPadding * 2) / worldHeight),
           );
           const catalogTableWidth = renderModel.modelCatalogMode
             ? Math.max(
@@ -119,9 +121,9 @@ export function getBrowserStateSource(): string {
             : 0;
           const minimumCatalogZoom = renderModel.modelCatalogMode
             ? Math.max(0.18, Math.min(0.28, 72 / catalogTableWidth))
-            : 0.05;
+            : MIN_VIEWPORT_ZOOM;
           const zoom = clampZoom(
-            renderModel.modelCatalogMode
+            renderModel.modelCatalogMode && options?.keepCatalogReadable
               ? Math.max(fittedZoom, minimumCatalogZoom)
               : fittedZoom,
           );
@@ -134,6 +136,71 @@ export function getBrowserStateSource(): string {
             panX: Math.round(centeredPanX * 100) / 100,
             panY: Math.round(centeredPanY * 100) / 100,
             zoom,
+          };
+        }
+
+        function computeCenteredViewportForLayout(layoutMode, tableOptions, zoom) {
+          const bounds = computeLayoutBounds(layoutMode, tableOptions);
+          if (!bounds) {
+            return {
+              ...state.viewport,
+            };
+          }
+
+          const canvasRect = canvas.getBoundingClientRect();
+          const canvasWidth = Math.max(1, canvasRect.width);
+          const canvasHeight = Math.max(1, canvasRect.height);
+          const centerX = (bounds.minX + bounds.maxX) / 2;
+          const centerY = (bounds.minY + bounds.maxY) / 2;
+
+          return {
+            panX: Math.round((canvasWidth / 2 - centerX * zoom) * 100) / 100,
+            panY: Math.round((canvasHeight / 2 - centerY * zoom) * 100) / 100,
+            zoom,
+          };
+        }
+
+        function computeLayoutBounds(layoutMode, tableOptions) {
+          const optionsByModelId = new Map(
+            (Array.isArray(tableOptions) ? tableOptions : []).map((options) => [
+              options.modelId,
+              options,
+            ]),
+          );
+          const layout = layoutVariants[layoutMode] || layoutVariants.hierarchical || {};
+          let minX = Number.POSITIVE_INFINITY;
+          let minY = Number.POSITIVE_INFINITY;
+          let maxX = Number.NEGATIVE_INFINITY;
+          let maxY = Number.NEGATIVE_INFINITY;
+          let visibleCount = 0;
+
+          for (const table of tableMetaById.values()) {
+            const options = optionsByModelId.get(table.modelId);
+            if (options && options.hidden) {
+              continue;
+            }
+
+            const position =
+              (options && options.manualPosition) ||
+              layout[table.modelId] ||
+              table.basePosition || { x: 0, y: 0 };
+            minX = Math.min(minX, position.x);
+            minY = Math.min(minY, position.y);
+            maxX = Math.max(maxX, position.x + table.width);
+            maxY = Math.max(maxY, position.y + table.height);
+            visibleCount += 1;
+          }
+
+          if (!Number.isFinite(minX) || !Number.isFinite(minY) || visibleCount === 0) {
+            return undefined;
+          }
+
+          return {
+            maxX,
+            maxY,
+            minX,
+            minY,
+            visibleCount,
           };
         }
 
@@ -166,7 +233,7 @@ export function getBrowserStateSource(): string {
         }
 
         function clampZoom(value) {
-          return Math.max(0.05, Math.min(2.2, value));
+          return Math.max(MIN_VIEWPORT_ZOOM, Math.min(2.2, value));
         }
 
         function clampInteractionSetting(key, value) {
@@ -236,7 +303,11 @@ export function getBrowserStateSource(): string {
               return {
                 ...currentState,
                 layoutMode: action.layoutMode,
-                viewport: computeViewportForLayout(action.layoutMode, currentState.tableOptions),
+                viewport: computeViewportForLayout(
+                  action.layoutMode,
+                  currentState.tableOptions,
+                  { keepCatalogReadable: true },
+                ),
               };
             case "set-table-hidden":
               return withTableOptions(currentState, action.modelId, (options) => ({
@@ -291,6 +362,24 @@ export function getBrowserStateSource(): string {
                   ...currentState.viewport,
                   zoom: clampZoom(action.zoom),
                 },
+              };
+            case "fit-viewport":
+              return {
+                ...currentState,
+                viewport: computeViewportForLayout(
+                  currentState.layoutMode,
+                  currentState.tableOptions,
+                  { keepCatalogReadable: false },
+                ),
+              };
+            case "center-viewport":
+              return {
+                ...currentState,
+                viewport: computeCenteredViewportForLayout(
+                  currentState.layoutMode,
+                  currentState.tableOptions,
+                  currentState.viewport.zoom,
+                ),
               };
             default:
               return currentState;

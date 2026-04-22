@@ -10,7 +10,8 @@ export function renderCanvasScene(viewModel: DiagramRenderModel): string {
         <div class="erd-toolbar-group">
           <button type="button" class="erd-tool" data-zoom-action="in">Zoom In</button>
           <button type="button" class="erd-tool" data-zoom-action="out">Zoom Out</button>
-          <button type="button" class="erd-tool" data-zoom-action="reset">Reset Camera</button>
+          <button type="button" class="erd-tool" data-zoom-action="fit">Auto Fit</button>
+          <button type="button" class="erd-tool" data-zoom-action="center">Move To Center</button>
         </div>
         <div class="erd-toolbar-group">
           ${renderLayoutButton("hierarchical", viewModel.layoutMode)}

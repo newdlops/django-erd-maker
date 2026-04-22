@@ -180,7 +180,7 @@ export function getTableViewOptions(
 }
 
 function clampZoom(value: number): number {
-  return Math.max(0.05, Math.min(2.2, value));
+  return Math.max(0.005, Math.min(2.2, value));
 }
 
 function cloneSelectedMethodContext(

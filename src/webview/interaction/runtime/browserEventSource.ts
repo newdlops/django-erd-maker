@@ -137,15 +137,14 @@ export function getBrowserEventSource(): string {
                   zoom: state.viewport.zoom - zoomDelta,
                 });
                 break;
-              default:
+              case "fit":
                 dispatch({
-                  panX: initialState.viewport.panX,
-                  panY: initialState.viewport.panY,
-                  type: "set-viewport-pan",
+                  type: "fit-viewport",
                 });
+                break;
+              case "center":
                 dispatch({
-                  type: "set-viewport-zoom",
-                  zoom: initialState.viewport.zoom,
+                  type: "center-viewport",
                 });
                 break;
             }

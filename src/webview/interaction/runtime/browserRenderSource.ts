@@ -43,7 +43,12 @@ export function getBrowserRenderSource(): string {
 
         function dispatch(action) {
           state = reduceState(state, action);
-          if (action.type === "set-viewport-pan" || action.type === "set-viewport-zoom") {
+          if (
+            action.type === "set-viewport-pan" ||
+            action.type === "set-viewport-zoom" ||
+            action.type === "fit-viewport" ||
+            action.type === "center-viewport"
+          ) {
             scheduleViewportRender();
             return;
           }
