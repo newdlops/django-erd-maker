@@ -77,6 +77,8 @@ export function getBrowserCanvasDrawSource(): string {
           drawingContext.translate(state.viewport.panX, state.viewport.panY);
           drawingContext.scale(state.viewport.zoom, state.viewport.zoom);
 
+          drawCatalogEdges(visibleBounds);
+
           let renderedContentTileCount = 0;
           for (const tile of visibleTiles) {
             if (tile.renderedVersion !== catalogSceneVersion || !tile.canvas) {
@@ -96,6 +98,59 @@ export function getBrowserCanvasDrawSource(): string {
           drawCatalogDynamicTableOverlays(visibleBounds);
           drawingContext.restore();
           scheduleCatalogTileRasterization();
+        }
+
+        function drawCatalogEdges(visibleBounds) {
+          if (!renderedEdges.length) {
+            return;
+          }
+
+          drawingContext.save();
+          drawingContext.lineCap = "round";
+          drawingContext.lineJoin = "round";
+
+          for (const edge of renderedEdges) {
+            if (!polylineIntersectsBounds(edge.points, visibleBounds, 96)) {
+              continue;
+            }
+
+            drawingContext.strokeStyle = catalogEdgeStrokeStyle(edge.meta);
+            drawingContext.lineWidth = catalogEdgeLineWidth(edge.meta);
+            drawingContext.globalAlpha = edge.meta.provenance === "derived_reverse" ? 0.58 : 0.72;
+            if (edge.meta.provenance === "derived_reverse") {
+              drawingContext.setLineDash([14, 12]);
+            } else {
+              drawingContext.setLineDash([]);
+            }
+
+            drawPolyline(edge.points);
+          }
+
+          drawingContext.restore();
+        }
+
+        function catalogEdgeStrokeStyle(edgeMeta) {
+          if (edgeMeta.cssKind.includes("many-to-many")) {
+            return "#f7d18a";
+          }
+
+          if (edgeMeta.cssKind.includes("one-to-one")) {
+            return "#a8d8ff";
+          }
+
+          return edgeMeta.provenance === "derived_reverse" ? "#9dcfe1" : "#b6e7d9";
+        }
+
+        function catalogEdgeLineWidth(edgeMeta) {
+          if (edgeMeta.cssKind.includes("many-to-many")) {
+            return 4.8;
+          }
+
+          if (edgeMeta.cssKind.includes("one-to-one")) {
+            return 4.4;
+          }
+
+          return 4.2;
         }
 
         function drawCatalogDynamicTableOverlays(visibleBounds) {

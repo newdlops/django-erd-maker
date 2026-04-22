@@ -131,7 +131,9 @@ export function createDiagramRenderModel(
     canvas: canvasSize(payload, tables, modelCatalogMode),
     crossings: modelCatalogMode ? [] : payload.layout.crossings,
     edges: modelCatalogMode
-      ? []
+      ? payload.graph.structuralEdges
+          .map((edge) => createCatalogEdgeRenderModel(edge, layoutNodesById))
+          .filter((edge): edge is EdgeRenderModel => Boolean(edge))
       : payload.layout.routedEdges
           .map((route) => createEdgeRenderModel(route, payload.graph.structuralEdges))
           .filter((edge): edge is EdgeRenderModel => Boolean(edge)),
@@ -146,6 +148,33 @@ export function createDiagramRenderModel(
     overlays,
     timings: payload.timings,
     tables: modelCatalogMode ? tables.map(toCatalogTable) : tables,
+  };
+}
+
+function createCatalogEdgeRenderModel(
+  edge: StructuralGraphEdge,
+  layoutNodesById: Map<ModelId, DiagramBootstrapPayload["layout"]["nodes"][number]>,
+): EdgeRenderModel | undefined {
+  if (
+    edge.sourceModelId === edge.targetModelId ||
+    !layoutNodesById.has(edge.sourceModelId) ||
+    !layoutNodesById.has(edge.targetModelId)
+  ) {
+    return undefined;
+  }
+
+  const [markerStartId, markerEndId] = markerIds(edge.kind);
+
+  return {
+    crossingIds: [],
+    cssKind: edge.kind.replaceAll("_", "-"),
+    edgeId: edge.id,
+    markerEndId,
+    markerStartId,
+    points: "",
+    provenance: edge.provenance,
+    sourceModelId: edge.sourceModelId,
+    targetModelId: edge.targetModelId,
   };
 }
 

@@ -129,7 +129,11 @@ export function getBrowserRenderSource(): string {
             });
           }
 
-          if (!crossingsLayer) {
+          if (renderModel.modelCatalogMode || !crossingsLayer) {
+            renderedCrossings = [];
+            if (crossingsLayer) {
+              crossingsLayer.innerHTML = "";
+            }
             return;
           }
 
