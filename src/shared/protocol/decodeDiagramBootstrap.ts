@@ -211,7 +211,12 @@ function decodeLayout(record: JsonRecord): LayoutSnapshot {
     crossings: readArray(record, "crossings", "diagramBootstrapPayload.layout").map((item, index) =>
       decodeEdgeCrossing(item, `diagramBootstrapPayload.layout.crossings[${index}]`),
     ),
-    mode: readLiteral(record, "mode", ["circular", "clustered", "hierarchical"], "diagramBootstrapPayload.layout"),
+    mode: readLiteral(
+      record,
+      "mode",
+      ["circular", "clustered", "flow", "graph", "hierarchical", "neural", "radial"],
+      "diagramBootstrapPayload.layout",
+    ),
     nodes: readArray(record, "nodes", "diagramBootstrapPayload.layout").map((item, index) =>
       decodeNodeLayout(item, `diagramBootstrapPayload.layout.nodes[${index}]`),
     ),
@@ -448,7 +453,12 @@ function decodeViewState(record: JsonRecord): InitialViewState {
   );
 
   return {
-    layoutMode: readLiteral(record, "layoutMode", ["circular", "clustered", "hierarchical"], "diagramBootstrapPayload.view"),
+    layoutMode: readLiteral(
+      record,
+      "layoutMode",
+      ["circular", "clustered", "flow", "graph", "hierarchical", "neural", "radial"],
+      "diagramBootstrapPayload.view",
+    ),
     selectedMethodContext: selectedMethodContext
       ? decodeSelectedMethodContext(
           selectedMethodContext,

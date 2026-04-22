@@ -51,6 +51,7 @@ export class ErdPanel {
     }
   >();
   private persistedSetupSettings: DiagramInteractionSettingsSnapshot | undefined;
+  private persistedLayoutMode: DiagramBootstrapPayload["view"]["layoutMode"] | undefined;
   private refreshLoader: RefreshLoader | undefined;
   private webviewReady = false;
 
@@ -136,6 +137,9 @@ export class ErdPanel {
         };
         return;
       case "diagram.requestRefresh":
+        if (message.layoutMode) {
+          this.persistedLayoutMode = message.layoutMode;
+        }
         if (message.settings) {
           this.persistedSetupSettings = {
             ...message.settings,
@@ -169,24 +173,32 @@ export class ErdPanel {
     this.latestWebviewSnapshot = undefined;
     this.webviewReady = false;
     this.rejectAllReadyWaiters("Webview was reloaded before becoming ready.");
+    const payload: DiagramBootstrapPayload = {
+      ...liveDiagram.payload,
+      view: {
+        ...liveDiagram.payload.view,
+        layoutMode:
+          this.persistedLayoutMode ?? liveDiagram.payload.view.layoutMode,
+      },
+    };
     const renderStarted = Date.now();
     renderDiagramDocument(
-      liveDiagram.payload,
+      payload,
       liveDiagram.discovery,
       this.persistedSetupSettings,
     );
-    liveDiagram.payload.timings = mergePipelineTimings(liveDiagram.payload.timings, {
+    payload.timings = mergePipelineTimings(payload.timings, {
       renderDocumentMs: Date.now() - renderStarted,
     });
     const html = renderDiagramDocument(
-      liveDiagram.payload,
+      payload,
       liveDiagram.discovery,
       this.persistedSetupSettings,
     );
     this.currentState = {
       discovery: liveDiagram.discovery,
       html,
-      payload: liveDiagram.payload,
+      payload,
     };
     this.panel.webview.html = this.currentState.html;
   }

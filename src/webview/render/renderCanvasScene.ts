@@ -15,6 +15,10 @@ export function renderCanvasScene(viewModel: DiagramRenderModel): string {
         </div>
         <div class="erd-toolbar-group">
           ${renderLayoutButton("hierarchical", viewModel.layoutMode)}
+          ${renderLayoutButton("graph", viewModel.layoutMode)}
+          ${renderLayoutButton("radial", viewModel.layoutMode)}
+          ${renderLayoutButton("neural", viewModel.layoutMode)}
+          ${renderLayoutButton("flow", viewModel.layoutMode)}
           ${renderLayoutButton("circular", viewModel.layoutMode)}
           ${renderLayoutButton("clustered", viewModel.layoutMode)}
         </div>

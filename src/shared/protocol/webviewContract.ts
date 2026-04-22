@@ -55,6 +55,7 @@ export interface DiagramInteractionSettingsSnapshot {
 }
 
 export interface RequestRefreshMessage {
+  layoutMode?: LayoutMode;
   settings?: DiagramInteractionSettingsSnapshot;
   type: "diagram.requestRefresh";
 }

@@ -43,6 +43,7 @@ export function getBrowserEventSource(): string {
         for (const button of document.querySelectorAll("[data-panel-refresh]")) {
           button.addEventListener("click", () => {
             vscode?.postMessage({
+              layoutMode: state.layoutMode,
               settings: { ...state.settings },
               type: "diagram.requestRefresh",
             });

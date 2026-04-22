@@ -33,6 +33,10 @@ test("phase8 document renders canvas scene metadata, routed edges, crossings, ch
   assert.match(html, /fn publish/);
   assert.match(html, /erd-relation-chip--high[\s\S]*accounts\.Author/);
   assert.match(html, /data-layout-mode="hierarchical"/);
+  assert.match(html, /data-layout-mode="flow"/);
+  assert.match(html, /data-layout-mode="graph"/);
+  assert.match(html, /data-layout-mode="neural"/);
+  assert.match(html, /data-layout-mode="radial"/);
   assert.match(html, /id="erd-initial-state"/);
 });
 

@@ -1,7 +1,14 @@
 import type { ModelId } from "../domain/modelIdentity";
 
 export type CrossingMarkerStyle = "bridge" | "marker";
-export type LayoutMode = "circular" | "clustered" | "hierarchical";
+export type LayoutMode =
+  | "circular"
+  | "clustered"
+  | "flow"
+  | "graph"
+  | "hierarchical"
+  | "neural"
+  | "radial";
 
 export interface Point {
   x: number;

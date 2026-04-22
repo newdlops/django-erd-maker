@@ -207,6 +207,86 @@ const scenarioHandlers = {
     );
     assert.equal(requireTableSnapshot(circularSnapshot, "blog.Post").hidden, false);
 
+    const graphSnapshot = await runWebviewAction({
+      layoutMode: "graph",
+      type: "clickLayoutMode",
+    });
+
+    assert.equal(graphSnapshot.state.layoutMode, "graph");
+    assert.deepEqual(snapshotModelIds(graphSnapshot), snapshotModelIds(initialSnapshot));
+    assert.notDeepEqual(
+      tableTransformsByModel(graphSnapshot),
+      tableTransformsByModel(circularSnapshot),
+    );
+    assert.notEqual(
+      requireEdgeSnapshot(graphSnapshot, "blog.Post", "accounts.Author").points,
+      requireEdgeSnapshot(circularSnapshot, "blog.Post", "accounts.Author").points,
+    );
+    const graphPositions = tablePositionsByModel(graphSnapshot);
+    const authorTagMidpoint = midpoint(
+      graphPositions["accounts.Author"],
+      graphPositions["taxonomy.Tag"],
+    );
+
+    assert.ok(
+      distanceBetweenPoints(graphPositions["blog.Post"], authorTagMidpoint) <
+        distanceBetweenPoints(graphPositions["accounts.Author"], authorTagMidpoint),
+      "graph layout should pull blog.Post closer to the midpoint of its neighbors",
+    );
+    assert.ok(
+      distanceBetweenPoints(graphPositions["blog.Post"], authorTagMidpoint) <
+        distanceBetweenPoints(graphPositions["taxonomy.Tag"], authorTagMidpoint),
+      "graph layout should keep blog.Post between connected neighbors",
+    );
+
+    const neuralSnapshot = await runWebviewAction({
+      layoutMode: "neural",
+      type: "clickLayoutMode",
+    });
+
+    assert.equal(neuralSnapshot.state.layoutMode, "neural");
+    assert.deepEqual(snapshotModelIds(neuralSnapshot), snapshotModelIds(initialSnapshot));
+    assert.notDeepEqual(
+      tableTransformsByModel(neuralSnapshot),
+      tableTransformsByModel(graphSnapshot),
+    );
+    assert.notEqual(
+      requireEdgeSnapshot(neuralSnapshot, "blog.Post", "accounts.Author").points,
+      requireEdgeSnapshot(graphSnapshot, "blog.Post", "accounts.Author").points,
+    );
+
+    const flowSnapshot = await runWebviewAction({
+      layoutMode: "flow",
+      type: "clickLayoutMode",
+    });
+
+    assert.equal(flowSnapshot.state.layoutMode, "flow");
+    assert.deepEqual(snapshotModelIds(flowSnapshot), snapshotModelIds(initialSnapshot));
+    assert.notDeepEqual(
+      tableTransformsByModel(flowSnapshot),
+      tableTransformsByModel(neuralSnapshot),
+    );
+    assert.notEqual(
+      requireEdgeSnapshot(flowSnapshot, "blog.Post", "accounts.Author").points,
+      requireEdgeSnapshot(neuralSnapshot, "blog.Post", "accounts.Author").points,
+    );
+
+    const radialSnapshot = await runWebviewAction({
+      layoutMode: "radial",
+      type: "clickLayoutMode",
+    });
+
+    assert.equal(radialSnapshot.state.layoutMode, "radial");
+    assert.deepEqual(snapshotModelIds(radialSnapshot), snapshotModelIds(initialSnapshot));
+    assert.notDeepEqual(
+      tableTransformsByModel(radialSnapshot),
+      tableTransformsByModel(flowSnapshot),
+    );
+    assert.notEqual(
+      requireEdgeSnapshot(radialSnapshot, "blog.Post", "accounts.Author").points,
+      requireEdgeSnapshot(flowSnapshot, "blog.Post", "accounts.Author").points,
+    );
+
     const clusteredSnapshot = await runWebviewAction({
       layoutMode: "clustered",
       type: "clickLayoutMode",
@@ -216,11 +296,11 @@ const scenarioHandlers = {
     assert.deepEqual(snapshotModelIds(clusteredSnapshot), snapshotModelIds(initialSnapshot));
     assert.notDeepEqual(
       tableTransformsByModel(clusteredSnapshot),
-      tableTransformsByModel(circularSnapshot),
+      tableTransformsByModel(radialSnapshot),
     );
     assert.notEqual(
       requireEdgeSnapshot(clusteredSnapshot, "blog.Post", "accounts.Author").points,
-      requireEdgeSnapshot(circularSnapshot, "blog.Post", "accounts.Author").points,
+      requireEdgeSnapshot(radialSnapshot, "blog.Post", "accounts.Author").points,
     );
   },
   "E2E-12": async () => {
@@ -352,6 +432,37 @@ function tableTransformsByModel(snapshot) {
       .map((table) => [table.modelId, table.transform])
       .sort(([left], [right]) => left.localeCompare(right)),
   );
+}
+
+function tablePositionsByModel(snapshot) {
+  return Object.fromEntries(
+    snapshot.tables
+      .map((table) => [table.modelId, parseTranslate(table.transform)])
+      .sort(([left], [right]) => left.localeCompare(right)),
+  );
+}
+
+function parseTranslate(transform) {
+  const match = transform.match(
+    /^translate\((?<x>-?\d+(?:\.\d+)?) (?<y>-?\d+(?:\.\d+)?)\)$/,
+  );
+
+  assert.ok(match?.groups, `Expected translate transform, got ${transform}`);
+  return {
+    x: Number(match.groups.x),
+    y: Number(match.groups.y),
+  };
+}
+
+function midpoint(left, right) {
+  return {
+    x: (left.x + right.x) / 2,
+    y: (left.y + right.y) / 2,
+  };
+}
+
+function distanceBetweenPoints(left, right) {
+  return Math.hypot(left.x - right.x, left.y - right.y);
 }
 
 function tableViewOptions(snapshot, modelId) {
