@@ -13,6 +13,10 @@ import type { EdgeCrossing, RoutedEdgePath } from "../../shared/graph/layoutCont
 import type { StructuralGraphEdge, MethodAssociation } from "../../shared/graph/diagramGraph";
 
 const MODEL_CATALOG_MODE_THRESHOLD = 500;
+const CATALOG_BASE_TABLE_HEIGHT = 74;
+const CATALOG_BASE_TABLE_WIDTH = 236;
+const CATALOG_MAX_TABLE_HEIGHT = 434;
+const CATALOG_MAX_TABLE_WIDTH = 396;
 
 export interface DiscoveryRenderModel {
   appCount: number;
@@ -102,6 +106,12 @@ export function createDiagramRenderModel(
     .map((layoutNode) => createTableRenderModel(layoutNode, payload, modelsById, tableOptionsById))
     .filter(isDefined);
   const modelCatalogMode = tables.length > MODEL_CATALOG_MODE_THRESHOLD;
+  const catalogDegreeByModel = modelCatalogMode
+    ? createCatalogRelationDegreeByModel(payload.graph.structuralEdges, layoutNodesById)
+    : new Map<ModelId, number>();
+  const renderedTables = modelCatalogMode
+    ? tables.map((table) => toCatalogTable(table, catalogDegreeByModel.get(table.modelId) ?? 0))
+    : tables;
 
   const overlays = modelCatalogMode
     ? []
@@ -128,7 +138,7 @@ export function createDiagramRenderModel(
         .filter(isDefined);
 
   return {
-    canvas: canvasSize(payload, tables, modelCatalogMode),
+    canvas: canvasSize(payload, renderedTables, modelCatalogMode),
     crossings: modelCatalogMode ? [] : payload.layout.crossings,
     edges: modelCatalogMode
       ? payload.graph.structuralEdges
@@ -147,8 +157,30 @@ export function createDiagramRenderModel(
     modelCatalogMode,
     overlays,
     timings: payload.timings,
-    tables: modelCatalogMode ? tables.map(toCatalogTable) : tables,
+    tables: renderedTables,
   };
+}
+
+function createCatalogRelationDegreeByModel(
+  edges: StructuralGraphEdge[],
+  layoutNodesById: Map<ModelId, DiagramBootstrapPayload["layout"]["nodes"][number]>,
+): Map<ModelId, number> {
+  const degreeByModel = new Map<ModelId, number>();
+
+  for (const edge of edges) {
+    if (
+      edge.sourceModelId === edge.targetModelId ||
+      !layoutNodesById.has(edge.sourceModelId) ||
+      !layoutNodesById.has(edge.targetModelId)
+    ) {
+      continue;
+    }
+
+    degreeByModel.set(edge.sourceModelId, (degreeByModel.get(edge.sourceModelId) ?? 0) + 1);
+    degreeByModel.set(edge.targetModelId, (degreeByModel.get(edge.targetModelId) ?? 0) + 1);
+  }
+
+  return degreeByModel;
 }
 
 function createCatalogEdgeRenderModel(
@@ -221,7 +253,21 @@ function createTableRenderModel(
   };
 }
 
-function toCatalogTable(table: TableRenderModel): TableRenderModel {
+function toCatalogTable(table: TableRenderModel, relationDegree: number): TableRenderModel {
+  const pressure = Math.max(0, relationDegree - 4);
+  const widthFromText = Math.max(
+    CATALOG_BASE_TABLE_WIDTH,
+    Math.ceil(Math.max(table.modelName.length, table.databaseTableName.length) * 7.4 + 32),
+  );
+  const width = Math.min(
+    CATALOG_MAX_TABLE_WIDTH,
+    widthFromText + Math.min(144, Math.ceil(pressure / 8) * 12),
+  );
+  const height = Math.min(
+    CATALOG_MAX_TABLE_HEIGHT,
+    CATALOG_BASE_TABLE_HEIGHT + Math.min(360, Math.ceil(pressure / 2) * 8),
+  );
+
   return {
     ...table,
     activeMethodName: undefined,
@@ -232,6 +278,10 @@ function toCatalogTable(table: TableRenderModel): TableRenderModel {
     showMethodHighlights: false,
     showMethods: false,
     showProperties: false,
+    size: {
+      height,
+      width,
+    },
   };
 }
 

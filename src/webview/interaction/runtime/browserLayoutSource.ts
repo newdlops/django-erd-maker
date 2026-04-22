@@ -343,6 +343,162 @@ export function getBrowserLayoutSource(): string {
           ]);
         }
 
+        function routeCatalogEdgesWithPorts(edgeEntries) {
+          const endpointRefsByKey = new Map();
+          const routes = [];
+
+          edgeEntries.forEach((entry, edgeIndex) => {
+            const sourceCenter = getCenter(entry.sourcePosition, entry.sourceTable);
+            const targetCenter = getCenter(entry.targetPosition, entry.targetTable);
+            const sourceSide = getPreferredConnectionSide(sourceCenter, targetCenter);
+            const targetSide = getPreferredConnectionSide(targetCenter, sourceCenter);
+            const sourceRef = {
+              edgeIndex,
+              endpoint: "source",
+              peerCenter: targetCenter,
+              side: sourceSide,
+            };
+            const targetRef = {
+              edgeIndex,
+              endpoint: "target",
+              peerCenter: sourceCenter,
+              side: targetSide,
+            };
+
+            addCatalogEndpointRef(endpointRefsByKey, entry.meta.sourceModelId, sourceSide, sourceRef);
+            addCatalogEndpointRef(endpointRefsByKey, entry.meta.targetModelId, targetSide, targetRef);
+            routes.push({
+              entry,
+              sourceRef,
+              sourceSide,
+              targetRef,
+              targetSide,
+            });
+          });
+
+          for (const refs of endpointRefsByKey.values()) {
+            refs.sort(compareCatalogEndpointRefs);
+            refs.forEach((ref, index) => {
+              ref.portIndex = index;
+              ref.portCount = refs.length;
+            });
+          }
+
+          return routes.map((route) => {
+            const start = getCatalogPortPoint(
+              route.entry.sourcePosition,
+              route.entry.sourceTable,
+              route.sourceSide,
+              route.sourceRef.portIndex || 0,
+              route.sourceRef.portCount || 1,
+            );
+            const end = getCatalogPortPoint(
+              route.entry.targetPosition,
+              route.entry.targetTable,
+              route.targetSide,
+              route.targetRef.portIndex || 0,
+              route.targetRef.portCount || 1,
+            );
+
+            return {
+              entry: route.entry,
+              points: buildOrthogonalPathFromPorts(start, route.sourceSide, end, route.targetSide),
+            };
+          });
+        }
+
+        function addCatalogEndpointRef(endpointRefsByKey, modelId, side, ref) {
+          const key = modelId + ":" + side;
+          if (!endpointRefsByKey.has(key)) {
+            endpointRefsByKey.set(key, []);
+          }
+          endpointRefsByKey.get(key).push(ref);
+        }
+
+        function compareCatalogEndpointRefs(left, right) {
+          if (left.side === "left" || left.side === "right") {
+            return (
+              left.peerCenter.y - right.peerCenter.y ||
+              left.peerCenter.x - right.peerCenter.x ||
+              left.edgeIndex - right.edgeIndex
+            );
+          }
+
+          return (
+            left.peerCenter.x - right.peerCenter.x ||
+            left.peerCenter.y - right.peerCenter.y ||
+            left.edgeIndex - right.edgeIndex
+          );
+        }
+
+        function getPreferredConnectionSide(originCenter, peerCenter) {
+          const deltaX = peerCenter.x - originCenter.x;
+          const deltaY = peerCenter.y - originCenter.y;
+
+          if (Math.abs(deltaX) >= Math.abs(deltaY)) {
+            return deltaX >= 0 ? "right" : "left";
+          }
+
+          return deltaY >= 0 ? "bottom" : "top";
+        }
+
+        function getCatalogPortPoint(position, table, side, portIndex, portCount) {
+          const inset = 12;
+          const horizontal = side === "top" || side === "bottom";
+          const length = horizontal ? table.width : table.height;
+          const usableLength = Math.max(1, length - inset * 2);
+          const offset = round2(inset + usableLength * ((portIndex + 1) / (portCount + 1)));
+
+          switch (side) {
+            case "left":
+              return { x: round2(position.x), y: round2(position.y + offset) };
+            case "right":
+              return { x: round2(position.x + table.width), y: round2(position.y + offset) };
+            case "top":
+              return { x: round2(position.x + offset), y: round2(position.y) };
+            case "bottom":
+            default:
+              return { x: round2(position.x + offset), y: round2(position.y + table.height) };
+          }
+        }
+
+        function buildOrthogonalPathFromPorts(start, sourceSide, end, targetSide) {
+          const sourceExit = offsetPointBySide(start, sourceSide, 24);
+          const targetExit = offsetPointBySide(end, targetSide, 24);
+          const points = [start, sourceExit];
+          const sourceHorizontal = sourceSide === "left" || sourceSide === "right";
+          const targetHorizontal = targetSide === "left" || targetSide === "right";
+
+          if (sourceHorizontal && targetHorizontal) {
+            const midX = round2((sourceExit.x + targetExit.x) / 2);
+            points.push({ x: midX, y: sourceExit.y }, { x: midX, y: targetExit.y });
+          } else if (!sourceHorizontal && !targetHorizontal) {
+            const midY = round2((sourceExit.y + targetExit.y) / 2);
+            points.push({ x: sourceExit.x, y: midY }, { x: targetExit.x, y: midY });
+          } else if (sourceHorizontal) {
+            points.push({ x: targetExit.x, y: sourceExit.y });
+          } else {
+            points.push({ x: sourceExit.x, y: targetExit.y });
+          }
+
+          points.push(targetExit, end);
+          return normalizePoints(points);
+        }
+
+        function offsetPointBySide(point, side, distance) {
+          switch (side) {
+            case "left":
+              return { x: round2(point.x - distance), y: point.y };
+            case "right":
+              return { x: round2(point.x + distance), y: point.y };
+            case "top":
+              return { x: point.x, y: round2(point.y - distance) };
+            case "bottom":
+            default:
+              return { x: point.x, y: round2(point.y + distance) };
+          }
+        }
+
         function pointsToAttribute(points) {
           return points.map((point) => point.x + "," + point.y).join(" ");
         }

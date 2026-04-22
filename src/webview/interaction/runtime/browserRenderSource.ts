@@ -94,6 +94,7 @@ export function getBrowserRenderSource(): string {
 
         function renderEdgesAndCrossings() {
           const visibleEdges = [];
+          const visibleEdgeEntries = [];
           renderedEdges = [];
 
           for (const meta of edgeMeta) {
@@ -110,26 +111,56 @@ export function getBrowserRenderSource(): string {
               continue;
             }
 
-            const points = buildOrthogonalPath(
-              getCurrentPosition(meta.sourceModelId),
+            visibleEdgeEntries.push({
+              meta,
+              sourcePosition: getCurrentPosition(meta.sourceModelId),
               sourceTable,
-              getCurrentPosition(meta.targetModelId),
+              targetPosition: getCurrentPosition(meta.targetModelId),
               targetTable,
+            });
+          }
+
+          if (renderModel.modelCatalogMode) {
+            for (const routed of routeCatalogEdgesWithPorts(visibleEdgeEntries)) {
+              const pointsAttribute = pointsToAttribute(routed.points);
+              routed.entry.meta.element.setAttribute("points", pointsAttribute);
+              routed.entry.meta.element.dataset.points = pointsAttribute;
+              renderedEdges.push({
+                edgeId: routed.entry.meta.edgeId,
+                meta: routed.entry.meta,
+                points: routed.points,
+              });
+            }
+
+            renderedCrossings = [];
+            if (crossingsLayer) {
+              crossingsLayer.innerHTML = "";
+            }
+            return;
+          }
+
+          for (const entry of visibleEdgeEntries) {
+            const points = buildOrthogonalPath(
+              entry.sourcePosition,
+              entry.sourceTable,
+              entry.targetPosition,
+              entry.targetTable,
             );
-            meta.element.setAttribute("points", pointsToAttribute(points));
-            meta.element.dataset.points = pointsToAttribute(points);
+            const pointsAttribute = pointsToAttribute(points);
+            entry.meta.element.setAttribute("points", pointsAttribute);
+            entry.meta.element.dataset.points = pointsAttribute;
             visibleEdges.push({
-              edgeId: meta.edgeId,
+              edgeId: entry.meta.edgeId,
               points,
             });
             renderedEdges.push({
-              edgeId: meta.edgeId,
-              meta,
+              edgeId: entry.meta.edgeId,
+              meta: entry.meta,
               points,
             });
           }
 
-          if (renderModel.modelCatalogMode || !crossingsLayer) {
+          if (!crossingsLayer) {
             renderedCrossings = [];
             if (crossingsLayer) {
               crossingsLayer.innerHTML = "";
