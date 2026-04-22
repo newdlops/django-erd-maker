@@ -28,8 +28,8 @@ export const INTERACTION_SETTING_DESCRIPTORS: readonly DiagramInteractionSetting
     key: "zoomSpeed",
     label: "Zoom Speed",
     max: 1.5,
-    min: 0.25,
-    step: 0.05,
+    min: 0.05,
+    step: 0.01,
   },
 ] as const;
 
