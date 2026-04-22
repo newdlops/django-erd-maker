@@ -42,16 +42,6 @@ export function getBrowserControllerScript(nonce: string): string {
         }
 
         const renderModel = JSON.parse(renderModelElement.textContent || "{}");
-        const initialState = normalizeInitialState(
-          JSON.parse(initialStateElement.textContent || "{}"),
-          renderModel.tables?.[0]?.modelId || "",
-        );
-        let state = cloneState(initialState);
-        let drag = null;
-        let renderedCrossings = [];
-        let renderedEdges = [];
-        let renderedOverlays = [];
-
         const edgeMeta = edges.map((edge) => ({
           edgeId: edge.dataset.edgeId || "",
           element: edge,
@@ -60,12 +50,11 @@ export function getBrowserControllerScript(nonce: string): string {
           sourceModelId: edge.dataset.sourceModel || "",
           targetModelId: edge.dataset.targetModel || "",
         }));
+        const tableMetaList = tables.map((table) => readTableMeta(table));
         const hiddenItemsById = new Map(
           hiddenModelItems.map((item) => [item.dataset.modelId || "", item]),
         );
-        const layoutVariants = createLayoutVariants(
-          tables.map((table) => readTableMeta(table)),
-        );
+        const layoutVariants = createLayoutVariants(tableMetaList);
         const overlayMeta = overlays.map((overlay) => ({
           element: overlay,
           methodName: overlay.dataset.methodName || "",
@@ -76,14 +65,22 @@ export function getBrowserControllerScript(nonce: string): string {
           modelPanels.map((panel) => [panel.dataset.modelId || "", readPanelMeta(panel)]),
         );
         const tableMetaById = new Map(
-          tables.map((table) => {
-            const meta = readTableMeta(table);
-            return [meta.modelId, meta];
-          }),
+          tableMetaList.map((meta) => [meta.modelId, meta]),
         );
         const tableRenderById = new Map(
           (renderModel.tables || []).map((table) => [table.modelId, table]),
         );
+        const initialStateValue = JSON.parse(initialStateElement.textContent || "{}");
+        const initialState = normalizeInitialState(
+          initialStateValue,
+          renderModel.tables?.[0]?.modelId || "",
+          computeInitialViewport(initialStateValue),
+        );
+        let state = cloneState(initialState);
+        let drag = null;
+        let renderedCrossings = [];
+        let renderedEdges = [];
+        let renderedOverlays = [];
 
 ${getBrowserDomSource()}
 ${getBrowserStateSource()}

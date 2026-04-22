@@ -115,13 +115,13 @@ export function getBrowserEventSource(): string {
                 break;
               default:
                 dispatch({
-                  panX: 32,
-                  panY: 24,
+                  panX: initialState.viewport.panX,
+                  panY: initialState.viewport.panY,
                   type: "set-viewport-pan",
                 });
                 dispatch({
                   type: "set-viewport-zoom",
-                  zoom: 1,
+                  zoom: initialState.viewport.zoom,
                 });
                 break;
             }

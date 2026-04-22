@@ -12,6 +12,8 @@ import type {
 import type { EdgeCrossing, RoutedEdgePath } from "../../shared/graph/layoutContract";
 import type { StructuralGraphEdge, MethodAssociation } from "../../shared/graph/diagramGraph";
 
+const MODEL_CATALOG_MODE_THRESHOLD = 500;
+
 export interface DiscoveryRenderModel {
   appCount: number;
   apps: Array<{ appLabel: string; flags: string[] }>;
@@ -48,7 +50,6 @@ export interface TableRenderModel {
   hidden: boolean;
   methodAssociations: MethodAssociation[];
   methods: UserMethod[];
-  model: ExtractedModel;
   modelId: ModelId;
   modelName: string;
   position: { x: number; y: number };
@@ -78,6 +79,7 @@ export interface DiagramRenderModel {
   edges: EdgeRenderModel[];
   inspector: InspectorRenderModel;
   layoutMode: DiagramBootstrapPayload["view"]["layoutMode"];
+  modelCatalogMode: boolean;
   overlays: MethodOverlayRenderModel[];
   timings: DiagramBootstrapPayload["timings"];
   tables: TableRenderModel[];
@@ -99,35 +101,40 @@ export function createDiagramRenderModel(
   const tables = payload.layout.nodes
     .map((layoutNode) => createTableRenderModel(layoutNode, payload, modelsById, tableOptionsById))
     .filter(isDefined);
+  const modelCatalogMode = tables.length > MODEL_CATALOG_MODE_THRESHOLD;
 
-  const overlays = payload.graph.methodAssociations
-    .map((association) => {
-      const source = layoutNodesById.get(association.sourceModelId);
-      const target = layoutNodesById.get(association.targetModelId);
-      if (!source || !target) {
-        return undefined;
-      }
+  const overlays = modelCatalogMode
+    ? []
+    : payload.graph.methodAssociations
+        .map((association) => {
+          const source = layoutNodesById.get(association.sourceModelId);
+          const target = layoutNodesById.get(association.targetModelId);
+          if (!source || !target) {
+            return undefined;
+          }
 
-      return {
-        confidence: association.confidence,
-        id: association.id,
-        methodName: association.methodName,
-        sourceModelId: association.sourceModelId,
-        targetModelId: association.targetModelId,
-        x1: centerX(source),
-        x2: centerX(target),
-        y1: centerY(source),
-        y2: centerY(target),
-      } satisfies MethodOverlayRenderModel;
-    })
-    .filter(isDefined);
+          return {
+            confidence: association.confidence,
+            id: association.id,
+            methodName: association.methodName,
+            sourceModelId: association.sourceModelId,
+            targetModelId: association.targetModelId,
+            x1: centerX(source),
+            x2: centerX(target),
+            y1: centerY(source),
+            y2: centerY(target),
+          } satisfies MethodOverlayRenderModel;
+        })
+        .filter(isDefined);
 
   return {
-    canvas: canvasSize(payload, tables),
-    crossings: payload.layout.crossings,
-    edges: payload.layout.routedEdges
-      .map((route) => createEdgeRenderModel(route, payload.graph.structuralEdges))
-      .filter((edge): edge is EdgeRenderModel => Boolean(edge)),
+    canvas: canvasSize(payload, tables, modelCatalogMode),
+    crossings: modelCatalogMode ? [] : payload.layout.crossings,
+    edges: modelCatalogMode
+      ? []
+      : payload.layout.routedEdges
+          .map((route) => createEdgeRenderModel(route, payload.graph.structuralEdges))
+          .filter((edge): edge is EdgeRenderModel => Boolean(edge)),
     inspector: {
       diagnostics: createDiagnostics(payload),
       discovery: discovery ? createDiscoveryRenderModel(discovery) : undefined,
@@ -135,9 +142,10 @@ export function createDiagramRenderModel(
       selectedModelId: payload.view.selectedModelId,
     },
     layoutMode: payload.view.layoutMode,
+    modelCatalogMode,
     overlays,
     timings: payload.timings,
-    tables,
+    tables: modelCatalogMode ? tables.map(toCatalogTable) : tables,
   };
 }
 
@@ -170,7 +178,6 @@ function createTableRenderModel(
     hidden: tableOptions.hidden,
     methodAssociations,
     methods: model.methods,
-    model,
     modelId: model.identity.id,
     modelName: model.identity.modelName,
     position: layoutNode.position,
@@ -185,6 +192,20 @@ function createTableRenderModel(
   };
 }
 
+function toCatalogTable(table: TableRenderModel): TableRenderModel {
+  return {
+    ...table,
+    activeMethodName: undefined,
+    fieldRows: [],
+    methodAssociations: [],
+    methods: [],
+    properties: [],
+    showMethodHighlights: false,
+    showMethods: false,
+    showProperties: false,
+  };
+}
+
 function databaseTableName(model: ExtractedModel): string {
   return model.databaseTableName ?? `${model.identity.appLabel}_${model.identity.modelName.toLowerCase()}`;
 }
@@ -192,6 +213,7 @@ function databaseTableName(model: ExtractedModel): string {
 function canvasSize(
   payload: DiagramBootstrapPayload,
   tables: TableRenderModel[],
+  ignoreRoutes = false,
 ): { height: number; width: number } {
   const maxX = tables.reduce(
     (largest, table) => Math.max(largest, table.position.x + table.size.width),
@@ -201,16 +223,20 @@ function canvasSize(
     (largest, table) => Math.max(largest, table.position.y + table.size.height),
     0,
   );
-  const routeMaxX = payload.layout.routedEdges.reduce(
-    (largest, route) =>
-      Math.max(largest, ...route.points.map((point) => point.x)),
-    maxX,
-  );
-  const routeMaxY = payload.layout.routedEdges.reduce(
-    (largest, route) =>
-      Math.max(largest, ...route.points.map((point) => point.y)),
-    maxY,
-  );
+  const routeMaxX = ignoreRoutes
+    ? maxX
+    : payload.layout.routedEdges.reduce(
+        (largest, route) =>
+          Math.max(largest, ...route.points.map((point) => point.x)),
+        maxX,
+      );
+  const routeMaxY = ignoreRoutes
+    ? maxY
+    : payload.layout.routedEdges.reduce(
+        (largest, route) =>
+          Math.max(largest, ...route.points.map((point) => point.y)),
+        maxY,
+      );
 
   return {
     height: Math.max(720, Math.ceil(routeMaxY + 220)),

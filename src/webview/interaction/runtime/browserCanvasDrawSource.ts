@@ -87,7 +87,7 @@ export function getBrowserCanvasDrawSource(): string {
 
             const position = getCurrentPosition(modelId);
             drawTableFrame(position, meta, table, options);
-            drawTableName(position, meta, table);
+            drawModelTableContent(position, meta, table);
           }
         }
 
@@ -109,18 +109,33 @@ export function getBrowserCanvasDrawSource(): string {
                 ? "rgba(109, 208, 176, 0.62)"
                 : "rgba(123, 196, 170, 0.26)";
           drawingContext.lineWidth = selected || methodTarget || dragging ? 2.2 : 1.4;
-          drawRoundRect(position.x, position.y, meta.width, meta.height, 22);
+          drawRoundRect(position.x, position.y, meta.width, meta.height, 7);
           drawingContext.fill();
+          drawingContext.stroke();
+          drawingContext.shadowColor = "transparent";
+          drawingContext.fillStyle = selected ? "rgba(109, 208, 176, 0.16)" : "rgba(123, 196, 170, 0.11)";
+          drawingContext.save();
+          drawRoundRect(position.x, position.y, meta.width, meta.height, 7);
+          drawingContext.clip();
+          drawingContext.fillRect(position.x + 1, position.y + 1, meta.width - 2, 32);
+          drawingContext.restore();
+          drawingContext.strokeStyle = "rgba(154, 184, 177, 0.22)";
+          drawingContext.lineWidth = 1;
+          drawingContext.beginPath();
+          drawingContext.moveTo(position.x, position.y + 33);
+          drawingContext.lineTo(position.x + meta.width, position.y + 33);
           drawingContext.stroke();
           drawingContext.restore();
         }
 
-        function drawTableName(position, meta, table) {
+        function drawModelTableContent(position, meta, table) {
           const tableName = table.databaseTableName || meta.tableName || table.modelName;
+          const modelName = table.modelName || meta.modelName || table.modelId;
           drawingContext.save();
-          drawingContext.textAlign = "center";
+          drawingContext.textAlign = "left";
           drawingContext.textBaseline = "middle";
-          drawText(tableName, position.x + meta.width / 2, position.y + meta.height / 2, "#e7f2f0", "700 16px Georgia");
+          drawFittedText(modelName, position.x + 12, position.y + 17, meta.width - 24, "#f1f7f4", "700 13px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif");
+          drawFittedText(tableName, position.x + 12, position.y + 55, meta.width - 24, "#9fb7b0", "500 12px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif");
           drawingContext.restore();
         }
 
@@ -160,6 +175,22 @@ export function getBrowserCanvasDrawSource(): string {
           drawingContext.fillStyle = color;
           drawingContext.font = font;
           drawingContext.fillText(String(text), x, y);
+        }
+
+        function drawFittedText(text, x, y, maxWidth, color, font) {
+          const value = String(text);
+          drawingContext.fillStyle = color;
+          drawingContext.font = font;
+          if (drawingContext.measureText(value).width <= maxWidth) {
+            drawingContext.fillText(value, x, y);
+            return;
+          }
+
+          let truncated = value;
+          while (truncated.length > 1 && drawingContext.measureText(truncated + "…").width > maxWidth) {
+            truncated = truncated.slice(0, -1);
+          }
+          drawingContext.fillText(truncated.length > 1 ? truncated + "…" : "…", x, y);
         }
 
         function resizeDrawingCanvas() {

@@ -12,7 +12,11 @@ use measurement::{MeasuredNode, measure_visible_nodes};
 use std::collections::{BTreeMap, BTreeSet};
 
 const LAYER_SPACING_X: f64 = 120.0;
+const LARGE_GRAPH_GRID_NODE_THRESHOLD: usize = 500;
 const ROW_SPACING_Y: f64 = 48.0;
+const GRID_GAP_X: f64 = 48.0;
+const GRID_GAP_Y: f64 = 28.0;
+const GRID_MARGIN: f64 = 24.0;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ManualNodePosition {
@@ -58,7 +62,11 @@ pub fn compute_layout(request: LayoutRequest<'_>) -> LayoutSnapshot {
     };
 
     let mut snapshot = LayoutSnapshot::empty(request.mode);
-    snapshot.nodes = select_strategy(request.mode).compute(&context);
+    snapshot.nodes = if context.nodes.len() > LARGE_GRAPH_GRID_NODE_THRESHOLD {
+        compute_grid_layout(&context.nodes)
+    } else {
+        select_strategy(request.mode).compute(&context)
+    };
 
     apply_manual_positions(&mut snapshot.nodes, &request.manual_positions);
     snapshot
@@ -125,6 +133,53 @@ fn apply_manual_positions(nodes: &mut [NodeLayout], manual_positions: &[ManualNo
             node.position = position.clone();
         }
     }
+}
+
+fn compute_grid_layout(nodes: &[MeasuredNode]) -> Vec<NodeLayout> {
+    let ordered = {
+        let mut ordered = nodes.iter().collect::<Vec<_>>();
+        ordered.sort_by(|left, right| left.model_id.as_str().cmp(right.model_id.as_str()));
+        ordered
+    };
+    let max_width = ordered
+        .iter()
+        .map(|node| node.size.width)
+        .fold(0.0_f64, f64::max);
+    let max_height = ordered
+        .iter()
+        .map(|node| node.size.height)
+        .fold(0.0_f64, f64::max);
+    let columns = compute_grid_column_count(ordered.len(), max_width, max_height);
+
+    ordered
+        .iter()
+        .enumerate()
+        .map(|(index, node)| {
+            let column = index % columns;
+            let row = index / columns;
+
+            NodeLayout {
+                model_id: node.model_id.clone(),
+                position: Point {
+                    x: round2(GRID_MARGIN + column as f64 * (max_width + GRID_GAP_X)),
+                    y: round2(GRID_MARGIN + row as f64 * (max_height + GRID_GAP_Y)),
+                },
+                size: node.size.clone(),
+            }
+        })
+        .collect()
+}
+
+fn compute_grid_column_count(count: usize, max_width: f64, max_height: f64) -> usize {
+    if count <= 1 {
+        return 1;
+    }
+
+    let cell_width = (max_width + GRID_GAP_X).max(1.0);
+    let cell_height = (max_height + GRID_GAP_Y).max(1.0);
+    (((count as f64 * cell_height) / cell_width).sqrt())
+        .ceil()
+        .max(1.0) as usize
 }
 
 fn select_strategy(mode: LayoutMode) -> &'static dyn LayoutStrategy {
@@ -239,7 +294,7 @@ impl LayoutStrategy for HierarchicalStrategy {
 
 #[cfg(test)]
 mod tests {
-    use super::{LayoutRequest, ManualNodePosition, compute_layout};
+    use super::{LayoutRequest, ManualNodePosition, compute_grid_column_count, compute_layout};
     use crate::extract::{AnalysisRequest, ModuleInput, analyze_request};
     use crate::protocol::layout::{LayoutMode, Point};
     use crate::resolve::build_diagram_graph;
@@ -305,6 +360,11 @@ mod tests {
             .expect("expected manually positioned post node");
         assert_eq!(post.position.x, 700.0);
         assert_eq!(post.position.y, 240.0);
+    }
+
+    #[test]
+    fn balances_large_grid_layout_by_node_aspect_ratio() {
+        assert_eq!(compute_grid_column_count(1_238, 372.0, 80.0), 18);
     }
 
     fn feature_rich_analyzer() -> crate::protocol::analysis::AnalyzerOutput {

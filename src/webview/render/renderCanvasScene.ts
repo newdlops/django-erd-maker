@@ -1,8 +1,8 @@
 import type { DiagramRenderModel } from "../state/createDiagramRenderModel";
-import { escapeHtml } from "./escapeHtml";
+import { escapeHtml, serializeJsonForScriptTag } from "./escapeHtml";
 
 export function renderCanvasScene(viewModel: DiagramRenderModel): string {
-  const renderModelJson = escapeHtml(JSON.stringify(viewModel));
+  const renderModelJson = serializeJsonForScriptTag(viewModel);
 
   return `
     <section class="erd-stage">
@@ -105,6 +105,23 @@ function renderMethodOverlayMetadata(
 }
 
 function renderTableMetadata(table: DiagramRenderModel["tables"][number]): string {
+  const detailedSections =
+    table.fieldRows.length > 0 || table.properties.length > 0 || table.methods.length > 0
+      ? `
+        <div data-table-section="fields">
+          ${table.fieldRows.map((row) => `<span>${escapeHtml(row.text)}</span>`).join("")}
+        </div>
+        <div data-table-divider="properties" ${table.showProperties && table.properties.length > 0 ? "" : "hidden"}></div>
+        <div data-table-section="properties" ${table.showProperties ? "" : "hidden"}>
+          ${table.properties.map((property) => `<span>${escapeHtml(property)}</span>`).join("")}
+        </div>
+        <div data-table-divider="methods" ${table.showMethods && table.methods.length > 0 ? "" : "hidden"}></div>
+        <div data-table-section="methods" ${table.showMethods ? "" : "hidden"}>
+          ${table.methods.map((method) => `<span>${escapeHtml(method.name)}</span>`).join("")}
+        </div>
+      `
+      : "";
+
   return `
     <div
       class="erd-table${table.selected ? " is-selected" : ""}"
@@ -125,17 +142,7 @@ function renderTableMetadata(table: DiagramRenderModel["tables"][number]): strin
       tabindex="0"
       ${table.hidden ? "hidden" : ""}
     >
-      <div data-table-section="fields">
-        ${table.fieldRows.map((row) => `<span>${escapeHtml(row.text)}</span>`).join("")}
-      </div>
-      <div data-table-divider="properties" ${table.showProperties && table.properties.length > 0 ? "" : "hidden"}></div>
-      <div data-table-section="properties" ${table.showProperties ? "" : "hidden"}>
-        ${table.properties.map((property) => `<span>${escapeHtml(property)}</span>`).join("")}
-      </div>
-      <div data-table-divider="methods" ${table.showMethods && table.methods.length > 0 ? "" : "hidden"}></div>
-      <div data-table-section="methods" ${table.showMethods ? "" : "hidden"}>
-        ${table.methods.map((method) => `<span>${escapeHtml(method.name)}</span>`).join("")}
-      </div>
+      ${detailedSections}
     </div>
   `;
 }

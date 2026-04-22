@@ -1,11 +1,49 @@
 export function getBrowserLayoutSource(): string {
   return `
         function createLayoutVariants(tableMetaList) {
+          if (tableMetaList.length > 500) {
+            const grid = createGridLayout(tableMetaList);
+            return {
+              circular: grid,
+              clustered: grid,
+              hierarchical: grid,
+            };
+          }
+
           return {
             circular: createCircularLayout(tableMetaList),
             clustered: createClusteredLayout(tableMetaList),
             hierarchical: createHierarchicalLayout(tableMetaList),
           };
+        }
+
+        function createGridLayout(tableMetaList) {
+          const ordered = tableMetaList
+            .slice()
+            .sort((left, right) => left.modelId.localeCompare(right.modelId));
+          const maxWidth = ordered.reduce((largest, table) => Math.max(largest, table.width), 0);
+          const maxHeight = ordered.reduce((largest, table) => Math.max(largest, table.height), 0);
+          const columns = computeGridColumnCount(ordered.length, maxWidth, maxHeight);
+          const positions = {};
+
+          ordered.forEach((table, index) => {
+            positions[table.modelId] = {
+              x: round2(24 + (index % columns) * (maxWidth + 48)),
+              y: round2(24 + Math.floor(index / columns) * (maxHeight + 28)),
+            };
+          });
+
+          return positions;
+        }
+
+        function computeGridColumnCount(count, maxWidth, maxHeight) {
+          if (count <= 1) {
+            return 1;
+          }
+
+          const cellWidth = Math.max(1, maxWidth + 48);
+          const cellHeight = Math.max(1, maxHeight + 28);
+          return Math.max(1, Math.ceil(Math.sqrt((count * cellHeight) / cellWidth)));
         }
 
         function createCircularLayout(tableMetaList) {

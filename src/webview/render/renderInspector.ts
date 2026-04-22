@@ -13,6 +13,7 @@ export function renderInspector(viewModel: DiagramRenderModel): string {
           · <span data-hidden-count>${viewModel.tables.filter((table) => table.hidden).length}</span> hidden
           · ${viewModel.crossings.length} crossings
         </p>
+        ${viewModel.modelCatalogMode ? "<p class=\"erd-summary__meta\">Model catalog mode: model and DB table names only.</p>" : ""}
         ${renderTimingSummary(viewModel)}
       </section>
       <section class="erd-inspector">
@@ -153,6 +154,25 @@ function renderMethodButtons(table: DiagramRenderModel["tables"][number]): strin
 
 function renderModelPanel(table: DiagramRenderModel["tables"][number]): string {
   const selectedClass = table.selected ? " is-selected" : "";
+  if (table.fieldRows.length === 0 && table.properties.length === 0 && table.methods.length === 0) {
+    return `
+      <section
+        class="erd-panel${selectedClass}"
+        data-model-panel
+        data-model-id="${escapeHtml(table.modelId)}"
+        ${table.selected ? "" : "hidden"}
+      >
+        <header class="erd-panel__header">
+          <p class="erd-panel__eyebrow">${escapeHtml(table.appLabel)}</p>
+          <h2>${escapeHtml(table.modelName)}</h2>
+          <p class="erd-panel__meta">${escapeHtml(table.databaseTableName)}</p>
+        </header>
+        <div class="erd-panel__controls">
+          ${renderToggleButton(table, "hidden", table.hidden ? "Show Table" : "Hide Table")}
+        </div>
+      </section>
+    `;
+  }
 
   return `
     <section

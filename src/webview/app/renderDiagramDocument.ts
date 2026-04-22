@@ -1,7 +1,7 @@
 import type { DjangoWorkspaceDiscoveryResult } from "../../shared/protocol/discoveryContract";
 import type { DiagramBootstrapPayload } from "../../shared/protocol/webviewContract";
 import { getBrowserControllerScript } from "../interaction/browserController";
-import { escapeHtml } from "../render/escapeHtml";
+import { serializeJsonForScriptTag } from "../render/escapeHtml";
 import { renderCanvasScene } from "../render/renderCanvasScene";
 import { renderInspector } from "../render/renderInspector";
 import { createDiagramRenderModel } from "../state/createDiagramRenderModel";
@@ -13,8 +13,8 @@ export function renderDiagramDocument(
   discovery?: DjangoWorkspaceDiscoveryResult,
 ): string {
   const viewModel = createDiagramRenderModel(payload, discovery);
-  const initialStateJson = escapeHtml(
-    JSON.stringify(createDiagramInteractionState(payload.view)),
+  const initialStateJson = serializeJsonForScriptTag(
+    createDiagramInteractionState(payload.view),
   );
   const nonce = createNonce();
 

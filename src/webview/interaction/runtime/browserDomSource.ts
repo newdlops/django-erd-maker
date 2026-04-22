@@ -28,6 +28,7 @@ export function getBrowserDomSource(): string {
             height: Number(table.dataset.height || 0),
             hasExplicitDatabaseTableName: table.dataset.explicitDbTable === "true",
             modelId: table.dataset.modelId || "",
+            modelName: table.dataset.modelName || "",
             methodsSection: table.querySelector('[data-table-section="methods"]'),
             propertiesSection: table.querySelector('[data-table-section="properties"]'),
             tableName: table.dataset.tableName || table.dataset.modelName || "",
