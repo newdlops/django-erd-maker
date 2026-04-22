@@ -160,6 +160,23 @@ export function getBrowserStateSource(): string {
           };
         }
 
+        function createCenteredViewportZoomAction(nextZoom) {
+          const canvasRect = canvas.getBoundingClientRect();
+          const anchorX = canvasRect.width / 2;
+          const anchorY = canvasRect.height / 2;
+          const previousZoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
+          const zoom = clampZoom(nextZoom);
+          const worldX = (anchorX - state.viewport.panX) / previousZoom;
+          const worldY = (anchorY - state.viewport.panY) / previousZoom;
+
+          return {
+            panX: Math.round((anchorX - worldX * zoom) * 100) / 100,
+            panY: Math.round((anchorY - worldY * zoom) * 100) / 100,
+            type: "set-viewport-zoom",
+            zoom,
+          };
+        }
+
         function computeLayoutBounds(layoutMode, tableOptions) {
           const optionsByModelId = new Map(
             (Array.isArray(tableOptions) ? tableOptions : []).map((options) => [
@@ -360,6 +377,8 @@ export function getBrowserStateSource(): string {
                 ...currentState,
                 viewport: {
                   ...currentState.viewport,
+                  panX: Number.isFinite(action.panX) ? action.panX : currentState.viewport.panX,
+                  panY: Number.isFinite(action.panY) ? action.panY : currentState.viewport.panY,
                   zoom: clampZoom(action.zoom),
                 },
               };

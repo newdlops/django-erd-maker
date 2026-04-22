@@ -126,16 +126,10 @@ export function getBrowserEventSource(): string {
 
             switch (button.dataset.zoomAction) {
               case "in":
-                dispatch({
-                  type: "set-viewport-zoom",
-                  zoom: state.viewport.zoom + zoomDelta,
-                });
+                dispatch(createCenteredViewportZoomAction(state.viewport.zoom + zoomDelta));
                 break;
               case "out":
-                dispatch({
-                  type: "set-viewport-zoom",
-                  zoom: state.viewport.zoom - zoomDelta,
-                });
+                dispatch(createCenteredViewportZoomAction(state.viewport.zoom - zoomDelta));
                 break;
               case "fit":
                 dispatch({
@@ -236,10 +230,11 @@ export function getBrowserEventSource(): string {
         canvas.addEventListener("wheel", (event) => {
           event.preventDefault();
           const zoomDelta = 0.08 * getInteractionSetting(state, "zoomSpeed");
-          dispatch({
-            type: "set-viewport-zoom",
-            zoom: state.viewport.zoom + (event.deltaY < 0 ? zoomDelta : -zoomDelta),
-          });
+          dispatch(
+            createCenteredViewportZoomAction(
+              state.viewport.zoom + (event.deltaY < 0 ? zoomDelta : -zoomDelta),
+            ),
+          );
         }, { passive: false });
   `;
 }

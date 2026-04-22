@@ -35,7 +35,7 @@ export type DiagramInteractionAction =
   | { modelId: ModelId; showProperties: boolean; type: "set-table-show-properties" }
   | { key: DiagramInteractionSettingKey; type: "set-interaction-setting"; value: number }
   | { panX: number; panY: number; type: "set-viewport-pan" }
-  | { type: "set-viewport-zoom"; zoom: number }
+  | { panX?: number; panY?: number; type: "set-viewport-zoom"; zoom: number }
   | { initialState: DiagramInteractionState; type: "reset-view" };
 
 export const DEFAULT_VIEWPORT: DiagramViewportState = {
@@ -145,6 +145,14 @@ export function reduceDiagramInteractionState(
         ...state,
         viewport: {
           ...state.viewport,
+          panX:
+            typeof action.panX === "number" && Number.isFinite(action.panX)
+              ? action.panX
+              : state.viewport.panX,
+          panY:
+            typeof action.panY === "number" && Number.isFinite(action.panY)
+              ? action.panY
+              : state.viewport.panY,
           zoom: clampZoom(action.zoom),
         },
       };
