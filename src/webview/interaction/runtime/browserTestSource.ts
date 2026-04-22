@@ -9,6 +9,10 @@ export function getBrowserTestSource(): string {
             : [];
 
           return {
+            catalogCrossings: latestCatalogCrossings.map((crossing) => ({
+              x: crossing.position.x,
+              y: crossing.position.y,
+            })),
             crossings,
             edges: edgeMeta.map((meta) => ({
               edgeId: meta.edgeId,

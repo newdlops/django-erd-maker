@@ -5,6 +5,11 @@ export function getBrowserCanvasDrawSource(): string {
         const CATALOG_TILE_PRELOAD_WORLD_PADDING = 160;
         const CATALOG_TILE_RASTER_BUDGET_MS = 6;
         const CATALOG_TILE_WARMUP_LIMIT = 2;
+        const CATALOG_CROSSING_BUCKET_SIZE = 192;
+        const CATALOG_CROSSING_CHECK_BUDGET = 60000;
+        const CATALOG_CROSSING_MARKER_MIN_ZOOM = 0.1;
+        const CATALOG_CROSSING_MAX_MARKERS = 900;
+        const CATALOG_CROSSING_MAX_SEGMENTS = 3600;
 
         let panSnapshotCanvas = null;
         let panSnapshotContext = null;
@@ -17,6 +22,7 @@ export function getBrowserCanvasDrawSource(): string {
         let catalogRasterFrame = 0;
         let catalogSceneVersion = 1;
         let catalogWarmVersion = 0;
+        let latestCatalogCrossings = [];
 
         function invalidateCatalogSceneCache() {
           catalogSceneVersion += 1;
@@ -101,10 +107,12 @@ export function getBrowserCanvasDrawSource(): string {
         }
 
         function drawCatalogEdges(visibleBounds) {
+          latestCatalogCrossings = [];
           if (!renderedEdges.length) {
             return;
           }
 
+          const visibleSegments = [];
           drawingContext.save();
           drawingContext.lineCap = "round";
           drawingContext.lineJoin = "round";
@@ -114,6 +122,7 @@ export function getBrowserCanvasDrawSource(): string {
               continue;
             }
 
+            collectCatalogEdgeSegments(edge, visibleBounds, visibleSegments);
             drawingContext.strokeStyle = catalogEdgeStrokeStyle(edge.meta);
             drawingContext.lineWidth = catalogEdgeLineWidth(edge.meta);
             drawingContext.globalAlpha = edge.meta.provenance === "derived_reverse" ? 0.58 : 0.72;
@@ -127,6 +136,8 @@ export function getBrowserCanvasDrawSource(): string {
           }
 
           drawingContext.restore();
+          latestCatalogCrossings = collectCatalogCrossings(visibleSegments, visibleBounds);
+          drawCatalogCrossings(latestCatalogCrossings);
         }
 
         function catalogEdgeStrokeStyle(edgeMeta) {
@@ -151,6 +162,196 @@ export function getBrowserCanvasDrawSource(): string {
           }
 
           return 4.2;
+        }
+
+        function collectCatalogEdgeSegments(edge, visibleBounds, segments) {
+          if (state.viewport.zoom < CATALOG_CROSSING_MARKER_MIN_ZOOM) {
+            return;
+          }
+
+          if (segments.length >= CATALOG_CROSSING_MAX_SEGMENTS) {
+            return;
+          }
+
+          for (const segment of findSegments(edge.points)) {
+            if (segments.length >= CATALOG_CROSSING_MAX_SEGMENTS) {
+              return;
+            }
+
+            const horizontal = segment.start.y === segment.end.y;
+            const vertical = segment.start.x === segment.end.x;
+            if (!horizontal && !vertical) {
+              continue;
+            }
+
+            if (samePoint(segment.start, segment.end)) {
+              continue;
+            }
+
+            if (
+              !segmentIntersectsBounds(
+                segment.start.x,
+                segment.start.y,
+                segment.end.x,
+                segment.end.y,
+                visibleBounds,
+                64,
+              )
+            ) {
+              continue;
+            }
+
+            segments.push({
+              edgeId: edge.edgeId,
+              end: segment.end,
+              horizontal,
+              start: segment.start,
+              vertical,
+            });
+          }
+        }
+
+        function collectCatalogCrossings(segments, visibleBounds) {
+          if (state.viewport.zoom < CATALOG_CROSSING_MARKER_MIN_ZOOM || segments.length < 2) {
+            return [];
+          }
+
+          const buckets = new Map();
+          for (const segment of segments) {
+            const range = getCatalogCrossingBucketRange(segment, visibleBounds, 64);
+
+            for (let row = range.startRow; row <= range.endRow; row += 1) {
+              for (let column = range.startColumn; column <= range.endColumn; column += 1) {
+                const key = column + ":" + row;
+                let bucket = buckets.get(key);
+                if (!bucket) {
+                  bucket = {
+                    horizontal: [],
+                    vertical: [],
+                  };
+                  buckets.set(key, bucket);
+                }
+
+                if (segment.horizontal) {
+                  bucket.horizontal.push(segment);
+                } else {
+                  bucket.vertical.push(segment);
+                }
+              }
+            }
+          }
+
+          const crossings = [];
+          const seenCrossings = new Set();
+          let checkedPairs = 0;
+
+          for (const bucket of buckets.values()) {
+            if (!bucket.horizontal.length || !bucket.vertical.length) {
+              continue;
+            }
+
+            for (const horizontal of bucket.horizontal) {
+              for (const vertical of bucket.vertical) {
+                if (checkedPairs >= CATALOG_CROSSING_CHECK_BUDGET) {
+                  return crossings;
+                }
+                checkedPairs += 1;
+
+                if (horizontal.edgeId === vertical.edgeId) {
+                  continue;
+                }
+
+                const intersection = segmentIntersection(horizontal, vertical);
+                if (!intersection) {
+                  continue;
+                }
+
+                if (!pointInBounds(intersection.x, intersection.y, visibleBounds, 16)) {
+                  continue;
+                }
+
+                if (
+                  isPointAtSegmentEndpoint(intersection, horizontal) ||
+                  isPointAtSegmentEndpoint(intersection, vertical)
+                ) {
+                  continue;
+                }
+
+                const key = Math.round(intersection.x) + ":" + Math.round(intersection.y);
+                if (seenCrossings.has(key)) {
+                  continue;
+                }
+
+                seenCrossings.add(key);
+                crossings.push({
+                  bridgeHorizontal:
+                    Math.abs(horizontal.end.x - horizontal.start.x) >=
+                    Math.abs(vertical.end.y - vertical.start.y),
+                  position: intersection,
+                });
+
+                if (crossings.length >= CATALOG_CROSSING_MAX_MARKERS) {
+                  return crossings;
+                }
+              }
+            }
+          }
+
+          return crossings;
+        }
+
+        function getCatalogCrossingBucketRange(segment, visibleBounds, padding) {
+          const minX = Math.max(Math.min(segment.start.x, segment.end.x), visibleBounds.left - padding);
+          const maxX = Math.min(Math.max(segment.start.x, segment.end.x), visibleBounds.right + padding);
+          const minY = Math.max(Math.min(segment.start.y, segment.end.y), visibleBounds.top - padding);
+          const maxY = Math.min(Math.max(segment.start.y, segment.end.y), visibleBounds.bottom + padding);
+
+          return {
+            endColumn: Math.floor(maxX / CATALOG_CROSSING_BUCKET_SIZE),
+            endRow: Math.floor(maxY / CATALOG_CROSSING_BUCKET_SIZE),
+            startColumn: Math.floor(minX / CATALOG_CROSSING_BUCKET_SIZE),
+            startRow: Math.floor(minY / CATALOG_CROSSING_BUCKET_SIZE),
+          };
+        }
+
+        function drawCatalogCrossings(crossings) {
+          if (!crossings.length) {
+            return;
+          }
+
+          const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
+          const radius = Math.max(5, Math.min(24, 5.5 / zoom));
+          const strokeWidth = Math.max(1.4, Math.min(6, 1.4 / zoom));
+
+          drawingContext.save();
+          drawingContext.lineCap = "round";
+          drawingContext.lineJoin = "round";
+
+          for (const crossing of crossings) {
+            const x = crossing.position.x;
+            const y = crossing.position.y;
+
+            drawingContext.globalAlpha = 0.82;
+            drawingContext.fillStyle = "#07121b";
+            drawingContext.beginPath();
+            drawingContext.arc(x, y, radius * 0.86, 0, Math.PI * 2);
+            drawingContext.fill();
+
+            drawingContext.globalAlpha = 0.94;
+            drawingContext.strokeStyle = "rgba(255, 191, 105, 0.95)";
+            drawingContext.lineWidth = strokeWidth;
+            drawingContext.beginPath();
+            if (crossing.bridgeHorizontal) {
+              drawingContext.moveTo(x - radius, y);
+              drawingContext.quadraticCurveTo(x, y - radius * 0.9, x + radius, y);
+            } else {
+              drawingContext.moveTo(x, y - radius);
+              drawingContext.quadraticCurveTo(x + radius * 0.9, y, x, y + radius);
+            }
+            drawingContext.stroke();
+          }
+
+          drawingContext.restore();
         }
 
         function drawCatalogDynamicTableOverlays(visibleBounds) {
