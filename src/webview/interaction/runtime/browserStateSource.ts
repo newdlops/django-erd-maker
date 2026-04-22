@@ -47,6 +47,13 @@ export function getBrowserStateSource(): string {
         }
 
         function computeInitialViewport(initialValue) {
+          return computeViewportForLayout(
+            initialValue.layoutMode || "hierarchical",
+            Array.isArray(initialValue.tableOptions) ? initialValue.tableOptions : [],
+          );
+        }
+
+        function computeViewportForLayout(layoutMode, tableOptions) {
           const canvasRect = canvas.getBoundingClientRect();
           const canvasWidth = Math.max(1, canvasRect.width);
           const canvasHeight = Math.max(1, canvasRect.height);
@@ -58,13 +65,12 @@ export function getBrowserStateSource(): string {
             };
           }
 
-          const initialOptions = new Map(
-            (Array.isArray(initialValue.tableOptions) ? initialValue.tableOptions : []).map((options) => [
+          const optionsByModelId = new Map(
+            (Array.isArray(tableOptions) ? tableOptions : []).map((options) => [
               options.modelId,
               options,
             ]),
           );
-          const layoutMode = initialValue.layoutMode || "hierarchical";
           const layout = layoutVariants[layoutMode] || layoutVariants.hierarchical || {};
           let minX = Number.POSITIVE_INFINITY;
           let minY = Number.POSITIVE_INFINITY;
@@ -73,7 +79,7 @@ export function getBrowserStateSource(): string {
           let visibleCount = 0;
 
           for (const table of tableMetaById.values()) {
-            const options = initialOptions.get(table.modelId);
+            const options = optionsByModelId.get(table.modelId);
             if (options && options.hidden) {
               continue;
             }
@@ -230,6 +236,7 @@ export function getBrowserStateSource(): string {
               return {
                 ...currentState,
                 layoutMode: action.layoutMode,
+                viewport: computeViewportForLayout(action.layoutMode, currentState.tableOptions),
               };
             case "set-table-hidden":
               return withTableOptions(currentState, action.modelId, (options) => ({
