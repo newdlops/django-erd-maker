@@ -43,6 +43,7 @@ export function getBrowserControllerScript(nonce: string): string {
           return;
         }
 
+${getBrowserStateSource()}
         const renderModel = JSON.parse(renderModelElement.textContent || "{}");
         const edgeMeta = edges.map((edge) => ({
           edgeId: edge.dataset.edgeId || "",
@@ -85,7 +86,6 @@ export function getBrowserControllerScript(nonce: string): string {
         let renderedOverlays = [];
 
 ${getBrowserDomSource()}
-${getBrowserStateSource()}
 ${getBrowserLayoutSource()}
 ${getBrowserCanvasDrawSource()}
 ${getBrowserRenderSource()}

@@ -37,7 +37,7 @@ export function getBrowserCanvasDrawSource(): string {
           resizeDrawingCanvas();
 
           if (renderModel.modelCatalogMode) {
-            drawCatalogCanvas();
+            drawCatalogCanvas(renderMode);
             lastDrawViewport = {
               panX: state.viewport.panX,
               panY: state.viewport.panY,
@@ -64,7 +64,7 @@ export function getBrowserCanvasDrawSource(): string {
           lastDrawViewport = currentViewport;
         }
 
-        function drawCatalogCanvas() {
+        function drawCatalogCanvas(renderMode) {
           const viewportRect = getViewportRect();
           const visibleBounds = getVisibleWorldBounds(CATALOG_TILE_PRELOAD_WORLD_PADDING);
           const visibleTiles = collectVisibleCatalogTiles(visibleBounds);
@@ -77,12 +77,20 @@ export function getBrowserCanvasDrawSource(): string {
           drawingContext.translate(state.viewport.panX, state.viewport.panY);
           drawingContext.scale(state.viewport.zoom, state.viewport.zoom);
 
+          let renderedContentTileCount = 0;
           for (const tile of visibleTiles) {
             if (tile.renderedVersion !== catalogSceneVersion || !tile.canvas) {
               continue;
             }
 
             drawingContext.drawImage(tile.canvas, tile.x, tile.y, tile.width, tile.height);
+            if (tile.tableCount > 0) {
+              renderedContentTileCount += 1;
+            }
+          }
+
+          if (renderedContentTileCount === 0) {
+            drawTables(visibleBounds);
           }
 
           drawCatalogDynamicTableOverlays(visibleBounds);
@@ -250,6 +258,7 @@ export function getBrowserCanvasDrawSource(): string {
           tile.context.setTransform(getDeviceScale(), 0, 0, getDeviceScale(), 0, 0);
 
           const tableIds = collectCatalogTableIdsInBounds(tile.bounds);
+          tile.tableCount = tableIds.length;
           for (const modelId of tableIds) {
             const meta = tableMetaById.get(modelId);
             const table = tableRenderById.get(modelId);
@@ -448,6 +457,7 @@ export function getBrowserCanvasDrawSource(): string {
             key,
             renderedVersion: 0,
             row,
+            tableCount: 0,
             width: CATALOG_TILE_SIZE,
             x: column * CATALOG_TILE_SIZE,
             y: row * CATALOG_TILE_SIZE,

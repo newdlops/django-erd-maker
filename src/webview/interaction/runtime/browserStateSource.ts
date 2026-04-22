@@ -101,11 +101,23 @@ export function getBrowserStateSource(): string {
           const screenPadding = visibleCount > 500 ? 18 : 28;
           const worldWidth = Math.max(1, maxX - minX + worldPadding * 2);
           const worldHeight = Math.max(1, maxY - minY + worldPadding * 2);
+          const fittedZoom = Math.min(
+            Math.max(0.05, (canvasWidth - screenPadding * 2) / worldWidth),
+            Math.max(0.05, (canvasHeight - screenPadding * 2) / worldHeight),
+          );
+          const catalogTableWidth = renderModel.modelCatalogMode
+            ? Math.max(
+                1,
+                ...Array.from(tableMetaById.values()).map((table) => table.width || 0),
+              )
+            : 0;
+          const minimumCatalogZoom = renderModel.modelCatalogMode
+            ? Math.max(0.18, Math.min(0.28, 72 / catalogTableWidth))
+            : 0.05;
           const zoom = clampZoom(
-            Math.min(
-              Math.max(0.05, (canvasWidth - screenPadding * 2) / worldWidth),
-              Math.max(0.05, (canvasHeight - screenPadding * 2) / worldHeight),
-            ),
+            renderModel.modelCatalogMode
+              ? Math.max(fittedZoom, minimumCatalogZoom)
+              : fittedZoom,
           );
           const centeredPanX =
             (canvasWidth - worldWidth * zoom) / 2 - (minX - worldPadding) * zoom;
