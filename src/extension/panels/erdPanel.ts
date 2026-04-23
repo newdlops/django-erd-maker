@@ -213,25 +213,42 @@ export class ErdPanel {
     liveDiagram: LiveDiagramResult,
     refreshLoader?: RefreshLoader,
   ): void {
+    const logger = getExtensionLogger();
     this.refreshLoader = refreshLoader;
     this.latestWebviewSnapshot = undefined;
     this.webviewReady = false;
     this.rejectAllReadyWaiters("Webview was reloaded before becoming ready.");
     const renderStarted = Date.now();
-    liveDiagram.payload.timings = mergePipelineTimings(liveDiagram.payload.timings, {
-      renderDocumentMs: Date.now() - renderStarted,
-    });
+    logger.info(
+      [
+        "Webview document rendering",
+        `layout=${liveDiagram.payload.view.layoutMode}`,
+        `tables=${liveDiagram.payload.layout.nodes.length}`,
+        `edges=${liveDiagram.payload.graph.structuralEdges.length}`,
+      ].join(" · "),
+    );
     const html = renderDiagramDocument(
       liveDiagram.payload,
       liveDiagram.discovery,
       this.persistedSetupSettings,
     );
+    liveDiagram.payload.timings = mergePipelineTimings(liveDiagram.payload.timings, {
+      renderDocumentMs: Date.now() - renderStarted,
+    });
     this.currentState = {
       discovery: liveDiagram.discovery,
       html,
       payload: liveDiagram.payload,
     };
+    logger.info(
+      [
+        "Webview document rendered",
+        `htmlLength=${html.length}`,
+        `renderDocumentMs=${liveDiagram.payload.timings?.renderDocumentMs ?? 0}`,
+      ].join(" · "),
+    );
     this.panel.webview.html = this.currentState.html;
+    logger.info("Webview HTML assigned");
   }
 
   private async runWebviewAction(

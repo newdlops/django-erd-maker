@@ -128,6 +128,10 @@ async function collectCandidateModelFiles(
   const modelModuleFiles = await collectPythonFiles(modelsPackagePath);
 
   for (const filePath of modelModuleFiles) {
+    if (!isCandidateModelModuleFile(modelsPackagePath, filePath)) {
+      continue;
+    }
+
     candidateFiles.push(toRelativePosixPath(selectedRoot, filePath));
   }
 
@@ -151,4 +155,38 @@ function toPosixPath(filePath: string): string {
 
 function toRelativePosixPath(rootPath: string, filePath: string): string {
   return toPosixPath(path.relative(rootPath, filePath));
+}
+
+function isCandidateModelModuleFile(modelsPackagePath: string, filePath: string): boolean {
+  const relativePath = toPosixPath(path.relative(modelsPackagePath, filePath));
+  if (!relativePath || relativePath.startsWith("../")) {
+    return false;
+  }
+
+  const segments = relativePath.split("/");
+  const baseName = segments[segments.length - 1] || "";
+  if (!baseName.endsWith(".py")) {
+    return false;
+  }
+
+  if (
+    segments.some((segment) =>
+      segment === "__pycache__" ||
+      segment === ".pytest_cache" ||
+      segment === "test" ||
+      segment === "tests",
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    baseName === "conftest.py" ||
+    baseName.startsWith("test_") ||
+    baseName.endsWith("_test.py")
+  ) {
+    return false;
+  }
+
+  return true;
 }

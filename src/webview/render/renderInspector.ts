@@ -1,3 +1,4 @@
+import { getOgdfLayoutDefinition, normalizeLayoutMode } from "../../shared/graph/layoutContract";
 import type { DiagramRenderModel } from "../state/createDiagramRenderModel";
 import type { DiagramInteractionState } from "../state/diagramInteractionState";
 import {
@@ -10,6 +11,8 @@ export function renderInspector(
   viewModel: DiagramRenderModel,
   initialState: DiagramInteractionState,
 ): string {
+  const layoutLabel = getOgdfLayoutDefinition(normalizeLayoutMode(viewModel.layoutMode)).label;
+
   return `
     <aside class="erd-sidebar">
       <section class="erd-summary">
@@ -17,7 +20,7 @@ export function renderInspector(
         <h1 class="erd-summary__title">Django ERD</h1>
         <p class="erd-summary__meta">${viewModel.tables.length} tables · ${viewModel.edges.length} structural edges · ${viewModel.overlays.length} method links</p>
         <p class="erd-summary__meta">
-          Layout: <span data-layout-readout>${escapeHtml(viewModel.layoutMode)}</span>
+          Layout: <span data-layout-readout>${escapeHtml(layoutLabel)}</span>
           · <span data-hidden-count>${viewModel.tables.filter((table) => table.hidden).length}</span> hidden
           · ${viewModel.crossings.length} crossings
         </p>
@@ -25,8 +28,8 @@ export function renderInspector(
         ${renderTimingSummary(viewModel)}
       </section>
       ${renderSetupSection(initialState)}
-      <section class="erd-inspector">
-        ${viewModel.tables.map(renderModelPanel).join("")}
+      <section class="erd-inspector" data-model-panel-host>
+        ${renderInitialModelPanel(viewModel)}
       </section>
       ${renderHiddenTables(viewModel)}
       ${renderDiscovery(viewModel)}
@@ -136,11 +139,15 @@ function renderDiscovery(viewModel: DiagramRenderModel): string {
 }
 
 function renderHiddenTables(viewModel: DiagramRenderModel): string {
+  const hiddenTables = viewModel.tables.filter((table) => table.hidden);
+
   return `
     <section class="erd-sidebar__section">
       <h2>Hidden Tables</h2>
-      <ul class="erd-list">
-        ${viewModel.tables
+      <ul class="erd-list" data-hidden-model-list>
+        ${
+          hiddenTables.length > 0
+            ? hiddenTables
           .map(
             (table) => `
               <li
@@ -159,10 +166,32 @@ function renderHiddenTables(viewModel: DiagramRenderModel): string {
               </li>
             `,
           )
-          .join("")}
+          .join("")
+            : "<li class=\"erd-list__item\"><span>No hidden tables.</span></li>"
+        }
       </ul>
     </section>
   `;
+}
+
+function renderInitialModelPanel(viewModel: DiagramRenderModel): string {
+  const selectedTable =
+    viewModel.tables.find((table) => table.selected) ??
+    viewModel.tables[0];
+
+  if (!selectedTable) {
+    return `
+      <section class="erd-panel" data-model-panel hidden>
+        <header class="erd-panel__header">
+          <p class="erd-panel__eyebrow">No Selection</p>
+          <h2>No models available</h2>
+          <p class="erd-panel__meta">The current diagram has no visible models.</p>
+        </header>
+      </section>
+    `;
+  }
+
+  return renderModelPanel(selectedTable);
 }
 
 function renderMethodButtons(table: DiagramRenderModel["tables"][number]): string {

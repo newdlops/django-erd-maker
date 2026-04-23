@@ -21,7 +21,7 @@ const sampleModulePath = path.resolve(
   "../../out/extension/services/loadPhaseOneSample.js",
 );
 const packageManifest = require(path.resolve(__dirname, "../../package.json"));
-const { OGDF_LAYOUT_MODES } = require(layoutContractModulePath);
+const { OGDF_LAYOUT_TOOLBAR_DEFINITIONS } = require(layoutContractModulePath);
 const { renderDiagramDocument } = require(renderModulePath);
 const { loadPhaseOneSample } = require(sampleModulePath);
 
@@ -36,7 +36,7 @@ test("phase8 document renders canvas scene metadata, routed edges, crossings, ch
   assert.match(html, /data-erd-minimap-canvas/);
   assert.match(html, /data-erd-minimap-viewport/);
   assert.match(html, /aria-label="Django ERD diagram"/);
-  assert.match(html, /id="erd-render-model"/);
+  assert.match(html, /<template id="erd-render-model">/);
   assert.equal(renderModel.appVersion, packageManifest.version);
   assert.equal(renderModel.tables.find((table) => table.modelId === "blog.Post")?.databaseTableName, "blog_post");
   assert.ok(renderModel.edges.some((edge) => edge.edgeId === "edge-post-tags"));
@@ -45,10 +45,10 @@ test("phase8 document renders canvas scene metadata, routed edges, crossings, ch
   assert.match(html, /@ display_title -&gt; str/);
   assert.match(html, /fn publish/);
   assert.match(html, /erd-relation-chip--high[\s\S]*accounts\.Author/);
-  for (const layoutMode of OGDF_LAYOUT_MODES) {
-    assert.match(html, new RegExp(`data-layout-mode="${layoutMode}"`));
+  for (const layout of OGDF_LAYOUT_TOOLBAR_DEFINITIONS) {
+    assert.match(html, new RegExp(`data-layout-mode="${layout.id}"`));
   }
-  assert.match(html, /id="erd-initial-state"/);
+  assert.match(html, /<template id="erd-initial-state">/);
   assert.doesNotMatch(html, /class="erd-table/);
   assert.doesNotMatch(html, /class="erd-edge/);
 });
@@ -158,6 +158,22 @@ test("phase8 browser runtime renders a GPU scene with minimap and viewport-aware
   assert.match(html, /function createViewportPanToWorldPointAction\(worldPoint\)/);
   assert.match(html, /minimap\.addEventListener\("pointerdown"/);
   assert.match(html, /ResizeObserver/);
+  assert.match(html, /function readEmbeddedJson\(element\)/);
+  assert.match(html, /element instanceof HTMLTemplateElement/);
+  assert.match(html, /element\.content\.textContent \|\| ""/);
+});
+
+test("phase8 browser runtime declares layoutModes before layout variants are created", () => {
+  const html = render();
+  const layoutModesIndex = html.indexOf("const layoutModes = ");
+  const layoutVariantsIndex = html.indexOf("const layoutVariants = createLayoutVariants(tableMetaList);");
+
+  assert.notEqual(layoutModesIndex, -1, "layoutModes declaration should exist");
+  assert.notEqual(layoutVariantsIndex, -1, "layoutVariants initialization should exist");
+  assert.ok(
+    layoutModesIndex < layoutVariantsIndex,
+    "layoutModes must be initialized before createLayoutVariants(tableMetaList) runs",
+  );
 });
 
 function render(mutatePayload) {
@@ -168,7 +184,7 @@ function render(mutatePayload) {
 
 function readRenderModel(html) {
   const match = html.match(
-    /<script id="erd-render-model" type="application\/json">([\s\S]*?)<\/script>/,
+    /<template id="erd-render-model">([\s\S]*?)<\/template>/,
   );
 
   assert.ok(match?.[1], "render model JSON should be embedded in the document");

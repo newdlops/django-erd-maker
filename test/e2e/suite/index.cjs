@@ -207,19 +207,19 @@ const scenarioHandlers = {
     );
     assert.equal(requireTableSnapshot(circularSnapshot, "blog.Post").hidden, false);
 
-    const clusteredSnapshot = await runWebviewAction({
-      layoutMode: "clustered",
+    const fmmmSnapshot = await runWebviewAction({
+      layoutMode: "fmmm",
       type: "clickLayoutMode",
     });
 
-    assert.equal(clusteredSnapshot.state.layoutMode, "clustered");
-    assert.deepEqual(snapshotModelIds(clusteredSnapshot), snapshotModelIds(initialSnapshot));
+    assert.equal(fmmmSnapshot.state.layoutMode, "fmmm");
+    assert.deepEqual(snapshotModelIds(fmmmSnapshot), snapshotModelIds(initialSnapshot));
     assert.notDeepEqual(
-      tableTransformsByModel(clusteredSnapshot),
+      tableTransformsByModel(fmmmSnapshot),
       tableTransformsByModel(circularSnapshot),
     );
     assert.notEqual(
-      requireEdgeSnapshot(clusteredSnapshot, "blog.Post", "accounts.Author").points,
+      requireEdgeSnapshot(fmmmSnapshot, "blog.Post", "accounts.Author").points,
       requireEdgeSnapshot(circularSnapshot, "blog.Post", "accounts.Author").points,
     );
   },

@@ -1,5 +1,11 @@
+import { OGDF_LAYOUT_MODES } from "../../../shared/graph/layoutContract";
+
 export function getBrowserLayoutSource(): string {
+  const layoutModesJson = JSON.stringify(OGDF_LAYOUT_MODES);
+
   return `
+        const layoutModes = ${layoutModesJson};
+
         function createLayoutVariants(tableMetaList) {
           return createSharedLayoutVariants(createPayloadLayout(tableMetaList));
         }
@@ -9,11 +15,10 @@ export function getBrowserLayoutSource(): string {
         }
 
         function createSharedLayoutVariants(baseLayout) {
-          return {
-            circular: cloneLayoutPositions(baseLayout),
-            clustered: cloneLayoutPositions(baseLayout),
-            hierarchical: cloneLayoutPositions(baseLayout),
-          };
+          return layoutModes.reduce((variants, layoutMode) => {
+            variants[layoutMode] = cloneLayoutPositions(baseLayout);
+            return variants;
+          }, {});
         }
 
         function createPayloadLayout(tableMetaList) {

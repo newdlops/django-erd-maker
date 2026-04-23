@@ -3,7 +3,12 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import type { LayoutMode } from "../../../shared/graph/layoutContract";
+import {
+  getOgdfLayoutDefinition,
+  normalizeLayoutMode,
+  resolveAnalyzerLayoutMode,
+  type LayoutMode,
+} from "../../../shared/graph/layoutContract";
 import { decodeDiagramBootstrapPayload } from "../../../shared/protocol/decodeDiagramBootstrap";
 import type { DiagramBootstrapPayload } from "../../../shared/protocol/webviewContract";
 import type { DjangoWorkspaceDiscoveryResult } from "../discovery/discoveryTypes";
@@ -23,6 +28,9 @@ export async function runAnalyzerBootstrap(
 ): Promise<AnalyzerBootstrapResult> {
   const started = Date.now();
   const analyzerBinaryPath = await resolveAnalyzerBinaryPath(extensionRootPath);
+  const requestedLayoutMode = normalizeLayoutMode(layoutMode);
+  const requestedLayout = getOgdfLayoutDefinition(requestedLayoutMode);
+  const analyzerLayoutMode = resolveAnalyzerLayoutMode(layoutMode);
   const modules = createRequestModules(discovery);
 
   if (modules.length === 0) {
@@ -35,7 +43,9 @@ export async function runAnalyzerBootstrap(
     [
       `Analyzer bootstrap starting`,
       `binary=${analyzerBinaryPath}`,
-      `layout=${layoutMode}`,
+      `requestedLayout=${requestedLayoutMode}`,
+      `requestedLabel=${requestedLayout.label}`,
+      `analyzerLayout=${analyzerLayoutMode}`,
       `workspaceRoot=${discovery.selectedRoot}`,
       `modules=${modules.length}`,
     ].join(" · "),
@@ -57,7 +67,7 @@ export async function runAnalyzerBootstrap(
       [
         "bootstrap",
         "--mode",
-        layoutMode,
+        analyzerLayoutMode,
         "--request-file",
         requestPath,
       ],

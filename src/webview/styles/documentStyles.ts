@@ -231,6 +231,13 @@ export function getDocumentStyles(): string {
       font-size: 12px;
     }
 
+    .erd-tool--layout {
+      justify-content: center;
+      padding: 8px 10px;
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
     .erd-method-links {
       display: flex;
       flex-wrap: wrap;

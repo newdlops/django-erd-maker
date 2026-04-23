@@ -33,8 +33,9 @@ export function renderDiagramDocument(
     <main
       class="erd-shell"
       data-erd-root
+      data-erd-version="${packageManifest.version}"
     >
-      <script id="erd-initial-state" type="application/json">${initialStateJson}</script>
+      <template id="erd-initial-state">${initialStateJson}</template>
       ${renderInspector(viewModel, initialState)}
       ${renderCanvasScene(viewModel, packageManifest.version)}
     </main>

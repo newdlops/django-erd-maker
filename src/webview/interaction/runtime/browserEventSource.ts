@@ -48,16 +48,6 @@ export function getBrowserEventSource(): string {
           });
         }
 
-        for (const button of methodButtons) {
-          button.addEventListener("click", () => {
-            dispatch({
-              methodName: button.dataset.methodName,
-              modelId: button.dataset.modelId,
-              type: "toggle-method",
-            });
-          });
-        }
-
         for (const button of layoutButtons) {
           button.addEventListener("click", () => {
             logErd("info", "event.layout.click", {
@@ -102,8 +92,27 @@ export function getBrowserEventSource(): string {
           });
         }
 
-        for (const button of showHiddenButtons) {
-          button.addEventListener("click", () => {
+        root.addEventListener("click", (event) => {
+          const target = event.target;
+          if (!(target instanceof Element)) {
+            return;
+          }
+
+          const button = target.closest("button");
+          if (!button) {
+            return;
+          }
+
+          if (button.matches("[data-method-button]")) {
+            dispatch({
+              methodName: button.dataset.methodName,
+              modelId: button.dataset.modelId,
+              type: "toggle-method",
+            });
+            return;
+          }
+
+          if (button.matches("[data-show-hidden-model]")) {
             logErd("info", "event.table.show", {
               modelId: button.dataset.modelId,
             });
@@ -116,66 +125,67 @@ export function getBrowserEventSource(): string {
               modelId: button.dataset.modelId,
               type: "select-model",
             });
-          });
-        }
+            return;
+          }
 
-        for (const button of tableToggleButtons) {
-          button.addEventListener("click", () => {
-            const modelId = button.dataset.modelId;
-            const options = getTableOptions(state, modelId);
+          if (!button.matches("[data-table-toggle]")) {
+            return;
+          }
 
-            switch (button.dataset.tableToggle) {
-              case "hidden":
-                logErd("info", "event.table.toggle", {
-                  hidden: !options.hidden,
-                  modelId,
-                  toggle: "hidden",
-                });
-                dispatch({
-                  hidden: !options.hidden,
-                  modelId,
-                  type: "set-table-hidden",
-                });
-                break;
-              case "showMethods":
-                logErd("info", "event.table.toggle", {
-                  modelId,
-                  showMethods: !options.showMethods,
-                  toggle: "showMethods",
-                });
-                dispatch({
-                  modelId,
-                  showMethods: !options.showMethods,
-                  type: "set-table-show-methods",
-                });
-                break;
-              case "showProperties":
-                logErd("info", "event.table.toggle", {
-                  modelId,
-                  showProperties: !options.showProperties,
-                  toggle: "showProperties",
-                });
-                dispatch({
-                  modelId,
-                  showProperties: !options.showProperties,
-                  type: "set-table-show-properties",
-                });
-                break;
-              case "showMethodHighlights":
-                logErd("info", "event.table.toggle", {
-                  modelId,
-                  showMethodHighlights: !options.showMethodHighlights,
-                  toggle: "showMethodHighlights",
-                });
-                dispatch({
-                  modelId,
-                  showMethodHighlights: !options.showMethodHighlights,
-                  type: "set-table-show-method-highlights",
-                });
-                break;
-            }
-          });
-        }
+          const modelId = button.dataset.modelId;
+          const options = getTableOptions(state, modelId);
+
+          switch (button.dataset.tableToggle) {
+            case "hidden":
+              logErd("info", "event.table.toggle", {
+                hidden: !options.hidden,
+                modelId,
+                toggle: "hidden",
+              });
+              dispatch({
+                hidden: !options.hidden,
+                modelId,
+                type: "set-table-hidden",
+              });
+              break;
+            case "showMethods":
+              logErd("info", "event.table.toggle", {
+                modelId,
+                showMethods: !options.showMethods,
+                toggle: "showMethods",
+              });
+              dispatch({
+                modelId,
+                showMethods: !options.showMethods,
+                type: "set-table-show-methods",
+              });
+              break;
+            case "showProperties":
+              logErd("info", "event.table.toggle", {
+                modelId,
+                showProperties: !options.showProperties,
+                toggle: "showProperties",
+              });
+              dispatch({
+                modelId,
+                showProperties: !options.showProperties,
+                type: "set-table-show-properties",
+              });
+              break;
+            case "showMethodHighlights":
+              logErd("info", "event.table.toggle", {
+                modelId,
+                showMethodHighlights: !options.showMethodHighlights,
+                toggle: "showMethodHighlights",
+              });
+              dispatch({
+                modelId,
+                showMethodHighlights: !options.showMethodHighlights,
+                type: "set-table-show-method-highlights",
+              });
+              break;
+          }
+        });
 
         for (const control of setupControls) {
           control.addEventListener("input", () => {

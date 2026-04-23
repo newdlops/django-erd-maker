@@ -1,12 +1,23 @@
 #include <ogdf/basic/Graph.h>
 #include <ogdf/basic/GraphAttributes.h>
+#include <ogdf/energybased/DavidsonHarelLayout.h>
 #include <ogdf/energybased/FMMMLayout.h>
+#include <ogdf/energybased/FastMultipoleEmbedder.h>
+#include <ogdf/energybased/PivotMDS.h>
+#include <ogdf/energybased/StressMinimization.h>
 #include <ogdf/energybased/fmmm/FMMMOptions.h>
+#include <ogdf/layered/BarycenterHeuristic.h>
 #include <ogdf/layered/MedianHeuristic.h>
 #include <ogdf/layered/OptimalHierarchyLayout.h>
 #include <ogdf/layered/OptimalRanking.h>
+#include <ogdf/layered/SiftingHeuristic.h>
 #include <ogdf/layered/SugiyamaLayout.h>
 #include <ogdf/misclayout/CircularLayout.h>
+#include <ogdf/misclayout/LinearLayout.h>
+#include <ogdf/planarity/PlanarizationGridLayout.h>
+#include <ogdf/planarity/PlanarizationLayout.h>
+#include <ogdf/tree/RadialTreeLayout.h>
+#include <ogdf/tree/TreeLayout.h>
 
 #include <algorithm>
 #include <fstream>
@@ -16,6 +27,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -50,6 +62,68 @@ struct Bounds {
   double minY = 0.0;
 };
 
+struct DisjointSet {
+  explicit DisjointSet(std::size_t size)
+    : parent(size),
+      rank(size, 0) {
+    for (std::size_t index = 0; index < size; ++index) {
+      parent[index] = index;
+    }
+  }
+
+  std::size_t find(std::size_t value) {
+    if (parent[value] == value) {
+      return value;
+    }
+
+    parent[value] = find(parent[value]);
+    return parent[value];
+  }
+
+  bool unite(std::size_t left, std::size_t right) {
+    left = find(left);
+    right = find(right);
+
+    if (left == right) {
+      return false;
+    }
+
+    if (rank[left] < rank[right]) {
+      std::swap(left, right);
+    }
+
+    parent[right] = left;
+
+    if (rank[left] == rank[right]) {
+      rank[left] += 1;
+    }
+
+    return true;
+  }
+
+  std::vector<std::size_t> parent;
+  std::vector<std::size_t> rank;
+};
+
+bool isSupportedMode(const std::string& mode) {
+  return mode == "hierarchical"
+    || mode == "hierarchical_barycenter"
+    || mode == "hierarchical_sifting"
+    || mode == "circular"
+    || mode == "linear"
+    || mode == "clustered"
+    || mode == "fmmm"
+    || mode == "fast_multipole"
+    || mode == "fast_multipole_multilevel"
+    || mode == "stress_minimization"
+    || mode == "pivot_mds"
+    || mode == "davidson_harel"
+    || mode == "planarization"
+    || mode == "planarization_grid"
+    || mode == "tree"
+    || mode == "radial_tree";
+}
+
 CliArguments parseArguments(int argc, char** argv) {
   if (argc < 8) {
     throw std::runtime_error(
@@ -81,7 +155,7 @@ CliArguments parseArguments(int argc, char** argv) {
     throw std::runtime_error("mode, nodes-file and edges-file are required");
   }
 
-  if (arguments.mode != "hierarchical" && arguments.mode != "circular" && arguments.mode != "clustered") {
+  if (!isSupportedMode(arguments.mode)) {
     throw std::runtime_error("unsupported mode: " + arguments.mode);
   }
 
@@ -205,37 +279,202 @@ std::vector<EdgeRecord> readEdges(
   return edges;
 }
 
-void runLayout(const std::string& mode, ogdf::GraphAttributes& attributes) {
-  if (mode == "hierarchical") {
-    ogdf::SugiyamaLayout layout;
-    layout.setRanking(new ogdf::OptimalRanking());
+std::size_t idealThreadCount() {
+  const unsigned int detected = std::thread::hardware_concurrency();
+  return std::max<std::size_t>(1, std::min<std::size_t>(8, detected == 0 ? 1 : detected));
+}
+
+void runSugiyamaLayout(const std::string& mode, ogdf::GraphAttributes& attributes) {
+  ogdf::SugiyamaLayout layout;
+  layout.setRanking(new ogdf::OptimalRanking());
+
+  if (mode == "hierarchical_barycenter") {
+    layout.setCrossMin(new ogdf::BarycenterHeuristic());
+  } else if (mode == "hierarchical_sifting") {
+    layout.setCrossMin(new ogdf::SiftingHeuristic());
+  } else {
     layout.setCrossMin(new ogdf::MedianHeuristic());
-    auto* hierarchy = new ogdf::OptimalHierarchyLayout();
-    hierarchy->layerDistance(140.0);
-    hierarchy->nodeDistance(80.0);
-    hierarchy->weightBalancing(0.8);
-    layout.setLayout(hierarchy);
-    layout.arrangeCCs(true);
-    layout.call(attributes);
+  }
+
+  auto* hierarchy = new ogdf::OptimalHierarchyLayout();
+  hierarchy->layerDistance(140.0);
+  hierarchy->nodeDistance(96.0);
+  hierarchy->weightBalancing(0.8);
+  layout.setLayout(hierarchy);
+  layout.arrangeCCs(true);
+  layout.call(attributes);
+}
+
+void runProjectedTreeLayout(
+  const std::string& mode,
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes) {
+  ogdf::Graph treeGraph;
+  ogdf::GraphAttributes treeAttributes(
+    treeGraph,
+    ogdf::GraphAttributes::nodeGraphics | ogdf::GraphAttributes::edgeGraphics);
+  std::vector<ogdf::node> treeNodes;
+  treeNodes.reserve(nodes.size());
+  std::unordered_map<ogdf::node, std::size_t> indicesByNode;
+  indicesByNode.reserve(nodes.size());
+
+  for (std::size_t index = 0; index < nodes.size(); ++index) {
+    const NodeRecord& node = nodes[index];
+    ogdf::node treeNode = treeGraph.newNode();
+    treeNodes.push_back(treeNode);
+    indicesByNode.emplace(node.handle, index);
+    treeAttributes.width(treeNode) = attributes.width(node.handle);
+    treeAttributes.height(treeNode) = attributes.height(node.handle);
+    treeAttributes.x(treeNode) = attributes.x(node.handle);
+    treeAttributes.y(treeNode) = attributes.y(node.handle);
+  }
+
+  DisjointSet forest(nodes.size());
+  for (const EdgeRecord& edge : edges) {
+    const auto source = indicesByNode.find(edge.handle->source());
+    const auto target = indicesByNode.find(edge.handle->target());
+
+    if (source == indicesByNode.end() || target == indicesByNode.end()) {
+      continue;
+    }
+
+    if (!forest.unite(source->second, target->second)) {
+      continue;
+    }
+
+    treeGraph.newEdge(treeNodes[source->second], treeNodes[target->second]);
+  }
+
+  if (treeGraph.numberOfEdges() == 0) {
+    ogdf::LinearLayout layout;
+    layout.call(treeAttributes);
+  } else if (mode == "radial_tree") {
+    ogdf::RadialTreeLayout layout;
+    layout.levelDistance(120.0);
+    layout.rootSelection(ogdf::RadialTreeLayout::RootSelectionType::Center);
+    layout.call(treeAttributes);
+  } else {
+    ogdf::TreeLayout layout;
+    layout.siblingDistance(60.0);
+    layout.subtreeDistance(80.0);
+    layout.levelDistance(140.0);
+    layout.treeDistance(120.0);
+    layout.orthogonalLayout(true);
+    layout.rootSelection(ogdf::TreeLayout::RootSelectionType::Source);
+    layout.call(treeAttributes);
+  }
+
+  for (std::size_t index = 0; index < nodes.size(); ++index) {
+    attributes.x(nodes[index].handle) = treeAttributes.x(treeNodes[index]);
+    attributes.y(nodes[index].handle) = treeAttributes.y(treeNodes[index]);
+  }
+}
+
+void runLayout(
+  const std::string& mode,
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes) {
+  if (mode == "hierarchical" || mode == "hierarchical_barycenter" || mode == "hierarchical_sifting") {
+    runSugiyamaLayout(mode, attributes);
     return;
   }
 
   if (mode == "circular") {
     ogdf::CircularLayout layout;
-    layout.minDistCircle(80.0);
-    layout.minDistCC(80.0);
-    layout.minDistLevel(80.0);
-    layout.minDistSibling(40.0);
+    layout.minDistCircle(96.0);
+    layout.minDistCC(96.0);
+    layout.minDistLevel(96.0);
+    layout.minDistSibling(48.0);
     layout.call(attributes);
     return;
   }
 
-  ogdf::FMMMLayout layout;
-  layout.useHighLevelOptions(true);
-  layout.unitEdgeLength(120.0);
-  layout.newInitialPlacement(true);
-  layout.qualityVersusSpeed(ogdf::FMMMOptions::QualityVsSpeed::BeautifulAndFast);
-  layout.call(attributes);
+  if (mode == "linear") {
+    ogdf::LinearLayout layout;
+    layout.call(attributes);
+    return;
+  }
+
+  if (mode == "clustered" || mode == "fmmm") {
+    ogdf::FMMMLayout layout;
+    layout.useHighLevelOptions(true);
+    layout.unitEdgeLength(140.0);
+    layout.newInitialPlacement(true);
+    layout.qualityVersusSpeed(ogdf::FMMMOptions::QualityVsSpeed::BeautifulAndFast);
+    layout.call(attributes);
+    return;
+  }
+
+  if (mode == "fast_multipole") {
+    ogdf::FastMultipoleEmbedder layout;
+    layout.setNumIterations(300);
+    layout.setMultipolePrec(6);
+    layout.setDefaultEdgeLength(140.0f);
+    layout.setDefaultNodeSize(48.0f);
+    layout.setRandomize(true);
+    layout.setNumberOfThreads(static_cast<uint32_t>(idealThreadCount()));
+    layout.call(attributes);
+    return;
+  }
+
+  if (mode == "fast_multipole_multilevel") {
+    ogdf::FastMultipoleMultilevelEmbedder layout;
+    layout.multilevelUntilNumNodesAreLess(16);
+    layout.maxNumThreads(static_cast<int>(idealThreadCount()));
+    layout.call(attributes);
+    return;
+  }
+
+  if (mode == "stress_minimization") {
+    ogdf::StressMinimization layout;
+    layout.hasInitialLayout(false);
+    layout.setIterations(150);
+    layout.setEdgeCosts(140.0);
+    layout.layoutComponentsSeparately(true);
+    layout.call(attributes);
+    return;
+  }
+
+  if (mode == "pivot_mds") {
+    ogdf::PivotMDS layout;
+    layout.setNumberOfPivots(std::max(16, std::min(256, static_cast<int>(nodes.size()))));
+    layout.setEdgeCosts(140.0);
+    layout.setForcing2DLayout(true);
+    layout.call(attributes);
+    return;
+  }
+
+  if (mode == "davidson_harel") {
+    ogdf::DavidsonHarelLayout layout;
+    layout.fixSettings(ogdf::DavidsonHarelLayout::SettingsParameter::Planar);
+    layout.setSpeed(ogdf::DavidsonHarelLayout::SpeedParameter::Fast);
+    layout.setPreferredEdgeLength(140.0);
+    layout.call(attributes);
+    return;
+  }
+
+  if (mode == "planarization") {
+    ogdf::PlanarizationLayout layout;
+    layout.pageRatio(1.6);
+    layout.call(attributes);
+    return;
+  }
+
+  if (mode == "planarization_grid") {
+    ogdf::PlanarizationGridLayout layout;
+    layout.pageRatio(1.6);
+    layout.call(attributes);
+    return;
+  }
+
+  if (mode == "tree" || mode == "radial_tree") {
+    runProjectedTreeLayout(mode, nodes, edges, attributes);
+    return;
+  }
+
+  throw std::runtime_error("unsupported mode: " + mode);
 }
 
 void updateBounds(Bounds& bounds, double x, double y, bool& hasPoint) {
@@ -400,7 +639,7 @@ int main(int argc, char** argv) {
     std::vector<EdgeRecord> edges = readEdges(arguments.edgesFile, graph, nodesById);
 
     if (graph.numberOfNodes() > 0) {
-      runLayout(arguments.mode, attributes);
+      runLayout(arguments.mode, nodes, edges, attributes);
     }
 
     const Bounds bounds = measureBounds(nodes, edges, attributes);

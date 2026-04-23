@@ -143,6 +143,41 @@ test("phase10 live diagram service applies OGDF layout from a platform binary pr
   }
 });
 
+test("phase10 live diagram service maps advanced OGDF layouts through analyzer fallback modes", async () => {
+  await analyzerBuild;
+  const workspacePath = path.join(
+    repoRoot,
+    "test/fixtures/django/feature_rich_project",
+  );
+  const tempDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "django-erd-ogdf-advanced-"));
+  const hookPath = path.join(tempDirectory, "fake-ogdf-hook.cjs");
+  const previousBinary = process.env.DJANGO_ERD_OGDF_LAYOUT_BIN;
+  const previousNodeOptions = process.env.NODE_OPTIONS;
+
+  await fs.writeFile(hookPath, fakeOgdfHookSource(), "utf8");
+  process.env.DJANGO_ERD_OGDF_LAYOUT_BIN = process.execPath;
+  process.env.NODE_OPTIONS = appendNodeRequire(previousNodeOptions, hookPath);
+
+  try {
+    const discovery = await discoverDjangoWorkspace(workspacePath);
+    const result = await loadLiveDiagram(
+      repoRoot,
+      discovery,
+      "fmmm",
+      4.5,
+    );
+
+    assert.equal(result.payload.layout.mode, "fmmm");
+    assert.equal(result.payload.view.layoutMode, "fmmm");
+    assert.equal(typeof result.payload.timings.ogdfLayoutMs, "number");
+    assert.equal(result.payload.layout.nodes.length, result.payload.graph.nodes.length);
+  } finally {
+    restoreEnvValue("DJANGO_ERD_OGDF_LAYOUT_BIN", previousBinary);
+    restoreEnvValue("NODE_OPTIONS", previousNodeOptions);
+    await fs.rm(tempDirectory, { force: true, recursive: true });
+  }
+});
+
 function appendNodeRequire(existingValue, hookPath) {
   const requireOption = `--require=${hookPath}`;
 

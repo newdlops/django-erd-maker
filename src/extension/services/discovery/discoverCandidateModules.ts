@@ -1,31 +1,21 @@
-import path from "node:path";
-
 import type {
   DiscoveredCandidateModule,
   DiscoveredDjangoApp,
 } from "./discoveryTypes";
-import { collectPythonFiles } from "./pathScanner";
 
 export async function discoverCandidateModules(
-  selectedRoot: string,
+  _selectedRoot: string,
   apps: DiscoveredDjangoApp[],
 ): Promise<DiscoveredCandidateModule[]> {
-  const pythonFiles = await collectPythonFiles(selectedRoot);
-  const appRoots = apps
-    .map((app) => ({
-      appLabel: app.appLabel,
-      rootPath: path.join(selectedRoot, fromPosixPath(app.appPath)),
-    }))
-    .sort((left, right) => right.rootPath.length - left.rootPath.length);
-  const modules = pythonFiles
-    .filter((filePath) => path.basename(filePath) !== "manage.py")
-    .map((filePath) => {
-      const relativePath = toPosixPath(path.relative(selectedRoot, filePath));
-      return {
-        appLabel: inferAppLabel(selectedRoot, filePath, relativePath, appRoots),
-        filePath: relativePath,
-      } satisfies DiscoveredCandidateModule;
-    });
+  const modules = apps.flatMap((app) =>
+    app.candidateModelFiles.map(
+      (filePath) =>
+        ({
+          appLabel: app.appLabel,
+          filePath,
+        }) satisfies DiscoveredCandidateModule,
+    ),
+  );
 
   return dedupeAndSort(modules);
 }
@@ -51,35 +41,4 @@ function dedupeAndSort(
   });
 
   return deduped;
-}
-
-function inferAppLabel(
-  selectedRoot: string,
-  absoluteFilePath: string,
-  relativePath: string,
-  appRoots: Array<{ appLabel: string; rootPath: string }>,
-): string {
-  for (const appRoot of appRoots) {
-    if (
-      absoluteFilePath === appRoot.rootPath ||
-      absoluteFilePath.startsWith(`${appRoot.rootPath}${path.sep}`)
-    ) {
-      return appRoot.appLabel;
-    }
-  }
-
-  const segments = relativePath.split("/").filter(Boolean);
-  if (segments.length >= 2) {
-    return segments[0];
-  }
-
-  return path.basename(selectedRoot);
-}
-
-function fromPosixPath(filePath: string): string {
-  return filePath.split("/").join(path.sep);
-}
-
-function toPosixPath(filePath: string): string {
-  return filePath.split(path.sep).join("/");
 }

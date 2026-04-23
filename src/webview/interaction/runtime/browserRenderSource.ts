@@ -1,7 +1,31 @@
+import {
+  getOgdfLayoutDefinition,
+  OGDF_LAYOUT_MODES,
+} from "../../../shared/graph/layoutContract";
+
 export function getBrowserRenderSource(): string {
+  const layoutLabelsJson = JSON.stringify(
+    Object.fromEntries(
+      OGDF_LAYOUT_MODES.map((layoutMode) => [
+        layoutMode,
+        getOgdfLayoutDefinition(layoutMode).label,
+      ]),
+    ),
+  );
+
   return `
         let viewportRenderFrame = 0;
         let cachedMinimapMetrics = null;
+        const layoutLabels = ${layoutLabelsJson};
+
+        function normalizeLayoutModeId(layoutMode) {
+          return layoutMode === "clustered" ? "fmmm" : layoutMode;
+        }
+
+        function getLayoutLabel(layoutMode) {
+          const normalized = normalizeLayoutModeId(layoutMode);
+          return layoutLabels[normalized] || layoutLabels[layoutMode] || normalized;
+        }
 
         function applyState() {
           renderSummary();
@@ -254,9 +278,11 @@ export function getBrowserRenderSource(): string {
         }
 
         function renderHiddenTableList() {
-          for (const [modelId, item] of hiddenItemsById.entries()) {
-            item.hidden = !getTableOptions(state, modelId).hidden;
+          if (!hiddenModelList) {
+            return;
           }
+
+          hiddenModelList.innerHTML = renderHiddenModelItemsMarkup();
         }
 
         function renderOverlays() {
@@ -296,52 +322,17 @@ export function getBrowserRenderSource(): string {
         }
 
         function renderPanels() {
-          for (const [modelId, meta] of panelMetaById.entries()) {
-            const selected = state.selectedModelId === modelId;
-            const options = getTableOptions(state, modelId);
-
-            meta.element.classList.toggle("is-selected", selected);
-            meta.element.hidden = !selected;
-            if (meta.methodHiddenHint) {
-              meta.methodHiddenHint.hidden = options.showMethods;
-            }
-            if (meta.methodList) {
-              const hasMethods = meta.methodList.children.length > 0;
-              meta.methodList.hidden = !options.showMethods || !hasMethods;
-            }
-            if (meta.emptyMethodHint) {
-              const hasMethods = meta.methodList && meta.methodList.children.length > 0;
-              meta.emptyMethodHint.hidden = Boolean(hasMethods);
-            }
-            if (meta.propertyHiddenHint) {
-              meta.propertyHiddenHint.hidden = options.showProperties;
-            }
-            if (meta.propertyList) {
-              const hasProperties = meta.propertyList.children.length > 0;
-              meta.propertyList.hidden = !options.showProperties || !hasProperties;
-            }
-            if (meta.emptyPropertyHint) {
-              const hasProperties = meta.propertyList && meta.propertyList.children.length > 0;
-              meta.emptyPropertyHint.hidden = Boolean(hasProperties);
-            }
-
-            for (const button of meta.toggleButtons) {
-              updateToggleButton(button, options);
-            }
+          if (!panelHost) {
+            return;
           }
 
-          for (const button of methodButtons) {
-            const active =
-              state.selectedMethodContext &&
-              state.selectedMethodContext.modelId === button.dataset.modelId &&
-              state.selectedMethodContext.methodName === button.dataset.methodName;
-            button.classList.toggle("is-active", Boolean(active));
-          }
+          panelHost.innerHTML = renderInspectorPanelMarkup(getSelectedPanelModelId());
+          syncPanelMeta();
         }
 
         function renderSummary() {
           for (const element of layoutReadouts) {
-            element.textContent = state.layoutMode;
+            element.textContent = getLayoutLabel(state.layoutMode);
           }
 
           for (const element of hiddenCountReadouts) {
@@ -351,7 +342,10 @@ export function getBrowserRenderSource(): string {
           }
 
           for (const button of layoutButtons) {
-            button.classList.toggle("is-active", button.dataset.layoutMode === state.layoutMode);
+            button.classList.toggle(
+              "is-active",
+              normalizeLayoutModeId(button.dataset.layoutMode) === normalizeLayoutModeId(state.layoutMode),
+            );
           }
         }
 

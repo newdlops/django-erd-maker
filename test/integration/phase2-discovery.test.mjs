@@ -23,11 +23,7 @@ test("single_app_project discovers one app and one model file", async () => {
   assert.equal(result.apps.length, 1);
   assert.equal(result.apps[0].appLabel, "blog");
   assert.deepEqual(result.candidateModelFiles, ["blog/models.py"]);
-  assertDiscoveredModulesContain(result, [
-    "blog/apps.py",
-    "blog/models.py",
-    "project/settings.py",
-  ]);
+  assertDiscoveredModulesContain(result, ["blog/models.py"]);
 });
 
 test("multi_app_project discovers cross-app model modules", async () => {
@@ -44,11 +40,8 @@ test("multi_app_project discovers cross-app model modules", async () => {
     "taxonomy/models.py",
   ]);
   assertDiscoveredModulesContain(result, [
-    "accounts/apps.py",
     "accounts/models.py",
-    "blog/apps.py",
     "blog/models.py",
-    "taxonomy/apps.py",
     "taxonomy/models.py",
   ]);
 });
@@ -67,11 +60,8 @@ test("disconnected_project preserves connected and disconnected app candidates",
     "sales/models.py",
   ]);
   assertDiscoveredModulesContain(result, [
-    "audit/apps.py",
     "audit/models.py",
-    "crm/apps.py",
     "crm/models.py",
-    "sales/apps.py",
     "sales/models.py",
   ]);
 });
@@ -103,12 +93,7 @@ test("partial_reference_project emits discovery diagnostics for ambiguous and pa
 
   assert.equal(path.basename(result.selectedRoot), "partial_reference_project");
   assert.deepEqual(result.candidateModelFiles, ["orphan/models.py"]);
-  assertDiscoveredModulesContain(result, [
-    "brokenapp/apps.py",
-    "brokenapp/models/entry.py",
-    "orphan/apps.py",
-    "orphan/models.py",
-  ]);
+  assertDiscoveredModulesContain(result, ["orphan/models.py"]);
   assert.deepEqual(diagnosticCodes, [
     "app_without_model_modules",
     "models_package_missing_init",
@@ -126,12 +111,11 @@ test("crossing_layout_project remains executable as a focused discovery fixture"
   );
   assert.deepEqual(result.candidateModelFiles, ["mesh/models.py"]);
   assertDiscoveredModulesContain(result, [
-    "mesh/apps.py",
     "mesh/models.py",
   ]);
 });
 
-test("project_wide_scan_project includes non-models modules for analyzer input", async () => {
+test("project_wide_scan_project does not forward non-model modules to the analyzer", async () => {
   const fixturePath = path.join(fixturesRoot, "project_wide_scan_project");
   const result = await discoverDjangoWorkspace(fixturePath);
 
@@ -140,12 +124,7 @@ test("project_wide_scan_project includes non-models modules for analyzer input",
     ["catalog"],
   );
   assert.deepEqual(result.candidateModelFiles, []);
-  assertDiscoveredModulesContain(result, [
-    "catalog/apps.py",
-    "catalog/base.py",
-    "catalog/entities.py",
-    "project/settings.py",
-  ]);
+  assert.deepEqual(result.candidateModules, []);
   assert.ok(
     result.candidateModules.every((module) => module.filePath !== "manage.py"),
     "manage.py should not be forwarded to the analyzer",

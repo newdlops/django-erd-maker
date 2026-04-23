@@ -1,4 +1,7 @@
-import { OGDF_LAYOUT_MODES } from "../../shared/graph/layoutContract";
+import {
+  normalizeLayoutMode,
+  OGDF_LAYOUT_TOOLBAR_DEFINITIONS,
+} from "../../shared/graph/layoutContract";
 import type { DiagramRenderModel } from "../state/createDiagramRenderModel";
 import { escapeHtml } from "./escapeHtml";
 
@@ -13,8 +16,8 @@ export function renderSvgScene(viewModel: DiagramRenderModel): string {
           <button type="button" class="erd-tool" data-zoom-action="center">Move To Center</button>
         </div>
         <div class="erd-toolbar-group">
-          ${OGDF_LAYOUT_MODES.map((layoutMode) =>
-            renderLayoutButton(layoutMode, viewModel.layoutMode),
+          ${OGDF_LAYOUT_TOOLBAR_DEFINITIONS.map((layout) =>
+            renderLayoutButton(layout.id, layout.shortLabel, layout.label, viewModel.layoutMode),
           ).join("")}
         </div>
         <div class="erd-toolbar-group">
@@ -106,15 +109,18 @@ function renderFieldRows(
 
 function renderLayoutButton(
   layoutMode: DiagramRenderModel["layoutMode"],
+  shortLabel: string,
+  label: string,
   activeMode: DiagramRenderModel["layoutMode"],
 ): string {
-  const label = layoutMode.charAt(0).toUpperCase() + layoutMode.slice(1);
   return `
     <button
       type="button"
-      class="erd-tool${layoutMode === activeMode ? " is-active" : ""}"
+      class="erd-tool erd-tool--layout${normalizeLayoutMode(layoutMode) === normalizeLayoutMode(activeMode) ? " is-active" : ""}"
       data-layout-mode="${layoutMode}"
-    >${label}</button>
+      title="${escapeHtml(label)}"
+      aria-label="${escapeHtml(label)}"
+    >${escapeHtml(shortLabel)}</button>
   `;
 }
 

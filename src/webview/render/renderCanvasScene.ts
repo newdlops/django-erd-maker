@@ -1,4 +1,7 @@
-import { OGDF_LAYOUT_MODES } from "../../shared/graph/layoutContract";
+import {
+  normalizeLayoutMode,
+  OGDF_LAYOUT_TOOLBAR_DEFINITIONS,
+} from "../../shared/graph/layoutContract";
 import type { DiagramRenderModel } from "../state/createDiagramRenderModel";
 import { serializeJsonForScriptTag } from "./escapeHtml";
 
@@ -23,8 +26,8 @@ export function renderCanvasScene(viewModel: DiagramRenderModel, appVersion: str
           <button type="button" class="erd-tool" data-zoom-action="center">Move To Center</button>
         </div>
         <div class="erd-toolbar-group">
-          ${OGDF_LAYOUT_MODES.map((layoutMode) =>
-            renderLayoutButton(layoutMode, viewModel.layoutMode),
+          ${OGDF_LAYOUT_TOOLBAR_DEFINITIONS.map((layout) =>
+            renderLayoutButton(layout.id, layout.shortLabel, layout.label, viewModel.layoutMode),
           ).join("")}
         </div>
         <div class="erd-toolbar-group">
@@ -59,9 +62,9 @@ export function renderCanvasScene(viewModel: DiagramRenderModel, appVersion: str
             width="1"
             height="1"
           ></canvas>
-          <div class="erd-minimap__viewport" data-erd-minimap-viewport></div>
+        <div class="erd-minimap__viewport" data-erd-minimap-viewport></div>
         </div>
-        <script id="erd-render-model" type="application/json">${renderModelJson}</script>
+        <template id="erd-render-model">${renderModelJson}</template>
       </div>
     </section>
   `;
@@ -69,14 +72,17 @@ export function renderCanvasScene(viewModel: DiagramRenderModel, appVersion: str
 
 function renderLayoutButton(
   layoutMode: DiagramRenderModel["layoutMode"],
+  shortLabel: string,
+  label: string,
   activeMode: DiagramRenderModel["layoutMode"],
 ): string {
-  const label = layoutMode.charAt(0).toUpperCase() + layoutMode.slice(1);
   return `
     <button
       type="button"
-      class="erd-tool${layoutMode === activeMode ? " is-active" : ""}"
+      class="erd-tool erd-tool--layout${normalizeLayoutMode(layoutMode) === normalizeLayoutMode(activeMode) ? " is-active" : ""}"
       data-layout-mode="${layoutMode}"
-    >${label}</button>
+      title="${label}"
+      aria-label="${label}"
+    >${shortLabel}</button>
   `;
 }

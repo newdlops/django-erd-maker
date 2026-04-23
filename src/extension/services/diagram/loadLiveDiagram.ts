@@ -1,4 +1,4 @@
-import type { LayoutMode } from "../../../shared/graph/layoutContract";
+import { normalizeLayoutMode, type LayoutMode } from "../../../shared/graph/layoutContract";
 import { mergePipelineTimings } from "../../../shared/protocol/mergePipelineTimings";
 import type { DiagramBootstrapPayload } from "../../../shared/protocol/webviewContract";
 import type { DjangoWorkspaceDiscoveryResult } from "../discovery/discoveryTypes";
@@ -18,9 +18,10 @@ export async function relayoutLiveDiagram(
   layoutMode: LayoutMode,
   logger?: Logger,
 ): Promise<LiveDiagramResult> {
+  const requestedLayoutMode = normalizeLayoutMode(layoutMode);
   const payload = clonePayload(current.payload);
-  payload.layout.mode = layoutMode;
-  payload.view.layoutMode = layoutMode;
+  payload.layout.mode = requestedLayoutMode;
+  payload.view.layoutMode = requestedLayoutMode;
 
   const ogdfResult = await runOgdfLayout(
     extensionRootPath,
@@ -28,7 +29,7 @@ export async function relayoutLiveDiagram(
     logger,
   );
   payload.layout = ogdfResult.layout;
-  payload.view.layoutMode = ogdfResult.layout.mode;
+  payload.view.layoutMode = normalizeLayoutMode(ogdfResult.layout.mode);
   payload.timings = mergePipelineTimings(payload.timings, {
     ...(ogdfResult.applied ? { ogdfLayoutMs: ogdfResult.durationMs } : {}),
   });
@@ -46,10 +47,11 @@ export async function loadLiveDiagram(
   discoveryMs?: number,
   logger?: Logger,
 ): Promise<LiveDiagramResult> {
+  const requestedLayoutMode = normalizeLayoutMode(layoutMode);
   const payload =
     discovery.candidateModules.length > 0
-      ? await loadAnalyzerPayload(extensionRootPath, discovery, layoutMode, logger)
-      : createEmptyDiagramPayload(discovery.selectedRoot, layoutMode);
+      ? await loadAnalyzerPayload(extensionRootPath, discovery, requestedLayoutMode, logger)
+      : createEmptyDiagramPayload(discovery.selectedRoot, requestedLayoutMode);
   if (discovery.candidateModules.length === 0) {
     logger?.warn("Analyzer skipped because discovery returned no candidate modules.");
   }
@@ -75,12 +77,15 @@ async function loadAnalyzerPayload(
     layoutMode,
     logger,
   );
+  analyzerResult.payload.layout.mode = layoutMode;
+  analyzerResult.payload.view.layoutMode = layoutMode;
   const ogdfResult = await runOgdfLayout(
     extensionRootPath,
     analyzerResult.payload,
     logger,
   );
   analyzerResult.payload.layout = ogdfResult.layout;
+  analyzerResult.payload.view.layoutMode = normalizeLayoutMode(ogdfResult.layout.mode);
   analyzerResult.payload.timings = mergePipelineTimings(analyzerResult.payload.timings, {
     analyzerBootstrapMs: analyzerResult.durationMs,
     ...(ogdfResult.applied ? { ogdfLayoutMs: ogdfResult.durationMs } : {}),
