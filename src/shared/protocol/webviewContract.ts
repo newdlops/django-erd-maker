@@ -19,11 +19,23 @@ export interface SelectedMethodContext {
   modelId: ModelId;
 }
 
+export interface DiagramViewportSnapshot {
+  panX: number;
+  panY: number;
+  zoom: number;
+}
+
+export interface DiagramViewportRectSnapshot {
+  height: number;
+  width: number;
+}
+
 export interface InitialViewState {
   layoutMode: LayoutMode;
   selectedMethodContext?: SelectedMethodContext;
   selectedModelId?: ModelId;
   tableOptions: TableViewOptions[];
+  viewport?: DiagramViewportSnapshot;
 }
 
 export interface DiagramBootstrapPayload {
@@ -64,8 +76,18 @@ export interface DiagramInteractionSettingsSnapshot {
   zoomSpeed: number;
 }
 
+export interface RefreshViewStateSnapshot extends InitialViewState {
+  viewport: DiagramViewportSnapshot;
+  viewportRect: DiagramViewportRectSnapshot;
+}
+
+export type DiagramRefreshKind = "full" | "layout";
+
 export interface RequestRefreshMessage {
+  layoutMode?: LayoutMode;
+  refreshKind?: DiagramRefreshKind;
   settings?: DiagramInteractionSettingsSnapshot;
+  viewState?: RefreshViewStateSnapshot;
   type: "diagram.requestRefresh";
 }
 

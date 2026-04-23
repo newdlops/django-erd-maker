@@ -1,7 +1,9 @@
 import * as vscode from "vscode";
 
+import { DEFAULT_LAYOUT_MODE, type LayoutMode } from "../../shared/graph/layoutContract";
 import type {
   DiagramInteractionSettingsSnapshot,
+  RefreshViewStateSnapshot,
   WebviewToExtensionMessage,
 } from "../../shared/protocol/webviewContract";
 import type { LiveDiagramResult } from "../services/diagram/loadLiveDiagram";
@@ -18,7 +20,13 @@ import type {
 } from "../../shared/protocol/webviewTestContract";
 import { renderDiagramDocument } from "../../webview/app/renderDiagramDocument";
 
-type RefreshLoader = () => Promise<LiveDiagramResult>;
+interface RefreshRequest {
+  layoutMode?: LayoutMode;
+  refreshKind?: "full" | "layout";
+  viewState?: RefreshViewStateSnapshot;
+}
+
+type RefreshLoader = (request?: RefreshRequest) => Promise<LiveDiagramResult>;
 type PanelMessage =
   | WebviewToExtensionMessage
   | DiagramTestSnapshotMessage
@@ -52,6 +60,7 @@ export class ErdPanel {
     }
   >();
   private persistedSetupSettings: DiagramInteractionSettingsSnapshot | undefined;
+  private persistedViewState: RefreshViewStateSnapshot | undefined;
   private refreshLoader: RefreshLoader | undefined;
   private webviewReady = false;
 
@@ -145,7 +154,14 @@ export class ErdPanel {
             ...message.settings,
           };
         }
-        await this.refresh();
+        if (message.viewState) {
+          this.persistedViewState = cloneRefreshViewState(message.viewState);
+        }
+        await this.refresh({
+          layoutMode: message.layoutMode,
+          refreshKind: message.refreshKind,
+          viewState: message.viewState,
+        });
         return;
       case "diagram.test.error":
         this.rejectTestRequest(message);
@@ -177,12 +193,19 @@ export class ErdPanel {
     }
   }
 
-  private async refresh(): Promise<void> {
+  private async refresh(request?: RefreshRequest): Promise<void> {
     if (!this.refreshLoader) {
       return;
     }
 
-    const liveDiagram = await this.refreshLoader();
+    const liveDiagram = await this.refreshLoader({
+      layoutMode:
+        request?.layoutMode ??
+        this.currentState?.payload.view.layoutMode ??
+        DEFAULT_LAYOUT_MODE,
+      refreshKind: request?.refreshKind ?? "full",
+      viewState: request?.viewState ?? this.persistedViewState,
+    });
     this.update(liveDiagram, this.refreshLoader);
   }
 
@@ -195,11 +218,6 @@ export class ErdPanel {
     this.webviewReady = false;
     this.rejectAllReadyWaiters("Webview was reloaded before becoming ready.");
     const renderStarted = Date.now();
-    renderDiagramDocument(
-      liveDiagram.payload,
-      liveDiagram.discovery,
-      this.persistedSetupSettings,
-    );
     liveDiagram.payload.timings = mergePipelineTimings(liveDiagram.payload.timings, {
       renderDocumentMs: Date.now() - renderStarted,
     });
@@ -219,6 +237,14 @@ export class ErdPanel {
   private async runWebviewAction(
     action: DiagramTestAction,
   ): Promise<DiagramTestSnapshot> {
+    if (action.type === "clickLayoutMode") {
+      await this.refresh({
+        layoutMode: action.layoutMode,
+        refreshKind: "layout",
+      });
+      return this.runWebviewAction({ type: "snapshot" });
+    }
+
     await this.waitForWebviewReady();
     const requestId = `test-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -325,4 +351,22 @@ export class ErdPanel {
       pending.reject(new Error(reason));
     }
   }
+}
+
+function cloneRefreshViewState(
+  state: RefreshViewStateSnapshot,
+): RefreshViewStateSnapshot {
+  return {
+    layoutMode: state.layoutMode,
+    selectedMethodContext: state.selectedMethodContext
+      ? { ...state.selectedMethodContext }
+      : undefined,
+    selectedModelId: state.selectedModelId,
+    tableOptions: state.tableOptions.map((options) => ({
+      ...options,
+      manualPosition: options.manualPosition ? { ...options.manualPosition } : undefined,
+    })),
+    viewport: { ...state.viewport },
+    viewportRect: { ...state.viewportRect },
+  };
 }

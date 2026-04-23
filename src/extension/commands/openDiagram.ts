@@ -1,10 +1,14 @@
 import * as vscode from "vscode";
 
+import { DEFAULT_LAYOUT_MODE, type LayoutMode } from "../../shared/graph/layoutContract";
+import type { RefreshViewStateSnapshot } from "../../shared/protocol/webviewContract";
 import { ErdPanel } from "../panels/erdPanel";
 import { discoverDjangoWorkspace } from "../services/discovery/discoverDjangoWorkspace";
 import type { DjangoWorkspaceDiscoveryResult } from "../services/discovery/discoveryTypes";
 import { loadLiveDiagram } from "../services/diagram/loadLiveDiagram";
+import { relayoutLiveDiagram } from "../services/diagram/loadLiveDiagram";
 import type { LiveDiagramResult } from "../services/diagram/loadLiveDiagram";
+import { restoreRefreshViewState } from "../services/diagram/restoreRefreshViewState";
 import { ensureOgdfBinaryInstalled } from "../services/layout/ensureOgdfBinaryInstalled";
 import { getExtensionLogger, showExtensionLog } from "../services/logging/extensionLogger";
 import type { Logger } from "../services/logging/logger";
@@ -15,6 +19,7 @@ export async function openDiagram(
 ): Promise<void> {
   const logger = getExtensionLogger();
   const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  let cachedDiagram: LiveDiagramResult | undefined;
 
   if (!workspacePath) {
     throw new Error("Open a Django workspace folder before opening the ERD.");
@@ -22,7 +27,15 @@ export async function openDiagram(
 
   logger.info(`Open diagram requested for workspace: ${workspacePath}`);
 
-  const refreshLoader = () =>
+  const refreshLoader = ({
+    layoutMode = DEFAULT_LAYOUT_MODE,
+    refreshKind = "full",
+    viewState,
+  }: {
+    layoutMode?: LayoutMode;
+    refreshKind?: "full" | "layout";
+    viewState?: RefreshViewStateSnapshot;
+  } = {}) =>
     vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -30,24 +43,53 @@ export async function openDiagram(
       },
       async () => {
         await ensureOgdfBinaryInstalled(context, logger);
-        const timedDiscovery = await timeAsync(() =>
-          discoverDjangoWorkspace(workspacePath),
-        );
-        logDiscoveryResult(timedDiscovery.result, timedDiscovery.durationMs, logger);
-        const liveDiagram = await loadLiveDiagram(
-          context.extensionUri.fsPath,
-          timedDiscovery.result,
-          "hierarchical",
-          timedDiscovery.durationMs,
-          logger,
-        );
+        const previousDiagram = cachedDiagram;
+        let liveDiagram: LiveDiagramResult;
+
+        if (refreshKind === "layout" && previousDiagram) {
+          logger.info(
+            `Layout refresh reusing cached analyzer payload · layout=${layoutMode}`,
+          );
+          liveDiagram = await relayoutLiveDiagram(
+            context.extensionUri.fsPath,
+            previousDiagram,
+            layoutMode,
+            logger,
+          );
+        } else {
+          const timedDiscovery = await timeAsync(() =>
+            discoverDjangoWorkspace(workspacePath),
+          );
+          logDiscoveryResult(timedDiscovery.result, timedDiscovery.durationMs, logger);
+          liveDiagram = await loadLiveDiagram(
+            context.extensionUri.fsPath,
+            timedDiscovery.result,
+            layoutMode,
+            timedDiscovery.durationMs,
+            logger,
+          );
+        }
+
+        if (viewState) {
+          liveDiagram = restoreRefreshViewState(
+            liveDiagram,
+            previousDiagram,
+            viewState,
+            refreshKind,
+          );
+        }
+
         logLiveDiagramResult(liveDiagram, logger);
+        cachedDiagram = liveDiagram;
         return liveDiagram;
       },
     );
 
   try {
-    const liveDiagram = await refreshLoader();
+    const liveDiagram = await refreshLoader({
+      layoutMode: DEFAULT_LAYOUT_MODE,
+      refreshKind: "full",
+    });
 
     ErdPanel.render(context.extensionUri, liveDiagram, refreshLoader);
   } catch (error) {

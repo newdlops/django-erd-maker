@@ -1,7 +1,15 @@
 import { makeModelId, type ModelIdentity } from "../domain/modelIdentity";
 import type { AnalyzerDiagnostic, SourceLocation, SourceRange } from "../diagnostics/analyzerDiagnostic";
 import type { DiagramGraph, GraphNode, MethodAssociation, StructuralGraphEdge } from "../graph/diagramGraph";
-import type { EdgeCrossing, LayoutSnapshot, NodeLayout, Point, RoutedEdgePath, Size } from "../graph/layoutContract";
+import {
+  OGDF_LAYOUT_MODES,
+  type EdgeCrossing,
+  type LayoutSnapshot,
+  type NodeLayout,
+  type Point,
+  type RoutedEdgePath,
+  type Size,
+} from "../graph/layoutContract";
 import type {
   AnalysisSummary,
   AnalyzerOutput,
@@ -34,6 +42,7 @@ import {
 } from "./runtimeGuards";
 import type { PipelineTimings } from "./pipelineTimingContract";
 import type {
+  DiagramViewportSnapshot,
   DiagramBootstrapPayload,
   InitialViewState,
   SelectedMethodContext,
@@ -218,7 +227,7 @@ function decodeLayout(record: JsonRecord, context: string): LayoutSnapshot {
     crossings: readArray(record, "crossings", context).map((item, index) =>
       decodeEdgeCrossing(item, `${context}.crossings[${index}]`),
     ),
-    mode: readLiteral(record, "mode", ["circular", "clustered", "hierarchical"], context),
+    mode: readLiteral(record, "mode", OGDF_LAYOUT_MODES, context),
     nodes: readArray(record, "nodes", context).map((item, index) =>
       decodeNodeLayout(item, `${context}.nodes[${index}]`),
     ),
@@ -454,9 +463,14 @@ function decodeViewState(record: JsonRecord): InitialViewState {
     "selectedMethodContext",
     "diagramBootstrapPayload.view",
   );
+  const viewportRecord = readOptionalObject(
+    record,
+    "viewport",
+    "diagramBootstrapPayload.view",
+  );
 
   return {
-    layoutMode: readLiteral(record, "layoutMode", ["circular", "clustered", "hierarchical"], "diagramBootstrapPayload.view"),
+    layoutMode: readLiteral(record, "layoutMode", OGDF_LAYOUT_MODES, "diagramBootstrapPayload.view"),
     selectedMethodContext: selectedMethodContext
       ? decodeSelectedMethodContext(
           selectedMethodContext,
@@ -467,6 +481,23 @@ function decodeViewState(record: JsonRecord): InitialViewState {
     tableOptions: readArray(record, "tableOptions", "diagramBootstrapPayload.view").map((item, index) =>
       decodeTableViewOptions(item, `diagramBootstrapPayload.view.tableOptions[${index}]`),
     ),
+    viewport: viewportRecord
+      ? decodeViewportSnapshot(
+          viewportRecord,
+          "diagramBootstrapPayload.view.viewport",
+        )
+      : undefined,
+  };
+}
+
+function decodeViewportSnapshot(
+  record: JsonRecord,
+  context: string,
+): DiagramViewportSnapshot {
+  return {
+    panX: readNumber(record, "panX", context),
+    panY: readNumber(record, "panY", context),
+    zoom: readNumber(record, "zoom", context),
   };
 }
 

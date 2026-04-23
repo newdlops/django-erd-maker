@@ -307,6 +307,43 @@ export function getBrowserStateSource(): string {
           };
         }
 
+        function createRefreshViewStateSnapshot(currentState) {
+          const viewportRect = getViewportScreenRect();
+
+          return {
+            layoutMode: currentState.layoutMode,
+            selectedMethodContext: currentState.selectedMethodContext
+              ? {
+                  methodName: currentState.selectedMethodContext.methodName,
+                  modelId: currentState.selectedMethodContext.modelId,
+                }
+              : undefined,
+            selectedModelId: currentState.selectedModelId,
+            tableOptions: currentState.tableOptions.map((options) => ({
+              hidden: options.hidden,
+              manualPosition: options.manualPosition
+                ? {
+                    x: options.manualPosition.x,
+                    y: options.manualPosition.y,
+                  }
+                : undefined,
+              modelId: options.modelId,
+              showMethodHighlights: options.showMethodHighlights,
+              showMethods: options.showMethods,
+              showProperties: options.showProperties,
+            })),
+            viewport: {
+              panX: currentState.viewport.panX,
+              panY: currentState.viewport.panY,
+              zoom: currentState.viewport.zoom,
+            },
+            viewportRect: {
+              height: viewportRect.height,
+              width: viewportRect.width,
+            },
+          };
+        }
+
         function isPlaceholderViewport(viewport) {
           return (
             !viewport ||

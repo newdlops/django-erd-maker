@@ -1,3 +1,4 @@
+import { OGDF_LAYOUT_MODES } from "../../shared/graph/layoutContract";
 import type { DiagramRenderModel } from "../state/createDiagramRenderModel";
 import { serializeJsonForScriptTag } from "./escapeHtml";
 
@@ -22,9 +23,9 @@ export function renderCanvasScene(viewModel: DiagramRenderModel, appVersion: str
           <button type="button" class="erd-tool" data-zoom-action="center">Move To Center</button>
         </div>
         <div class="erd-toolbar-group">
-          ${renderLayoutButton("hierarchical", viewModel.layoutMode)}
-          ${renderLayoutButton("circular", viewModel.layoutMode)}
-          ${renderLayoutButton("clustered", viewModel.layoutMode)}
+          ${OGDF_LAYOUT_MODES.map((layoutMode) =>
+            renderLayoutButton(layoutMode, viewModel.layoutMode),
+          ).join("")}
         </div>
         <div class="erd-toolbar-group">
           <button type="button" class="erd-tool" data-panel-refresh>Refresh</button>
@@ -70,11 +71,12 @@ function renderLayoutButton(
   layoutMode: DiagramRenderModel["layoutMode"],
   activeMode: DiagramRenderModel["layoutMode"],
 ): string {
+  const label = layoutMode.charAt(0).toUpperCase() + layoutMode.slice(1);
   return `
     <button
       type="button"
       class="erd-tool${layoutMode === activeMode ? " is-active" : ""}"
       data-layout-mode="${layoutMode}"
-    >${layoutMode}</button>
+    >${label}</button>
   `;
 }

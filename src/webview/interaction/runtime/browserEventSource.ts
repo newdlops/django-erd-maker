@@ -62,10 +62,14 @@ export function getBrowserEventSource(): string {
           button.addEventListener("click", () => {
             logErd("info", "event.layout.click", {
               layoutMode: button.dataset.layoutMode,
+              renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
             });
-            dispatch({
+            vscode?.postMessage({
               layoutMode: button.dataset.layoutMode,
-              type: "set-layout-mode",
+              refreshKind: "layout",
+              settings: { ...state.settings },
+              viewState: createRefreshViewStateSnapshot(state),
+              type: "diagram.requestRefresh",
             });
           });
         }
@@ -89,7 +93,10 @@ export function getBrowserEventSource(): string {
               renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
             });
             vscode?.postMessage({
+              layoutMode: state.layoutMode,
+              refreshKind: "full",
               settings: { ...state.settings },
+              viewState: createRefreshViewStateSnapshot(state),
               type: "diagram.requestRefresh",
             });
           });

@@ -54,7 +54,7 @@ export function createDiagramInteractionState(
     selectedMethodContext: cloneSelectedMethodContext(view.selectedMethodContext),
     selectedModelId: view.selectedModelId,
     tableOptions: view.tableOptions.map(cloneTableViewOptions),
-    viewport: { ...DEFAULT_VIEWPORT },
+    viewport: view.viewport ? { ...view.viewport } : { ...DEFAULT_VIEWPORT },
   };
 }
 

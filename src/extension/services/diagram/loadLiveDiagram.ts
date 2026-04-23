@@ -12,6 +12,33 @@ export interface LiveDiagramResult {
   payload: DiagramBootstrapPayload;
 }
 
+export async function relayoutLiveDiagram(
+  extensionRootPath: string,
+  current: LiveDiagramResult,
+  layoutMode: LayoutMode,
+  logger?: Logger,
+): Promise<LiveDiagramResult> {
+  const payload = clonePayload(current.payload);
+  payload.layout.mode = layoutMode;
+  payload.view.layoutMode = layoutMode;
+
+  const ogdfResult = await runOgdfLayout(
+    extensionRootPath,
+    payload,
+    logger,
+  );
+  payload.layout = ogdfResult.layout;
+  payload.view.layoutMode = ogdfResult.layout.mode;
+  payload.timings = mergePipelineTimings(payload.timings, {
+    ...(ogdfResult.applied ? { ogdfLayoutMs: ogdfResult.durationMs } : {}),
+  });
+
+  return {
+    discovery: current.discovery,
+    payload,
+  };
+}
+
 export async function loadLiveDiagram(
   extensionRootPath: string,
   discovery: DjangoWorkspaceDiscoveryResult,
@@ -59,4 +86,8 @@ async function loadAnalyzerPayload(
     ...(ogdfResult.applied ? { ogdfLayoutMs: ogdfResult.durationMs } : {}),
   });
   return analyzerResult.payload;
+}
+
+function clonePayload(payload: DiagramBootstrapPayload): DiagramBootstrapPayload {
+  return JSON.parse(JSON.stringify(payload)) as DiagramBootstrapPayload;
 }

@@ -1,24 +1,45 @@
 export function getBrowserLayoutSource(): string {
   return `
         function createLayoutVariants(tableMetaList) {
-          if (tableMetaList.length > 500) {
-            return createCatalogPlaceholderLayoutVariants(tableMetaList);
-          }
-
-          return {
-            circular: createCircularLayout(tableMetaList),
-            clustered: createClusteredLayout(tableMetaList),
-            hierarchical: createHierarchicalLayout(tableMetaList),
-          };
+          return createSharedLayoutVariants(createPayloadLayout(tableMetaList));
         }
 
         function createCatalogPlaceholderLayoutVariants(tableMetaList) {
-          const config = createCatalogPlaceholderLayoutConfig(tableMetaList);
+          return createSharedLayoutVariants(createPayloadLayout(tableMetaList));
+        }
+
+        function createSharedLayoutVariants(baseLayout) {
           return {
-            circular: createCatalogCircularLayout(tableMetaList, config),
-            clustered: createCatalogClusteredLayout(tableMetaList, config),
-            hierarchical: createGridLayout(tableMetaList),
+            circular: cloneLayoutPositions(baseLayout),
+            clustered: cloneLayoutPositions(baseLayout),
+            hierarchical: cloneLayoutPositions(baseLayout),
           };
+        }
+
+        function createPayloadLayout(tableMetaList) {
+          const positions = {};
+
+          for (const table of tableMetaList) {
+            positions[table.modelId] = {
+              x: round2(table.basePosition.x),
+              y: round2(table.basePosition.y),
+            };
+          }
+
+          return positions;
+        }
+
+        function cloneLayoutPositions(layout) {
+          const copy = {};
+
+          for (const [modelId, position] of Object.entries(layout)) {
+            copy[modelId] = {
+              x: position.x,
+              y: position.y,
+            };
+          }
+
+          return copy;
         }
 
         function createCatalogPlaceholderLayoutConfig(tableMetaList) {

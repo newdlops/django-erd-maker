@@ -12,11 +12,16 @@ const renderModulePath = path.resolve(
   __dirname,
   "../../out/webview/app/renderDiagramDocument.js",
 );
+const layoutContractModulePath = path.resolve(
+  __dirname,
+  "../../out/shared/graph/layoutContract.js",
+);
 const sampleModulePath = path.resolve(
   __dirname,
   "../../out/extension/services/loadPhaseOneSample.js",
 );
 const packageManifest = require(path.resolve(__dirname, "../../package.json"));
+const { OGDF_LAYOUT_MODES } = require(layoutContractModulePath);
 const { renderDiagramDocument } = require(renderModulePath);
 const { loadPhaseOneSample } = require(sampleModulePath);
 
@@ -40,7 +45,9 @@ test("phase8 document renders canvas scene metadata, routed edges, crossings, ch
   assert.match(html, /@ display_title -&gt; str/);
   assert.match(html, /fn publish/);
   assert.match(html, /erd-relation-chip--high[\s\S]*accounts\.Author/);
-  assert.match(html, /data-layout-mode="hierarchical"/);
+  for (const layoutMode of OGDF_LAYOUT_MODES) {
+    assert.match(html, new RegExp(`data-layout-mode="${layoutMode}"`));
+  }
   assert.match(html, /id="erd-initial-state"/);
   assert.doesNotMatch(html, /class="erd-table/);
   assert.doesNotMatch(html, /class="erd-edge/);
