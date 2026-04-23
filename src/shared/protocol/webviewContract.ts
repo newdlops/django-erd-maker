@@ -50,6 +50,8 @@ export interface DiagramReadyMessage {
 }
 
 export interface DiagramInteractionSettingsSnapshot {
+  edgeDetour: number;
+  nodeSpacing: number;
   panSpeed: number;
   zoomSpeed: number;
 }

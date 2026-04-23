@@ -65,6 +65,60 @@ export function getBrowserTestSource(): string {
           return element;
         }
 
+        function dispatchPointer(type, clientX, clientY, pointerId, buttons) {
+          drawingCanvas.dispatchEvent(new PointerEvent(type, {
+            bubbles: true,
+            button: 0,
+            buttons,
+            clientX,
+            clientY,
+            composed: true,
+            pointerId,
+            pointerType: "mouse",
+          }));
+        }
+
+        function toClientPointFromWorld(worldPoint) {
+          const rect = drawingCanvas.getBoundingClientRect();
+
+          return {
+            x: rect.left + worldPoint.x * state.viewport.zoom + state.viewport.panX,
+            y: rect.top + worldPoint.y * state.viewport.zoom + state.viewport.panY,
+          };
+        }
+
+        function getTableCenterWorldPoint(modelId) {
+          const meta = requireElement(
+            tableMetaById.get(modelId),
+            "table meta " + modelId,
+          );
+          const position = getCurrentPosition(modelId);
+
+          return {
+            x: position.x + meta.width / 2,
+            y: position.y + meta.height / 2,
+          };
+        }
+
+        function pointerSelectTable(modelId) {
+          const clientPoint = toClientPointFromWorld(getTableCenterWorldPoint(modelId));
+
+          dispatchPointer("pointerdown", clientPoint.x, clientPoint.y, 1, 1);
+          dispatchPointer("pointerup", clientPoint.x, clientPoint.y, 1, 0);
+        }
+
+        function pointerDragTableBy(modelId, delta) {
+          const start = toClientPointFromWorld(getTableCenterWorldPoint(modelId));
+          const end = {
+            x: start.x + delta.x * state.viewport.zoom,
+            y: start.y + delta.y * state.viewport.zoom,
+          };
+
+          dispatchPointer("pointerdown", start.x, start.y, 1, 1);
+          dispatchPointer("pointermove", end.x, end.y, 1, 1);
+          dispatchPointer("pointerup", end.x, end.y, 1, 0);
+        }
+
         function runTestAction(action) {
           switch (action.type) {
             case "snapshot":
@@ -114,6 +168,12 @@ export function getBrowserTestSource(): string {
                 modelId: action.modelId,
                 type: "set-table-manual-position",
               });
+              return;
+            case "pointerSelectTable":
+              pointerSelectTable(action.modelId);
+              return;
+            case "pointerDragTableBy":
+              pointerDragTableBy(action.modelId, action.delta);
               return;
             case "resetView":
               dispatch({

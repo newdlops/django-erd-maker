@@ -23,6 +23,9 @@ test("phase8 document renders canvas scene metadata, routed edges, crossings, ch
   const html = render();
 
   assert.match(html, /<canvas[\s\S]*data-erd-drawing-canvas/);
+  assert.match(html, /data-erd-minimap/);
+  assert.match(html, /data-erd-minimap-canvas/);
+  assert.match(html, /data-erd-minimap-viewport/);
   assert.match(html, /aria-label="Django ERD diagram"/);
   assert.match(html, /id="erd-render-model"/);
   assert.match(html, /data-table-name="blog_post"/);
@@ -52,6 +55,106 @@ test("phase8 document respects method and property visibility state in the inspe
 
   assert.match(taxonomyHtml, /Methods are hidden by the current table view state\./);
   assert.match(auditHtml, /Properties are hidden by the current table view state\./);
+});
+
+test("phase8 setup explains that layout settings apply after refresh", () => {
+  const html = render();
+
+  assert.match(html, /data-setup-control="nodeSpacing"/);
+  assert.match(html, /data-setup-control="edgeDetour"/);
+  assert.match(html, /Layout and routing settings are applied on Refresh/);
+  assert.match(html, /Refresh To Apply/);
+});
+
+test("phase8 browser controller declares layout settings before initial viewport calculation", () => {
+  const html = render();
+  const stateDeclarationIndex = html.indexOf("let state = null");
+  const appliedSettingsIndex = html.indexOf("let appliedLayoutSettings = pickLayoutRoutingSettings");
+  const viewportCalculationIndex = html.indexOf("computeInitialViewport(initialStateValue)");
+
+  assert.ok(stateDeclarationIndex >= 0, "controller should declare state before initialization");
+  assert.ok(appliedSettingsIndex >= 0, "controller should declare applied layout settings before initialization");
+  assert.ok(viewportCalculationIndex >= 0, "controller should compute the initial viewport");
+  assert.ok(
+    stateDeclarationIndex < viewportCalculationIndex &&
+      appliedSettingsIndex < viewportCalculationIndex,
+    "initial viewport calculation should not run while layout setting state is in the temporal dead zone",
+  );
+});
+
+test("phase8 browser controller caches layout variants lazily per active mode", () => {
+  const html = render();
+
+  assert.match(html, /let layoutVariantCache = new Map\(\)/);
+  assert.match(html, /function getLayoutVariant\(layoutMode, settingsOverride\)/);
+  assert.match(
+    html,
+    /return getLayoutVariant\(\s*layoutMode,\s*settingsOverride \|\| getAppliedLayoutSettings\(\),\s*\)/,
+  );
+});
+
+test("phase8 browser runtime uses drag preview rendering instead of full reroute on pointer move", () => {
+  const html = render();
+
+  assert.match(html, /let dragPreviewFrame = 0/);
+  assert.match(html, /function scheduleDragPreviewRender\(\)/);
+  assert.match(
+    html,
+    /action\.type === "set-table-manual-position"[\s\S]*drag &&[\s\S]*drag\.kind === "table"[\s\S]*scheduleDragPreviewRender\(\)/,
+  );
+  assert.match(html, /drawCanvas\("drag-preview"\)/);
+});
+
+test("phase8 browser runtime caches relation state and buckets spacing checks", () => {
+  const html = render();
+
+  assert.match(html, /let relationLayoutStateCache = null/);
+  assert.match(html, /let baseLayoutCache = null/);
+  assert.match(html, /function getRelationLayoutState\(tableMetaList\)/);
+  assert.match(html, /function createRelaxationPairIndexes\(/);
+  assert.match(html, /function createAdaptiveFinalizeOptions\(tableMetaList, options\)/);
+  assert.match(html, /function shouldUseFastRelationGraphLayout\(tableMetaList\)/);
+  assert.match(html, /function createAdaptiveSweepIterations\(iterations, tableCount\)/);
+});
+
+test("phase8 hierarchical layout prefers the layered barycenter pipeline for relation graphs", () => {
+  const html = render();
+
+  assert.match(
+    html,
+    /function createHierarchicalLayout\(tableMetaList, tuning = createLayoutTuning\(\)\)[\s\S]*hasRelationEdgesInLayout\(relationState\)[\s\S]*createLayeredRelationLayout\(/,
+  );
+  assert.match(html, /function reduceLayerCrossings\(layers, layerById, relationState, sweepIterations\)/);
+  assert.match(html, /function sweepLayerIdsByNeighborBarycenter\(/);
+  assert.match(html, /function spaceVisibleEdgeBundleDescriptors\(routes\)/);
+  assert.match(html, /function buildOrthogonalPathFromPorts\(/);
+});
+
+test("phase8 viewport fit and center use visible component bounds", () => {
+  const html = render();
+
+  assert.match(
+    html,
+    /function computeViewportForLayout\(layoutMode, tableOptions, options\)[\s\S]*const bounds = computeLayoutBounds\(layoutMode, tableOptions, options\?\.settings\)/,
+  );
+  assert.match(
+    html,
+    /function computeCenteredViewportForLayout\(layoutMode, tableOptions, zoom, settingsOverride\)[\s\S]*const bounds = computeLayoutBounds\(layoutMode, tableOptions, settingsOverride\)/,
+  );
+  assert.match(html, /function createViewportPanToWorldPointAction\(worldPoint\)/);
+  assert.doesNotMatch(html, /function expandLayoutBoundsWithRoutedEdges\(/);
+});
+
+test("phase8 minimap renders component positions and pans by cursor drag", () => {
+  const html = render();
+
+  assert.match(html, /const minimap = document\.querySelector\("\[data-erd-minimap\]"\)/);
+  assert.match(html, /function renderMinimap\(\)/);
+  assert.match(html, /function createMinimapMetrics\(bounds\)/);
+  assert.match(html, /function updateMinimapViewportCursor\(metrics\)/);
+  assert.match(html, /function getMinimapWorldPoint\(event\)/);
+  assert.match(html, /minimap\.addEventListener\("pointerdown"/);
+  assert.match(html, /dispatch\(createViewportPanToWorldPointAction\(worldPoint\)\)/);
 });
 
 test("phase8 canvas scene keeps hidden table metadata in the DOM with hidden state", () => {

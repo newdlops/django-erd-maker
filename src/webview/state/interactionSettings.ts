@@ -1,4 +1,6 @@
 export interface DiagramInteractionSettings {
+  edgeDetour: number;
+  nodeSpacing: number;
   panSpeed: number;
   zoomSpeed: number;
 }
@@ -15,6 +17,22 @@ export interface DiagramInteractionSettingDescriptor {
 }
 
 export const INTERACTION_SETTING_DESCRIPTORS: readonly DiagramInteractionSettingDescriptor[] = [
+  {
+    hint: "How aggressively nodes push away from each other after layout. Applies after Refresh.",
+    key: "nodeSpacing",
+    label: "Node Spacing",
+    max: 2.4,
+    min: 0.8,
+    step: 0.05,
+  },
+  {
+    hint: "How far edges detour around tables and tangled lanes. Applies after Refresh.",
+    key: "edgeDetour",
+    label: "Edge Detour",
+    max: 2.5,
+    min: 0.8,
+    step: 0.05,
+  },
   {
     hint: "Canvas drag sensitivity.",
     key: "panSpeed",
@@ -34,6 +52,8 @@ export const INTERACTION_SETTING_DESCRIPTORS: readonly DiagramInteractionSetting
 ] as const;
 
 export const DEFAULT_INTERACTION_SETTINGS: DiagramInteractionSettings = {
+  edgeDetour: 1.35,
+  nodeSpacing: 1.4,
   panSpeed: 0.7,
   zoomSpeed: 0.6,
 };
@@ -59,8 +79,13 @@ export function clampInteractionSetting(
 }
 
 export function formatInteractionSettingValue(
+  key: DiagramInteractionSettingKey,
   value: number,
 ): string {
+  if (key === "nodeSpacing" || key === "edgeDetour") {
+    return `${value.toFixed(2)}x`;
+  }
+
   return `${Math.round(value * 100)}%`;
 }
 
@@ -68,6 +93,14 @@ export function normalizeInteractionSettings(
   value?: Partial<DiagramInteractionSettings>,
 ): DiagramInteractionSettings {
   return {
+    edgeDetour: clampInteractionSetting(
+      "edgeDetour",
+      value?.edgeDetour ?? DEFAULT_INTERACTION_SETTINGS.edgeDetour,
+    ),
+    nodeSpacing: clampInteractionSetting(
+      "nodeSpacing",
+      value?.nodeSpacing ?? DEFAULT_INTERACTION_SETTINGS.nodeSpacing,
+    ),
     panSpeed: clampInteractionSetting(
       "panSpeed",
       value?.panSpeed ?? DEFAULT_INTERACTION_SETTINGS.panSpeed,

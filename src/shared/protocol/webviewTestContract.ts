@@ -16,6 +16,8 @@ export type DiagramTestAction =
   | { layoutMode: LayoutMode; type: "clickLayoutMode" }
   | { modelId: ModelId; type: "clickShowHiddenModel" }
   | { modelId: ModelId; position: Point; type: "dragTableTo" }
+  | { modelId: ModelId; type: "pointerSelectTable" }
+  | { delta: Point; modelId: ModelId; type: "pointerDragTableBy" }
   | { type: "resetView" };
 
 export interface DiagramTestViewportSnapshot {

@@ -1,24 +1,36 @@
 export function getBrowserRenderSource(): string {
   return `
+        const MAX_RUNTIME_CROSSING_EDGE_COUNT = 120;
         let viewportRenderFrame = 0;
+        let dragPreviewFrame = 0;
 
         function applyState() {
           viewport.dataset.transform =
             "translate(" + state.viewport.panX + " " + state.viewport.panY + ") scale(" + state.viewport.zoom + ")";
           renderSummary();
           renderSetupControls();
+          renderRefreshButtons();
           renderTables();
           renderEdgesAndCrossings();
           renderOverlays();
           renderPanels();
           renderHiddenTableList();
           drawCanvas("full");
+          renderMinimap();
         }
 
         function applyViewportState() {
           viewport.dataset.transform =
             "translate(" + state.viewport.panX + " " + state.viewport.panY + ") scale(" + state.viewport.zoom + ")";
           drawCanvas("viewport");
+          renderMinimap();
+        }
+
+        function applyDragPreviewState() {
+          viewport.dataset.transform =
+            "translate(" + state.viewport.panX + " " + state.viewport.panY + ") scale(" + state.viewport.zoom + ")";
+          drawCanvas("drag-preview");
+          renderMinimap();
         }
 
         function cancelViewportRender() {
@@ -30,6 +42,15 @@ export function getBrowserRenderSource(): string {
           viewportRenderFrame = 0;
         }
 
+        function cancelDragPreviewRender() {
+          if (!dragPreviewFrame) {
+            return;
+          }
+
+          window.cancelAnimationFrame(dragPreviewFrame);
+          dragPreviewFrame = 0;
+        }
+
         function scheduleViewportRender() {
           if (viewportRenderFrame) {
             return;
@@ -38,6 +59,17 @@ export function getBrowserRenderSource(): string {
           viewportRenderFrame = window.requestAnimationFrame(() => {
             viewportRenderFrame = 0;
             applyViewportState();
+          });
+        }
+
+        function scheduleDragPreviewRender() {
+          if (dragPreviewFrame) {
+            return;
+          }
+
+          dragPreviewFrame = window.requestAnimationFrame(() => {
+            dragPreviewFrame = 0;
+            applyDragPreviewState();
           });
         }
 
@@ -53,15 +85,30 @@ export function getBrowserRenderSource(): string {
             return;
           }
 
-          if (action.type === "set-interaction-setting") {
-            renderSetupControls();
+          if (
+            action.type === "set-table-manual-position" &&
+            drag &&
+            drag.kind === "table"
+          ) {
+            cancelViewportRender();
+            scheduleDragPreviewRender();
             return;
           }
 
-          if (renderModel.modelCatalogMode && isCatalogSceneAction(action)) {
+          if (action.type === "set-interaction-setting") {
+            renderSetupControls();
+            renderRefreshButtons();
+            return;
+          }
+
+          if (
+            renderModel.modelCatalogMode &&
+            isCatalogSceneAction(action)
+          ) {
             invalidateCatalogSceneCache();
           }
 
+          cancelDragPreviewRender();
           cancelViewportRender();
           applyState();
         }
@@ -76,6 +123,161 @@ export function getBrowserRenderSource(): string {
             default:
               return false;
           }
+        }
+
+        function renderMinimap() {
+          if (!minimap || !minimapCanvas || !minimapViewport) {
+            return;
+          }
+
+          const bounds = computeLayoutBounds(
+            state.layoutMode,
+            state.tableOptions,
+            getAppliedLayoutSettings(),
+          );
+          const metrics = createMinimapMetrics(bounds);
+          if (!metrics) {
+            minimap.toggleAttribute("hidden", true);
+            return;
+          }
+
+          minimap.toggleAttribute("hidden", false);
+          const context = minimapCanvas.getContext("2d");
+          if (!context) {
+            return;
+          }
+
+          context.clearRect(0, 0, metrics.width, metrics.height);
+          drawMinimapTables(context, metrics);
+          updateMinimapViewportCursor(metrics);
+        }
+
+        function createMinimapMetrics(bounds) {
+          if (!bounds || !hasFiniteLayoutBounds(bounds) || !minimapCanvas) {
+            return undefined;
+          }
+
+          const rect = minimapCanvas.getBoundingClientRect();
+          const width = Math.max(1, rect.width || minimapCanvas.clientWidth || 1);
+          const height = Math.max(1, rect.height || minimapCanvas.clientHeight || 1);
+          const worldWidth = Math.max(1, bounds.maxX - bounds.minX);
+          const worldHeight = Math.max(1, bounds.maxY - bounds.minY);
+          const padding = 10;
+          const scale = Math.max(
+            0.0001,
+            Math.min((width - padding * 2) / worldWidth, (height - padding * 2) / worldHeight),
+          );
+          const deviceScale = getDeviceScale();
+          const pixelWidth = Math.max(1, Math.round(width * deviceScale));
+          const pixelHeight = Math.max(1, Math.round(height * deviceScale));
+
+          if (minimapCanvas.width !== pixelWidth || minimapCanvas.height !== pixelHeight) {
+            minimapCanvas.width = pixelWidth;
+            minimapCanvas.height = pixelHeight;
+          }
+
+          const context = minimapCanvas.getContext("2d");
+          if (context) {
+            context.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
+          }
+
+          return {
+            bounds,
+            height,
+            offsetX: round2((width - worldWidth * scale) / 2),
+            offsetY: round2((height - worldHeight * scale) / 2),
+            scale,
+            width,
+          };
+        }
+
+        function drawMinimapTables(context, metrics) {
+          context.save();
+          context.fillStyle = "rgba(182, 231, 217, 0.18)";
+          context.strokeStyle = "rgba(182, 231, 217, 0.34)";
+          context.lineWidth = 1;
+
+          for (const [modelId, meta] of tableMetaById.entries()) {
+            if (!isVisibleModel(modelId)) {
+              continue;
+            }
+
+            const position = getCurrentPosition(modelId);
+            const rect = worldRectToMinimapRect(
+              {
+                maxX: position.x + meta.width,
+                maxY: position.y + meta.height,
+                minX: position.x,
+                minY: position.y,
+              },
+              metrics,
+            );
+            const isSelected = state.selectedModelId === modelId;
+
+            context.fillStyle = isSelected
+              ? "rgba(255, 191, 105, 0.58)"
+              : "rgba(182, 231, 217, 0.22)";
+            context.strokeStyle = isSelected
+              ? "rgba(255, 191, 105, 0.86)"
+              : "rgba(182, 231, 217, 0.38)";
+            context.fillRect(rect.x, rect.y, rect.width, rect.height);
+            context.strokeRect(rect.x, rect.y, rect.width, rect.height);
+          }
+
+          context.restore();
+        }
+
+        function updateMinimapViewportCursor(metrics) {
+          const rect = canvas.getBoundingClientRect();
+          const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
+          const viewportWorldRect = {
+            maxX: (rect.width - state.viewport.panX) / zoom,
+            maxY: (rect.height - state.viewport.panY) / zoom,
+            minX: -state.viewport.panX / zoom,
+            minY: -state.viewport.panY / zoom,
+          };
+          const minimapRect = worldRectToMinimapRect(viewportWorldRect, metrics);
+
+          minimapViewport.style.transform =
+            "translate(" + round2(minimapRect.x) + "px, " + round2(minimapRect.y) + "px)";
+          minimapViewport.style.width = round2(Math.max(8, minimapRect.width)) + "px";
+          minimapViewport.style.height = round2(Math.max(8, minimapRect.height)) + "px";
+        }
+
+        function worldRectToMinimapRect(rect, metrics) {
+          return {
+            height: Math.max(2, (rect.maxY - rect.minY) * metrics.scale),
+            width: Math.max(2, (rect.maxX - rect.minX) * metrics.scale),
+            x: metrics.offsetX + (rect.minX - metrics.bounds.minX) * metrics.scale,
+            y: metrics.offsetY + (rect.minY - metrics.bounds.minY) * metrics.scale,
+          };
+        }
+
+        function getMinimapWorldPoint(event) {
+          if (!minimapCanvas) {
+            return undefined;
+          }
+
+          const bounds = computeLayoutBounds(
+            state.layoutMode,
+            state.tableOptions,
+            getAppliedLayoutSettings(),
+          );
+          const metrics = createMinimapMetrics(bounds);
+          if (!metrics) {
+            return undefined;
+          }
+
+          const rect = minimapCanvas.getBoundingClientRect();
+          const localX = event.clientX - rect.left;
+          const localY = event.clientY - rect.top;
+          const worldX = metrics.bounds.minX + (localX - metrics.offsetX) / metrics.scale;
+          const worldY = metrics.bounds.minY + (localY - metrics.offsetY) / metrics.scale;
+
+          return {
+            x: round2(Math.max(metrics.bounds.minX, Math.min(metrics.bounds.maxX, worldX))),
+            y: round2(Math.max(metrics.bounds.minY, Math.min(metrics.bounds.maxY, worldY))),
+          };
         }
 
         function isVisibleModel(modelId) {
@@ -139,23 +341,18 @@ export function getBrowserRenderSource(): string {
             return;
           }
 
-          for (const entry of visibleEdgeEntries) {
-            const points = buildOrthogonalPath(
-              entry.sourcePosition,
-              entry.sourceTable,
-              entry.targetPosition,
-              entry.targetTable,
-            );
+          for (const routed of routeVisibleEdgesWithPorts(visibleEdgeEntries)) {
+            const points = routed.points;
             const pointsAttribute = pointsToAttribute(points);
-            entry.meta.element.setAttribute("points", pointsAttribute);
-            entry.meta.element.dataset.points = pointsAttribute;
+            routed.entry.meta.element.setAttribute("points", pointsAttribute);
+            routed.entry.meta.element.dataset.points = pointsAttribute;
             visibleEdges.push({
-              edgeId: entry.meta.edgeId,
+              edgeId: routed.entry.meta.edgeId,
               points,
             });
             renderedEdges.push({
-              edgeId: entry.meta.edgeId,
-              meta: entry.meta,
+              edgeId: routed.entry.meta.edgeId,
+              meta: routed.entry.meta,
               points,
             });
           }
@@ -165,6 +362,12 @@ export function getBrowserRenderSource(): string {
             if (crossingsLayer) {
               crossingsLayer.innerHTML = "";
             }
+            return;
+          }
+
+          if (visibleEdges.length > MAX_RUNTIME_CROSSING_EDGE_COUNT) {
+            renderedCrossings = [];
+            crossingsLayer.innerHTML = "";
             return;
           }
 
@@ -329,6 +532,21 @@ export function getBrowserRenderSource(): string {
             }
 
             element.textContent = formatInteractionSettingValue(key);
+          }
+        }
+
+        function renderRefreshButtons() {
+          if (typeof panelRefreshButtons === "undefined") {
+            return;
+          }
+
+          const pendingLayoutSettings = hasPendingLayoutSettings(state);
+          for (const button of panelRefreshButtons) {
+            button.classList.toggle("is-pending", pendingLayoutSettings);
+            button.textContent = pendingLayoutSettings ? "Refresh To Apply" : "Refresh";
+            button.title = pendingLayoutSettings
+              ? "Layout and routing settings are pending. Refresh to redraw the diagram."
+              : "Refresh and redraw the diagram.";
           }
         }
 

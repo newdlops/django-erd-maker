@@ -206,6 +206,12 @@ export function getDocumentStyles(): string {
       background: rgba(22, 56, 67, 0.92);
     }
 
+    .erd-tool.is-pending {
+      border-color: rgba(255, 191, 105, 0.52);
+      color: #ffdda4;
+      background: rgba(82, 57, 23, 0.64);
+    }
+
     .erd-control-pill {
       min-width: 0;
       padding: 8px 10px;
@@ -293,9 +299,47 @@ export function getDocumentStyles(): string {
 
     .erd-canvas.is-panning { cursor: grabbing; }
     .erd-canvas.is-dragging-table { cursor: default; }
+    .erd-canvas.is-minimap-dragging { cursor: crosshair; }
     .erd-scene { width: 100%; height: 100%; min-height: 720px; display: block; }
     .erd-scene__backdrop { fill: transparent; }
     .erd-viewport { transition: transform 120ms ease-out; transform-origin: 0 0; }
+
+    .erd-minimap {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 220px;
+      height: 148px;
+      overflow: hidden;
+      border: 1px solid rgba(182, 231, 217, 0.24);
+      border-radius: 16px;
+      background:
+        linear-gradient(180deg, rgba(8, 18, 28, 0.88), rgba(11, 26, 37, 0.78)),
+        radial-gradient(circle at 20% 20%, rgba(109, 208, 176, 0.12), transparent 58%);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.32);
+      cursor: crosshair;
+      touch-action: none;
+      z-index: 4;
+    }
+
+    .erd-minimap__canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .erd-minimap__viewport {
+      position: absolute;
+      left: 0;
+      top: 0;
+      min-width: 8px;
+      min-height: 8px;
+      border: 1.5px solid rgba(255, 191, 105, 0.95);
+      border-radius: 6px;
+      background: rgba(255, 191, 105, 0.1);
+      box-shadow: 0 0 0 1px rgba(8, 18, 28, 0.64), 0 0 18px rgba(255, 191, 105, 0.24);
+      pointer-events: none;
+    }
 
     .erd-marker { fill: none; stroke: #b6e7d9; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
     .erd-edge {
@@ -306,9 +350,15 @@ export function getDocumentStyles(): string {
       stroke-linejoin: round;
       opacity: 0.96;
     }
-    .erd-edge--derived_reverse { stroke: #9dcfe1; stroke-dasharray: 7 6; }
+    .erd-edge--declared { stroke: #d4f3e6; stroke-width: 2.6; opacity: 0.98; }
+    .erd-edge--derived_reverse {
+      stroke: #7ca8c7;
+      stroke-width: 1.7;
+      stroke-dasharray: 12 9;
+      opacity: 0.66;
+    }
     .erd-edge--many-to-many { stroke: #f7d18a; }
-    .erd-edge--reverse-many-to-many { stroke: #f7d18a; stroke-dasharray: 7 6; }
+    .erd-edge--reverse-many-to-many { stroke: #d7c08c; stroke-dasharray: 12 9; opacity: 0.68; }
 
     .erd-method-overlay {
       stroke: rgba(255, 191, 105, 0.7);
@@ -394,6 +444,12 @@ export function getDocumentStyles(): string {
     @media (max-width: 620px) {
       .erd-panel__controls {
         grid-template-columns: 1fr;
+      }
+      .erd-minimap {
+        width: 168px;
+        height: 112px;
+        top: 10px;
+        right: 10px;
       }
     }
   `;

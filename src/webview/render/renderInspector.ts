@@ -39,6 +39,7 @@ function renderSetupSection(initialState: DiagramInteractionState): string {
   return `
     <section class="erd-sidebar__section">
       <h2>Setup</h2>
+      <p class="erd-sidebar__meta">Layout and routing settings are applied on Refresh, not while dragging the sliders.</p>
       <div class="erd-settings">
         ${INTERACTION_SETTING_DESCRIPTORS.map((descriptor) => {
           const value = initialState.settings[descriptor.key];
@@ -47,7 +48,7 @@ function renderSetupSection(initialState: DiagramInteractionState): string {
             <label class="erd-setting">
               <span class="erd-setting__header">
                 <span class="erd-setting__label">${escapeHtml(descriptor.label)}</span>
-                <span class="erd-setting__value" data-setup-value="${escapeHtml(descriptor.key)}">${escapeHtml(formatInteractionSettingValue(value))}</span>
+                <span class="erd-setting__value" data-setup-value="${escapeHtml(descriptor.key)}">${escapeHtml(formatInteractionSettingValue(descriptor.key, value))}</span>
               </span>
               <input
                 type="range"

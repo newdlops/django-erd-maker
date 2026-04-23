@@ -51,7 +51,11 @@ export function getBrowserStateSource(): string {
           return computeViewportForLayout(
             initialValue.layoutMode || "hierarchical",
             Array.isArray(initialValue.tableOptions) ? initialValue.tableOptions : [],
-            { keepCatalogReadable: true },
+            {
+              keepCatalogReadable: true,
+              preferReadableZoom: true,
+              settings: normalizeInteractionSettings(initialValue.settings),
+            },
           );
         }
 
@@ -67,37 +71,8 @@ export function getBrowserStateSource(): string {
             };
           }
 
-          const optionsByModelId = new Map(
-            (Array.isArray(tableOptions) ? tableOptions : []).map((options) => [
-              options.modelId,
-              options,
-            ]),
-          );
-          const layout = layoutVariants[layoutMode] || layoutVariants.hierarchical || {};
-          let minX = Number.POSITIVE_INFINITY;
-          let minY = Number.POSITIVE_INFINITY;
-          let maxX = Number.NEGATIVE_INFINITY;
-          let maxY = Number.NEGATIVE_INFINITY;
-          let visibleCount = 0;
-
-          for (const table of tableMetaById.values()) {
-            const options = optionsByModelId.get(table.modelId);
-            if (options && options.hidden) {
-              continue;
-            }
-
-            const position =
-              (options && options.manualPosition) ||
-              layout[table.modelId] ||
-              table.basePosition || { x: 0, y: 0 };
-            minX = Math.min(minX, position.x);
-            minY = Math.min(minY, position.y);
-            maxX = Math.max(maxX, position.x + table.width);
-            maxY = Math.max(maxY, position.y + table.height);
-            visibleCount += 1;
-          }
-
-          if (!Number.isFinite(minX) || !Number.isFinite(minY) || visibleCount === 0) {
+          const bounds = computeLayoutBounds(layoutMode, tableOptions, options?.settings);
+          if (!bounds) {
             return {
               panX: 32,
               panY: 24,
@@ -105,13 +80,17 @@ export function getBrowserStateSource(): string {
             };
           }
 
-          const worldPadding = visibleCount > 500 ? 24 : 40;
-          const screenPadding = visibleCount > 500 ? 18 : 28;
-          const worldWidth = Math.max(1, maxX - minX + worldPadding * 2);
-          const worldHeight = Math.max(1, maxY - minY + worldPadding * 2);
+          const worldPadding = bounds.visibleCount > 500 ? 24 : 44;
+          const screenPadding = bounds.visibleCount > 500 ? 18 : 32;
+          const worldWidth = Math.max(1, bounds.maxX - bounds.minX + worldPadding * 2);
+          const worldHeight = Math.max(1, bounds.maxY - bounds.minY + worldPadding * 2);
           const fittedZoom = Math.min(
             Math.max(MIN_VIEWPORT_ZOOM, (canvasWidth - screenPadding * 2) / worldWidth),
             Math.max(MIN_VIEWPORT_ZOOM, (canvasHeight - screenPadding * 2) / worldHeight),
+          );
+          const widestTableWidth = Math.max(
+            1,
+            ...Array.from(tableMetaById.values()).map((table) => table.width || 0),
           );
           const catalogTableWidth = renderModel.modelCatalogMode
             ? Math.max(
@@ -122,15 +101,19 @@ export function getBrowserStateSource(): string {
           const minimumCatalogZoom = renderModel.modelCatalogMode
             ? Math.max(0.18, Math.min(0.28, 72 / catalogTableWidth))
             : MIN_VIEWPORT_ZOOM;
+          const minimumReadableZoom =
+            !renderModel.modelCatalogMode && options?.preferReadableZoom
+              ? estimateReadableViewportZoom(bounds.visibleCount, widestTableWidth)
+              : MIN_VIEWPORT_ZOOM;
           const zoom = clampZoom(
             renderModel.modelCatalogMode && options?.keepCatalogReadable
               ? Math.max(fittedZoom, minimumCatalogZoom)
-              : fittedZoom,
+              : Math.max(fittedZoom, minimumReadableZoom),
           );
           const centeredPanX =
-            (canvasWidth - worldWidth * zoom) / 2 - (minX - worldPadding) * zoom;
+            (canvasWidth - worldWidth * zoom) / 2 - (bounds.minX - worldPadding) * zoom;
           const centeredPanY =
-            (canvasHeight - worldHeight * zoom) / 2 - (minY - worldPadding) * zoom;
+            (canvasHeight - worldHeight * zoom) / 2 - (bounds.minY - worldPadding) * zoom;
 
           return {
             panX: Math.round(centeredPanX * 100) / 100,
@@ -139,8 +122,29 @@ export function getBrowserStateSource(): string {
           };
         }
 
-        function computeCenteredViewportForLayout(layoutMode, tableOptions, zoom) {
-          const bounds = computeLayoutBounds(layoutMode, tableOptions);
+        function estimateReadableViewportZoom(visibleCount, widestTableWidth) {
+          const widthBasedZoom = Math.max(
+            0.24,
+            Math.min(0.82, 176 / Math.max(1, widestTableWidth)),
+          );
+
+          if (visibleCount <= 24) {
+            return Math.max(0.58, widthBasedZoom);
+          }
+
+          if (visibleCount <= 60) {
+            return Math.max(0.46, widthBasedZoom - 0.06);
+          }
+
+          if (visibleCount <= 120) {
+            return Math.max(0.36, widthBasedZoom - 0.12);
+          }
+
+          return Math.max(0.28, widthBasedZoom - 0.18);
+        }
+
+        function computeCenteredViewportForLayout(layoutMode, tableOptions, zoom, settingsOverride) {
+          const bounds = computeLayoutBounds(layoutMode, tableOptions, settingsOverride);
           if (!bounds) {
             return {
               ...state.viewport,
@@ -177,19 +181,26 @@ export function getBrowserStateSource(): string {
           };
         }
 
-        function computeLayoutBounds(layoutMode, tableOptions) {
+        function createViewportPanToWorldPointAction(worldPoint) {
+          const canvasRect = canvas.getBoundingClientRect();
+          const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
+
+          return {
+            panX: Math.round((canvasRect.width / 2 - worldPoint.x * zoom) * 100) / 100,
+            panY: Math.round((canvasRect.height / 2 - worldPoint.y * zoom) * 100) / 100,
+            type: "set-viewport-pan",
+          };
+        }
+
+        function computeLayoutBounds(layoutMode, tableOptions, settingsOverride) {
           const optionsByModelId = new Map(
             (Array.isArray(tableOptions) ? tableOptions : []).map((options) => [
               options.modelId,
               options,
             ]),
           );
-          const layout = layoutVariants[layoutMode] || layoutVariants.hierarchical || {};
-          let minX = Number.POSITIVE_INFINITY;
-          let minY = Number.POSITIVE_INFINITY;
-          let maxX = Number.NEGATIVE_INFINITY;
-          let maxY = Number.NEGATIVE_INFINITY;
-          let visibleCount = 0;
+          const layout = getLayoutForMode(layoutMode, settingsOverride);
+          const bounds = createEmptyLayoutBounds();
 
           for (const table of tableMetaById.values()) {
             const options = optionsByModelId.get(table.modelId);
@@ -201,24 +212,60 @@ export function getBrowserStateSource(): string {
               (options && options.manualPosition) ||
               layout[table.modelId] ||
               table.basePosition || { x: 0, y: 0 };
-            minX = Math.min(minX, position.x);
-            minY = Math.min(minY, position.y);
-            maxX = Math.max(maxX, position.x + table.width);
-            maxY = Math.max(maxY, position.y + table.height);
-            visibleCount += 1;
+            const tableBounds = {
+              maxX: round2(position.x + table.width),
+              maxY: round2(position.y + table.height),
+              minX: round2(position.x),
+              minY: round2(position.y),
+              modelId: table.modelId,
+            };
+
+            expandLayoutBoundsWithRect(bounds, tableBounds);
+            bounds.visibleCount += 1;
           }
 
-          if (!Number.isFinite(minX) || !Number.isFinite(minY) || visibleCount === 0) {
+          if (!hasFiniteLayoutBounds(bounds) || bounds.visibleCount === 0) {
             return undefined;
           }
 
+          return bounds;
+        }
+
+        function createEmptyLayoutBounds() {
           return {
-            maxX,
-            maxY,
-            minX,
-            minY,
-            visibleCount,
+            maxX: Number.NEGATIVE_INFINITY,
+            maxY: Number.NEGATIVE_INFINITY,
+            minX: Number.POSITIVE_INFINITY,
+            minY: Number.POSITIVE_INFINITY,
+            visibleCount: 0,
           };
+        }
+
+        function hasFiniteLayoutBounds(bounds) {
+          return (
+            Number.isFinite(bounds.minX) &&
+            Number.isFinite(bounds.minY) &&
+            Number.isFinite(bounds.maxX) &&
+            Number.isFinite(bounds.maxY)
+          );
+        }
+
+        function expandLayoutBoundsWithRect(bounds, rect) {
+          bounds.minX = Math.min(bounds.minX, rect.minX);
+          bounds.minY = Math.min(bounds.minY, rect.minY);
+          bounds.maxX = Math.max(bounds.maxX, rect.maxX);
+          bounds.maxY = Math.max(bounds.maxY, rect.maxY);
+        }
+
+        function expandLayoutBoundsWithPoint(bounds, point) {
+          if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+            return;
+          }
+
+          bounds.minX = Math.min(bounds.minX, point.x);
+          bounds.minY = Math.min(bounds.minY, point.y);
+          bounds.maxX = Math.max(bounds.maxX, point.x);
+          bounds.maxY = Math.max(bounds.maxY, point.y);
         }
 
         function normalizeViewport(viewport, fallbackViewport) {
@@ -233,6 +280,8 @@ export function getBrowserStateSource(): string {
         function normalizeInteractionSettings(settings) {
           const source = settings || {};
           return {
+            edgeDetour: clampInteractionSetting("edgeDetour", source.edgeDetour),
+            nodeSpacing: clampInteractionSetting("nodeSpacing", source.nodeSpacing),
             panSpeed: clampInteractionSetting("panSpeed", source.panSpeed),
             zoomSpeed: clampInteractionSetting("zoomSpeed", source.zoomSpeed),
           };
@@ -267,7 +316,40 @@ export function getBrowserStateSource(): string {
         }
 
         function formatInteractionSettingValue(key) {
-          return Math.round(getInteractionSetting(state, key) * 100) + "%";
+          const value = getInteractionSetting(state, key);
+
+          if (key === "nodeSpacing" || key === "edgeDetour") {
+            return value.toFixed(2) + "x";
+          }
+
+          return Math.round(value * 100) + "%";
+        }
+
+        function pickLayoutRoutingSettings(settings) {
+          const source = settings || {};
+
+          return {
+            edgeDetour: clampInteractionSetting("edgeDetour", source.edgeDetour),
+            nodeSpacing: clampInteractionSetting("nodeSpacing", source.nodeSpacing),
+          };
+        }
+
+        function getAppliedLayoutSettings() {
+          if (typeof appliedLayoutSettings !== "undefined" && appliedLayoutSettings) {
+            return appliedLayoutSettings;
+          }
+
+          return pickLayoutRoutingSettings(state && state.settings);
+        }
+
+        function hasPendingLayoutSettings(currentState) {
+          const pendingSettings = pickLayoutRoutingSettings(currentState && currentState.settings);
+          const appliedSettings = getAppliedLayoutSettings();
+
+          return (
+            pendingSettings.edgeDetour !== appliedSettings.edgeDetour ||
+            pendingSettings.nodeSpacing !== appliedSettings.nodeSpacing
+          );
         }
 
         function getInteractionSetting(currentState, key) {
@@ -277,6 +359,21 @@ export function getBrowserStateSource(): string {
 
           const value = currentState.settings[key];
           return Number.isFinite(value) ? value : defaultInteractionSettings[key];
+        }
+
+        function isLayoutInteractionSetting(key) {
+          return key === "nodeSpacing";
+        }
+
+        function isRoutingInteractionSetting(key) {
+          return key === "edgeDetour";
+        }
+
+        function getLayoutForMode(layoutMode, settingsOverride) {
+          return getLayoutVariant(
+            layoutMode,
+            settingsOverride || getAppliedLayoutSettings(),
+          );
         }
 
         function roundToStep(value, step) {
@@ -323,7 +420,11 @@ export function getBrowserStateSource(): string {
                 viewport: computeViewportForLayout(
                   action.layoutMode,
                   currentState.tableOptions,
-                  { keepCatalogReadable: true },
+                  {
+                    keepCatalogReadable: true,
+                    preferReadableZoom: true,
+                    settings: getAppliedLayoutSettings(),
+                  },
                 ),
               };
             case "set-table-hidden":
@@ -355,14 +456,17 @@ export function getBrowserStateSource(): string {
                 ...options,
                 showProperties: action.showProperties,
               }));
-            case "set-interaction-setting":
+            case "set-interaction-setting": {
+              const nextSettings = {
+                ...currentState.settings,
+                [action.key]: clampInteractionSetting(action.key, action.value),
+              };
               return {
                 ...currentState,
-                settings: {
-                  ...currentState.settings,
-                  [action.key]: clampInteractionSetting(action.key, action.value),
-                },
+                settings: nextSettings,
+                viewport: currentState.viewport,
               };
+            }
             case "set-viewport-pan":
               return {
                 ...currentState,
@@ -388,7 +492,10 @@ export function getBrowserStateSource(): string {
                 viewport: computeViewportForLayout(
                   currentState.layoutMode,
                   currentState.tableOptions,
-                  { keepCatalogReadable: false },
+                  {
+                    keepCatalogReadable: false,
+                    settings: getAppliedLayoutSettings(),
+                  },
                 ),
               };
             case "center-viewport":
@@ -398,6 +505,7 @@ export function getBrowserStateSource(): string {
                   currentState.layoutMode,
                   currentState.tableOptions,
                   currentState.viewport.zoom,
+                  getAppliedLayoutSettings(),
                 ),
               };
             default:
@@ -424,20 +532,21 @@ export function getBrowserStateSource(): string {
 
         function withTableOptions(currentState, modelId, transform) {
           let updated = false;
-          const tableOptions = currentState.tableOptions.map((options) => {
+          const tableOptions = currentState.tableOptions.slice();
+
+          for (let index = 0; index < tableOptions.length; index += 1) {
+            const options = tableOptions[index];
             if (options.modelId !== modelId) {
-              return {
-                ...options,
-                manualPosition: options.manualPosition ? { ...options.manualPosition } : undefined,
-              };
+              continue;
             }
 
             updated = true;
-            return transform({
+            tableOptions[index] = transform({
               ...options,
               manualPosition: options.manualPosition ? { ...options.manualPosition } : undefined,
             });
-          });
+            break;
+          }
 
           if (!updated) {
             tableOptions.push(

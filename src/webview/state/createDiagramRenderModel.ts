@@ -17,6 +17,10 @@ const CATALOG_BASE_TABLE_HEIGHT = 74;
 const CATALOG_BASE_TABLE_WIDTH = 236;
 const CATALOG_MAX_TABLE_HEIGHT = 434;
 const CATALOG_MAX_TABLE_WIDTH = 396;
+const CANVAS_MIN_HEIGHT = 640;
+const CANVAS_MIN_WIDTH = 960;
+const CANVAS_PADDING_X = 128;
+const CANVAS_PADDING_Y = 112;
 
 export interface DiscoveryRenderModel {
   appCount: number;
@@ -318,8 +322,8 @@ function canvasSize(
       );
 
   return {
-    height: Math.max(720, Math.ceil(routeMaxY + 220)),
-    width: Math.max(1280, Math.ceil(routeMaxX + 260)),
+    height: Math.max(CANVAS_MIN_HEIGHT, Math.ceil(routeMaxY + CANVAS_PADDING_Y)),
+    width: Math.max(CANVAS_MIN_WIDTH, Math.ceil(routeMaxX + CANVAS_PADDING_X)),
   };
 }
 

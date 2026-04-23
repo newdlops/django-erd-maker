@@ -16,6 +16,9 @@ export function getBrowserControllerScript(nonce: string): string {
         const viewport = document.querySelector("[data-erd-viewport]");
         const canvas = document.querySelector("[data-erd-canvas]");
         const drawingCanvas = document.querySelector("[data-erd-drawing-canvas]");
+        const minimap = document.querySelector("[data-erd-minimap]");
+        const minimapCanvas = document.querySelector("[data-erd-minimap-canvas]");
+        const minimapViewport = document.querySelector("[data-erd-minimap-viewport]");
         const crossingsLayer = document.querySelector('[data-layer="crossings"]');
         const methodButtons = Array.from(document.querySelectorAll("[data-method-button]"));
         const modelPanels = Array.from(document.querySelectorAll("[data-model-panel]"));
@@ -27,6 +30,7 @@ export function getBrowserControllerScript(nonce: string): string {
         const hiddenModelItems = Array.from(document.querySelectorAll("[data-hidden-model-item]"));
         const showHiddenButtons = Array.from(document.querySelectorAll("[data-show-hidden-model]"));
         const tableToggleButtons = Array.from(document.querySelectorAll("[data-table-toggle]"));
+        const panelRefreshButtons = Array.from(document.querySelectorAll("[data-panel-refresh]"));
         const setupControls = Array.from(document.querySelectorAll("[data-setup-control]"));
         const setupValueReadouts = Array.from(document.querySelectorAll("[data-setup-value]"));
         const zoomButtons = Array.from(document.querySelectorAll("[data-zoom-action]"));
@@ -57,7 +61,8 @@ ${getBrowserStateSource()}
         const hiddenItemsById = new Map(
           hiddenModelItems.map((item) => [item.dataset.modelId || "", item]),
         );
-        const layoutVariants = createLayoutVariants(tableMetaList);
+        let layoutVariantCache = new Map();
+        let layoutVariantCacheKey = "";
         const overlayMeta = overlays.map((overlay) => ({
           element: overlay,
           methodName: overlay.dataset.methodName || "",
@@ -74,12 +79,17 @@ ${getBrowserStateSource()}
           (renderModel.tables || []).map((table) => [table.modelId, table]),
         );
         const initialStateValue = JSON.parse(initialStateElement.textContent || "{}");
+        let state = null;
+        let appliedLayoutSettings = pickLayoutRoutingSettings(
+          normalizeInteractionSettings(initialStateValue.settings),
+        );
         const initialState = normalizeInitialState(
           initialStateValue,
           renderModel.tables?.[0]?.modelId || "",
           computeInitialViewport(initialStateValue),
         );
-        let state = cloneState(initialState);
+        state = cloneState(initialState);
+        appliedLayoutSettings = pickLayoutRoutingSettings(initialState.settings);
         let drag = null;
         let renderedCrossings = [];
         let renderedEdges = [];

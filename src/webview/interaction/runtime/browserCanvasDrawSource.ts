@@ -41,14 +41,17 @@ export function getBrowserCanvasDrawSource(): string {
 
         function drawCanvas(renderMode) {
           resizeDrawingCanvas();
+          const dragPreview = renderMode === "drag-preview" && drag && drag.kind === "table";
 
           if (renderModel.modelCatalogMode) {
             drawCatalogCanvas(renderMode);
-            lastDrawViewport = {
-              panX: state.viewport.panX,
-              panY: state.viewport.panY,
-              zoom: state.viewport.zoom,
-            };
+            if (!dragPreview) {
+              lastDrawViewport = {
+                panX: state.viewport.panX,
+                panY: state.viewport.panY,
+                zoom: state.viewport.zoom,
+              };
+            }
             return;
           }
 
@@ -58,6 +61,15 @@ export function getBrowserCanvasDrawSource(): string {
             panY: state.viewport.panY,
             zoom: state.viewport.zoom,
           };
+
+          if (dragPreview) {
+            drawingContext.clearRect(0, 0, viewportRect.width, viewportRect.height);
+            drawScene(getVisibleWorldBounds(), null, {
+              skipCrossings: true,
+              skipMethodOverlays: true,
+            });
+            return;
+          }
 
           if (renderMode === "viewport" && canReusePanSnapshot(currentViewport, viewportRect)) {
             drawCanvasFromPanSnapshot(currentViewport, viewportRect);
@@ -125,12 +137,8 @@ export function getBrowserCanvasDrawSource(): string {
             collectCatalogEdgeSegments(edge, visibleBounds, visibleSegments);
             drawingContext.strokeStyle = catalogEdgeStrokeStyle(edge.meta);
             drawingContext.lineWidth = catalogEdgeLineWidth(edge.meta);
-            drawingContext.globalAlpha = edge.meta.provenance === "derived_reverse" ? 0.58 : 0.72;
-            if (edge.meta.provenance === "derived_reverse") {
-              drawingContext.setLineDash([14, 12]);
-            } else {
-              drawingContext.setLineDash([]);
-            }
+            drawingContext.globalAlpha = catalogEdgeAlpha(edge.meta);
+            drawingContext.setLineDash(catalogEdgeLineDash(edge.meta));
 
             drawPolyline(edge.points);
           }
@@ -142,26 +150,36 @@ export function getBrowserCanvasDrawSource(): string {
 
         function catalogEdgeStrokeStyle(edgeMeta) {
           if (edgeMeta.cssKind.includes("many-to-many")) {
-            return "#f7d18a";
+            return edgeMeta.provenance === "derived_reverse" ? "#d7c08c" : "#f7d18a";
           }
 
           if (edgeMeta.cssKind.includes("one-to-one")) {
-            return "#a8d8ff";
+            return edgeMeta.provenance === "derived_reverse" ? "#8eb7d7" : "#a8d8ff";
           }
 
-          return edgeMeta.provenance === "derived_reverse" ? "#9dcfe1" : "#b6e7d9";
+          return edgeMeta.provenance === "derived_reverse" ? "#7ca8c7" : "#d4f3e6";
         }
 
         function catalogEdgeLineWidth(edgeMeta) {
+          const reverseWidthDelta = edgeMeta.provenance === "derived_reverse" ? 0.8 : 0;
+
           if (edgeMeta.cssKind.includes("many-to-many")) {
-            return 4.8;
+            return 4.8 - reverseWidthDelta;
           }
 
           if (edgeMeta.cssKind.includes("one-to-one")) {
-            return 4.4;
+            return 4.4 - reverseWidthDelta;
           }
 
-          return 4.2;
+          return 4.2 - reverseWidthDelta;
+        }
+
+        function catalogEdgeAlpha(edgeMeta) {
+          return edgeMeta.provenance === "derived_reverse" ? 0.42 : 0.84;
+        }
+
+        function catalogEdgeLineDash(edgeMeta) {
+          return edgeMeta.provenance === "derived_reverse" ? [18, 12] : [];
         }
 
         function collectCatalogEdgeSegments(edge, visibleBounds, segments) {
@@ -768,7 +786,9 @@ export function getBrowserCanvasDrawSource(): string {
           };
         }
 
-        function drawScene(visibleBounds, clipRect) {
+        function drawScene(visibleBounds, clipRect, options) {
+          const skipCrossings = Boolean(options && options.skipCrossings);
+          const skipMethodOverlays = Boolean(options && options.skipMethodOverlays);
           drawingContext.save();
           if (clipRect) {
             drawingContext.beginPath();
@@ -778,8 +798,12 @@ export function getBrowserCanvasDrawSource(): string {
           drawingContext.translate(state.viewport.panX, state.viewport.panY);
           drawingContext.scale(state.viewport.zoom, state.viewport.zoom);
           drawEdges(visibleBounds);
-          drawMethodOverlays(visibleBounds);
-          drawCrossings(visibleBounds);
+          if (!skipMethodOverlays) {
+            drawMethodOverlays(visibleBounds);
+          }
+          if (!skipCrossings) {
+            drawCrossings(visibleBounds);
+          }
           drawTables(visibleBounds);
           drawingContext.restore();
         }
@@ -937,15 +961,24 @@ export function getBrowserCanvasDrawSource(): string {
 
             drawingContext.save();
             drawingContext.strokeStyle = edge.meta.cssKind.includes("many-to-many")
-              ? "#f7d18a"
+              ? edge.meta.provenance === "derived_reverse"
+                ? "#d7c08c"
+                : "#f7d18a"
+              : edge.meta.cssKind.includes("one-to-one")
+                ? edge.meta.provenance === "derived_reverse"
+                  ? "#8eb7d7"
+                  : "#a8d8ff"
               : edge.meta.provenance === "derived_reverse"
-                ? "#9dcfe1"
-                : "#b6e7d9";
-            drawingContext.lineWidth = 2.3;
+                ? "#7ca8c7"
+                : "#d4f3e6";
+            drawingContext.lineWidth = edge.meta.provenance === "derived_reverse" ? 1.7 : 2.6;
             drawingContext.lineCap = "round";
             drawingContext.lineJoin = "round";
+            drawingContext.globalAlpha = edge.meta.provenance === "derived_reverse" ? 0.66 : 0.96;
             if (edge.meta.provenance === "derived_reverse") {
-              drawingContext.setLineDash([7, 6]);
+              drawingContext.setLineDash([12, 9]);
+            } else {
+              drawingContext.setLineDash([]);
             }
             drawPolyline(edge.points);
             drawingContext.restore();

@@ -35,6 +35,20 @@ export function renderCanvasScene(viewModel: DiagramRenderModel): string {
           height="${viewModel.canvas.height}"
           aria-label="Django ERD diagram"
         ></canvas>
+        <div
+          class="erd-minimap"
+          data-erd-minimap
+          aria-label="Diagram minimap"
+          role="application"
+        >
+          <canvas
+            class="erd-minimap__canvas"
+            data-erd-minimap-canvas
+            width="220"
+            height="148"
+          ></canvas>
+          <div class="erd-minimap__viewport" data-erd-minimap-viewport></div>
+        </div>
         <script id="erd-render-model" type="application/json">${renderModelJson}</script>
         <div class="erd-scene-metadata" data-erd-scene-metadata hidden>
           <div class="erd-viewport" data-erd-viewport></div>

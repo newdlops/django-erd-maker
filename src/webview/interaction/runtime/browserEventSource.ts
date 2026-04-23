@@ -1,5 +1,74 @@
 export function getBrowserEventSource(): string {
   return `
+        function captureDrawingPointer(pointerId) {
+          if (typeof drawingCanvas.setPointerCapture !== "function") {
+            return;
+          }
+
+          try {
+            drawingCanvas.setPointerCapture(pointerId);
+          } catch (_error) {
+            // Pointer capture can fail on some webview event sequences. Interaction should still continue.
+          }
+        }
+
+        function releaseDrawingPointer(pointerId) {
+          if (typeof drawingCanvas.releasePointerCapture !== "function") {
+            return;
+          }
+
+          try {
+            if (
+              typeof drawingCanvas.hasPointerCapture !== "function" ||
+              drawingCanvas.hasPointerCapture(pointerId)
+            ) {
+              drawingCanvas.releasePointerCapture(pointerId);
+            }
+          } catch (_error) {
+            // Releasing a missing capture should not kill all subsequent interactions.
+          }
+        }
+
+        function captureMinimapPointer(pointerId) {
+          if (!minimap || typeof minimap.setPointerCapture !== "function") {
+            return;
+          }
+
+          try {
+            minimap.setPointerCapture(pointerId);
+          } catch (_error) {
+            // Minimap drag should still work as a click even if capture fails.
+          }
+        }
+
+        function releaseMinimapPointer(pointerId) {
+          if (!minimap || typeof minimap.releasePointerCapture !== "function") {
+            return;
+          }
+
+          try {
+            if (
+              typeof minimap.hasPointerCapture !== "function" ||
+              minimap.hasPointerCapture(pointerId)
+            ) {
+              minimap.releasePointerCapture(pointerId);
+            }
+          } catch (_error) {
+            // Ignore missing capture during fast pointer sequences.
+          }
+        }
+
+        let minimapDrag = null;
+
+        function moveViewportFromMinimapEvent(event) {
+          const worldPoint = getMinimapWorldPoint(event);
+          if (!worldPoint) {
+            return;
+          }
+
+          dispatch(createViewportPanToWorldPointAction(worldPoint));
+        }
+
         for (const table of tables) {
           table.addEventListener("click", () => {
             dispatch({ modelId: table.dataset.modelId, type: "select-model" });
@@ -146,13 +215,56 @@ export function getBrowserEventSource(): string {
           });
         }
 
-        canvas.addEventListener("pointerdown", (event) => {
+        if (minimap) {
+          minimap.addEventListener("pointerdown", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            minimapDrag = {
+              pointerId: event.pointerId,
+            };
+            canvas.classList.add("is-minimap-dragging");
+            captureMinimapPointer(event.pointerId);
+            moveViewportFromMinimapEvent(event);
+          });
+
+          minimap.addEventListener("pointermove", (event) => {
+            if (!minimapDrag || minimapDrag.pointerId !== event.pointerId) {
+              return;
+            }
+
+            event.preventDefault();
+            moveViewportFromMinimapEvent(event);
+          });
+
+          minimap.addEventListener("pointerup", (event) => {
+            if (!minimapDrag || minimapDrag.pointerId !== event.pointerId) {
+              return;
+            }
+
+            minimapDrag = null;
+            canvas.classList.remove("is-minimap-dragging");
+            releaseMinimapPointer(event.pointerId);
+          });
+
+          minimap.addEventListener("pointercancel", (event) => {
+            if (!minimapDrag || minimapDrag.pointerId !== event.pointerId) {
+              return;
+            }
+
+            minimapDrag = null;
+            canvas.classList.remove("is-minimap-dragging");
+            releaseMinimapPointer(event.pointerId);
+          });
+        }
+
+        drawingCanvas.addEventListener("pointerdown", (event) => {
           const target = event.target && event.target.closest ? event.target.closest(".erd-table") : null;
           const canvasTarget = target ? null : findTableAtCanvasPoint(event);
           const targetModelId = target ? target.dataset.modelId : canvasTarget?.modelId;
 
           if (targetModelId) {
             drag = {
+              changed: false,
               kind: "table",
               modelId: targetModelId,
               originX: event.clientX,
@@ -166,6 +278,7 @@ export function getBrowserEventSource(): string {
             canvas.classList.add("is-dragging-table");
           } else {
             drag = {
+              changed: false,
               kind: "canvas",
               originX: event.clientX,
               originY: event.clientY,
@@ -175,15 +288,16 @@ export function getBrowserEventSource(): string {
             canvas.classList.add("is-panning");
           }
 
-          canvas.setPointerCapture(event.pointerId);
+          captureDrawingPointer(event.pointerId);
         });
 
-        canvas.addEventListener("pointermove", (event) => {
+        drawingCanvas.addEventListener("pointermove", (event) => {
           if (!drag) {
             return;
           }
 
           if (drag.kind === "canvas") {
+            drag.changed = true;
             dispatch({
               panX: drag.panX + (event.clientX - drag.originX) * getInteractionSetting(state, "panSpeed"),
               panY: drag.panY + (event.clientY - drag.originY) * getInteractionSetting(state, "panSpeed"),
@@ -192,6 +306,7 @@ export function getBrowserEventSource(): string {
             return;
           }
 
+          drag.changed = true;
           dispatch({
             manualPosition: {
               x: round2(drag.startPosition.x + (event.clientX - drag.originX) / state.viewport.zoom),
@@ -202,22 +317,59 @@ export function getBrowserEventSource(): string {
           });
         });
 
-        canvas.addEventListener("pointerup", (event) => {
+        drawingCanvas.addEventListener("pointerup", (event) => {
+          const completedDrag = drag;
           drag = null;
           canvas.classList.remove("is-panning");
           canvas.classList.remove("is-dragging-table");
-          canvas.releasePointerCapture(event.pointerId);
+          releaseDrawingPointer(event.pointerId);
+          cancelDragPreviewRender();
+
+          if (!completedDrag) {
+            return;
+          }
+
+          if (completedDrag.kind === "canvas") {
+            cancelViewportRender();
+            applyViewportState();
+            return;
+          }
+
+          if (!completedDrag.changed) {
+            return;
+          }
+
+          if (renderModel.modelCatalogMode) {
+            invalidateCatalogSceneCache();
+          }
           applyState();
         });
 
-        canvas.addEventListener("pointercancel", () => {
+        drawingCanvas.addEventListener("pointercancel", (event) => {
+          const completedDrag = drag;
           drag = null;
           canvas.classList.remove("is-panning");
           canvas.classList.remove("is-dragging-table");
+          releaseDrawingPointer(event.pointerId);
+          cancelDragPreviewRender();
+
+          if (!completedDrag) {
+            return;
+          }
+
+          if (completedDrag.kind === "canvas") {
+            cancelViewportRender();
+            applyViewportState();
+            return;
+          }
+
+          if (renderModel.modelCatalogMode) {
+            invalidateCatalogSceneCache();
+          }
           applyState();
         });
 
-        canvas.addEventListener("pointerleave", () => {
+        drawingCanvas.addEventListener("pointerleave", () => {
           if (!drag || drag.kind !== "canvas") {
             return;
           }
@@ -228,7 +380,7 @@ export function getBrowserEventSource(): string {
           applyState();
         });
 
-        canvas.addEventListener("wheel", (event) => {
+        drawingCanvas.addEventListener("wheel", (event) => {
           event.preventDefault();
           const zoomDelta = 0.08 * getInteractionSetting(state, "zoomSpeed");
           dispatch(

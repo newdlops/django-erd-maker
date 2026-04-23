@@ -14,6 +14,8 @@ export async function openDiagram(
 ): Promise<void> {
   const logger = getExtensionLogger();
   const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  const analyzerLayoutMode = "hierarchical";
+  const initialWebviewLayoutMode = "hierarchical";
 
   if (!workspacePath) {
     throw new Error("Open a Django workspace folder before opening the ERD.");
@@ -35,10 +37,11 @@ export async function openDiagram(
         const liveDiagram = await loadLiveDiagram(
           context.extensionUri.fsPath,
           timedDiscovery.result,
-          "hierarchical",
+          analyzerLayoutMode,
           timedDiscovery.durationMs,
           logger,
         );
+        liveDiagram.payload.view.layoutMode = initialWebviewLayoutMode;
         logLiveDiagramResult(liveDiagram, logger);
         return liveDiagram;
       },

@@ -344,6 +344,26 @@ const scenarioHandlers = {
       initialReverseEdge,
     );
   },
+  "E2E-13": async () => {
+    const selectedSnapshot = await runWebviewAction({
+      modelId: "blog.Post",
+      type: "pointerSelectTable",
+    });
+
+    assert.equal(selectedSnapshot.state.selectedModelId, "blog.Post");
+    assert.equal(requireTableSnapshot(selectedSnapshot, "blog.Post").selected, true);
+
+    const initialPosition = parseTranslate(requireTableSnapshot(selectedSnapshot, "blog.Post").transform);
+    const draggedSnapshot = await runWebviewAction({
+      delta: { x: 120, y: 80 },
+      modelId: "blog.Post",
+      type: "pointerDragTableBy",
+    });
+    const draggedPosition = parseTranslate(requireTableSnapshot(draggedSnapshot, "blog.Post").transform);
+
+    assert.ok(draggedPosition.x > initialPosition.x + 80);
+    assert.ok(draggedPosition.y > initialPosition.y + 40);
+  },
   "E2E-15": async (state) => {
     assert.equal(state.payload.graph.nodes.length, 3);
     await vscode.commands.executeCommand("djangoErd.refreshDiagram");
