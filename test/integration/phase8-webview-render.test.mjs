@@ -101,7 +101,16 @@ test("phase8 browser runtime renders a GPU scene with minimap and viewport-aware
   assert.match(html, /renderer\.selected/);
   assert.match(html, /scene\.graph\.built/);
   assert.match(html, /render\.frame/);
+  assert.match(html, /render\.stats/);
   assert.match(html, /canvasWidth/);
+  assert.match(html, /frameId/);
+  assert.match(html, /sinceLastFrameMs/);
+  assert.match(html, /avgFrameMs/);
+  assert.match(html, /drawMs/);
+  assert.match(html, /cullMs/);
+  assert.match(html, /liveDragEdges/);
+  assert.match(html, /liveDragSegments/);
+  assert.match(html, /totalSegments/);
   assert.match(html, /renderer\.webgpu\.draw_validation_failed/);
   assert.match(html, /event\.drag\.start/);
   assert.match(html, /event\.refresh\.request/);
@@ -124,6 +133,11 @@ test("phase8 browser runtime renders a GPU scene with minimap and viewport-aware
   assert.match(html, /function createLabelAtlas\(gl\)/);
   assert.match(html, /function collectVisibleTables\(scene, bounds\)/);
   assert.match(html, /function collectVisibleSegments\(scene, bounds\)/);
+  assert.match(html, /function applyLiveDragTableRecord\(scene, records, bounds\)/);
+  assert.match(html, /function applyLiveDragEdgeSegments\(records, bounds\)/);
+  assert.match(html, /function collectLiveDragEdgeSegments\(activeDrag, bounds\)/);
+  assert.match(html, /drag\.currentPosition =/);
+  assert.match(html, /scheduleViewportRender\(\)/);
   assert.match(html, /function queryTableMetaNearWorldPoint\(point\)/);
   assert.match(html, /GPU_TABLE_DETAIL_ZOOM/);
   assert.match(html, /const minimap = document\.querySelector\("\[data-erd-minimap\]"\)/);

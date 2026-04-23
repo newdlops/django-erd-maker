@@ -255,6 +255,15 @@ export function getBrowserLayoutSource(): string {
         }
 
         function getCurrentPosition(modelId) {
+          if (
+            drag &&
+            drag.kind === "table" &&
+            drag.modelId === modelId &&
+            drag.currentPosition
+          ) {
+            return drag.currentPosition;
+          }
+
           const options = getTableOptions(state, modelId);
           return options.manualPosition || getBasePosition(modelId);
         }

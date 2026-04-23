@@ -8,9 +8,18 @@ export function getBrowserCanvasDrawSource(): string {
         const GPU_LABEL_ATLAS_SIZE = 2048;
         const GPU_MAX_SEGMENTS_PER_FRAME = 240000;
         const GPU_MAX_LABELS_PER_FRAME = 2200;
+        const RENDER_FRAME_SAMPLE_MS = 1000;
+        const RENDER_STATS_INTERVAL_MS = 1000;
+        const RENDER_STATS_MIN_FRAMES = 60;
         const WEBGPU_UNIFORM_BYTES = 32;
 
         let gpuRenderer = null;
+        let lastRenderFrameEndedAt = 0;
+        let lastRenderFrameSampleAt = 0;
+        let latestLiveDragEdgeCount = 0;
+        let latestLiveDragSegmentCount = 0;
+        let renderFrameSequence = 0;
+        let renderStats = createEmptyRenderStats(performance.now());
         let sceneGraph = null;
         let latestCatalogCrossings = [];
 
@@ -739,36 +748,155 @@ export function getBrowserCanvasDrawSource(): string {
           }
 
           const startedAt = performance.now();
+          const resizeStartedAt = performance.now();
           resizeDrawingCanvas();
+          const resizeMs = performance.now() - resizeStartedAt;
+          const sceneStartedAt = performance.now();
           const scene = ensureSceneGraph();
+          const sceneMs = performance.now() - sceneStartedAt;
+          const cullStartedAt = performance.now();
           const visibleBounds = getVisibleWorldBounds(96);
           const visibleTables = collectVisibleTables(scene, visibleBounds);
           const visibleSegments = collectVisibleSegments(scene, visibleBounds);
           const visibleOverlays = collectVisibleOverlaySegments(visibleBounds);
+          const cullMs = performance.now() - cullStartedAt;
+          const labelStartedAt = performance.now();
           const labels = collectVisibleLabels(visibleTables);
+          const labelMs = performance.now() - labelStartedAt;
+          const drawStartedAt = performance.now();
 
           if (gpuRenderer.backend === "webgpu") {
             drawWebGpuScene(gpuRenderer, visibleSegments, visibleOverlays, visibleTables, labels);
-            logRenderFrame(startedAt, renderMode, visibleTables, visibleSegments, visibleOverlays, labels);
+          } else {
+            clearGpuScene(gpuRenderer);
+            drawSegmentBatch(gpuRenderer, visibleSegments, false);
+            drawSegmentBatch(gpuRenderer, visibleOverlays, true);
+            drawTableBatch(gpuRenderer, visibleTables);
+            drawLabelBatch(gpuRenderer, labels);
+          }
+
+          logRenderFrame(
+            startedAt,
+            renderMode,
+            scene,
+            visibleTables,
+            visibleSegments,
+            visibleOverlays,
+            labels,
+            {
+              cullMs,
+              drawMs: performance.now() - drawStartedAt,
+              labelMs,
+              resizeMs,
+              sceneMs,
+            },
+          );
+        }
+
+        function createEmptyRenderStats(startedAt) {
+          return {
+            fullFrames: 0,
+            maxMs: 0,
+            slowFrames: 0,
+            startedAt,
+            totalFrames: 0,
+            totalMs: 0,
+            viewportFrames: 0,
+          };
+        }
+
+        function recordRenderStats(durationMs, renderMode, endedAt) {
+          renderStats.totalFrames += 1;
+          renderStats.totalMs += durationMs;
+          renderStats.maxMs = Math.max(renderStats.maxMs, durationMs);
+          if (durationMs >= ERD_LOG_SLOW_RENDER_MS) {
+            renderStats.slowFrames += 1;
+          }
+
+          if (renderMode === "full") {
+            renderStats.fullFrames += 1;
+          } else if (renderMode === "viewport") {
+            renderStats.viewportFrames += 1;
+          }
+
+          const elapsedMs = endedAt - renderStats.startedAt;
+          if (
+            renderStats.totalFrames < RENDER_STATS_MIN_FRAMES &&
+            elapsedMs < RENDER_STATS_INTERVAL_MS
+          ) {
             return;
           }
 
-          clearGpuScene(gpuRenderer);
-          drawSegmentBatch(gpuRenderer, visibleSegments, false);
-          drawSegmentBatch(gpuRenderer, visibleOverlays, true);
-          drawTableBatch(gpuRenderer, visibleTables);
-          drawLabelBatch(gpuRenderer, labels);
-          logRenderFrame(startedAt, renderMode, visibleTables, visibleSegments, visibleOverlays, labels);
+          const totalFrames = renderStats.totalFrames;
+          logErd("info", "render.stats", {
+            avgFrameMs: round2(renderStats.totalMs / Math.max(1, totalFrames)),
+            elapsedMs: round2(elapsedMs),
+            fps: round2((totalFrames / Math.max(1, elapsedMs)) * 1000),
+            fullFrames: renderStats.fullFrames,
+            maxFrameMs: round2(renderStats.maxMs),
+            renderer: gpuRenderer.backend,
+            slowFrames: renderStats.slowFrames,
+            totalFrames,
+            viewportFrames: renderStats.viewportFrames,
+          });
+          renderStats = createEmptyRenderStats(endedAt);
         }
 
-        function logRenderFrame(startedAt, renderMode, visibleTables, visibleSegments, visibleOverlays, labels) {
-          const durationMs = round2(performance.now() - startedAt);
-          if (renderMode !== "full" && durationMs < ERD_LOG_SLOW_RENDER_MS) {
+        function getRenderFrameLogReason(renderMode, durationMs, endedAt) {
+          if (renderMode === "full") {
+            return "full";
+          }
+
+          if (durationMs >= ERD_LOG_SLOW_RENDER_MS) {
+            return "slow";
+          }
+
+          if (endedAt - lastRenderFrameSampleAt >= RENDER_FRAME_SAMPLE_MS) {
+            lastRenderFrameSampleAt = endedAt;
+            return "sample";
+          }
+
+          return "";
+        }
+
+        function logRenderFrame(
+          startedAt,
+          renderMode,
+          scene,
+          visibleTables,
+          visibleSegments,
+          visibleOverlays,
+          labels,
+          timings,
+        ) {
+          const endedAt = performance.now();
+          const durationMs = round2(endedAt - startedAt);
+          const sinceLastFrameMs = lastRenderFrameEndedAt
+            ? round2(endedAt - lastRenderFrameEndedAt)
+            : null;
+          const fps = sinceLastFrameMs && sinceLastFrameMs > 0
+            ? round2(1000 / sinceLastFrameMs)
+            : null;
+          const frameId = renderFrameSequence + 1;
+          const reason = getRenderFrameLogReason(renderMode, durationMs, endedAt);
+
+          renderFrameSequence = frameId;
+          lastRenderFrameEndedAt = endedAt;
+          recordRenderStats(durationMs, renderMode, endedAt);
+
+          if (!reason) {
             return;
           }
 
           logErd(durationMs >= ERD_LOG_SLOW_RENDER_MS ? "warn" : "info", "render.frame", {
+            cullMs: round2(timings.cullMs),
             durationMs,
+            drawMs: round2(timings.drawMs),
+            fps,
+            frameId,
+            labelMs: round2(timings.labelMs),
+            liveDragEdges: latestLiveDragEdgeCount,
+            liveDragSegments: latestLiveDragSegmentCount,
             canvasHeight: drawingCanvas.height,
             canvasWidth: drawingCanvas.width,
             labels: labels.length,
@@ -776,9 +904,15 @@ export function getBrowserCanvasDrawSource(): string {
             overlaySegments: visibleOverlays.length,
             panX: round2(state.viewport.panX),
             panY: round2(state.viewport.panY),
+            reason,
             renderer: gpuRenderer.backend,
+            resizeMs: round2(timings.resizeMs),
+            sceneMs: round2(timings.sceneMs),
             segments: visibleSegments.length,
+            sinceLastFrameMs,
             tables: visibleTables.length,
+            totalSegments: scene.edgeSegments.length,
+            totalTables: scene.tables.length,
             zoom: round2(state.viewport.zoom),
           });
         }
@@ -786,17 +920,19 @@ export function getBrowserCanvasDrawSource(): string {
         function collectVisibleTables(scene, bounds) {
           const ids = collectBucketValues(scene.tableBuckets, bounds);
 
-          return ids
+          const records = ids
             .map((modelId) => scene.tablesById.get(modelId))
             .filter((record) =>
               record &&
               rectIntersectsBounds(record.x, record.y, record.width, record.height, bounds, 0),
             )
             .sort((left, right) => left.y - right.y || left.x - right.x);
+
+          return applyLiveDragTableRecord(scene, records, bounds);
         }
 
         function collectVisibleSegments(scene, bounds) {
-          return collectBucketValues(scene.edgeBuckets, bounds)
+          const records = collectBucketValues(scene.edgeBuckets, bounds)
             .slice(0, GPU_MAX_SEGMENTS_PER_FRAME)
             .map((segmentIndex) => scene.edgeSegments[segmentIndex])
             .filter((record) =>
@@ -810,6 +946,156 @@ export function getBrowserCanvasDrawSource(): string {
                 80,
               ),
             );
+
+          return applyLiveDragEdgeSegments(records, bounds);
+        }
+
+        function getActiveTableDrag() {
+          return drag && drag.kind === "table" && drag.currentPosition ? drag : null;
+        }
+
+        function applyLiveDragTableRecord(scene, records, bounds) {
+          const activeDrag = getActiveTableDrag();
+          if (!activeDrag) {
+            return records;
+          }
+
+          const baseRecord = scene.tablesById.get(activeDrag.modelId);
+          if (!baseRecord) {
+            return records;
+          }
+
+          const position = activeDrag.currentPosition;
+          const liveRecord = {
+            ...baseRecord,
+            maxX: position.x + baseRecord.width,
+            maxY: position.y + baseRecord.height,
+            options: getTableOptions(state, activeDrag.modelId),
+            x: position.x,
+            y: position.y,
+          };
+          const nextRecords = records.filter((record) => record.modelId !== activeDrag.modelId);
+          if (
+            rectIntersectsBounds(
+              liveRecord.x,
+              liveRecord.y,
+              liveRecord.width,
+              liveRecord.height,
+              bounds,
+              0,
+            )
+          ) {
+            nextRecords.push(liveRecord);
+          }
+
+          return nextRecords.sort((left, right) => left.y - right.y || left.x - right.x);
+        }
+
+        function applyLiveDragEdgeSegments(records, bounds) {
+          const activeDrag = getActiveTableDrag();
+          if (!activeDrag) {
+            latestLiveDragEdgeCount = 0;
+            latestLiveDragSegmentCount = 0;
+            return records;
+          }
+
+          const filteredRecords = records.filter(
+            (record) =>
+              record.meta.sourceModelId !== activeDrag.modelId &&
+              record.meta.targetModelId !== activeDrag.modelId,
+          );
+
+          const liveRecords = collectLiveDragEdgeSegments(activeDrag, bounds);
+          latestLiveDragSegmentCount = liveRecords.length;
+          return filteredRecords.concat(liveRecords);
+        }
+
+        function collectLiveDragEdgeSegments(activeDrag, bounds) {
+          const visibleEdgeEntries = [];
+          for (const meta of edgeMeta) {
+            if (
+              meta.sourceModelId !== activeDrag.modelId &&
+              meta.targetModelId !== activeDrag.modelId
+            ) {
+              continue;
+            }
+
+            const sourceTable = tableMetaById.get(meta.sourceModelId);
+            const targetTable = tableMetaById.get(meta.targetModelId);
+            if (
+              !sourceTable ||
+              !targetTable ||
+              !isVisibleModel(meta.sourceModelId) ||
+              !isVisibleModel(meta.targetModelId)
+            ) {
+              continue;
+            }
+
+            visibleEdgeEntries.push({
+              meta,
+              sourcePosition:
+                meta.sourceModelId === activeDrag.modelId
+                  ? activeDrag.currentPosition
+                  : getCurrentPosition(meta.sourceModelId),
+              sourceTable,
+              targetPosition:
+                meta.targetModelId === activeDrag.modelId
+                  ? activeDrag.currentPosition
+                  : getCurrentPosition(meta.targetModelId),
+              targetTable,
+            });
+          }
+          latestLiveDragEdgeCount = visibleEdgeEntries.length;
+
+          const routedEdges = renderModel.modelCatalogMode
+            ? routeCatalogEdgesWithPorts(visibleEdgeEntries).map((routed) => ({
+                edgeId: routed.entry.meta.edgeId,
+                meta: routed.entry.meta,
+                points: routed.points,
+              }))
+            : visibleEdgeEntries.map((entry) => ({
+                edgeId: entry.meta.edgeId,
+                meta: entry.meta,
+                points: buildOrthogonalPath(
+                  entry.sourcePosition,
+                  entry.sourceTable,
+                  entry.targetPosition,
+                  entry.targetTable,
+                ),
+              }));
+          const records = [];
+
+          for (const edge of routedEdges) {
+            for (const segment of findSegments(edge.points)) {
+              if (
+                !segmentIntersectsBounds(
+                  segment.start.x,
+                  segment.start.y,
+                  segment.end.x,
+                  segment.end.y,
+                  bounds,
+                  80,
+                )
+              ) {
+                continue;
+              }
+
+              records.push({
+                bounds: {
+                  bottom: Math.max(segment.start.y, segment.end.y),
+                  left: Math.min(segment.start.x, segment.end.x),
+                  right: Math.max(segment.start.x, segment.end.x),
+                  top: Math.min(segment.start.y, segment.end.y),
+                },
+                edgeId: edge.edgeId,
+                meta: edge.meta,
+                points: edge.points,
+                segment,
+              });
+            }
+          }
+
+          return records;
         }
 
         function collectVisibleOverlaySegments(bounds) {

@@ -302,6 +302,7 @@ export function getBrowserEventSource(): string {
 
           if (targetModelId) {
             drag = {
+              currentPosition: getCurrentPosition(targetModelId),
               kind: "table",
               modelId: targetModelId,
               originX: event.clientX,
@@ -352,14 +353,11 @@ export function getBrowserEventSource(): string {
             return;
           }
 
-          dispatch({
-            manualPosition: {
-              x: round2(drag.startPosition.x + (event.clientX - drag.originX) / state.viewport.zoom),
-              y: round2(drag.startPosition.y + (event.clientY - drag.originY) / state.viewport.zoom),
-            },
-            modelId: drag.modelId,
-            type: "set-table-manual-position",
-          });
+          drag.currentPosition = {
+            x: round2(drag.startPosition.x + (event.clientX - drag.originX) / state.viewport.zoom),
+            y: round2(drag.startPosition.y + (event.clientY - drag.originY) / state.viewport.zoom),
+          };
+          scheduleViewportRender();
         });
 
         canvas.addEventListener("pointerup", (event) => {
@@ -368,7 +366,15 @@ export function getBrowserEventSource(): string {
           canvas.classList.remove("is-panning");
           canvas.classList.remove("is-dragging-table");
           releasePointer(canvas, event.pointerId);
-          applyState();
+          if (completedDrag && completedDrag.kind === "table" && completedDrag.currentPosition) {
+            dispatch({
+              manualPosition: completedDrag.currentPosition,
+              modelId: completedDrag.modelId,
+              type: "set-table-manual-position",
+            });
+          } else {
+            applyState();
+          }
           if (completedDrag) {
             logErdDuration("info", "event.drag.end", completedDrag.startedAt || performance.now(), {
               kind: completedDrag.kind,
