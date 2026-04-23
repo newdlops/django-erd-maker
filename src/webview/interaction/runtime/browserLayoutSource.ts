@@ -852,32 +852,22 @@ export function getBrowserLayoutSource(): string {
 
         function createRelationGraphLayout(tableMetaList, tuning = createLayoutTuning()) {
           const config = createRelationLayoutConfig(tableMetaList, {
-              componentGapX: 230,
-              componentGapY: 190,
+              componentGapX: 264,
+              componentGapY: 224,
               layerGapX: 0,
               layerGapY: 0,
-              margin: 88,
+              margin: 104,
               ringStep: Math.max(
-                140,
-                tableMetaList.reduce((largest, table) => Math.max(largest, table.width, table.height), 0) + 132,
+                220,
+                tableMetaList.reduce((largest, table) => Math.max(largest, table.width, table.height), 0) + 188,
               ),
+              sweepIterations: 5,
             }, tuning);
 
-          if (shouldUseFastRelationGraphLayout(tableMetaList)) {
-            return createConcentricRelationLayout(tableMetaList, {
-              ...config,
-              ringStep: Math.max(config.ringStep, 260 * tuning.nodeSpacing),
-            });
-          }
-
-          return createForceDirectedRelationLayout(tableMetaList, config);
-        }
-
-        function shouldUseFastRelationGraphLayout(tableMetaList) {
-          return (
-            tableMetaList.length >= FAST_FORCE_LAYOUT_TABLE_THRESHOLD ||
-            edgeMeta.length >= Math.max(90, tableMetaList.length * 2.2)
-          );
+          return createHybridRelationGraphLayout(tableMetaList, {
+            ...config,
+            ringStep: Math.max(config.ringStep, 320 * tuning.nodeSpacing),
+          });
         }
 
         function createCatalogRelationGraphLayout(tableMetaList, config) {
@@ -1181,6 +1171,60 @@ export function getBrowserLayoutSource(): string {
           );
 
           return placeRelationComponentPlans(componentPlans, config);
+        }
+
+        function createHybridRelationGraphLayout(tableMetaList, config) {
+          const relationState = getRelationLayoutState(tableMetaList);
+          const componentPlans = relationState.components.map((componentIds, componentIndex) =>
+            describeComponentPlan(
+              createHybridGraphComponentPlan(
+                componentIds,
+                relationState,
+                config,
+                componentIndex,
+              ),
+              componentIds,
+              relationState,
+            ),
+          );
+
+          return placeRelationComponentPlans(componentPlans, config);
+        }
+
+        function createHybridGraphComponentPlan(componentIds, relationState, config, componentIndex) {
+          const edgeCount = createRelationEdgePairs(componentIds, relationState.adjacencyById).length;
+          const density = edgeCount / Math.max(componentIds.length - 1, 1);
+          const shouldPreferLayered =
+            componentIds.length >= FAST_FORCE_LAYOUT_TABLE_THRESHOLD / 2 ||
+            density >= 1.2;
+
+          if (shouldPreferLayered) {
+            return createLayeredComponentPlan(
+              componentIds,
+              relationState,
+              {
+                ...config,
+                layerGapX: Math.max(config.layerGapX || 0, config.ringStep * 0.96),
+                layerGapY: Math.max(
+                  config.layerGapY || 0,
+                  (config.ringStep || 0) * (density >= 1.5 ? 0.82 : 0.72),
+                ),
+                orientation: density >= 1.5 || componentIds.length >= 14 ? "horizontal" : "vertical",
+                sweepIterations: Math.max(config.sweepIterations || 0, 4),
+              },
+            );
+          }
+
+          return createRadialComponentPlan(
+            componentIds,
+            relationState,
+            {
+              ...config,
+              ringStep: Math.max(config.ringStep, 286),
+              sweepIterations: Math.max(config.sweepIterations || 0, 3),
+            },
+            componentIndex,
+          );
         }
 
         function createForceDirectedComponentPlan(componentIds, relationState, config, componentIndex) {

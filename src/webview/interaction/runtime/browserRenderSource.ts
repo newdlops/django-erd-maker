@@ -37,6 +37,27 @@ export function getBrowserRenderSource(): string {
           renderMinimap("full");
         }
 
+        function applySelectionState() {
+          viewport.dataset.transform =
+            "translate(" + state.viewport.panX + " " + state.viewport.panY + ") scale(" + state.viewport.zoom + ")";
+          renderTables();
+          renderOverlays();
+          renderPanels();
+          drawCanvas("full");
+          renderMinimap("full");
+        }
+
+        function applyManualPositionState(modelId) {
+          viewport.dataset.transform =
+            "translate(" + state.viewport.panX + " " + state.viewport.panY + ") scale(" + state.viewport.zoom + ")";
+          renderTables();
+          rerouteModelEdges(modelId);
+          renderOverlays();
+          renderPanels();
+          drawCanvas("full");
+          renderMinimap("full");
+        }
+
         function applyDragPreviewState() {
           viewport.dataset.transform =
             "translate(" + state.viewport.panX + " " + state.viewport.panY + ") scale(" + state.viewport.zoom + ")";
@@ -108,16 +129,27 @@ export function getBrowserRenderSource(): string {
           if (action.type === "set-table-manual-position") {
             if (renderModel.modelCatalogMode) {
               invalidateCatalogSceneCache();
+              cancelDragPreviewRender();
+              cancelViewportRender();
+              applyGeometryState();
+              return;
             }
             cancelDragPreviewRender();
             cancelViewportRender();
-            applyGeometryState();
+            applyManualPositionState(action.modelId);
             return;
           }
 
           if (action.type === "set-interaction-setting") {
             renderSetupControls();
             renderRefreshButtons();
+            return;
+          }
+
+          if (isSelectionOnlyAction(action)) {
+            cancelDragPreviewRender();
+            cancelViewportRender();
+            applySelectionState();
             return;
           }
 
@@ -139,6 +171,19 @@ export function getBrowserRenderSource(): string {
             case "set-layout-mode":
             case "set-table-hidden":
             case "set-table-manual-position":
+              return true;
+            default:
+              return false;
+          }
+        }
+
+        function isSelectionOnlyAction(action) {
+          switch (action.type) {
+            case "select-model":
+            case "toggle-method":
+            case "set-table-show-method-highlights":
+            case "set-table-show-methods":
+            case "set-table-show-properties":
               return true;
             default:
               return false;
@@ -342,11 +387,8 @@ export function getBrowserRenderSource(): string {
             '"></div>';
         }
 
-        function renderEdgesAndCrossings() {
-          const visibleEdges = [];
+        function collectVisibleEdgeEntries() {
           const visibleEdgeEntries = [];
-          renderedEdges = [];
-
           for (const meta of edgeMeta) {
             const sourceTable = tableMetaById.get(meta.sourceModelId);
             const targetTable = tableMetaById.get(meta.targetModelId);
@@ -370,16 +412,36 @@ export function getBrowserRenderSource(): string {
             });
           }
 
+          return visibleEdgeEntries;
+        }
+
+        function updateRenderedEdge(route) {
+          const pointsAttribute = pointsToAttribute(route.points);
+          route.entry.meta.element.setAttribute("points", pointsAttribute);
+          route.entry.meta.element.dataset.points = pointsAttribute;
+
+          const existingIndex = renderedEdges.findIndex((candidate) => candidate.edgeId === route.entry.meta.edgeId);
+          const nextEdge = {
+            edgeId: route.entry.meta.edgeId,
+            meta: route.entry.meta,
+            points: route.points,
+          };
+
+          if (existingIndex >= 0) {
+            renderedEdges[existingIndex] = nextEdge;
+            return;
+          }
+
+          renderedEdges.push(nextEdge);
+        }
+
+        function renderEdgesAndCrossings() {
+          const visibleEdgeEntries = collectVisibleEdgeEntries();
+          renderedEdges = [];
+
           if (renderModel.modelCatalogMode) {
             for (const routed of routeCatalogEdgesWithPorts(visibleEdgeEntries)) {
-              const pointsAttribute = pointsToAttribute(routed.points);
-              routed.entry.meta.element.setAttribute("points", pointsAttribute);
-              routed.entry.meta.element.dataset.points = pointsAttribute;
-              renderedEdges.push({
-                edgeId: routed.entry.meta.edgeId,
-                meta: routed.entry.meta,
-                points: routed.points,
-              });
+              updateRenderedEdge(routed);
             }
 
             renderedCrossings = [];
@@ -390,37 +452,140 @@ export function getBrowserRenderSource(): string {
           }
 
           for (const routed of routeVisibleEdgesWithPorts(visibleEdgeEntries)) {
-            const points = routed.points;
-            const pointsAttribute = pointsToAttribute(points);
-            routed.entry.meta.element.setAttribute("points", pointsAttribute);
-            routed.entry.meta.element.dataset.points = pointsAttribute;
-            visibleEdges.push({
-              edgeId: routed.entry.meta.edgeId,
-              points,
+            updateRenderedEdge(routed);
+          }
+
+          recomputeRenderedCrossings();
+        }
+
+        function routeDirtyModelEdgesWithPorts(edgeEntries, preservedSegments) {
+          const endpointRefsByKey = new Map();
+          const routes = [];
+
+          edgeEntries.forEach((entry, edgeIndex) => {
+            const sourceCenter = getCenter(entry.sourcePosition, entry.sourceTable);
+            const targetCenter = getCenter(entry.targetPosition, entry.targetTable);
+            const sourceSide = getPreferredConnectionSide(sourceCenter, targetCenter);
+            const targetSide = getPreferredConnectionSide(targetCenter, sourceCenter);
+            const sourceRef = {
+              edgeIndex,
+              endpoint: "source",
+              peerCenter: targetCenter,
+              side: sourceSide,
+            };
+            const targetRef = {
+              edgeIndex,
+              endpoint: "target",
+              peerCenter: sourceCenter,
+              side: targetSide,
+            };
+
+            addCatalogEndpointRef(endpointRefsByKey, entry.meta.sourceModelId, sourceSide, sourceRef);
+            addCatalogEndpointRef(endpointRefsByKey, entry.meta.targetModelId, targetSide, targetRef);
+            routes.push({
+              entry,
+              sourceRef,
+              sourceSide,
+              targetRef,
+              targetSide,
             });
-            renderedEdges.push({
-              edgeId: routed.entry.meta.edgeId,
-              meta: routed.entry.meta,
-              points,
+          });
+
+          for (const refs of endpointRefsByKey.values()) {
+            refs.sort(compareCatalogEndpointRefs);
+            refs.forEach((ref, index) => {
+              ref.portIndex = index;
+              ref.portCount = refs.length;
             });
           }
 
-          if (!crossingsLayer) {
-            renderedCrossings = [];
-            if (crossingsLayer) {
-              crossingsLayer.innerHTML = "";
-            }
+          const occupiedRects = collectVisibleRoutingRects(edgeEntries);
+          const routedSegments = preservedSegments.slice();
+
+          return routes
+            .slice()
+            .sort(compareVisibleRoutesForRouting)
+            .map((route) => {
+              const start = getCatalogPortPoint(
+                route.entry.sourcePosition,
+                route.entry.sourceTable,
+                route.sourceSide,
+                route.sourceRef.portIndex || 0,
+                route.sourceRef.portCount || 1,
+              );
+              const end = getCatalogPortPoint(
+                route.entry.targetPosition,
+                route.entry.targetTable,
+                route.targetSide,
+                route.targetRef.portIndex || 0,
+                route.targetRef.portCount || 1,
+              );
+              const points = buildObstacleAwarePathFromPorts(
+                start,
+                route.sourceSide,
+                end,
+                route.targetSide,
+                undefined,
+                route.entry.meta,
+                occupiedRects.filter((rect) =>
+                  rect.modelId !== route.entry.meta.sourceModelId &&
+                  rect.modelId !== route.entry.meta.targetModelId,
+                ),
+                routedSegments,
+              );
+
+              routedSegments.push(...findSegments(points));
+              return {
+                entry: route.entry,
+                points,
+              };
+            });
+        }
+
+        function rerouteModelEdges(modelId) {
+          if (!modelId || renderModel.modelCatalogMode) {
+            renderEdgesAndCrossings();
             return;
           }
+
+          const visibleEdgeEntries = collectVisibleEdgeEntries();
+          const dirtyEntries = visibleEdgeEntries.filter((entry) =>
+            entry.meta.sourceModelId === modelId || entry.meta.targetModelId === modelId,
+          );
+
+          if (dirtyEntries.length === 0) {
+            renderedEdges = renderedEdges.filter((edge) => edge.meta.sourceModelId !== modelId && edge.meta.targetModelId !== modelId);
+            recomputeRenderedCrossings();
+            return;
+          }
+
+          const dirtyEdgeIds = new Set(dirtyEntries.map((entry) => entry.meta.edgeId));
+          const preservedEdges = renderedEdges.filter((edge) => !dirtyEdgeIds.has(edge.edgeId));
+          const preservedSegments = preservedEdges.flatMap((edge) => findSegments(edge.points));
+
+          renderedEdges = preservedEdges.slice();
+          for (const routed of routeDirtyModelEdgesWithPorts(dirtyEntries, preservedSegments)) {
+            updateRenderedEdge(routed);
+          }
+
+          recomputeRenderedCrossings();
+        }
+
+        function recomputeRenderedCrossings() {
+          if (!crossingsLayer) {
+            renderedCrossings = [];
+            return;
+          }
+
+          const crossings = [];
+          let crossingIndex = 1;
+          const visibleEdges = renderedEdges.slice();
 
           if (visibleEdges.length > MAX_RUNTIME_CROSSING_EDGE_COUNT) {
             renderedCrossings = [];
             crossingsLayer.innerHTML = "";
             return;
           }
-
-          const crossings = [];
-          let crossingIndex = 1;
 
           for (let left = 0; left < visibleEdges.length; left += 1) {
             for (let right = left + 1; right < visibleEdges.length; right += 1) {
@@ -448,8 +613,42 @@ export function getBrowserRenderSource(): string {
             }
           }
 
-          renderedCrossings = crossings;
-          crossingsLayer.innerHTML = crossings.map(renderCrossingMarkup).join("");
+          renderedCrossings = filterNearbyCrossings(crossings);
+          crossingsLayer.innerHTML = renderedCrossings.map(renderCrossingMarkup).join("");
+        }
+
+        function filterNearbyCrossings(crossings) {
+          if (!Array.isArray(crossings) || crossings.length <= 1) {
+            return crossings || [];
+          }
+
+          const minDistance = Math.max(14, 20 * getAppliedLayoutSettings().edgeDetour);
+          const kept = [];
+
+          crossings
+            .slice()
+            .sort((left, right) =>
+              left.position.x - right.position.x ||
+              left.position.y - right.position.y ||
+              left.id.localeCompare(right.id),
+            )
+            .forEach((crossing) => {
+              const tooClose = kept.some((candidate) =>
+                Math.hypot(
+                  candidate.position.x - crossing.position.x,
+                  candidate.position.y - crossing.position.y,
+                ) < minDistance,
+              );
+
+              if (!tooClose) {
+                kept.push(crossing);
+              }
+            });
+
+          return kept.map((crossing, index) => ({
+            ...crossing,
+            id: "runtime-crossing-" + (index + 1),
+          }));
         }
 
         function renderHiddenTableList() {

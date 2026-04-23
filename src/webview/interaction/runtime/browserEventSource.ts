@@ -341,8 +341,10 @@ export function getBrowserEventSource(): string {
 
           if (renderModel.modelCatalogMode) {
             invalidateCatalogSceneCache();
+            applyGeometryState();
+            return;
           }
-          applyGeometryState();
+          applyManualPositionState(completedDrag.modelId);
         });
 
         drawingCanvas.addEventListener("pointercancel", (event) => {
@@ -365,8 +367,10 @@ export function getBrowserEventSource(): string {
 
           if (renderModel.modelCatalogMode) {
             invalidateCatalogSceneCache();
+            applyGeometryState();
+            return;
           }
-          applyGeometryState();
+          applyManualPositionState(completedDrag.modelId);
         });
 
         drawingCanvas.addEventListener("pointerleave", () => {

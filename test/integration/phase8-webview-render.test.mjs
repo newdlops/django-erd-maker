@@ -102,10 +102,16 @@ test("phase8 browser runtime uses drag preview rendering instead of full reroute
 
   assert.match(html, /let dragPreviewFrame = 0/);
   assert.match(html, /function scheduleDragPreviewRender\(\)/);
+  assert.match(html, /function applyManualPositionState\(modelId\)/);
+  assert.match(html, /function applySelectionState\(\)/);
   assert.match(
     html,
     /action\.type === "set-table-manual-position"[\s\S]*drag &&[\s\S]*drag\.kind === "table"[\s\S]*scheduleDragPreviewRender\(\)/,
   );
+  assert.match(html, /applyManualPositionState\(action\.modelId\)/);
+  assert.match(html, /applyManualPositionState\(completedDrag\.modelId\)/);
+  assert.match(html, /function rerouteModelEdges\(modelId\)/);
+  assert.match(html, /function filterNearbyCrossings\(crossings\)/);
   assert.match(html, /drawCanvas\("drag-preview"\)/);
 });
 
@@ -117,7 +123,8 @@ test("phase8 browser runtime caches relation state and buckets spacing checks", 
   assert.match(html, /function getRelationLayoutState\(tableMetaList\)/);
   assert.match(html, /function createRelaxationPairIndexes\(/);
   assert.match(html, /function createAdaptiveFinalizeOptions\(tableMetaList, options\)/);
-  assert.match(html, /function shouldUseFastRelationGraphLayout\(tableMetaList\)/);
+  assert.match(html, /function createHybridRelationGraphLayout\(tableMetaList, config\)/);
+  assert.match(html, /function createHybridGraphComponentPlan\(componentIds, relationState, config, componentIndex\)/);
   assert.match(html, /function createAdaptiveSweepIterations\(iterations, tableCount\)/);
 });
 

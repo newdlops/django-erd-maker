@@ -6,6 +6,7 @@ const DEFAULT_NODE_SPACING: f64 = 1.4;
 const MAX_EDGE_DETOUR: f64 = 2.5;
 const MAX_NODE_MOVE: f64 = 180.0;
 const MAX_NODE_SPACING: f64 = 2.4;
+const MAX_OPTIMIZER_PASSES: usize = 7;
 const MIN_EDGE_ORDER_GAP: f64 = 56.0;
 const MIN_EDGE_DETOUR: f64 = 0.8;
 const MIN_NODE_SPACING: f64 = 0.8;
@@ -127,18 +128,44 @@ pub fn optimize_locations_with_settings(
     }
 
     let settings = settings.normalized();
-    let tables = collect_table_geometry(nodes);
-    let edges = collect_edge_geometry(edges, &tables);
-    let mut commands = Vec::new();
+    let mut working_nodes = nodes.to_vec();
 
-    commands.extend(untangle_crossed_edges(&edges, &tables, settings));
-    commands.extend(separate_overlapping_tables(&tables, settings));
+    for _ in 0..MAX_OPTIMIZER_PASSES {
+        let tables = collect_table_geometry(&working_nodes);
+        let edge_geometry = collect_edge_geometry(edges, &tables);
+        let mut commands = Vec::new();
 
-    if commands.is_empty() {
-        return nodes.iter().map(to_optimized_position).collect();
+        commands.extend(untangle_crossed_edges(&edge_geometry, &tables, settings));
+        commands.extend(separate_overlapping_tables(&tables, settings));
+        commands.extend(separate_nodes_from_edge_corridors(
+            &edge_geometry,
+            &tables,
+            settings,
+        ));
+
+        if commands.is_empty() {
+            return working_nodes.iter().map(to_optimized_position).collect();
+        }
+
+        let optimized_by_id = apply_move_commands(&working_nodes, &commands, settings)
+            .into_iter()
+            .map(|position| (position.id.clone(), position))
+            .collect::<BTreeMap<_, _>>();
+
+        working_nodes = working_nodes
+            .into_iter()
+            .map(|mut node| {
+                if let Some(position) = optimized_by_id.get(node.id.as_str()) {
+                    node.x = position.x;
+                    node.y = position.y;
+                }
+
+                node
+            })
+            .collect();
     }
 
-    apply_move_commands(nodes, &commands, settings)
+    working_nodes.iter().map(to_optimized_position).collect()
 }
 
 pub fn compute_bounds(nodes: &[LayoutNodeInput]) -> Option<LayoutBounds> {
@@ -445,6 +472,87 @@ fn separate_overlapping_tables(
     commands
 }
 
+fn separate_nodes_from_edge_corridors(
+    edges: &[EdgeGeometry],
+    tables: &BTreeMap<String, TableGeometry>,
+    settings: LayoutOptimizerSettings,
+) -> Vec<MoveCommand> {
+    let mut commands = Vec::new();
+    let corridor_padding = edge_corridor_padding(settings);
+    if corridor_padding <= 0.0 {
+        return commands;
+    }
+
+    for edge in edges {
+        for table in tables.values() {
+            if table.model_id == edge.source_model_id || table.model_id == edge.target_model_id {
+                continue;
+            }
+
+            let clearance = table_edge_clearance(table, edge);
+            let required_distance = clearance.required_distance + corridor_padding;
+
+            if clearance.distance >= required_distance {
+                continue;
+            }
+
+            let push_distance =
+                (required_distance - clearance.distance).min(max_node_move(settings) * 0.68);
+            let direction = perpendicular_direction(clearance.segment_dx, clearance.segment_dy);
+            let side_sign = if clearance.cross > 0.0 {
+                1.0
+            } else if clearance.cross < 0.0 {
+                -1.0
+            } else if table.center_y >= clearance.nearest_point.y {
+                1.0
+            } else {
+                -1.0
+            };
+
+            commands.push(MoveCommand {
+                dx: round2(direction.x * push_distance * side_sign),
+                dy: round2(direction.y * push_distance * side_sign),
+                model_id: table.model_id.clone(),
+            });
+        }
+    }
+
+    commands
+}
+
+#[derive(Debug, Clone, Copy)]
+struct TableEdgeClearance {
+    cross: f64,
+    distance: f64,
+    nearest_point: Point,
+    required_distance: f64,
+    segment_dx: f64,
+    segment_dy: f64,
+}
+
+fn table_edge_clearance(table: &TableGeometry, edge: &EdgeGeometry) -> TableEdgeClearance {
+    let nearest_point = nearest_point_on_segment(&table_center(table), &edge.start, &edge.end);
+    let dx = table.center_x - nearest_point.x;
+    let dy = table.center_y - nearest_point.y;
+    let segment_dx = edge.end.x - edge.start.x;
+    let segment_dy = edge.end.y - edge.start.y;
+    let clearance = projected_table_radius(table, segment_dx, segment_dy) + 1.0;
+
+    TableEdgeClearance {
+        cross: cross_product(
+            segment_dx,
+            segment_dy,
+            table.center_x - edge.start.x,
+            table.center_y - edge.start.y,
+        ),
+        distance: dx.hypot(dy),
+        nearest_point,
+        required_distance: clearance,
+        segment_dx,
+        segment_dy,
+    }
+}
+
 fn apply_move_commands(
     nodes: &[LayoutNodeInput],
     commands: &[MoveCommand],
@@ -514,6 +622,64 @@ fn crossing_move_gain(settings: LayoutOptimizerSettings) -> f64 {
 
 fn max_node_move(settings: LayoutOptimizerSettings) -> f64 {
     MAX_NODE_MOVE * (0.75 + node_spacing_ratio(settings) * 0.25)
+}
+
+fn edge_corridor_padding(settings: LayoutOptimizerSettings) -> f64 {
+    18.0 * edge_detour_ratio(settings) + 12.0 * node_spacing_ratio(settings)
+}
+
+fn table_center(table: &TableGeometry) -> Point {
+    Point {
+        x: table.center_x,
+        y: table.center_y,
+    }
+}
+
+fn projected_table_radius(table: &TableGeometry, segment_dx: f64, segment_dy: f64) -> f64 {
+    let length = segment_dx.hypot(segment_dy);
+    if length <= 0.0001 {
+        return ((table.right - table.left) + (table.bottom - table.top)) / 4.0;
+    }
+
+    let normal = perpendicular_direction(segment_dx, segment_dy);
+    let half_width = (table.right - table.left) / 2.0;
+    let half_height = (table.bottom - table.top) / 2.0;
+
+    half_width * normal.x.abs() + half_height * normal.y.abs()
+}
+
+fn nearest_point_on_segment(point: &Point, start: &Point, end: &Point) -> Point {
+    let dx = end.x - start.x;
+    let dy = end.y - start.y;
+    let length_sq = dx * dx + dy * dy;
+
+    if length_sq <= 0.0001 {
+        return *start;
+    }
+
+    let t = (((point.x - start.x) * dx + (point.y - start.y) * dy) / length_sq).clamp(0.08, 0.92);
+
+    Point {
+        x: start.x + dx * t,
+        y: start.y + dy * t,
+    }
+}
+
+fn perpendicular_direction(segment_dx: f64, segment_dy: f64) -> Point {
+    let length = segment_dx.hypot(segment_dy);
+
+    if length <= 0.0001 {
+        return Point { x: 0.0, y: 1.0 };
+    }
+
+    Point {
+        x: -segment_dy / length,
+        y: segment_dx / length,
+    }
+}
+
+fn cross_product(left_x: f64, left_y: f64, right_x: f64, right_y: f64) -> f64 {
+    left_x * right_y - left_y * right_x
 }
 
 fn share_endpoint(left: &EdgeGeometry, right: &EdgeGeometry) -> bool {
@@ -679,6 +845,38 @@ mod tests {
         assert!(
             y_of(&detoured, "mesh.Delta") > y_of(&compact, "mesh.Delta") + 4.0,
             "higher edge detour should give crossed endpoints a wider order-preserving move",
+        );
+    }
+
+    #[test]
+    fn edge_detour_pushes_blocking_nodes_farther_from_edge_corridors() {
+        let nodes = vec![
+            node("mesh.Source", 0.0, 0.0),
+            node("mesh.Blocker", 220.0, 18.0),
+            node("mesh.Target", 440.0, 0.0),
+        ];
+        let edges = vec![edge("mesh.Source", "mesh.Target")];
+
+        let compact = optimize_locations_with_settings(
+            &nodes,
+            &edges,
+            LayoutOptimizerSettings {
+                edge_detour: 0.8,
+                node_spacing: 1.4,
+            },
+        );
+        let detoured = optimize_locations_with_settings(
+            &nodes,
+            &edges,
+            LayoutOptimizerSettings {
+                edge_detour: 2.5,
+                node_spacing: 1.4,
+            },
+        );
+
+        assert!(
+            y_of(&detoured, "mesh.Blocker") > y_of(&compact, "mesh.Blocker") + 14.0,
+            "higher edge detour should push blocking nodes farther from the straight edge corridor",
         );
     }
 

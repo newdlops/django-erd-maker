@@ -208,6 +208,54 @@ test("phase11 node spacing tuning widens the neural layout footprint", () => {
   );
 });
 
+test("phase11 graph layout keeps dense relation components separated and responds to node spacing", () => {
+  const tables = Array.from({ length: 14 }, (_, index) =>
+    createTable(`mesh.Node${index + 1}`, `Node${index + 1}`, {
+      x: (index % 4) * 30,
+      y: Math.floor(index / 4) * 24,
+    }),
+  );
+  const edges = [
+    ["mesh.Node1", "mesh.Node5"],
+    ["mesh.Node1", "mesh.Node6"],
+    ["mesh.Node2", "mesh.Node6"],
+    ["mesh.Node2", "mesh.Node7"],
+    ["mesh.Node3", "mesh.Node7"],
+    ["mesh.Node3", "mesh.Node8"],
+    ["mesh.Node4", "mesh.Node8"],
+    ["mesh.Node5", "mesh.Node9"],
+    ["mesh.Node6", "mesh.Node10"],
+    ["mesh.Node7", "mesh.Node11"],
+    ["mesh.Node8", "mesh.Node12"],
+    ["mesh.Node9", "mesh.Node13"],
+    ["mesh.Node10", "mesh.Node14"],
+    ["mesh.Node11", "mesh.Node14"],
+    ["mesh.Node12", "mesh.Node13"],
+  ].map(([sourceModelId, targetModelId], index) => ({
+    edgeId: `edge-graph-${index + 1}`,
+    sourceModelId,
+    targetModelId,
+  }));
+  const runtime = createBrowserLayoutRuntime(edges, tables, {
+    layoutMode: "graph",
+  });
+  const compactLayout = runtime.createLayoutVariants(tables, {
+    edgeDetour: 1.1,
+    nodeSpacing: 0.8,
+  }).graph;
+  const expandedLayout = runtime.createLayoutVariants(tables, {
+    edgeDetour: 1.1,
+    nodeSpacing: 2.1,
+  }).graph;
+
+  assert.equal(countStrictNodeOverlaps(compactLayout, tables), 0);
+  assert.equal(countStrictNodeOverlaps(expandedLayout, tables), 0);
+  assert.ok(
+    computeLayoutWidth(expandedLayout, tables) > computeLayoutWidth(compactLayout, tables) + 220,
+    "graph layout should widen noticeably as node spacing increases",
+  );
+});
+
 test("phase11 edge detour tuning pushes reverse edges onto wider outer lanes", () => {
   const tables = [
     createTable("mesh.Left", "Left", { x: 0, y: 120 }),
