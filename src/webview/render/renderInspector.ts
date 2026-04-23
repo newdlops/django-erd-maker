@@ -74,6 +74,7 @@ function renderTimingSummary(viewModel: DiagramRenderModel): string {
     formatTiming("extract", viewModel.timings?.extractMs),
     formatTiming("graph", viewModel.timings?.graphMs),
     formatTiming("layout", viewModel.timings?.layoutMs),
+    formatTiming("ogdf", viewModel.timings?.ogdfLayoutMs),
     formatTiming("render", viewModel.timings?.renderDocumentMs),
   ].filter((value): value is string => Boolean(value));
 

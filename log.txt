@@ -1,0 +1,887 @@
+[2026-04-23T15:09:56.284Z] [info] OGDF bundled binary ready · path=/Users/lky/project/django-erd-maker/bin/ogdf/darwin-arm64/django-erd-ogdf-layout
+[2026-04-23T15:09:56.285Z] [info] Open diagram requested for workspace: /Users/lky/project/captain
+[2026-04-23T15:09:56.285Z] [info] OGDF binary override ready · path=/Users/lky/project/django-erd-maker/bin/ogdf/darwin-arm64/django-erd-ogdf-layout
+[2026-04-23T15:09:58.047Z] [info] Discovery completed in 1762.0ms · strategy=manage_py · selectedRoot=/Users/lky/project/captain · apps=10 · candidateModelFiles=1766 · candidateModules=12102 · diagnostics=4
+[2026-04-23T15:09:58.047Z] [info] Discovered apps: app (zuzu/app)
+[2026-04-23T15:09:58.047Z] [info] Discovered apps: cms (zuzu/cms)
+[2026-04-23T15:09:58.047Z] [info] Discovered apps: common (zuzu/common)
+[2026-04-23T15:09:58.047Z] [info] Discovered apps: db (.vscode/django-orm-intellisense-stubs/django/db)
+[2026-04-23T15:09:58.047Z] [info] Discovered apps: db (zuzu/db)
+[2026-04-23T15:09:58.047Z] [info] Discovered apps: document_ai (zuzu/document_ai)
+[2026-04-23T15:09:58.047Z] [info] Discovered apps: fi_sta (zuzu/fi_sta)
+[2026-04-23T15:09:58.047Z] [info] Discovered apps: open_ai (zuzu/open_ai)
+[2026-04-23T15:09:58.047Z] [info] Discovered apps: vcm (zuzu/vcm)
+[2026-04-23T15:09:58.047Z] [info] Discovered apps: vertex_ai (zuzu/vertex_ai)
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/__init__.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/apps.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/asgi.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/background_tasks/__init__.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/background_tasks/send_help_reminder.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/__init__.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/__init__.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/attachment_delete_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/attachment_upload_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/bulk_add_stock_transfer_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/ceo_address_changes_edit_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/co_ceo_system_changes_edit_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/company_address_change_event_delete_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/company_address_change_event_edit_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/english_name_edit_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/event_delete_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/login.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/request_password_reset_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/stock_add_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/stock_conversion_edit_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/stock_conversion_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/stock_delete_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/stock_edit_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/stock_incorporate_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/stock_transfer_edit_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/stock_transfer_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/user_edit_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/venture_business_certification_delete_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/mutation/venture_business_certification_edit_mutation.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/__init__.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/app_info_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/capital_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/check_duplicate_registration_number_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/co_ceo_system_change_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/commercial_law_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/companies_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/company_create_request_rejected_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/company_create_requests_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/company_for_stakeholder_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/company_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/company_update_request_list_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/company_with_deletion_status_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/daily_newspaper_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/firestore_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/industrial_code_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/initial_page_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/my_company_role_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/purchase_item_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/site_settings_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/stock_query.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/query/types.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/schema.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/subscription/__init__.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/__init__.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/_utils.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/additional_text_input.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/address_input.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/address_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/agenda_director_compensation_item_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/agenda_director_compensation_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/agenda_financial_statements_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/agenda_head_office_relocation_aoi_change_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/agenda_head_office_relocation_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/agenda_method_of_giving_public_notice_change_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/agenda_new_options_rule_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/agenda_new_or_change_rsu_rule_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/agenda_option_grant_grantee_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/agenda_option_grant_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/agenda_purpose_change_item_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/agenda_shareholders_meeting_convocation_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/agenda_subsidiary_establishment_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/app_info_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/articles_of_incorporation_input.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/articles_of_incorporation_score_item_input.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/articles_of_incorporation_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/attended_director_input.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/bonus_issue_activity_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/branch_abolition_activity_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/branch_change_activity_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/branch_installation_activity_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/branch_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/capital_reduction_activity_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/ceo_address_change_event_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/ceo_address_change_input.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/co_ceo_system_change_activity_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/co_ceo_system_change_input.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/commercial_law_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/company_address_change_event_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/company_create_request_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/company_name_search_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/company_rsu_rule_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/company_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/company_update_request_list_type.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/corporate_registration_input.py
+[2026-04-23T15:09:58.047Z] [info] Candidate modules: app:zuzu/app/graphql/types/corporate_registration_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/credit_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/custom_vesting_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/daily_newspaper_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/director_appointment_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/director_compensation_decision_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/director_input_error.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/director_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/director_term_end_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/director_vote_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/directors_meeting_agenda_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/directors_meeting_director_attendance_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/directors_meeting_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/electronic_certificate_update_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/incorporation_issue_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/industrial_code_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/jurisdiction_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/meeting_attorney_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/meeting_director_contact_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/meeting_purchase_item.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/my_company_role_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/my_company_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/new_issue_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/new_share_class_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/notarization_poa_director_signer_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/notarization_poa_shareholder_signer_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/notarization_poa_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/option_cancel_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/option_exercise_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/option_grant_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/option_grantee_excercisable_options_arguments.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/option_grantee_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/option_pause_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/option_resume_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/option_withdraw_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/phantom_stock_cancel_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/phantom_stock_exercise_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/phantom_stock_grant_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/phantom_stock_grantee_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/phantom_stock_pause_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/phantom_stock_resume_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/registration_agenda_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/registration_assistance_receipt_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/registration_assistance_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/registration_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/rsu_adjust_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/rsu_cancel_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/rsu_exercise_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/rsu_grant_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/rsu_grantee_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/rsu_pause_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/rsu_performance_achievement_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/rsu_resume_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/safe_conversion_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/safe_create_event_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/sealed_option_grant_contract_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/share_class_english_name_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/share_class_input_error.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/share_class_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/shareholder_institution_member_ceo_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/shareholder_institution_member_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/shareholder_institution_member_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/shareholder_signer_address_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/shareholder_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/sort_by_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/stakeholder_english_name_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/stakeholder_input_error.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/stakeholder_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/stock_consolidation_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/stock_conversion_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/stock_conversion_item_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/stock_input_error.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/stock_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/stock_list_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/stock_retirement_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/stock_split_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/stock_transfer_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/stock_transfer_item_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/subsidiary_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/unknown_issue_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/user_activity_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/venture_business_certification_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/venture_business_certification_type.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/graphql/types/vote_input.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/mimes.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/pages.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/__init__.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/articles_of_incorporation_service.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/branch_service.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/ceo_address_change_event_service.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/commercial_law_service.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/company_address_change_event_service.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/company_question_service.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/company_service.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/demo_company_service.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/director_compensation_service.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/director_meeting_director_attendance_service.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/notifications/branch_abolition_notification.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/notifications/branch_change_notification.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/notifications/branch_event_delete_notification.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/notifications/branch_installation_notification.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/notifications/director_appointment_add_notification.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/notifications/term_end_add_notification.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/par_value_service.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/ruleset_service.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: app:zuzu/app/services/stock_factory_service.py
+[2026-04-23T15:09:58.048Z] [info] Candidate modules: ... 11902 more
+[2026-04-23T15:09:58.048Z] [warn] Discovery diagnostic [models_package_missing_init] Models package .vscode/django-orm-intellisense-stubs/django/db/models is missing __init__.py.
+[2026-04-23T15:09:58.048Z] [warn] Discovery diagnostic [app_without_model_modules] Discovered app db but no model modules were found.
+[2026-04-23T15:09:58.048Z] [warn] Discovery diagnostic [app_without_model_modules] Discovered app app but no model modules were found.
+[2026-04-23T15:09:58.048Z] [warn] Discovery diagnostic [app_without_model_modules] Discovered app cms but no model modules were found.
+[2026-04-23T15:09:58.068Z] [info] Analyzer bootstrap starting · binary=/Users/lky/project/django-erd-maker/analyzer/target/debug/django-erd-maker-analyzer · layout=hierarchical · workspaceRoot=/Users/lky/project/captain · modules=12102
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/__init__.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/apps.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/asgi.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/background_tasks/__init__.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/background_tasks/send_help_reminder.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/__init__.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/__init__.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/attachment_delete_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/attachment_upload_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/bulk_add_stock_transfer_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/ceo_address_changes_edit_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/co_ceo_system_changes_edit_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/company_address_change_event_delete_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/company_address_change_event_edit_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/english_name_edit_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/event_delete_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/login.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/request_password_reset_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/stock_add_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/stock_conversion_edit_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/stock_conversion_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/stock_delete_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/stock_edit_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/stock_incorporate_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/stock_transfer_edit_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/stock_transfer_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/user_edit_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/venture_business_certification_delete_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/mutation/venture_business_certification_edit_mutation.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/__init__.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/app_info_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/capital_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/check_duplicate_registration_number_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/co_ceo_system_change_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/commercial_law_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/companies_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/company_create_request_rejected_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/company_create_requests_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/company_for_stakeholder_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/company_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/company_update_request_list_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/company_with_deletion_status_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/daily_newspaper_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/firestore_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/industrial_code_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/initial_page_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/my_company_role_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/purchase_item_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/site_settings_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/stock_query.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/query/types.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/schema.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/subscription/__init__.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/__init__.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/_utils.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/additional_text_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/address_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/address_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/agenda_director_compensation_item_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/agenda_director_compensation_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/agenda_financial_statements_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/agenda_head_office_relocation_aoi_change_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/agenda_head_office_relocation_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/agenda_method_of_giving_public_notice_change_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/agenda_new_options_rule_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/agenda_new_or_change_rsu_rule_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/agenda_option_grant_grantee_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/agenda_option_grant_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/agenda_purpose_change_item_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/agenda_shareholders_meeting_convocation_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/agenda_subsidiary_establishment_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/app_info_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/articles_of_incorporation_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/articles_of_incorporation_score_item_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/articles_of_incorporation_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/attended_director_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/bonus_issue_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/branch_abolition_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/branch_change_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/branch_installation_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/branch_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/capital_reduction_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/ceo_address_change_event_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/ceo_address_change_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/co_ceo_system_change_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/co_ceo_system_change_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/commercial_law_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/company_address_change_event_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/company_create_request_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/company_name_search_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/company_rsu_rule_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/company_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/company_update_request_list_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/corporate_registration_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/corporate_registration_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/credit_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/custom_vesting_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/daily_newspaper_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/director_appointment_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/director_compensation_decision_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/director_input_error.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/director_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/director_term_end_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/director_vote_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/directors_meeting_agenda_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/directors_meeting_director_attendance_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/directors_meeting_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/electronic_certificate_update_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/incorporation_issue_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/industrial_code_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/jurisdiction_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/meeting_attorney_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/meeting_director_contact_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/meeting_purchase_item.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/my_company_role_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/my_company_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/new_issue_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/new_share_class_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/notarization_poa_director_signer_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/notarization_poa_shareholder_signer_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/notarization_poa_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/option_cancel_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/option_exercise_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/option_grant_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/option_grantee_excercisable_options_arguments.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/option_grantee_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/option_pause_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/option_resume_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/option_withdraw_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/phantom_stock_cancel_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/phantom_stock_exercise_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/phantom_stock_grant_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/phantom_stock_grantee_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/phantom_stock_pause_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/phantom_stock_resume_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/registration_agenda_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/registration_assistance_receipt_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/registration_assistance_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/registration_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/rsu_adjust_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/rsu_cancel_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/rsu_exercise_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/rsu_grant_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/rsu_grantee_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/rsu_pause_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/rsu_performance_achievement_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/rsu_resume_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/safe_conversion_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/safe_create_event_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/sealed_option_grant_contract_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/share_class_english_name_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/share_class_input_error.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/share_class_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/shareholder_institution_member_ceo_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/shareholder_institution_member_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/shareholder_institution_member_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/shareholder_signer_address_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/shareholder_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/sort_by_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/stakeholder_english_name_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/stakeholder_input_error.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/stakeholder_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/stock_consolidation_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/stock_conversion_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/stock_conversion_item_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/stock_input_error.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/stock_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/stock_list_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/stock_retirement_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/stock_split_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/stock_transfer_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/stock_transfer_item_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/subsidiary_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/unknown_issue_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/user_activity_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/venture_business_certification_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/venture_business_certification_type.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/graphql/types/vote_input.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/mimes.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/pages.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/__init__.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/articles_of_incorporation_service.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/branch_service.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/ceo_address_change_event_service.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/commercial_law_service.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/company_address_change_event_service.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/company_question_service.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/company_service.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/demo_company_service.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/director_compensation_service.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/director_meeting_director_attendance_service.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/notifications/branch_abolition_notification.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/notifications/branch_change_notification.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/notifications/branch_event_delete_notification.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/notifications/branch_installation_notification.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/notifications/director_appointment_add_notification.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/notifications/term_end_add_notification.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/par_value_service.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/ruleset_service.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: app:/Users/lky/project/captain/zuzu/app/services/stock_factory_service.py
+[2026-04-23T15:09:58.068Z] [info] Analyzer module: ... 11902 more
+[2026-04-23T15:10:20.336Z] [info] Analyzer bootstrap completed in 22288ms · models=1247 · diagnostics=149 · nodes=1242 · structuralEdges=3088
+[2026-04-23T15:10:20.341Z] [info] OGDF layout starting · binary=/Users/lky/project/django-erd-maker/bin/ogdf/darwin-arm64/django-erd-ogdf-layout · layout=hierarchical · nodes=1242 · edges=3088
+[2026-04-23T15:10:24.831Z] [info] OGDF layout completed in 4493ms · nodes=1242 · routedEdges=3088 · crossings=0
+[2026-04-23T15:10:24.832Z] [info] Diagram payload ready · models=1247 · structuralEdges=3088 · methodAssociations=95 · layout=hierarchical · analyzerDiagnostics=149
+[2026-04-23T15:10:24.832Z] [info] Extracted models: db.Address bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.832Z] [info] Extracted models: db.AgendaAuthorizedSharesChange bases=[TimestampedModel, ShareholdersMeetingAgendaChildBase] fields=2
+[2026-04-23T15:10:24.832Z] [info] Extracted models: db.AgendaBonusIssue bases=[TimestampedModel, DirectorsOrShareholdersAgendaChildBase] fields=12
+[2026-04-23T15:10:24.832Z] [info] Extracted models: db.AgendaBonusIssueNewIssueBalanceCertificateFile bases=[FileAttachment] fields=2
+[2026-04-23T15:10:24.832Z] [info] Extracted models: db.AgendaBonusIssueNewIssueMinutesFile bases=[FileAttachment] fields=2
+[2026-04-23T15:10:24.832Z] [info] Extracted models: db.AgendaBonusIssueSharesToIssue bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.832Z] [info] Extracted models: db.AgendaBorrowCapital bases=[TimestampedModel] fields=6
+[2026-04-23T15:10:24.832Z] [info] Extracted models: db.AgendaBranchChange bases=[TimestampedModel, DirectorsOrShareholdersAgendaChildBase] fields=7
+[2026-04-23T15:10:24.832Z] [info] Extracted models: db.AgendaCashDividends bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.832Z] [info] Extracted models: db.AgendaCeoAddressChange bases=[TimestampedModel, RegistrationAgendaChildBase] fields=2
+[2026-04-23T15:10:24.832Z] [info] Extracted models: db.AgendaCeoAddressChangeItem bases=[TimestampedModel] fields=5
+[2026-04-23T15:10:24.832Z] [info] Extracted models: db.AgendaChangeOfAoiClassStock bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.832Z] [info] Extracted models: db.AgendaChangeOfAoiCustom bases=[TimestampedModel] fields=5
+[2026-04-23T15:10:24.832Z] [info] Extracted models: db.AgendaChangeOfAoiDirectorCompensationRule bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.832Z] [info] Extracted models: db.AgendaChangeOfAoiNumberOfDirectors bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.832Z] [info] Extracted models: db.AgendaChangeOfAoiThirdPartyAllocation bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaChangeOfArticlesOfIncorporation bases=[TimestampedModel, ShareholdersMeetingAgendaChildBase] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaCoCeoSystemChange bases=[TimestampedModel, DirectorsOrShareholdersAgendaChildBase] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaCompanyNameChange bases=[TimestampedModel, ShareholdersMeetingAgendaChildBase] fields=8
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaCustom bases=[TimestampedModel, DirectorsOrShareholdersAgendaChildBase] fields=7
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaDirectorChange bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaDirectorCompensation bases=[TimestampedModel, DirectorsOrShareholdersAgendaChildBase] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaDirectorCompensationItem bases=[TimestampedModel] fields=6
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaDirectorCompensationRule bases=[TimestampedModel, ShareholdersMeetingAgendaChildBase] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaFinancialStatements bases=[TimestampedModel, DirectorsOrShareholdersAgendaChildBase] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaHeadOfficeRelocation bases=[TimestampedModel, DirectorsOrShareholdersAgendaChildBase] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaHeadOfficeRelocationAoiChange bases=[TimestampedModel, ShareholdersMeetingAgendaChildBase] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaMethodOfGivingPublicNoticeChange bases=[TimestampedModel, ShareholdersMeetingAgendaChildBase] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaNewIssue bases=[TimestampedModel, DirectorsOrShareholdersAgendaChildBase] fields=6
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaNewIssueItem bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaNewIssueItemFromConversion bases=[TimestampedModel] fields=6
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaNewIssueItemFromPayment bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaNewIssueItemInstitutionMember bases=[TimestampedModel] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaNewIssueItemInstitutionMemberCeo bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaNewIssueItemShareClass bases=[TimestampedModel] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaNewIssueItemShareholder bases=[TimestampedModel] fields=8
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaNewIssueNewShareClass bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaNewOptionsRule bases=[TimestampedModel, ShareholdersMeetingAgendaChildBase] fields=10
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaNewOrChangeRsuRule bases=[TimestampedModel, ShareholdersMeetingAgendaChildBase] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaOptionCancel bases=[TimestampedModel, DirectorsOrShareholdersAgendaChildBase] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaOptionCancelGrantee bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaOptionCancelOption bases=[TimestampedModel] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaOptionExercise bases=[TimestampedModel, RegistrationAgendaChildBase] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaOptionExerciseClaim bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaOptionExerciseGrantee bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaOptionExerciseGranteeOption bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaOptionGrant bases=[TimestampedModel, ShareholdersMeetingAgendaChildBase] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaOptionGrantGrantee bases=[TimestampedModel] fields=16
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaPurposeChange bases=[TimestampedModel, ShareholdersMeetingAgendaChildBase] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaPurposeChangeItem bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaRsuGrant bases=[TimestampedModel, DirectorsOrShareholdersAgendaChildBase] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaRsuGrantGrantee bases=[TimestampedModel] fields=11
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaShareholdersMeetingConvocation bases=[TimestampedModel, DirectorsMeetingAgendaChildBase] fields=0
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaSubsidiaryEstablishment bases=[TimestampedModel, DirectorsOrShareholdersAgendaChildBase] fields=12
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AgendaTemplate bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AiAnalysisFeedback bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AiPayrollLedger bases=[TimestampedModel, SoftDeletableModel] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AlimtalkActivity bases=[TimestampedModel] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AlimtalkActivityRecipient bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AlimtalkActivityRecipientStatusHistory bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AllocatedSeat bases=[TimestampedModel] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.Announcement bases=[QuestionThread] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AnnualSalary bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AppCard bases=[TimestampedModel, Castable] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AppointedDirectorCertificateOfSealDocument bases=[MeetingDocument] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AppointedDirectorResidentRegistrationDocument bases=[MeetingDocument] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.Article bases=[TimestampedModel] fields=10
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.ArticlePublishHistory bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.ArticlesOfIncorporation bases=[TimestampedModel] fields=52
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.ArticlesOfIncorporationAfterChangeDocument bases=[MeetingDocument] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.ArticlesOfIncorporationAnalyzationRequest bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.ArticlesOfIncorporationAnalyzationResult bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.ArticlesOfIncorporationBeforeChangeDocument bases=[MeetingDocument] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.ArticlesOfIncorporationDocument bases=[MeetingDocument] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AuditLog bases=[TimestampedModel] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AuditReportDocument bases=[MeetingDocument] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.AvailableModusignRequest bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BalanceCertificateDocument bases=[MeetingDocument] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BaseModusignDocumentUsageHistory bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.Basket bases=[TimestampedModel] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BeforeunloadPdfEvent bases=[PdfEvent] fields=0
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BigNumberValueWithVisibility bases=[ValueWithVisibility] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BonusIssueEvent bases=[StockEventBase] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BranchAbolitionEvent bases=[Event] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BranchChangeEvent bases=[Event] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BranchInstallationEvent bases=[Event] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BulkEmail bases=[TimestampedModel] fields=10
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BulkEmailCommonAttachment bases=[FileAttachment] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BulkEmailRecipient bases=[TimestampedModel] fields=8
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BulkEmailRecipientAttachment bases=[FileAttachment] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BulkEmailTemplate bases=[TimestampedModel, SoftDeletableModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BulkEmailTemplateRevision bases=[TimestampedModel, SoftDeletableModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BusinessPlan bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BusinessPlanAiAnalysis bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BusinessPlanAiAnalysisItem bases=[TimestampedModel] fields=9
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BusinessPlanAiAnalysisItemImprovement bases=[TimestampedModel] fields=7
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BusinessPlanAiReview bases=[Purchasable] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.BusinessRegistrationCertificate bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CalendarEvent bases=[TimestampedModel] fields=6
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CapitalChangeEvent bases=[Event] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CapitalReductionEvent bases=[StockEventBase] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CaptableAfterNewIssueDocument bases=[MeetingDocument] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CaptableAtRecordDateDocument bases=[MeetingDocument] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CaptableBeforeNewIssueDocument bases=[MeetingDocument] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CaptableRequest bases=[TimestampedModel] fields=8
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CashIncentive bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CashIncentiveCategory bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CashIncentiveItem bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CashPayment bases=[TimestampedModel, SoftDeletableModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CeoAddressChangeEvent bases=[Event] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CeoConfirmationDocument bases=[MeetingDocument] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CeoTypeChangedCeoResidentRegistrationDocument bases=[MeetingDocument] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CertificateOfCorporateSealDocument bases=[MeetingDocument] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CertificateOfSealNotarizationPoaDocument bases=[MeetingDocument] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.Charge bases=[TimestampedModel, SoftDeletableModel] fields=7
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CmeBulkEmail bases=[BulkEmail] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CmeBulkEmailRecipient bases=[BulkEmailRecipient] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CmeBulkEmailTemplate bases=[BulkEmailTemplate] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CmeCompany bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CmeCompanyContact bases=[TimestampedModel] fields=6
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CmeCompanyContactNotificationSettings bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CmeCompanyDirectorTermManagement bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CmeCompanyNote bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CmeCompanyRegistration bases=[TimestampedModel] fields=8
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CmeCompanyRegistrationFile bases=[TimestampedModel, SoftDeletableModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CmeContact bases=[TimestampedModel, SoftDeletableModel] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CmeMemberRelation bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CoCeoSystemChangeEvent bases=[Event] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CommonAddress bases=[TimestampedModel] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.Company bases=[TimestampedModel, SoftDeletableModel] fields=24
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyAddressChangeEvent bases=[Event] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyAppointedTransferAgentChange bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyAuthorizedSharesChange bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyBenefit bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyBulkEmailTemplate bases=[BulkEmailTemplate] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyCreateAssignmentReadiness bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyCreateProgress bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyCreateRequest bases=[TimestampedModel, SoftDeletableModel] fields=19
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyDepartment bases=[TimestampedModel] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyDepartmentCode bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyDocumentDelivery bases=[DocumentDelivery] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyEndorsement bases=[TimestampedModel] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyEndorsementFeed bases=[CompanyFeed] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyExpertClientRelation bases=[TimestampedModel, SoftDeletableModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyFeed bases=[Feed] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyFeedAccessLog bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyFeedRating bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyGuideState bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyInvestmentContractInfo bases=[TimestampedModel] fields=7
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyInvestorInterest bases=[TimestampedModel] fields=7
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyInvitation bases=[TimestampedModel] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyIrClosingFeed bases=[CompanyFeed] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyIrNewCommitFeed bases=[CompanyFeed] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyIrOpenFeed bases=[CompanyFeed] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyIrSetting bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyLegalPartnerRelation bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyManagementAssignment bases=[TimestampedModel, SoftDeletableModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyManagingEntity bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyMethodOfGivingPublicNoticeChange bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyMnaSetting bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyNameChange bases=[TimestampedModel] fields=7
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyNews bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyNewsFeed bases=[CompanyFeed] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyNewsLink bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyNotificationSetting bases=[TimestampedModel] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyNotificationTrigger bases=[TimestampedModel] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyOptionRule bases=[TimestampedModel] fields=10
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyOverview bases=[TimestampedModel] fields=6
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyOwnerAddRequest bases=[TimestampedModel] fields=10
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyOwnerAuditLog bases=[AuditLog] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyOwnerAuditLogOwnerRoleRelation bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyOwnerNotificationTrigger bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyParValueChange bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyPaymentLink bases=[PaymentLink] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyPolicyFile bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyProfileAccessLog bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyPromotionInfo bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyPromotionPrizeType bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyPromotionWinLog bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyPurposeChange bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyPurposeChangeItem bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyQuestionThread bases=[QuestionThread] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyRegistrationAssignment bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyRegistrationAssignmentLog bases=[TimestampedModel] fields=6
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyRegistrationStaffStatus bases=[TimestampedModel] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyRsuRule bases=[TimestampedModel] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyStockTransferRestrictedChange bases=[TimestampedModel] fields=3
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyStockValue bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyTag bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyTanTableView bases=[TanTableView] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyTodo bases=[TimestampedModel, SoftDeletableModel] fields=6
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyUpdateRequest bases=[TimestampedModel, SoftDeletableModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyUserRelation bases=[TimestampedModel] fields=6
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CompanyUserRelationOwnerRoleRelation bases=[TimestampedModel] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.ConsentForm bases=[TimestampedModel] fields=4
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.ConsentFormItem bases=[TimestampedModel, Castable[ConsentFormOptionItem]] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.ConsentFormModusignDocument bases=[ModusignDocument] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.ConsentFormModusignEmbeddedDraft bases=[ModusignEmbeddedDraft] fields=2
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.ConsentFormOptionItem bases=[ConsentFormItem] fields=1
+[2026-04-23T15:10:24.833Z] [info] Extracted models: db.CorporateRegistration bases=[TimestampedModel] fields=5
+[2026-04-23T15:10:24.833Z] [info] Extracted models: ... 1047 more
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'change_kind'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'agricultural_company_identifier_position'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'company_name_duplication_check_status'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'english_corporation_expression'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'shareholders_meeting_resolution_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'change_kind'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'director_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'director_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'change_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'member_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'ceo_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'institution_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'stakeholder_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'options_acquisition_period_condition'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field '_deprecated_agricultural_company_identifier_position'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field '_deprecated_authorized_options_method'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field '_deprecated_options_acquisition_period_condition'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field '_deprecated_software_company_status'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'can_exercise_voting_right_in_writing'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'director_term_rule'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'category'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'authorized_options_soft_limit_method'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'authorized_options_method'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'options_acquisition_period_condition'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'software_company_status'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'path'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'charge_method'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'acquisition_method'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'round_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'event'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'progress'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'deduction_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'item_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'payment_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'payment_method'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'result_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'status'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'delivery_option'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'status'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'product_name'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'code_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'new_order_discount_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'reorder_discount_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'status'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'status'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'status'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'status'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'role'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'role'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'role'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'agenda_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'director_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'director_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'institution_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'status'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'approver_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'status'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [unresolved_reference] Relation field 'prev_attendance' points to 'self', which cannot be normalized yet.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'status'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'day_of_week'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'day_of_week'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'weekly_holiday'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'rounding_method'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'reason'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'status'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'esig_request_status'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'absence_type'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'first_year_accrual_mode'.
+[2026-04-23T15:10:24.833Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'status'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'item_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'agricultural_company_identifier_position'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'company_name_duplication_check_status'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'english_corporation_expression'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field '_payment_store'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'status'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'director_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'stakeholder_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'ceo_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [unresolved_reference] Relation field 'parent' points to 'self', which cannot be normalized yet.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'kind'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'kind'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'role'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'consulting_status'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'action_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'matching_status'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'desired_investment_amount_category'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'investment_round_category'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'category'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'stage'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'role'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'registration_method'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'director_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'change_kind'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'director_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'approval_method'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'director_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'action'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [unresolved_reference] Relation field 'parent' points to 'self', which cannot be normalized yet.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'required_status'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'esig_request_status'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [unresolved_reference] Relation field '_deprecated_parent' points to 'self', which cannot be normalized yet.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'exercise_limit_frequency_unit'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field '_deprecated_exercise_limit_frequency_unit'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'exercise_limit_frequency_unit'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [unresolved_reference] Relation field 'parent' points to 'self', which cannot be normalized yet.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'vesting_input_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'permission_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [unresolved_reference] Relation field 'parent' points to 'self', which cannot be normalized yet.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'store_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'help_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'sms_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field '_fake_name'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'agenda_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field '_payment_store'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'director_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'esig_request_status'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [unresolved_reference] Relation field 'parent' points to 'self', which cannot be normalized yet.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'stamp_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'document_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'redemption_method'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'meeting_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'agenda_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'director_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'institution_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'member_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'ceo_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'new_stakeholder_purchaser_shareholder_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'institution_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'institution_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'authentication_method'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'selection_method'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'request_status'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'investor_category'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'role'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'role'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'role'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'category'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'fund_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'category'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'exit_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'investment_round'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'stock_type'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'investment_round'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'category'.
+[2026-04-23T15:10:24.834Z] [warn] Analyzer diagnostic [partial_inference] Could not fully infer choices for field 'status'.
+[2026-04-23T15:10:25.105Z] [info] [2026-04-24 00:10:25.103][v0.0.1] webview.bootstrap {"edges":3066,"layoutMode":"hierarchical","renderer":"detecting","tables":1242}
+[2026-04-23T15:10:25.157Z] [info] [2026-04-24 00:10:25.156][v0.0.1] renderer.selected {"renderer":"webgpu","webgl2":true,"webgpu":true,"durationMs":50.6}
+[2026-04-23T15:10:25.235Z] [info] [2026-04-24 00:10:25.235][v0.0.1] scene.graph.built {"edgeSegments":15165,"renderer":"webgpu","tables":1242,"durationMs":72.9}
+[2026-04-23T15:10:25.258Z] [warn] [2026-04-24 00:10:25.258][v0.0.1] render.frame {"cullMs":1.6,"durationMs":97.9,"drawMs":20.6,"fps":null,"frameId":1,"labelMs":0.2,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":132,"mode":"full","overlaySegments":0,"panX":-1011.09,"panY":-1000,"reason":"full","renderer":"webgpu","resizeMs":2.3,"sceneMs":73.1,"segments":2886,"sinceLastFrameMs":null,"tables":132,"totalSegments":15165,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:10:25.261Z] [info] [2026-04-24 00:10:25.261][v0.0.1] webview.ready {"renderer":"webgpu","durationMs":211.3}
+[2026-04-23T15:10:26.953Z] [info] [2026-04-24 00:10:26.952][v0.0.1] event.minimap.pan.start {"renderer":"webgpu"}
+[2026-04-23T15:10:26.955Z] [info] [2026-04-24 00:10:26.955][v0.0.1] render.stats {"avgFrameMs":50,"elapsedMs":1852.7,"fps":1.08,"fullFrames":1,"maxFrameMs":97.9,"renderer":"webgpu","slowFrames":1,"totalFrames":2,"viewportFrames":1}
+[2026-04-23T15:10:26.955Z] [info] [2026-04-24 00:10:26.955][v0.0.1] render.frame {"cullMs":1,"durationMs":2.1,"drawMs":0.9,"fps":0.59,"frameId":2,"labelMs":0.1,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":132,"mode":"viewport","overlaySegments":0,"panX":-1014.11,"panY":-1005.15,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0.1,"segments":2890,"sinceLastFrameMs":1697.4,"tables":132,"totalSegments":15165,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:10:27.761Z] [info] [2026-04-24 00:10:27.761][v0.0.1] render.stats {"avgFrameMs":1.2,"elapsedMs":805.8,"fps":74.46,"fullFrames":0,"maxFrameMs":2.5,"renderer":"webgpu","slowFrames":0,"totalFrames":60,"viewportFrames":60}
+[2026-04-23T15:10:27.961Z] [info] [2026-04-24 00:10:27.961][v0.0.1] render.frame {"cullMs":0.4,"durationMs":0.8,"drawMs":0.4,"fps":59.88,"frameId":79,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":129,"mode":"viewport","overlaySegments":0,"panX":-469.32,"panY":-1684.94,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":1585,"sinceLastFrameMs":16.7,"tables":129,"totalSegments":15165,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:10:28.545Z] [info] [2026-04-24 00:10:28.545][v0.0.1] render.stats {"avgFrameMs":1.14,"elapsedMs":783.6,"fps":76.57,"fullFrames":0,"maxFrameMs":3.9,"renderer":"webgpu","slowFrames":0,"totalFrames":60,"viewportFrames":60}
+[2026-04-23T15:10:29.146Z] [info] [2026-04-24 00:10:29.145][v0.0.1] event.minimap.pan.end {"renderer":"webgpu","durationMs":2193}
+[2026-04-23T15:10:29.163Z] [info] [2026-04-24 00:10:29.163][v0.0.1] render.frame {"cullMs":0.5,"durationMs":3,"drawMs":0.5,"fps":3.61,"frameId":142,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":132,"mode":"full","overlaySegments":0,"panX":-1336.03,"panY":-614.9,"reason":"full","renderer":"webgpu","resizeMs":2,"sceneMs":0,"segments":2804,"sinceLastFrameMs":276.9,"tables":132,"totalSegments":15165,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:10:30.287Z] [info] [2026-04-24 00:10:30.286][v0.0.1] event.layout.click {"layoutMode":"circular"}
+[2026-04-23T15:10:30.369Z] [info] [2026-04-24 00:10:30.369][v0.0.1] scene.graph.built {"edgeSegments":15326,"renderer":"webgpu","tables":1242,"durationMs":73.1}
+[2026-04-23T15:10:30.372Z] [info] [2026-04-24 00:10:30.372][v0.0.1] render.stats {"avgFrameMs":4.84,"elapsedMs":1827.4,"fps":11.49,"fullFrames":2,"maxFrameMs":79.4,"renderer":"webgpu","slowFrames":1,"totalFrames":21,"viewportFrames":19}
+[2026-04-23T15:10:30.372Z] [warn] [2026-04-24 00:10:30.372][v0.0.1] render.frame {"cullMs":0.5,"durationMs":79.4,"drawMs":2.6,"fps":0.83,"frameId":143,"labelMs":0.1,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":94,"mode":"full","overlaySegments":0,"panX":-2258.25,"panY":-2251.51,"reason":"full","renderer":"webgpu","resizeMs":3.1,"sceneMs":73.1,"segments":2267,"sinceLastFrameMs":1209.3,"tables":94,"totalSegments":15326,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:10:31.733Z] [info] [2026-04-24 00:10:31.732][v0.0.1] event.layout.click {"layoutMode":"clustered"}
+[2026-04-23T15:10:31.806Z] [info] [2026-04-24 00:10:31.806][v0.0.1] scene.graph.built {"edgeSegments":15188,"renderer":"webgpu","tables":1242,"durationMs":54.1}
+[2026-04-23T15:10:31.809Z] [info] [2026-04-24 00:10:31.808][v0.0.1] render.stats {"avgFrameMs":59.1,"elapsedMs":1436.6,"fps":0.7,"fullFrames":1,"maxFrameMs":59.1,"renderer":"webgpu","slowFrames":1,"totalFrames":1,"viewportFrames":0}
+[2026-04-23T15:10:31.809Z] [warn] [2026-04-24 00:10:31.808][v0.0.1] render.frame {"cullMs":0.3,"durationMs":59.1,"drawMs":2.1,"fps":0.7,"frameId":144,"labelMs":0.1,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":66,"mode":"full","overlaySegments":0,"panX":-1538.45,"panY":-2579.09,"reason":"full","renderer":"webgpu","resizeMs":2.4,"sceneMs":54.2,"segments":1487,"sinceLastFrameMs":1436.6,"tables":66,"totalSegments":15188,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:10:33.086Z] [info] [2026-04-24 00:10:33.086][v0.0.1] event.minimap.pan.start {"renderer":"webgpu"}
+[2026-04-23T15:10:33.087Z] [info] [2026-04-24 00:10:33.087][v0.0.1] render.stats {"avgFrameMs":0.6,"elapsedMs":1278.2,"fps":0.78,"fullFrames":0,"maxFrameMs":0.6,"renderer":"webgpu","slowFrames":0,"totalFrames":1,"viewportFrames":1}
+[2026-04-23T15:10:33.087Z] [info] [2026-04-24 00:10:33.087][v0.0.1] render.frame {"cullMs":0.2,"durationMs":0.6,"drawMs":0.3,"fps":0.78,"frameId":145,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":54,"mode":"viewport","overlaySegments":0,"panX":-1446.57,"panY":-2690.13,"reason":"sample","renderer":"webgpu","resizeMs":0.1,"sceneMs":0,"segments":1048,"sinceLastFrameMs":1278.2,"tables":54,"totalSegments":15188,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:10:33.902Z] [info] [2026-04-24 00:10:33.902][v0.0.1] render.stats {"avgFrameMs":0.58,"elapsedMs":815.2,"fps":73.6,"fullFrames":0,"maxFrameMs":1.5,"renderer":"webgpu","slowFrames":0,"totalFrames":60,"viewportFrames":60}
+[2026-04-23T15:10:34.095Z] [info] [2026-04-24 00:10:34.094][v0.0.1] render.frame {"cullMs":0.4,"durationMs":1,"drawMs":0.6,"fps":59.88,"frameId":216,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":15,"mode":"viewport","overlaySegments":0,"panX":-473.11,"panY":-1499.57,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":696,"sinceLastFrameMs":16.7,"tables":15,"totalSegments":15188,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:10:34.727Z] [info] [2026-04-24 00:10:34.727][v0.0.1] render.stats {"avgFrameMs":0.59,"elapsedMs":824.8,"fps":72.74,"fullFrames":0,"maxFrameMs":1.6,"renderer":"webgpu","slowFrames":0,"totalFrames":60,"viewportFrames":60}
+[2026-04-23T15:10:35.103Z] [info] [2026-04-24 00:10:35.102][v0.0.1] render.frame {"cullMs":0.5,"durationMs":0.8,"drawMs":0.3,"fps":63.29,"frameId":290,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":92,"mode":"viewport","overlaySegments":0,"panX":-1386.68,"panY":-1551.32,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":1821,"sinceLastFrameMs":15.8,"tables":92,"totalSegments":15188,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:10:35.511Z] [info] [2026-04-24 00:10:35.511][v0.0.1] event.minimap.pan.end {"renderer":"webgpu","durationMs":2424.7}
+[2026-04-23T15:10:35.525Z] [info] [2026-04-24 00:10:35.525][v0.0.1] render.frame {"cullMs":0.4,"durationMs":2.8,"drawMs":0.4,"fps":3.18,"frameId":298,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":114,"mode":"full","overlaySegments":0,"panX":-1524.93,"panY":-1815.68,"reason":"full","renderer":"webgpu","resizeMs":2,"sceneMs":0,"segments":2168,"sinceLastFrameMs":314.4,"tables":114,"totalSegments":15188,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:10:40.542Z] [info] [2026-04-24 00:10:40.542][v0.0.1] event.setup.changed {"key":"zoomSpeed","value":0.28}
+[2026-04-23T15:10:41.096Z] [info] [2026-04-24 00:10:41.096][v0.0.1] render.stats {"avgFrameMs":0.92,"elapsedMs":6368.9,"fps":5.34,"fullFrames":1,"maxFrameMs":2.8,"renderer":"webgpu","slowFrames":0,"totalFrames":34,"viewportFrames":33}
+[2026-04-23T15:10:41.096Z] [info] [2026-04-24 00:10:41.096][v0.0.1] render.frame {"cullMs":0.3,"durationMs":0.6,"drawMs":0.3,"fps":0.18,"frameId":299,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":0,"mode":"viewport","overlaySegments":0,"panX":-1524.93,"panY":-1815.68,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":2042,"sinceLastFrameMs":5570.5,"tables":111,"totalSegments":15188,"totalTables":1242,"zoom":0.16}
+[2026-04-23T15:10:42.120Z] [info] [2026-04-24 00:10:42.120][v0.0.1] render.stats {"avgFrameMs":1.6,"elapsedMs":1024.2,"fps":36.13,"fullFrames":0,"maxFrameMs":6.2,"renderer":"webgpu","slowFrames":0,"totalFrames":37,"viewportFrames":37}
+[2026-04-23T15:10:42.120Z] [info] [2026-04-24 00:10:42.120][v0.0.1] render.frame {"cullMs":0.4,"durationMs":0.8,"drawMs":0.4,"fps":3.15,"frameId":336,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":66,"mode":"viewport","overlaySegments":0,"panX":-1524.93,"panY":-1815.68,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":1483,"sinceLastFrameMs":317.3,"tables":66,"totalSegments":15188,"totalTables":1242,"zoom":0.21}
+[2026-04-23T15:10:44.739Z] [info] [2026-04-24 00:10:44.738][v0.0.1] event.minimap.pan.start {"renderer":"webgpu"}
+[2026-04-23T15:10:44.740Z] [info] [2026-04-24 00:10:44.740][v0.0.1] render.stats {"avgFrameMs":1,"elapsedMs":2619.7,"fps":5.73,"fullFrames":0,"maxFrameMs":5.9,"renderer":"webgpu","slowFrames":0,"totalFrames":15,"viewportFrames":15}
+[2026-04-23T15:10:44.740Z] [info] [2026-04-24 00:10:44.740][v0.0.1] render.frame {"cullMs":0.6,"durationMs":0.9,"drawMs":0.3,"fps":0.49,"frameId":351,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":0,"mode":"viewport","overlaySegments":0,"panX":-1390.11,"panY":-1804.77,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":1512,"sinceLastFrameMs":2028.8,"tables":115,"totalSegments":15188,"totalTables":1242,"zoom":0.12}
+[2026-04-23T15:10:45.702Z] [info] [2026-04-24 00:10:45.702][v0.0.1] render.stats {"avgFrameMs":0.72,"elapsedMs":962.4,"fps":62.34,"fullFrames":0,"maxFrameMs":1.3,"renderer":"webgpu","slowFrames":0,"totalFrames":60,"viewportFrames":60}
+[2026-04-23T15:10:45.744Z] [info] [2026-04-24 00:10:45.744][v0.0.1] render.frame {"cullMs":0.4,"durationMs":0.7,"drawMs":0.3,"fps":59.52,"frameId":414,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":0,"mode":"viewport","overlaySegments":0,"panX":-416.11,"panY":-1461.34,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":1926,"sinceLastFrameMs":16.8,"tables":121,"totalSegments":15188,"totalTables":1242,"zoom":0.12}
+[2026-04-23T15:10:46.711Z] [info] [2026-04-24 00:10:46.711][v0.0.1] render.stats {"avgFrameMs":0.75,"elapsedMs":1009.1,"fps":21.8,"fullFrames":0,"maxFrameMs":1.4,"renderer":"webgpu","slowFrames":0,"totalFrames":22,"viewportFrames":22}
+[2026-04-23T15:10:46.753Z] [info] [2026-04-24 00:10:46.753][v0.0.1] render.frame {"cullMs":0.6,"durationMs":0.8,"drawMs":0.2,"fps":24.04,"frameId":434,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":0,"mode":"viewport","overlaySegments":0,"panX":-578.48,"panY":-1522.63,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":2152,"sinceLastFrameMs":41.6,"tables":130,"totalSegments":15188,"totalTables":1242,"zoom":0.12}
+[2026-04-23T15:10:47.120Z] [info] [2026-04-24 00:10:47.119][v0.0.1] event.minimap.pan.end {"renderer":"webgpu","durationMs":2381}
+[2026-04-23T15:10:47.134Z] [info] [2026-04-24 00:10:47.133][v0.0.1] render.frame {"cullMs":0.4,"durationMs":2.7,"drawMs":0.2,"fps":2.63,"frameId":435,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":0,"mode":"full","overlaySegments":0,"panX":-578.48,"panY":-1522.63,"reason":"full","renderer":"webgpu","resizeMs":2.1,"sceneMs":0,"segments":2152,"sinceLastFrameMs":380.7,"tables":130,"totalSegments":15188,"totalTables":1242,"zoom":0.12}
+[2026-04-23T15:10:48.945Z] [info] [2026-04-24 00:10:48.945][v0.0.1] event.zoom.click {"action":"fit","zoom":0.11700000000000005}
+[2026-04-23T15:10:48.949Z] [info] [2026-04-24 00:10:48.949][v0.0.1] render.stats {"avgFrameMs":2.33,"elapsedMs":2238.2,"fps":1.34,"fullFrames":1,"maxFrameMs":3.5,"renderer":"webgpu","slowFrames":0,"totalFrames":3,"viewportFrames":2}
+[2026-04-23T15:10:48.950Z] [info] [2026-04-24 00:10:48.949][v0.0.1] render.frame {"cullMs":2.3,"durationMs":3.5,"drawMs":1.2,"fps":0.55,"frameId":436,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":0,"mode":"viewport","overlaySegments":0,"panX":164.05,"panY":18,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":15188,"sinceLastFrameMs":1815.9,"tables":1242,"totalSegments":15188,"totalTables":1242,"zoom":0.03}
+[2026-04-23T15:10:50.128Z] [info] [2026-04-24 00:10:50.127][v0.0.1] event.zoom.click {"action":"center","zoom":0.025517573423206548}
+[2026-04-23T15:10:50.140Z] [info] [2026-04-24 00:10:50.139][v0.0.1] render.stats {"avgFrameMs":4.5,"elapsedMs":1189.9,"fps":0.84,"fullFrames":0,"maxFrameMs":4.5,"renderer":"webgpu","slowFrames":0,"totalFrames":1,"viewportFrames":1}
+[2026-04-23T15:10:50.140Z] [info] [2026-04-24 00:10:50.139][v0.0.1] render.frame {"cullMs":3.1,"durationMs":4.5,"drawMs":1.4,"fps":0.84,"frameId":437,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":0,"mode":"viewport","overlaySegments":0,"panX":164.05,"panY":18,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":15188,"sinceLastFrameMs":1189.9,"tables":1242,"totalSegments":15188,"totalTables":1242,"zoom":0.03}
+[2026-04-23T15:10:53.690Z] [info] [2026-04-24 00:10:53.689][v0.0.1] event.zoom.click {"action":"in","zoom":0.025517573423206548}
+[2026-04-23T15:10:53.692Z] [info] [2026-04-24 00:10:53.692][v0.0.1] render.stats {"avgFrameMs":2.1,"elapsedMs":3552.5,"fps":0.28,"fullFrames":0,"maxFrameMs":2.1,"renderer":"webgpu","slowFrames":0,"totalFrames":1,"viewportFrames":1}
+[2026-04-23T15:10:53.692Z] [info] [2026-04-24 00:10:53.692][v0.0.1] render.frame {"cullMs":1.4,"durationMs":2.1,"drawMs":0.7,"fps":0.28,"frameId":438,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":0,"mode":"viewport","overlaySegments":0,"panX":164.05,"panY":18,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":5675,"sinceLastFrameMs":3552.5,"tables":331,"totalSegments":15188,"totalTables":1242,"zoom":0.06}
+[2026-04-23T15:10:53.920Z] [info] [2026-04-24 00:10:53.919][v0.0.1] event.zoom.click {"action":"in","zoom":0.05911757342320655}
+[2026-04-23T15:10:54.446Z] [info] [2026-04-24 00:10:54.445][v0.0.1] event.zoom.click {"action":"in","zoom":0.09271757342320655}
+[2026-04-23T15:10:55.487Z] [info] [2026-04-24 00:10:55.487][v0.0.1] event.zoom.click {"action":"center","zoom":0.12631757342320654}
+[2026-04-23T15:10:55.488Z] [info] [2026-04-24 00:10:55.488][v0.0.1] render.stats {"avgFrameMs":0.73,"elapsedMs":1796.3,"fps":1.67,"fullFrames":0,"maxFrameMs":1.1,"renderer":"webgpu","slowFrames":0,"totalFrames":3,"viewportFrames":3}
+[2026-04-23T15:10:55.488Z] [info] [2026-04-24 00:10:55.488][v0.0.1] render.frame {"cullMs":0.4,"durationMs":0.7,"drawMs":0.3,"fps":0.96,"frameId":441,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":0,"mode":"viewport","overlaySegments":0,"panX":-933.91,"panY":-1656.89,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":2014,"sinceLastFrameMs":1041.9,"tables":104,"totalSegments":15188,"totalTables":1242,"zoom":0.13}
+[2026-04-23T15:10:56.198Z] [info] [2026-04-24 00:10:56.198][v0.0.1] event.zoom.click {"action":"center","zoom":0.12631757342320654}
+[2026-04-23T15:10:57.464Z] [info] [2026-04-24 00:10:57.463][v0.0.1] event.minimap.pan.start {"renderer":"webgpu"}
+[2026-04-23T15:10:57.465Z] [info] [2026-04-24 00:10:57.465][v0.0.1] render.stats {"avgFrameMs":1.65,"elapsedMs":1976.9,"fps":1.01,"fullFrames":0,"maxFrameMs":1.8,"renderer":"webgpu","slowFrames":0,"totalFrames":2,"viewportFrames":2}
+[2026-04-23T15:10:57.466Z] [info] [2026-04-24 00:10:57.465][v0.0.1] render.frame {"cullMs":1,"durationMs":1.5,"drawMs":0.5,"fps":0.79,"frameId":443,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":0,"mode":"viewport","overlaySegments":0,"panX":-1055.93,"panY":-1776.57,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":1976,"sinceLastFrameMs":1264.4,"tables":110,"totalSegments":15188,"totalTables":1242,"zoom":0.13}
+[2026-04-23T15:10:58.144Z] [info] [2026-04-24 00:10:58.144][v0.0.1] event.minimap.pan.end {"renderer":"webgpu","durationMs":680.9}
+[2026-04-23T15:10:58.158Z] [info] [2026-04-24 00:10:58.157][v0.0.1] render.frame {"cullMs":0.1,"durationMs":2.3,"drawMs":0.1,"fps":4.67,"frameId":473,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":0,"mode":"full","overlaySegments":0,"panX":438.97,"panY":-2723.31,"reason":"full","renderer":"webgpu","resizeMs":2.1,"sceneMs":0,"segments":632,"sinceLastFrameMs":214.1,"tables":40,"totalSegments":15188,"totalTables":1242,"zoom":0.13}
+[2026-04-23T15:10:58.777Z] [info] [2026-04-24 00:10:58.777][v0.0.1] event.layout.click {"layoutMode":"circular"}
+[2026-04-23T15:10:58.849Z] [info] [2026-04-24 00:10:58.848][v0.0.1] scene.graph.built {"edgeSegments":15326,"renderer":"webgpu","tables":1242,"durationMs":61.5}
+[2026-04-23T15:10:58.853Z] [info] [2026-04-24 00:10:58.853][v0.0.1] render.stats {"avgFrameMs":2.85,"elapsedMs":1388.3,"fps":22.33,"fullFrames":2,"maxFrameMs":68.4,"renderer":"webgpu","slowFrames":1,"totalFrames":31,"viewportFrames":29}
+[2026-04-23T15:10:58.854Z] [warn] [2026-04-24 00:10:58.853][v0.0.1] render.frame {"cullMs":0.6,"durationMs":68.4,"drawMs":4.1,"fps":1.44,"frameId":474,"labelMs":0.1,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":94,"mode":"full","overlaySegments":0,"panX":-2258.25,"panY":-2251.51,"reason":"full","renderer":"webgpu","resizeMs":2.1,"sceneMs":61.5,"segments":2267,"sinceLastFrameMs":695.9,"tables":94,"totalSegments":15326,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:11:00.323Z] [info] [2026-04-24 00:11:00.322][v0.0.1] event.minimap.pan.start {"renderer":"webgpu"}
+[2026-04-23T15:11:00.328Z] [info] [2026-04-24 00:11:00.328][v0.0.1] render.stats {"avgFrameMs":4.7,"elapsedMs":1474.4,"fps":0.68,"fullFrames":0,"maxFrameMs":4.7,"renderer":"webgpu","slowFrames":0,"totalFrames":1,"viewportFrames":1}
+[2026-04-23T15:11:00.328Z] [info] [2026-04-24 00:11:00.328][v0.0.1] render.frame {"cullMs":1.6,"durationMs":4.7,"drawMs":3.1,"fps":0.68,"frameId":475,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":94,"mode":"viewport","overlaySegments":0,"panX":-2019.53,"panY":-2129.88,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":2175,"sinceLastFrameMs":1474.4,"tables":94,"totalSegments":15326,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:11:01.036Z] [info] [2026-04-24 00:11:01.036][v0.0.1] event.minimap.pan.end {"renderer":"webgpu","durationMs":713.5}
+[2026-04-23T15:11:01.050Z] [info] [2026-04-24 00:11:01.049][v0.0.1] render.frame {"cullMs":0.1,"durationMs":2.6,"drawMs":0.4,"fps":3.46,"frameId":507,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":67,"mode":"full","overlaySegments":0,"panX":-586.34,"panY":-1822.32,"reason":"full","renderer":"webgpu","resizeMs":2.1,"sceneMs":0,"segments":974,"sinceLastFrameMs":289.1,"tables":67,"totalSegments":15326,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:11:01.746Z] [info] [2026-04-24 00:11:01.745][v0.0.1] event.zoom.click {"action":"center","zoom":0.18181818181818182}
+[2026-04-23T15:11:01.750Z] [info] [2026-04-24 00:11:01.750][v0.0.1] render.stats {"avgFrameMs":1.14,"elapsedMs":1422.7,"fps":23.2,"fullFrames":1,"maxFrameMs":4.2,"renderer":"webgpu","slowFrames":0,"totalFrames":33,"viewportFrames":32}
+[2026-04-23T15:11:01.751Z] [info] [2026-04-24 00:11:01.750][v0.0.1] render.frame {"cullMs":0.6,"durationMs":4.2,"drawMs":3.6,"fps":1.43,"frameId":508,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":94,"mode":"viewport","overlaySegments":0,"panX":-2258.25,"panY":-2251.51,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":2267,"sinceLastFrameMs":701,"tables":94,"totalSegments":15326,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:11:03.546Z] [info] [2026-04-24 00:11:03.545][v0.0.1] event.minimap.pan.start {"renderer":"webgpu"}
+[2026-04-23T15:11:03.551Z] [info] [2026-04-24 00:11:03.550][v0.0.1] render.stats {"avgFrameMs":4.6,"elapsedMs":1799.8,"fps":0.56,"fullFrames":0,"maxFrameMs":4.6,"renderer":"webgpu","slowFrames":0,"totalFrames":1,"viewportFrames":1}
+[2026-04-23T15:11:03.551Z] [info] [2026-04-24 00:11:03.550][v0.0.1] render.frame {"cullMs":1.6,"durationMs":4.6,"drawMs":2.9,"fps":0.56,"frameId":509,"labelMs":0.1,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":92,"mode":"viewport","overlaySegments":0,"panX":-2047.21,"panY":-2408.9,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":1990,"sinceLastFrameMs":1799.8,"tables":92,"totalSegments":15326,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:11:04.360Z] [info] [2026-04-24 00:11:04.360][v0.0.1] render.stats {"avgFrameMs":0.95,"elapsedMs":809.8,"fps":74.09,"fullFrames":0,"maxFrameMs":1.8,"renderer":"webgpu","slowFrames":0,"totalFrames":60,"viewportFrames":60}
+[2026-04-23T15:11:04.560Z] [info] [2026-04-24 00:11:04.560][v0.0.1] render.frame {"cullMs":0.1,"durationMs":0.4,"drawMs":0.3,"fps":60.24,"frameId":583,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":60,"mode":"viewport","overlaySegments":0,"panX":-1772.4,"panY":-3987.71,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":790,"sinceLastFrameMs":16.6,"tables":60,"totalSegments":15326,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:11:05.194Z] [info] [2026-04-24 00:11:05.193][v0.0.1] render.stats {"avgFrameMs":0.58,"elapsedMs":833.4,"fps":71.99,"fullFrames":0,"maxFrameMs":2.3,"renderer":"webgpu","slowFrames":0,"totalFrames":60,"viewportFrames":60}
+[2026-04-23T15:11:05.569Z] [info] [2026-04-24 00:11:05.569][v0.0.1] render.frame {"cullMs":0.2,"durationMs":0.6,"drawMs":0.4,"fps":59.88,"frameId":654,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":51,"mode":"viewport","overlaySegments":0,"panX":-3823.89,"panY":-3289.12,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":622,"sinceLastFrameMs":16.7,"tables":51,"totalSegments":15326,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:11:05.803Z] [info] [2026-04-24 00:11:05.802][v0.0.1] event.minimap.pan.end {"renderer":"webgpu","durationMs":2257.1}
+[2026-04-23T15:11:05.816Z] [info] [2026-04-24 00:11:05.816][v0.0.1] render.frame {"cullMs":0.2,"durationMs":2.4,"drawMs":0.3,"fps":4.05,"frameId":655,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":51,"mode":"full","overlaySegments":0,"panX":-3823.89,"panY":-3289.12,"reason":"full","renderer":"webgpu","resizeMs":1.9,"sceneMs":0,"segments":622,"sinceLastFrameMs":246.8,"tables":51,"totalSegments":15326,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:11:06.979Z] [info] [2026-04-24 00:11:06.978][v0.0.1] event.layout.click {"layoutMode":"clustered"}
+[2026-04-23T15:11:07.048Z] [info] [2026-04-24 00:11:07.048][v0.0.1] scene.graph.built {"edgeSegments":15188,"renderer":"webgpu","tables":1242,"durationMs":60.1}
+[2026-04-23T15:11:07.051Z] [info] [2026-04-24 00:11:07.051][v0.0.1] render.stats {"avgFrameMs":2.93,"elapsedMs":1857.5,"fps":14.54,"fullFrames":2,"maxFrameMs":64.8,"renderer":"webgpu","slowFrames":1,"totalFrames":27,"viewportFrames":25}
+[2026-04-23T15:11:07.051Z] [warn] [2026-04-24 00:11:07.051][v0.0.1] render.frame {"cullMs":0.3,"durationMs":64.8,"drawMs":2.3,"fps":0.81,"frameId":656,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":66,"mode":"full","overlaySegments":0,"panX":-1538.45,"panY":-2579.09,"reason":"full","renderer":"webgpu","resizeMs":2.1,"sceneMs":60.1,"segments":1487,"sinceLastFrameMs":1235.1,"tables":66,"totalSegments":15188,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:11:08.330Z] [info] [2026-04-24 00:11:08.329][v0.0.1] event.viewport.reset {"renderer":"webgpu"}
+[2026-04-23T15:11:08.406Z] [info] [2026-04-24 00:11:08.406][v0.0.1] scene.graph.built {"edgeSegments":15165,"renderer":"webgpu","tables":1242,"durationMs":60.6}
+[2026-04-23T15:11:08.410Z] [info] [2026-04-24 00:11:08.410][v0.0.1] render.stats {"avgFrameMs":66.8,"elapsedMs":1359.2,"fps":0.74,"fullFrames":1,"maxFrameMs":66.8,"renderer":"webgpu","slowFrames":1,"totalFrames":1,"viewportFrames":0}
+[2026-04-23T15:11:08.410Z] [warn] [2026-04-24 00:11:08.410][v0.0.1] render.frame {"cullMs":0.6,"durationMs":66.8,"drawMs":3.3,"fps":0.74,"frameId":657,"labelMs":0.1,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":132,"mode":"full","overlaySegments":0,"panX":-1011.09,"panY":-1000,"reason":"full","renderer":"webgpu","resizeMs":2.2,"sceneMs":60.6,"segments":2886,"sinceLastFrameMs":1359.2,"tables":132,"totalSegments":15165,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:11:09.756Z] [info] [2026-04-24 00:11:09.755][v0.0.1] event.minimap.pan.start {"renderer":"webgpu"}
+[2026-04-23T15:11:09.761Z] [info] [2026-04-24 00:11:09.760][v0.0.1] render.stats {"avgFrameMs":4.9,"elapsedMs":1350.5,"fps":0.74,"fullFrames":0,"maxFrameMs":4.9,"renderer":"webgpu","slowFrames":0,"totalFrames":1,"viewportFrames":1}
+[2026-04-23T15:11:09.761Z] [info] [2026-04-24 00:11:09.761][v0.0.1] render.frame {"cullMs":1.7,"durationMs":4.9,"drawMs":3.2,"fps":0.74,"frameId":658,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":132,"mode":"viewport","overlaySegments":0,"panX":-1011.69,"panY":-1218.03,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":2869,"sinceLastFrameMs":1350.5,"tables":132,"totalSegments":15165,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:11:10.220Z] [info] [2026-04-24 00:11:10.219][v0.0.1] event.minimap.pan.end {"renderer":"webgpu","durationMs":463.8}
+[2026-04-23T15:11:10.235Z] [info] [2026-04-24 00:11:10.234][v0.0.1] render.frame {"cullMs":0.5,"durationMs":3,"drawMs":0.4,"fps":3.55,"frameId":671,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":132,"mode":"full","overlaySegments":0,"panX":-753.64,"panY":-1202.76,"reason":"full","renderer":"webgpu","resizeMs":2.1,"sceneMs":0,"segments":2718,"sinceLastFrameMs":281.6,"tables":132,"totalSegments":15165,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:11:10.936Z] [info] [2026-04-24 00:11:10.935][v0.0.1] event.layout.click {"layoutMode":"circular"}
+[2026-04-23T15:11:11.016Z] [info] [2026-04-24 00:11:11.016][v0.0.1] scene.graph.built {"edgeSegments":15326,"renderer":"webgpu","tables":1242,"durationMs":63.5}
+[2026-04-23T15:11:11.020Z] [info] [2026-04-24 00:11:11.020][v0.0.1] render.stats {"avgFrameMs":6.49,"elapsedMs":1259.2,"fps":11.12,"fullFrames":2,"maxFrameMs":70.2,"renderer":"webgpu","slowFrames":1,"totalFrames":14,"viewportFrames":12}
+[2026-04-23T15:11:11.020Z] [warn] [2026-04-24 00:11:11.020][v0.0.1] render.frame {"cullMs":0.5,"durationMs":70.2,"drawMs":3.2,"fps":1.27,"frameId":672,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":94,"mode":"full","overlaySegments":0,"panX":-2258.25,"panY":-2251.51,"reason":"full","renderer":"webgpu","resizeMs":3,"sceneMs":63.5,"segments":2267,"sinceLastFrameMs":785.3,"tables":94,"totalSegments":15326,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:11:11.997Z] [info] [2026-04-24 00:11:11.996][v0.0.1] event.viewport.reset {"renderer":"webgpu"}
+[2026-04-23T15:11:12.069Z] [info] [2026-04-24 00:11:12.068][v0.0.1] scene.graph.built {"edgeSegments":15165,"renderer":"webgpu","tables":1242,"durationMs":59.2}
+[2026-04-23T15:11:12.071Z] [info] [2026-04-24 00:11:12.070][v0.0.1] render.stats {"avgFrameMs":63.2,"elapsedMs":1050.7,"fps":0.95,"fullFrames":1,"maxFrameMs":63.2,"renderer":"webgpu","slowFrames":1,"totalFrames":1,"viewportFrames":0}
+[2026-04-23T15:11:12.071Z] [warn] [2026-04-24 00:11:12.070][v0.0.1] render.frame {"cullMs":1,"durationMs":63.2,"drawMs":0.8,"fps":0.95,"frameId":673,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":132,"mode":"full","overlaySegments":0,"panX":-1011.09,"panY":-1000,"reason":"full","renderer":"webgpu","resizeMs":2.1,"sceneMs":59.3,"segments":2886,"sinceLastFrameMs":1050.7,"tables":132,"totalSegments":15165,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:11:13.133Z] [info] [2026-04-24 00:11:13.132][v0.0.1] event.minimap.pan.start {"renderer":"webgpu"}
+[2026-04-23T15:11:13.134Z] [info] [2026-04-24 00:11:13.134][v0.0.1] render.stats {"avgFrameMs":1.2,"elapsedMs":1063.5,"fps":0.94,"fullFrames":0,"maxFrameMs":1.2,"renderer":"webgpu","slowFrames":0,"totalFrames":1,"viewportFrames":1}
+[2026-04-23T15:11:13.134Z] [info] [2026-04-24 00:11:13.134][v0.0.1] render.frame {"cullMs":0.6,"durationMs":1.2,"drawMs":0.6,"fps":0.94,"frameId":674,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":132,"mode":"viewport","overlaySegments":0,"panX":-781.51,"panY":-1269.69,"reason":"sample","renderer":"webgpu","resizeMs":0,"sceneMs":0,"segments":2611,"sinceLastFrameMs":1063.5,"tables":132,"totalSegments":15165,"totalTables":1242,"zoom":0.18}
+[2026-04-23T15:11:14.398Z] [info] [2026-04-24 00:11:14.398][v0.0.1] event.minimap.pan.end {"renderer":"webgpu","durationMs":1265.3}
+[2026-04-23T15:11:14.409Z] [info] [2026-04-24 00:11:14.408][v0.0.1] render.stats {"avgFrameMs":1.05,"elapsedMs":1274.5,"fps":44.72,"fullFrames":1,"maxFrameMs":4.1,"renderer":"webgpu","slowFrames":0,"totalFrames":57,"viewportFrames":56}
+[2026-04-23T15:11:14.409Z] [info] [2026-04-24 00:11:14.408][v0.0.1] render.frame {"cullMs":0.2,"durationMs":2.7,"drawMs":0.5,"fps":3.35,"frameId":731,"labelMs":0,"liveDragEdges":0,"liveDragSegments":0,"canvasHeight":1768,"canvasWidth":1768,"labels":133,"mode":"full","overlaySegments":0,"panX":-153.51,"panY":-1918.75,"reason":"full","renderer":"webgpu","resizeMs":2,"sceneMs":0,"segments":1298,"sinceLastFrameMs":298.1,"tables":133,"totalSegments":15165,"totalTables":1242,"zoom":0.18}

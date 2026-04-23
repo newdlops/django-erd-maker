@@ -1,5 +1,7 @@
 declare const process: {
+  arch: string;
   env: Record<string, string | undefined>;
+  execPath: string;
   platform: string;
 };
 
@@ -15,6 +17,7 @@ declare module "node:child_process" {
     options: {
       cwd?: string;
       maxBuffer?: number;
+      timeout?: number;
     },
     callback: (error: Error | null, stdout: string, stderr: string) => void,
   ): void;

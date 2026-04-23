@@ -49,10 +49,17 @@ export function decodeDiagramBootstrapPayload(
     analyzer: decodeAnalyzerOutput(readRecord(root.analyzer, "diagramBootstrapPayload.analyzer")),
     contractVersion: decodeContractVersion(root, "contractVersion", "diagramBootstrapPayload"),
     graph: decodeGraph(readRecord(root.graph, "diagramBootstrapPayload.graph")),
-    layout: decodeLayout(readRecord(root.layout, "diagramBootstrapPayload.layout")),
+    layout: decodeLayout(readRecord(root.layout, "diagramBootstrapPayload.layout"), "diagramBootstrapPayload.layout"),
     timings: decodePipelineTimings(root),
     view: decodeViewState(readRecord(root.view, "diagramBootstrapPayload.view")),
   };
+}
+
+export function decodeLayoutSnapshot(
+  value: unknown,
+  context = "layoutSnapshot",
+): LayoutSnapshot {
+  return decodeLayout(readRecord(value, context), context);
 }
 
 function decodeAnalyzerOutput(record: JsonRecord): AnalyzerOutput {
@@ -206,17 +213,17 @@ function decodeFieldRelation(record: JsonRecord, context: string): FieldRelation
   };
 }
 
-function decodeLayout(record: JsonRecord): LayoutSnapshot {
+function decodeLayout(record: JsonRecord, context: string): LayoutSnapshot {
   return {
-    crossings: readArray(record, "crossings", "diagramBootstrapPayload.layout").map((item, index) =>
-      decodeEdgeCrossing(item, `diagramBootstrapPayload.layout.crossings[${index}]`),
+    crossings: readArray(record, "crossings", context).map((item, index) =>
+      decodeEdgeCrossing(item, `${context}.crossings[${index}]`),
     ),
-    mode: readLiteral(record, "mode", ["circular", "clustered", "hierarchical"], "diagramBootstrapPayload.layout"),
-    nodes: readArray(record, "nodes", "diagramBootstrapPayload.layout").map((item, index) =>
-      decodeNodeLayout(item, `diagramBootstrapPayload.layout.nodes[${index}]`),
+    mode: readLiteral(record, "mode", ["circular", "clustered", "hierarchical"], context),
+    nodes: readArray(record, "nodes", context).map((item, index) =>
+      decodeNodeLayout(item, `${context}.nodes[${index}]`),
     ),
-    routedEdges: readArray(record, "routedEdges", "diagramBootstrapPayload.layout").map((item, index) =>
-      decodeRoutedEdgePath(item, `diagramBootstrapPayload.layout.routedEdges[${index}]`),
+    routedEdges: readArray(record, "routedEdges", context).map((item, index) =>
+      decodeRoutedEdgePath(item, `${context}.routedEdges[${index}]`),
     ),
   };
 }
@@ -261,6 +268,7 @@ function decodePipelineTimings(record: JsonRecord): PipelineTimings | undefined 
     extractMs: readOptionalNumber(timings, "extractMs", "diagramBootstrapPayload.timings"),
     graphMs: readOptionalNumber(timings, "graphMs", "diagramBootstrapPayload.timings"),
     layoutMs: readOptionalNumber(timings, "layoutMs", "diagramBootstrapPayload.timings"),
+    ogdfLayoutMs: readOptionalNumber(timings, "ogdfLayoutMs", "diagramBootstrapPayload.timings"),
     parseMs: readOptionalNumber(timings, "parseMs", "diagramBootstrapPayload.timings"),
     renderDocumentMs: readOptionalNumber(timings, "renderDocumentMs", "diagramBootstrapPayload.timings"),
   };

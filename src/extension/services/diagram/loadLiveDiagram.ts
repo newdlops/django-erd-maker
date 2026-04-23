@@ -2,6 +2,7 @@ import type { LayoutMode } from "../../../shared/graph/layoutContract";
 import { mergePipelineTimings } from "../../../shared/protocol/mergePipelineTimings";
 import type { DiagramBootstrapPayload } from "../../../shared/protocol/webviewContract";
 import type { DjangoWorkspaceDiscoveryResult } from "../discovery/discoveryTypes";
+import { runOgdfLayout } from "../layout/runOgdfLayout";
 import type { Logger } from "../logging/logger";
 import { runAnalyzerBootstrap } from "../analyzer/runAnalyzerBootstrap";
 import { createEmptyDiagramPayload } from "./createEmptyDiagramPayload";
@@ -47,8 +48,15 @@ async function loadAnalyzerPayload(
     layoutMode,
     logger,
   );
+  const ogdfResult = await runOgdfLayout(
+    extensionRootPath,
+    analyzerResult.payload,
+    logger,
+  );
+  analyzerResult.payload.layout = ogdfResult.layout;
   analyzerResult.payload.timings = mergePipelineTimings(analyzerResult.payload.timings, {
     analyzerBootstrapMs: analyzerResult.durationMs,
+    ...(ogdfResult.applied ? { ogdfLayoutMs: ogdfResult.durationMs } : {}),
   });
   return analyzerResult.payload;
 }

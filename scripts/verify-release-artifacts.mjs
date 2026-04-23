@@ -29,9 +29,19 @@ const analyzerBinaryPath = path.join(
     ? "django-erd-maker-analyzer.exe"
     : "django-erd-maker-analyzer",
 );
+const ogdfBundledBinaryPath = path.join(
+  repoRoot,
+  "bin/ogdf/darwin-arm64/django-erd-ogdf-layout",
+);
+const ogdfSourceArchivePath = path.join(
+  repoRoot,
+  "vendor/ogdf/ogdf-foxglove-202510.tar.gz",
+);
 
 await assertFileExists(extensionEntryPath, "built extension entrypoint");
 await assertFileExists(analyzerBinaryPath, "built analyzer binary");
+await assertFileExists(ogdfBundledBinaryPath, "bundled mac OGDF binary");
+await assertFileExists(ogdfSourceArchivePath, "bundled OGDF source archive");
 assert.ok(
   manifest.contributes.commands.some((command) => command.command === "djangoErd.openDiagram"),
   "package.json must contribute djangoErd.openDiagram",

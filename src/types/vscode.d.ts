@@ -22,6 +22,7 @@ declare module "vscode" {
 
   export interface ExtensionContext {
     extensionUri: Uri;
+    globalStorageUri: Uri;
     subscriptions: Disposable[];
   }
 

@@ -5,6 +5,7 @@ import { discoverDjangoWorkspace } from "../services/discovery/discoverDjangoWor
 import type { DjangoWorkspaceDiscoveryResult } from "../services/discovery/discoveryTypes";
 import { loadLiveDiagram } from "../services/diagram/loadLiveDiagram";
 import type { LiveDiagramResult } from "../services/diagram/loadLiveDiagram";
+import { ensureOgdfBinaryInstalled } from "../services/layout/ensureOgdfBinaryInstalled";
 import { getExtensionLogger, showExtensionLog } from "../services/logging/extensionLogger";
 import type { Logger } from "../services/logging/logger";
 import { timeAsync } from "../services/metrics/timeAsync";
@@ -28,6 +29,7 @@ export async function openDiagram(
         title: "Loading Django ERD",
       },
       async () => {
+        await ensureOgdfBinaryInstalled(context, logger);
         const timedDiscovery = await timeAsync(() =>
           discoverDjangoWorkspace(workspacePath),
         );

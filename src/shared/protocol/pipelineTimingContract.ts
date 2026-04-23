@@ -4,6 +4,7 @@ export interface PipelineTimings {
   extractMs?: number;
   graphMs?: number;
   layoutMs?: number;
+  ogdfLayoutMs?: number;
   parseMs?: number;
   renderDocumentMs?: number;
 }
