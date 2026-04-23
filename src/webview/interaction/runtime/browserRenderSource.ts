@@ -4,6 +4,22 @@ export function getBrowserRenderSource(): string {
         let viewportRenderFrame = 0;
         let dragPreviewFrame = 0;
         let cachedMinimapMetrics = null;
+        let pendingDragPreviewRects = [];
+        const overlayMetaByMethodKey = new Map();
+
+        for (const meta of overlayMeta) {
+          const key = getMethodContextKey({
+            methodName: meta.methodName,
+            modelId: meta.sourceModelId,
+          });
+          const bucket = overlayMetaByMethodKey.get(key);
+          if (bucket) {
+            bucket.push(meta);
+            continue;
+          }
+
+          overlayMetaByMethodKey.set(key, [meta]);
+        }
 
         function applyState() {
           viewport.dataset.transform =
@@ -37,23 +53,32 @@ export function getBrowserRenderSource(): string {
           renderMinimap("full");
         }
 
-        function applySelectionState() {
+        function applySelectionState(previousState, action) {
           viewport.dataset.transform =
             "translate(" + state.viewport.panX + " " + state.viewport.panY + ") scale(" + state.viewport.zoom + ")";
-          renderTables();
-          renderOverlays();
-          renderPanels();
-          drawCanvas("full");
-          renderMinimap("full");
+          renderTablesForModelIds(collectSelectionAffectedModelIds(previousState, action));
+          renderSelectionOverlays(previousState);
+          renderPanelsForModelIds(collectSelectionAffectedPanelIds(previousState, action));
+          renderMethodButtonsForContexts([
+            previousState.selectedMethodContext,
+            state.selectedMethodContext,
+          ]);
+
+          if (selectionStateChanged(previousState)) {
+            redrawCanvasRegions(collectSelectionDirtyScreenRects(previousState, action));
+          }
+
+          if (previousState.selectedModelId !== state.selectedModelId) {
+            renderMinimap("selection");
+          }
         }
 
         function applyManualPositionState(modelId) {
           viewport.dataset.transform =
             "translate(" + state.viewport.panX + " " + state.viewport.panY + ") scale(" + state.viewport.zoom + ")";
-          renderTables();
+          renderTablesForModelIds([modelId]);
           rerouteModelEdges(modelId);
           renderOverlays();
-          renderPanels();
           drawCanvas("full");
           renderMinimap("full");
         }
@@ -61,6 +86,15 @@ export function getBrowserRenderSource(): string {
         function applyDragPreviewState() {
           viewport.dataset.transform =
             "translate(" + state.viewport.panX + " " + state.viewport.panY + ") scale(" + state.viewport.zoom + ")";
+          if (pendingDragPreviewRects.length > 0) {
+            redrawCanvasRegions(pendingDragPreviewRects, {
+              skipCrossings: true,
+              skipMethodOverlays: true,
+            });
+            pendingDragPreviewRects = [];
+            return;
+          }
+
           drawCanvas("drag-preview");
         }
 
@@ -74,6 +108,7 @@ export function getBrowserRenderSource(): string {
         }
 
         function cancelDragPreviewRender() {
+          pendingDragPreviewRects = [];
           if (!dragPreviewFrame) {
             return;
           }
@@ -105,6 +140,7 @@ export function getBrowserRenderSource(): string {
         }
 
         function dispatch(action) {
+          const previousState = state;
           state = reduceState(state, action);
           if (
             action.type === "set-viewport-pan" ||
@@ -121,6 +157,7 @@ export function getBrowserRenderSource(): string {
             drag &&
             drag.kind === "table"
           ) {
+            queueDragPreviewRects(previousState, action.modelId);
             cancelViewportRender();
             scheduleDragPreviewRender();
             return;
@@ -149,7 +186,7 @@ export function getBrowserRenderSource(): string {
           if (isSelectionOnlyAction(action)) {
             cancelDragPreviewRender();
             cancelViewportRender();
-            applySelectionState();
+            applySelectionState(previousState, action);
             return;
           }
 
@@ -200,12 +237,16 @@ export function getBrowserRenderSource(): string {
             return;
           }
 
-          const bounds = computeLayoutBounds(
-            state.layoutMode,
-            state.tableOptions,
-            getAppliedLayoutSettings(),
-          );
-          const metrics = createMinimapMetrics(bounds);
+          let metrics = renderMode === "full" ? null : cachedMinimapMetrics;
+          if (!metrics) {
+            const bounds = computeLayoutBounds(
+              state.layoutMode,
+              state.tableOptions,
+              getAppliedLayoutSettings(),
+            );
+            metrics = createMinimapMetrics(bounds);
+          }
+
           if (!metrics) {
             cachedMinimapMetrics = null;
             minimap.toggleAttribute("hidden", true);
@@ -219,8 +260,11 @@ export function getBrowserRenderSource(): string {
             return;
           }
 
-          context.clearRect(0, 0, metrics.width, metrics.height);
-          drawMinimapTables(context, metrics);
+          if (renderMode !== "viewport") {
+            context.clearRect(0, 0, metrics.width, metrics.height);
+            drawMinimapTables(context, metrics);
+          }
+
           updateMinimapViewportCursor(metrics);
         }
 
@@ -351,12 +395,15 @@ export function getBrowserRenderSource(): string {
             return undefined;
           }
 
-          const bounds = computeLayoutBounds(
-            state.layoutMode,
-            state.tableOptions,
-            getAppliedLayoutSettings(),
-          );
-          const metrics = createMinimapMetrics(bounds);
+          const metrics =
+            cachedMinimapMetrics ||
+            createMinimapMetrics(
+              computeLayoutBounds(
+                state.layoutMode,
+                state.tableOptions,
+                getAppliedLayoutSettings(),
+              ),
+            );
           if (!metrics) {
             return undefined;
           }
@@ -371,6 +418,155 @@ export function getBrowserRenderSource(): string {
             x: round2(Math.max(metrics.bounds.minX, Math.min(metrics.bounds.maxX, worldX))),
             y: round2(Math.max(metrics.bounds.minY, Math.min(metrics.bounds.maxY, worldY))),
           };
+        }
+
+        function getPositionForRenderState(targetState, modelId) {
+          const options = getTableOptions(targetState, modelId);
+          return options.manualPosition || getBasePosition(modelId);
+        }
+
+        function getMethodContextKey(context) {
+          return context && context.modelId && context.methodName
+            ? context.modelId + "::" + context.methodName
+            : "";
+        }
+
+        function getMethodButtonKey(modelId, methodName) {
+          return modelId + "::" + methodName;
+        }
+
+        function getOverlayMetaKey(meta) {
+          return meta.sourceModelId + "::" + meta.methodName + "::" + meta.targetModelId;
+        }
+
+        function selectionStateChanged(previousState) {
+          return (
+            previousState.selectedModelId !== state.selectedModelId ||
+            getMethodContextKey(previousState.selectedMethodContext) !==
+              getMethodContextKey(state.selectedMethodContext)
+          );
+        }
+
+        function queueDragPreviewRects(previousState, modelId) {
+          const dirtyRects = [
+            getModelScreenRect(modelId, 72, previousState),
+            getModelScreenRect(modelId, 72, state),
+          ].filter(Boolean);
+
+          if (dirtyRects.length === 0) {
+            return;
+          }
+
+          pendingDragPreviewRects = mergeScreenRects(
+            pendingDragPreviewRects.concat(dirtyRects),
+          );
+        }
+
+        function collectSelectionAffectedModelIds(previousState, action) {
+          const modelIds = new Set([
+            action.modelId,
+            previousState.selectedModelId,
+            state.selectedModelId,
+          ]);
+
+          for (const modelId of collectMethodTargetModelIdsForState(previousState)) {
+            modelIds.add(modelId);
+          }
+
+          for (const modelId of collectMethodTargetModelIdsForState(state)) {
+            modelIds.add(modelId);
+          }
+
+          return Array.from(modelIds).filter(Boolean);
+        }
+
+        function collectSelectionAffectedPanelIds(previousState, action) {
+          return Array.from(new Set([
+            action.modelId,
+            previousState.selectedModelId,
+            state.selectedModelId,
+          ])).filter(Boolean);
+        }
+
+        function collectSelectionDirtyScreenRects(previousState, action) {
+          const dirtyRects = [];
+
+          for (const modelId of collectSelectionAffectedModelIds(previousState, action)) {
+            const previousRect = getModelScreenRect(modelId, 72, previousState);
+            const nextRect = getModelScreenRect(modelId, 72, state);
+            if (previousRect) {
+              dirtyRects.push(previousRect);
+            }
+            if (nextRect) {
+              dirtyRects.push(nextRect);
+            }
+          }
+
+          for (const overlay of collectActiveOverlayEntriesForState(previousState)) {
+            const rect = getOverlayScreenRect(overlay, 28);
+            if (rect) {
+              dirtyRects.push(rect);
+            }
+          }
+
+          for (const overlay of collectActiveOverlayEntriesForState(state)) {
+            const rect = getOverlayScreenRect(overlay, 28);
+            if (rect) {
+              dirtyRects.push(rect);
+            }
+          }
+
+          return dirtyRects;
+        }
+
+        function isOverlayActiveForState(meta, targetState) {
+          return Boolean(
+            targetState.selectedMethodContext &&
+            targetState.selectedMethodContext.modelId === meta.sourceModelId &&
+            targetState.selectedMethodContext.methodName === meta.methodName &&
+            getTableOptions(targetState, meta.sourceModelId).showMethodHighlights &&
+            !getTableOptions(targetState, meta.sourceModelId).hidden &&
+            !getTableOptions(targetState, meta.targetModelId).hidden,
+          );
+        }
+
+        function createOverlayRenderState(meta, targetState) {
+          const sourceTable = tableMetaById.get(meta.sourceModelId);
+          const targetTable = tableMetaById.get(meta.targetModelId);
+          if (!sourceTable || !targetTable) {
+            return undefined;
+          }
+
+          const sourcePosition = getPositionForRenderState(targetState, meta.sourceModelId);
+          const targetPosition = getPositionForRenderState(targetState, meta.targetModelId);
+          const sourceCenter = getCenter(sourcePosition, sourceTable);
+          const targetCenter = getCenter(targetPosition, targetTable);
+
+          return {
+            active: isOverlayActiveForState(meta, targetState),
+            key: getOverlayMetaKey(meta),
+            sourceModelId: meta.sourceModelId,
+            targetModelId: meta.targetModelId,
+            x1: sourceCenter.x,
+            x2: targetCenter.x,
+            y1: sourceCenter.y,
+            y2: targetCenter.y,
+          };
+        }
+
+        function collectActiveOverlayEntriesForState(targetState) {
+          const methodKey = getMethodContextKey(targetState.selectedMethodContext);
+          if (!methodKey) {
+            return [];
+          }
+
+          return (overlayMetaByMethodKey.get(methodKey) || [])
+            .map((meta) => createOverlayRenderState(meta, targetState))
+            .filter((overlay) => overlay && overlay.active);
+        }
+
+        function collectMethodTargetModelIdsForState(targetState) {
+          return collectActiveOverlayEntriesForState(targetState).map((overlay) => overlay.targetModelId);
         }
 
         function isVisibleModel(modelId) {
@@ -415,6 +611,49 @@ export function getBrowserRenderSource(): string {
           return visibleEdgeEntries;
         }
 
+        function parseEdgePointsAttribute(pointsAttribute) {
+          return String(pointsAttribute || "")
+            .trim()
+            .split(/\s+/)
+            .map((pair) => {
+              const [x, y] = pair.split(",");
+              const point = {
+                x: Number(x),
+                y: Number(y),
+              };
+
+              return Number.isFinite(point.x) && Number.isFinite(point.y)
+                ? point
+                : undefined;
+            })
+            .filter(Boolean);
+        }
+
+        function collectPrecomputedVisibleRoutes(edgeEntries) {
+          const routes = [];
+
+          for (const entry of edgeEntries) {
+            if (
+              getTableOptions(state, entry.meta.sourceModelId).manualPosition ||
+              getTableOptions(state, entry.meta.targetModelId).manualPosition
+            ) {
+              return undefined;
+            }
+
+            const points = parseEdgePointsAttribute(entry.meta.element.dataset.points);
+            if (points.length < 2) {
+              return undefined;
+            }
+
+            routes.push({
+              entry,
+              points,
+            });
+          }
+
+          return routes;
+        }
+
         function updateRenderedEdge(route) {
           const pointsAttribute = pointsToAttribute(route.points);
           route.entry.meta.element.setAttribute("points", pointsAttribute);
@@ -448,6 +687,16 @@ export function getBrowserRenderSource(): string {
             if (crossingsLayer) {
               crossingsLayer.innerHTML = "";
             }
+            return;
+          }
+
+          const precomputedRoutes = collectPrecomputedVisibleRoutes(visibleEdgeEntries);
+          if (precomputedRoutes) {
+            for (const routed of precomputedRoutes) {
+              updateRenderedEdge(routed);
+            }
+
+            recomputeRenderedCrossings();
             return;
           }
 
@@ -657,90 +906,398 @@ export function getBrowserRenderSource(): string {
           }
         }
 
-        function renderOverlays() {
-          renderedOverlays = [];
+        function renderOverlay(meta) {
+          const overlay = createOverlayRenderState(meta, state);
+          if (!overlay) {
+            return undefined;
+          }
 
-          for (const meta of overlayMeta) {
-            const sourceTable = tableMetaById.get(meta.sourceModelId);
-            const targetTable = tableMetaById.get(meta.targetModelId);
-            if (!sourceTable || !targetTable) {
+          meta.element.dataset.x1 = String(overlay.x1);
+          meta.element.dataset.y1 = String(overlay.y1);
+          meta.element.dataset.x2 = String(overlay.x2);
+          meta.element.dataset.y2 = String(overlay.y2);
+          meta.element.classList.toggle("is-active", overlay.active);
+          meta.element.toggleAttribute("hidden", !overlay.active);
+
+          return overlay;
+        }
+
+        function upsertRenderedOverlay(overlay) {
+          if (!overlay) {
+            return;
+          }
+
+          const existingIndex = renderedOverlays.findIndex((candidate) => candidate.key === overlay.key);
+          if (!overlay.active) {
+            if (existingIndex >= 0) {
+              renderedOverlays.splice(existingIndex, 1);
+            }
+            return;
+          }
+
+          if (existingIndex >= 0) {
+            renderedOverlays[existingIndex] = overlay;
+            return;
+          }
+
+          renderedOverlays.push(overlay);
+        }
+
+        function renderSelectionOverlays(previousState) {
+          const methodKeys = new Set([
+            getMethodContextKey(previousState.selectedMethodContext),
+            getMethodContextKey(state.selectedMethodContext),
+          ].filter(Boolean));
+
+          for (const methodKey of methodKeys) {
+            for (const meta of overlayMetaByMethodKey.get(methodKey) || []) {
+              upsertRenderedOverlay(renderOverlay(meta));
+            }
+          }
+
+          const affectedTargetModelIds = new Set([
+            ...collectMethodTargetModelIdsForState(previousState),
+            ...collectMethodTargetModelIdsForState(state),
+          ]);
+
+          for (const modelId of affectedTargetModelIds) {
+            const meta = tableMetaById.get(modelId);
+            if (!meta) {
               continue;
             }
 
-            const sourcePosition = getCurrentPosition(meta.sourceModelId);
-            const targetPosition = getCurrentPosition(meta.targetModelId);
-            const sourceCenter = getCenter(sourcePosition, sourceTable);
-            const targetCenter = getCenter(targetPosition, targetTable);
-            const active =
-              state.selectedMethodContext &&
-              state.selectedMethodContext.modelId === meta.sourceModelId &&
-              state.selectedMethodContext.methodName === meta.methodName &&
-              getTableOptions(state, meta.sourceModelId).showMethodHighlights &&
-              isVisibleModel(meta.sourceModelId) &&
-              isVisibleModel(meta.targetModelId);
+            meta.element.classList.toggle("is-method-target", isMethodTarget(modelId));
+          }
+        }
 
-            meta.element.dataset.x1 = String(sourceCenter.x);
-            meta.element.dataset.y1 = String(sourceCenter.y);
-            meta.element.dataset.x2 = String(targetCenter.x);
-            meta.element.dataset.y2 = String(targetCenter.y);
-            meta.element.classList.toggle("is-active", Boolean(active));
-            meta.element.toggleAttribute("hidden", !active);
-            renderedOverlays.push({
-              active: Boolean(active),
-              x1: sourceCenter.x,
-              x2: targetCenter.x,
-              y1: sourceCenter.y,
-              y2: targetCenter.y,
-            });
+        function renderOverlays() {
+          renderedOverlays = [];
+          const methodTargetModelIds = new Set();
+
+          for (const meta of overlayMeta) {
+            const overlay = renderOverlay(meta);
+            if (!overlay || !overlay.active) {
+              continue;
+            }
+
+            renderedOverlays.push(overlay);
+            methodTargetModelIds.add(overlay.targetModelId);
           }
 
           for (const [modelId, meta] of tableMetaById.entries()) {
-            meta.element.classList.toggle("is-method-target", isMethodTarget(modelId));
+            meta.element.classList.toggle("is-method-target", methodTargetModelIds.has(modelId));
+          }
+        }
+
+        function syncMethodButtonCollection() {
+          methodButtons = Array.from(document.querySelectorAll("[data-method-button]"));
+        }
+
+        function hasRenderablePanelDetails(table) {
+          return Boolean(
+            table &&
+            (
+              (Array.isArray(table.fieldRows) && table.fieldRows.length > 0) ||
+              (Array.isArray(table.properties) && table.properties.length > 0) ||
+              (Array.isArray(table.methods) && table.methods.length > 0)
+            )
+          );
+        }
+
+        function computePanelDetailRenderKey(table, options) {
+          return [
+            Array.isArray(table.fieldRows) ? table.fieldRows.length : 0,
+            Array.isArray(table.methods) ? table.methods.length : 0,
+            Array.isArray(table.properties) ? table.properties.length : 0,
+            options.showMethods ? 1 : 0,
+            options.showProperties ? 1 : 0,
+          ].join(":");
+        }
+
+        function ensurePanelDetailBody(modelId, meta, options) {
+          const table = tableRenderById.get(modelId);
+          if (!meta.detailBody || !table || !hasRenderablePanelDetails(table)) {
+            return meta;
+          }
+
+          const nextRenderKey = computePanelDetailRenderKey(table, options);
+          if (
+            meta.detailBody.dataset.panelRenderKey === nextRenderKey &&
+            meta.detailBody.childElementCount > 0
+          ) {
+            return meta;
+          }
+
+          meta.detailBody.replaceChildren(createPanelDetailFragment(table, options));
+          meta.detailBody.dataset.panelRenderKey = nextRenderKey;
+          const refreshedMeta = readPanelMeta(meta.element);
+          panelMetaById.set(modelId, refreshedMeta);
+          syncMethodButtonCollection();
+          return refreshedMeta;
+        }
+
+        function createPanelDetailFragment(table, options) {
+          const fragment = document.createDocumentFragment();
+          fragment.appendChild(createMethodsPanelSection(table, options));
+          fragment.appendChild(createPropertiesPanelSection(table, options));
+          fragment.appendChild(createFieldSummaryPanelSection(table));
+          return fragment;
+        }
+
+        function createMethodsPanelSection(table, options) {
+          const section = createPanelSection("Methods");
+          const methods = Array.isArray(table.methods) ? table.methods : [];
+          section.appendChild(
+            createHintParagraph(
+              "Methods are hidden by the current table view state.",
+              "method-hidden-hint",
+              options.showMethods,
+            ),
+          );
+          section.appendChild(
+            createHintParagraph(
+              "No user-defined methods.",
+              "empty-method-hint",
+              methods.length > 0,
+            ),
+          );
+
+          const methodList = document.createElement("div");
+          methodList.className = "erd-method-buttons";
+          methodList.dataset.methodList = "";
+          methodList.toggleAttribute("hidden", !options.showMethods || methods.length === 0);
+
+          for (const method of methods) {
+            methodList.appendChild(createMethodCard(table, method));
+          }
+
+          section.appendChild(methodList);
+          return section;
+        }
+
+        function createPropertiesPanelSection(table, options) {
+          const section = createPanelSection("Properties");
+          const properties = Array.isArray(table.properties) ? table.properties : [];
+          section.appendChild(
+            createHintParagraph(
+              "Properties are hidden by the current table view state.",
+              "property-hidden-hint",
+              options.showProperties,
+            ),
+          );
+          section.appendChild(
+            createHintParagraph(
+              "No computed properties.",
+              "empty-property-hint",
+              properties.length > 0,
+            ),
+          );
+
+          const propertyList = document.createElement("ul");
+          propertyList.className = "erd-list";
+          propertyList.dataset.propertyList = "";
+          propertyList.toggleAttribute("hidden", !options.showProperties || properties.length === 0);
+
+          for (const property of properties) {
+            const item = document.createElement("li");
+            item.className = "erd-list__item";
+            const label = document.createElement("span");
+            label.textContent = "@ " + String(property);
+            item.appendChild(label);
+            propertyList.appendChild(item);
+          }
+
+          section.appendChild(propertyList);
+          return section;
+        }
+
+        function createFieldSummaryPanelSection(table) {
+          const section = createPanelSection("Field Summary");
+          const fieldList = document.createElement("ul");
+          fieldList.className = "erd-list";
+
+          for (const row of Array.isArray(table.fieldRows) ? table.fieldRows : []) {
+            const item = document.createElement("li");
+            item.className = "erd-list__item erd-list__item--" + String(row.tone || "field");
+            const label = document.createElement("span");
+            label.textContent = String(row.text || "");
+            item.appendChild(label);
+            fieldList.appendChild(item);
+          }
+
+          section.appendChild(fieldList);
+          return section;
+        }
+
+        function createPanelSection(title) {
+          const section = document.createElement("div");
+          section.className = "erd-panel__section";
+          const heading = document.createElement("h3");
+          heading.textContent = title;
+          section.appendChild(heading);
+          return section;
+        }
+
+        function createHintParagraph(text, datasetKey, hidden) {
+          const hint = document.createElement("p");
+          hint.className = "erd-panel__hint";
+          hint.setAttribute("data-" + datasetKey, "");
+          hint.textContent = text;
+          hint.toggleAttribute("hidden", Boolean(hidden));
+          return hint;
+        }
+
+        function createMethodCard(table, method) {
+          const article = document.createElement("article");
+          article.className = "erd-method-card";
+
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "erd-method-button";
+          button.dataset.methodButton = "";
+          button.dataset.methodName = String(method.name || "");
+          button.dataset.modelId = String(table.modelId || "");
+
+          const label = document.createElement("span");
+          label.textContent = "fn " + String(method.name || "");
+          const count = document.createElement("span");
+          const relatedModels = Array.isArray(method.relatedModels) ? method.relatedModels : [];
+          count.textContent = String(relatedModels.length) + " links";
+          button.appendChild(label);
+          button.appendChild(count);
+          article.appendChild(button);
+          article.appendChild(createMethodRelationsNode(method));
+          return article;
+        }
+
+        function createMethodRelationsNode(method) {
+          const relatedModels = Array.isArray(method.relatedModels) ? method.relatedModels : [];
+          if (relatedModels.length === 0) {
+            const hint = document.createElement("p");
+            hint.className = "erd-panel__hint";
+            hint.textContent = "No related models inferred for this method.";
+            return hint;
+          }
+
+          const container = document.createElement("div");
+          container.className = "erd-method-links";
+          for (const reference of relatedModels) {
+            const chip = document.createElement("span");
+            chip.className = "erd-relation-chip erd-relation-chip--" + String(reference.confidence || "low");
+            chip.textContent = formatMethodRelationLabel(reference);
+            container.appendChild(chip);
+          }
+          return container;
+        }
+
+        function formatMethodRelationLabel(reference) {
+          if (reference && reference.targetModelId) {
+            return String(reference.targetModelId);
+          }
+
+          if (reference && reference.rawReference) {
+            return String(reference.rawReference) + " (unresolved)";
+          }
+
+          return "unresolved model";
+        }
+
+        function renderPanel(modelId, meta) {
+          const selected = state.selectedModelId === modelId;
+          const options = getTableOptions(state, modelId);
+          const table = tableRenderById.get(modelId);
+
+          meta.element.classList.toggle("is-selected", selected);
+          meta.element.toggleAttribute("hidden", !selected);
+          if (selected && table && hasRenderablePanelDetails(table)) {
+            meta = ensurePanelDetailBody(modelId, meta, options);
+          }
+          if (meta.methodHiddenHint) {
+            meta.methodHiddenHint.toggleAttribute("hidden", options.showMethods);
+          }
+          if (meta.methodList) {
+            const hasMethods = meta.methodList.children.length > 0;
+            meta.methodList.toggleAttribute("hidden", !options.showMethods || !hasMethods);
+          }
+          if (meta.emptyMethodHint) {
+            const hasMethods = meta.methodList && meta.methodList.children.length > 0;
+            meta.emptyMethodHint.toggleAttribute("hidden", Boolean(hasMethods));
+          }
+          if (meta.propertyHiddenHint) {
+            meta.propertyHiddenHint.toggleAttribute("hidden", options.showProperties);
+          }
+          if (meta.propertyList) {
+            const hasProperties = meta.propertyList.children.length > 0;
+            meta.propertyList.toggleAttribute("hidden", !options.showProperties || !hasProperties);
+          }
+          if (meta.emptyPropertyHint) {
+            const hasProperties = meta.propertyList && meta.propertyList.children.length > 0;
+            meta.emptyPropertyHint.toggleAttribute("hidden", Boolean(hasProperties));
+          }
+
+          for (const button of meta.toggleButtons) {
+            updateToggleButton(button, options);
           }
         }
 
         function renderPanels() {
           for (const [modelId, meta] of panelMetaById.entries()) {
-            const selected = state.selectedModelId === modelId;
-            const options = getTableOptions(state, modelId);
-
-            meta.element.classList.toggle("is-selected", selected);
-            meta.element.toggleAttribute("hidden", !selected);
-            if (meta.methodHiddenHint) {
-              meta.methodHiddenHint.toggleAttribute("hidden", options.showMethods);
-            }
-            if (meta.methodList) {
-              const hasMethods = meta.methodList.children.length > 0;
-              meta.methodList.toggleAttribute("hidden", !options.showMethods || !hasMethods);
-            }
-            if (meta.emptyMethodHint) {
-              const hasMethods = meta.methodList && meta.methodList.children.length > 0;
-              meta.emptyMethodHint.toggleAttribute("hidden", Boolean(hasMethods));
-            }
-            if (meta.propertyHiddenHint) {
-              meta.propertyHiddenHint.toggleAttribute("hidden", options.showProperties);
-            }
-            if (meta.propertyList) {
-              const hasProperties = meta.propertyList.children.length > 0;
-              meta.propertyList.toggleAttribute("hidden", !options.showProperties || !hasProperties);
-            }
-            if (meta.emptyPropertyHint) {
-              const hasProperties = meta.propertyList && meta.propertyList.children.length > 0;
-              meta.emptyPropertyHint.toggleAttribute("hidden", Boolean(hasProperties));
-            }
-
-            for (const button of meta.toggleButtons) {
-              updateToggleButton(button, options);
-            }
+            renderPanel(modelId, meta);
           }
 
+          renderMethodButtons();
+        }
+
+        function renderPanelsForModelIds(modelIds) {
+          const seen = new Set();
+
+          for (const modelId of modelIds) {
+            if (!modelId || seen.has(modelId)) {
+              continue;
+            }
+
+            const meta = panelMetaById.get(modelId);
+            if (!meta) {
+              continue;
+            }
+
+            seen.add(modelId);
+            renderPanel(modelId, meta);
+          }
+        }
+
+        function renderMethodButtons() {
+          syncMethodButtonCollection();
           for (const button of methodButtons) {
-            const active =
-              state.selectedMethodContext &&
-              state.selectedMethodContext.modelId === button.dataset.modelId &&
-              state.selectedMethodContext.methodName === button.dataset.methodName;
-            button.classList.toggle("is-active", Boolean(active));
+            updateMethodButtonState(button);
           }
+        }
+
+        function renderMethodButtonsForContexts(contexts) {
+          const seen = new Set();
+
+          for (const context of Array.isArray(contexts) ? contexts : []) {
+            const methodKey = getMethodContextKey(context);
+            if (!methodKey || seen.has(methodKey)) {
+              continue;
+            }
+
+            seen.add(methodKey);
+            syncMethodButtonCollection();
+            for (const button of methodButtons.filter((candidate) =>
+              getMethodButtonKey(candidate.dataset.modelId || "", candidate.dataset.methodName || "") === methodKey
+            )) {
+              updateMethodButtonState(button);
+            }
+          }
+        }
+
+        function updateMethodButtonState(button) {
+          const active =
+            state.selectedMethodContext &&
+            state.selectedMethodContext.modelId === button.dataset.modelId &&
+            state.selectedMethodContext.methodName === button.dataset.methodName;
+          button.classList.toggle("is-active", Boolean(active));
         }
 
         function renderSummary() {
@@ -799,48 +1356,70 @@ export function getBrowserRenderSource(): string {
 
         function renderTables() {
           for (const [modelId, meta] of tableMetaById.entries()) {
-            const selected = state.selectedModelId === modelId;
-            const options = getTableOptions(state, modelId);
-            const position = getCurrentPosition(modelId);
-            const isDraggingTable = drag && drag.kind === "table" && drag.modelId === modelId;
+            renderTable(modelId, meta);
+          }
+        }
 
-            meta.element.classList.toggle("is-selected", selected);
-            meta.element.classList.toggle("is-dragging", Boolean(isDraggingTable));
-            meta.element.setAttribute(
-              "transform",
-              "translate(" + position.x + " " + position.y + ")",
+        function renderTablesForModelIds(modelIds) {
+          const seen = new Set();
+
+          for (const modelId of modelIds) {
+            if (!modelId || seen.has(modelId)) {
+              continue;
+            }
+
+            const meta = tableMetaById.get(modelId);
+            if (!meta) {
+              continue;
+            }
+
+            seen.add(modelId);
+            renderTable(modelId, meta);
+          }
+        }
+
+        function renderTable(modelId, meta) {
+          const selected = state.selectedModelId === modelId;
+          const options = getTableOptions(state, modelId);
+          const position = getCurrentPosition(modelId);
+          const isDraggingTable = drag && drag.kind === "table" && drag.modelId === modelId;
+
+          meta.element.classList.toggle("is-selected", selected);
+          meta.element.classList.toggle("is-dragging", Boolean(isDraggingTable));
+          meta.element.setAttribute(
+            "transform",
+            "translate(" + position.x + " " + position.y + ")",
+          );
+          meta.element.dataset.hidden = String(options.hidden);
+          meta.element.dataset.methodHighlights = String(options.showMethodHighlights);
+          meta.element.dataset.showMethods = String(options.showMethods);
+          meta.element.dataset.showProperties = String(options.showProperties);
+          meta.element.toggleAttribute("hidden", options.hidden);
+
+          if (meta.methodsSection) {
+            meta.methodsSection.toggleAttribute("hidden", !options.showMethods);
+          }
+          if (meta.propertiesSection) {
+            meta.propertiesSection.toggleAttribute("hidden", !options.showProperties);
+          }
+          if (meta.dividers.methods) {
+            meta.dividers.methods.toggleAttribute(
+              "hidden",
+              !options.showMethods || !meta.methodsSection || meta.methodsSection.children.length === 0,
             );
-            meta.element.dataset.hidden = String(options.hidden);
-            meta.element.dataset.methodHighlights = String(options.showMethodHighlights);
-            meta.element.dataset.showMethods = String(options.showMethods);
-            meta.element.dataset.showProperties = String(options.showProperties);
-            meta.element.toggleAttribute("hidden", options.hidden);
-
-            if (meta.methodsSection) {
-              meta.methodsSection.toggleAttribute("hidden", !options.showMethods);
-            }
-            if (meta.propertiesSection) {
-              meta.propertiesSection.toggleAttribute("hidden", !options.showProperties);
-            }
-            if (meta.dividers.methods) {
-              meta.dividers.methods.toggleAttribute(
-                "hidden",
-                !options.showMethods || !meta.methodsSection || meta.methodsSection.children.length === 0,
-              );
-            }
-            if (meta.dividers.properties) {
-              meta.dividers.properties.toggleAttribute(
-                "hidden",
-                !options.showProperties || !meta.propertiesSection || meta.propertiesSection.children.length === 0,
-              );
-            }
+          }
+          if (meta.dividers.properties) {
+            meta.dividers.properties.toggleAttribute(
+              "hidden",
+              !options.showProperties || !meta.propertiesSection || meta.propertiesSection.children.length === 0,
+            );
           }
         }
 
         function isMethodTarget(modelId) {
-          return overlayMeta.some((meta) =>
-            meta.element.classList.contains("is-active") &&
-            meta.targetModelId === modelId,
+          return renderedOverlays.some((overlay) =>
+            overlay.active &&
+            overlay.targetModelId === modelId,
           );
         }
 

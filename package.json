@@ -12,6 +12,7 @@
     "Visualization"
   ],
   "activationEvents": [
+    "onStartupFinished",
     "onCommand:djangoErd.openDiagram",
     "onCommand:djangoErd.refreshDiagram",
     "onCommand:djangoErd.showLog"
@@ -39,6 +40,7 @@
   "scripts": {
     "build": "npm run build:layout-wasm && npm run build:extension && npm run build:analyzer",
     "build:analyzer": "cargo build --manifest-path analyzer/Cargo.toml",
+    "bundle:graphviz": "node scripts/stage-graphviz-runtime.mjs",
     "build:extension": "npm exec --yes --package typescript -- tsc -p .",
     "build:layout-wasm": "node scripts/build-layout-wasm.mjs",
     "typecheck": "npm exec --yes --package typescript -- tsc -p . --noEmit",

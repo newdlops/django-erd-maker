@@ -1,8 +1,11 @@
 import * as vscode from "vscode";
 
 import { ErdPanel } from "../panels/erdPanel";
+import type { LayoutMode } from "../../shared/graph/layoutContract";
+import type { DiagramInteractionSettingsSnapshot } from "../../shared/protocol/webviewContract";
 import { discoverDjangoWorkspace } from "../services/discovery/discoverDjangoWorkspace";
 import type { DjangoWorkspaceDiscoveryResult } from "../services/discovery/discoveryTypes";
+import { ensureGraphvizRuntime } from "../services/graphviz/graphvizRuntime";
 import { loadLiveDiagram } from "../services/diagram/loadLiveDiagram";
 import type { LiveDiagramResult } from "../services/diagram/loadLiveDiagram";
 import { getExtensionLogger, showExtensionLog } from "../services/logging/extensionLogger";
@@ -14,8 +17,7 @@ export async function openDiagram(
 ): Promise<void> {
   const logger = getExtensionLogger();
   const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  const analyzerLayoutMode = "hierarchical";
-  const initialWebviewLayoutMode = "hierarchical";
+  const initialLayoutMode: LayoutMode = "hierarchical";
 
   if (!workspacePath) {
     throw new Error("Open a Django workspace folder before opening the ERD.");
@@ -23,7 +25,12 @@ export async function openDiagram(
 
   logger.info(`Open diagram requested for workspace: ${workspacePath}`);
 
-  const refreshLoader = () =>
+  const refreshLoader = (
+    options?: {
+      layoutMode?: LayoutMode;
+      settings?: DiagramInteractionSettingsSnapshot;
+    },
+  ) =>
     vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -37,11 +44,13 @@ export async function openDiagram(
         const liveDiagram = await loadLiveDiagram(
           context.extensionUri.fsPath,
           timedDiscovery.result,
-          analyzerLayoutMode,
+          options?.layoutMode ?? initialLayoutMode,
           timedDiscovery.durationMs,
           logger,
+          options?.settings,
+          await ensureGraphvizRuntime(context, logger),
         );
-        liveDiagram.payload.view.layoutMode = initialWebviewLayoutMode;
+        liveDiagram.payload.view.layoutMode = options?.layoutMode ?? initialLayoutMode;
         logLiveDiagramResult(liveDiagram, logger);
         return liveDiagram;
       },

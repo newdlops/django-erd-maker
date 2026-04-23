@@ -292,7 +292,7 @@ export function getBrowserTestSource(): string {
               return;
             case "clickMethod":
               requireElement(
-                methodButtons.find((button) =>
+                Array.from(document.querySelectorAll("[data-method-button]")).find((button) =>
                   button.dataset.modelId === action.modelId &&
                   button.dataset.methodName === action.methodName,
                 ),
@@ -301,7 +301,9 @@ export function getBrowserTestSource(): string {
               return;
             case "clickShowHiddenModel":
               requireElement(
-                showHiddenButtons.find((button) => button.dataset.modelId === action.modelId),
+                Array.from(document.querySelectorAll("[data-show-hidden-model]")).find(
+                  (button) => button.dataset.modelId === action.modelId,
+                ),
                 "show hidden button " + action.modelId,
               ).click();
               return;
@@ -313,7 +315,7 @@ export function getBrowserTestSource(): string {
               return;
             case "clickTableToggle":
               requireElement(
-                tableToggleButtons.find((button) =>
+                Array.from(document.querySelectorAll("[data-table-toggle]")).find((button) =>
                   button.dataset.modelId === action.modelId &&
                   button.dataset.tableToggle === action.toggle,
                 ),

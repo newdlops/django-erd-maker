@@ -196,25 +196,7 @@ function renderMethodButtons(table: DiagramRenderModel["tables"][number]): strin
 
 function renderModelPanel(table: DiagramRenderModel["tables"][number]): string {
   const selectedClass = table.selected ? " is-selected" : "";
-  if (table.fieldRows.length === 0 && table.properties.length === 0 && table.methods.length === 0) {
-    return `
-      <section
-        class="erd-panel${selectedClass}"
-        data-model-panel
-        data-model-id="${escapeHtml(table.modelId)}"
-        ${table.selected ? "" : "hidden"}
-      >
-        <header class="erd-panel__header">
-          <p class="erd-panel__eyebrow">${escapeHtml(table.appLabel)}</p>
-          <h2>${escapeHtml(table.modelName)}</h2>
-          <p class="erd-panel__meta">${escapeHtml(table.databaseTableName)}</p>
-        </header>
-        <div class="erd-panel__controls">
-          ${renderToggleButton(table, "hidden", table.hidden ? "Show Table" : "Hide Table")}
-        </div>
-      </section>
-    `;
-  }
+  const hasDetails = table.fieldRows.length > 0 || table.properties.length > 0 || table.methods.length > 0;
 
   return `
     <section
@@ -226,14 +208,29 @@ function renderModelPanel(table: DiagramRenderModel["tables"][number]): string {
       <header class="erd-panel__header">
         <p class="erd-panel__eyebrow">${escapeHtml(table.appLabel)}</p>
         <h2>${escapeHtml(table.modelName)}</h2>
-        <p class="erd-panel__meta">${table.fieldRows.length} rows · ${table.properties.length} properties · ${table.methods.length} methods</p>
+        <p class="erd-panel__meta">${
+          hasDetails
+            ? `${table.fieldRows.length} rows · ${table.properties.length} properties · ${table.methods.length} methods`
+            : escapeHtml(table.databaseTableName)
+        }</p>
       </header>
       <div class="erd-panel__controls">
         ${renderToggleButton(table, "hidden", table.hidden ? "Show Table" : "Hide Table")}
-        ${renderToggleButton(table, "showMethods", "Methods")}
-        ${renderToggleButton(table, "showProperties", "Properties")}
-        ${renderToggleButton(table, "showMethodHighlights", "Method Links")}
+        ${hasDetails ? renderToggleButton(table, "showMethods", "Methods") : ""}
+        ${hasDetails ? renderToggleButton(table, "showProperties", "Properties") : ""}
+        ${hasDetails ? renderToggleButton(table, "showMethodHighlights", "Method Links") : ""}
       </div>
+      <div
+        class="erd-panel__details"
+        data-panel-body
+        data-panel-render-key="${table.selected && hasDetails ? panelRenderKey(table) : ""}"
+      >${table.selected && hasDetails ? renderModelPanelDetails(table) : ""}</div>
+    </section>
+  `;
+}
+
+function renderModelPanelDetails(table: DiagramRenderModel["tables"][number]): string {
+  return `
       <div class="erd-panel__section">
         <h3>Methods</h3>
         <p class="erd-panel__hint" data-method-hidden-hint ${table.showMethods ? "hidden" : ""}>Methods are hidden by the current table view state.</p>
@@ -264,8 +261,17 @@ function renderModelPanel(table: DiagramRenderModel["tables"][number]): string {
             .join("")}
         </ul>
       </div>
-    </section>
   `;
+}
+
+function panelRenderKey(table: DiagramRenderModel["tables"][number]): string {
+  return [
+    table.fieldRows.length,
+    table.methods.length,
+    table.properties.length,
+    table.showMethods ? 1 : 0,
+    table.showProperties ? 1 : 0,
+  ].join(":");
 }
 
 function renderToggleButton(

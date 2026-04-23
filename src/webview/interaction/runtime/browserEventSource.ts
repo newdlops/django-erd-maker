@@ -81,21 +81,17 @@ export function getBrowserEventSource(): string {
           });
         }
 
-        for (const button of methodButtons) {
-          button.addEventListener("click", () => {
-            dispatch({
-              methodName: button.dataset.methodName,
-              modelId: button.dataset.modelId,
-              type: "toggle-method",
-            });
-          });
-        }
-
         for (const button of layoutButtons) {
           button.addEventListener("click", () => {
-            dispatch({
-              layoutMode: button.dataset.layoutMode,
-              type: "set-layout-mode",
+            const layoutMode = button.dataset.layoutMode;
+            if (!layoutMode) {
+              return;
+            }
+
+            vscode?.postMessage({
+              layoutMode,
+              settings: { ...state.settings },
+              type: "diagram.requestRefresh",
             });
           });
         }
@@ -119,57 +115,73 @@ export function getBrowserEventSource(): string {
           });
         }
 
-        for (const button of showHiddenButtons) {
-          button.addEventListener("click", () => {
+        root.addEventListener("click", (event) => {
+          const clickTarget = event.target;
+          const target = clickTarget && clickTarget.closest ? clickTarget.closest("[data-method-button], [data-show-hidden-model], [data-table-toggle]") : null;
+          if (!target) {
+            return;
+          }
+
+          if (target.hasAttribute("data-method-button")) {
+            dispatch({
+              methodName: target.dataset.methodName,
+              modelId: target.dataset.modelId,
+              type: "toggle-method",
+            });
+            return;
+          }
+
+          if (target.hasAttribute("data-show-hidden-model")) {
             dispatch({
               hidden: false,
-              modelId: button.dataset.modelId,
+              modelId: target.dataset.modelId,
               type: "set-table-hidden",
             });
             dispatch({
-              modelId: button.dataset.modelId,
+              modelId: target.dataset.modelId,
               type: "select-model",
             });
-          });
-        }
+            return;
+          }
 
-        for (const button of tableToggleButtons) {
-          button.addEventListener("click", () => {
-            const modelId = button.dataset.modelId;
-            const options = getTableOptions(state, modelId);
+          if (!target.hasAttribute("data-table-toggle")) {
+            return;
+          }
 
-            switch (button.dataset.tableToggle) {
-              case "hidden":
-                dispatch({
-                  hidden: !options.hidden,
-                  modelId,
-                  type: "set-table-hidden",
-                });
-                break;
-              case "showMethods":
-                dispatch({
-                  modelId,
-                  showMethods: !options.showMethods,
-                  type: "set-table-show-methods",
-                });
-                break;
-              case "showProperties":
-                dispatch({
-                  modelId,
-                  showProperties: !options.showProperties,
-                  type: "set-table-show-properties",
-                });
-                break;
-              case "showMethodHighlights":
-                dispatch({
-                  modelId,
-                  showMethodHighlights: !options.showMethodHighlights,
-                  type: "set-table-show-method-highlights",
-                });
-                break;
-            }
-          });
-        }
+          const modelId = target.dataset.modelId;
+          const options = getTableOptions(state, modelId);
+
+          switch (target.dataset.tableToggle) {
+            case "hidden":
+              dispatch({
+                hidden: !options.hidden,
+                modelId,
+                type: "set-table-hidden",
+              });
+              break;
+            case "showMethods":
+              dispatch({
+                modelId,
+                showMethods: !options.showMethods,
+                type: "set-table-show-methods",
+              });
+              break;
+            case "showProperties":
+              dispatch({
+                modelId,
+                showProperties: !options.showProperties,
+                type: "set-table-show-properties",
+              });
+              break;
+            case "showMethodHighlights":
+              dispatch({
+                modelId,
+                showMethodHighlights: !options.showMethodHighlights,
+                type: "set-table-show-method-highlights",
+              });
+              break;
+          }
+        });
 
         for (const control of setupControls) {
           control.addEventListener("input", () => {

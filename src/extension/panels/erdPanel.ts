@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 
+import type { LayoutMode } from "../../shared/graph/layoutContract";
 import type {
   DiagramInteractionSettingsSnapshot,
   WebviewToExtensionMessage,
@@ -17,7 +18,10 @@ import type {
 } from "../../shared/protocol/webviewTestContract";
 import { renderDiagramDocument } from "../../webview/app/renderDiagramDocument";
 
-type RefreshLoader = () => Promise<LiveDiagramResult>;
+type RefreshLoader = (options?: {
+  layoutMode?: LayoutMode;
+  settings?: DiagramInteractionSettingsSnapshot;
+}) => Promise<LiveDiagramResult>;
 type PanelMessage =
   | WebviewToExtensionMessage
   | DiagramTestSnapshotMessage
@@ -53,6 +57,7 @@ export class ErdPanel {
   private persistedSetupSettings: DiagramInteractionSettingsSnapshot | undefined;
   private persistedLayoutMode: DiagramBootstrapPayload["view"]["layoutMode"] | undefined;
   private refreshLoader: RefreshLoader | undefined;
+  private activeRefresh: Promise<void> | undefined;
   private webviewReady = false;
 
   private constructor(private readonly panel: vscode.WebviewPanel) {
@@ -145,7 +150,13 @@ export class ErdPanel {
             ...message.settings,
           };
         }
-        await this.refresh();
+        this.activeRefresh = this.refresh({
+          layoutMode: message.layoutMode,
+          settings: message.settings,
+        }).finally(() => {
+          this.activeRefresh = undefined;
+        });
+        await this.activeRefresh;
         return;
       case "diagram.test.error":
         this.rejectTestRequest(message);
@@ -156,12 +167,15 @@ export class ErdPanel {
     }
   }
 
-  private async refresh(): Promise<void> {
+  private async refresh(options?: {
+    layoutMode?: LayoutMode;
+    settings?: DiagramInteractionSettingsSnapshot;
+  }): Promise<void> {
     if (!this.refreshLoader) {
       return;
     }
 
-    const liveDiagram = await this.refreshLoader();
+    const liveDiagram = await this.refreshLoader(options);
     this.update(liveDiagram, this.refreshLoader);
   }
 
@@ -207,6 +221,36 @@ export class ErdPanel {
     action: DiagramTestAction,
   ): Promise<DiagramTestSnapshot> {
     await this.waitForWebviewReady();
+    const snapshot = await this.sendWebviewAction(action);
+
+    if (action.type === "clickLayoutMode") {
+      const pendingRefresh = await this.waitForPendingRefresh();
+      if (pendingRefresh) {
+        await pendingRefresh;
+        await this.waitForWebviewReady();
+        return this.sendWebviewAction({ type: "snapshot" });
+      }
+    }
+
+    return snapshot;
+  }
+
+  private async waitForPendingRefresh(): Promise<Promise<void> | undefined> {
+    if (this.activeRefresh) {
+      return this.activeRefresh;
+    }
+
+    const started = Date.now();
+    while (!this.activeRefresh && Date.now() - started < 1000) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+
+    return this.activeRefresh;
+  }
+
+  private async sendWebviewAction(
+    action: DiagramTestAction,
+  ): Promise<DiagramTestSnapshot> {
     const requestId = `test-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
     return new Promise<DiagramTestSnapshot>((resolve, reject) => {

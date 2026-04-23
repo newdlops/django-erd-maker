@@ -82,6 +82,174 @@ export function getBrowserCanvasDrawSource(): string {
           lastDrawViewport = currentViewport;
         }
 
+        function redrawCanvasRegions(screenRects, options) {
+          resizeDrawingCanvas();
+
+          if (renderModel.modelCatalogMode) {
+            drawCanvas("full");
+            return;
+          }
+
+          const viewportRect = getViewportRect();
+          const currentViewport = {
+            panX: state.viewport.panX,
+            panY: state.viewport.panY,
+            zoom: state.viewport.zoom,
+          };
+          const dirtyRects = mergeScreenRects(
+            (Array.isArray(screenRects) ? screenRects : [])
+              .map((rect) => clipScreenRectToViewport(rect, viewportRect))
+              .filter(Boolean),
+          );
+
+          if (dirtyRects.length === 0) {
+            return;
+          }
+
+          for (const rect of dirtyRects) {
+            drawingContext.clearRect(rect.x, rect.y, rect.width, rect.height);
+            drawScene(getWorldBoundsForScreenRect(rect), rect, options);
+          }
+
+          updatePanSnapshot();
+          lastDrawViewport = currentViewport;
+        }
+
+        function clipScreenRectToViewport(rect, viewportRect) {
+          if (!rect || !viewportRect) {
+            return undefined;
+          }
+
+          const left = Math.max(0, Math.floor(rect.x));
+          const top = Math.max(0, Math.floor(rect.y));
+          const right = Math.min(viewportRect.width, Math.ceil(rect.x + rect.width));
+          const bottom = Math.min(viewportRect.height, Math.ceil(rect.y + rect.height));
+          const width = right - left;
+          const height = bottom - top;
+
+          if (width <= 0 || height <= 0) {
+            return undefined;
+          }
+
+          return {
+            height,
+            width,
+            x: left,
+            y: top,
+          };
+        }
+
+        function mergeScreenRects(rects) {
+          const pending = Array.isArray(rects) ? rects.slice() : [];
+          const merged = [];
+
+          while (pending.length > 0) {
+            let current = pending.pop();
+            let mergedAny = true;
+
+            while (mergedAny) {
+              mergedAny = false;
+
+              for (let index = pending.length - 1; index >= 0; index -= 1) {
+                if (!screenRectsTouch(current, pending[index])) {
+                  continue;
+                }
+
+                current = mergeTwoScreenRects(current, pending[index]);
+                pending.splice(index, 1);
+                mergedAny = true;
+              }
+            }
+
+            merged.push(current);
+          }
+
+          return merged;
+        }
+
+        function screenRectsTouch(left, right) {
+          const gap = 14;
+
+          return !(
+            left.x + left.width + gap < right.x ||
+            right.x + right.width + gap < left.x ||
+            left.y + left.height + gap < right.y ||
+            right.y + right.height + gap < left.y
+          );
+        }
+
+        function mergeTwoScreenRects(left, right) {
+          const minX = Math.min(left.x, right.x);
+          const minY = Math.min(left.y, right.y);
+          const maxX = Math.max(left.x + left.width, right.x + right.width);
+          const maxY = Math.max(left.y + left.height, right.y + right.height);
+
+          return {
+            height: maxY - minY,
+            width: maxX - minX,
+            x: minX,
+            y: minY,
+          };
+        }
+
+        function getModelScreenRect(modelId, padding, targetState) {
+          const meta = tableMetaById.get(modelId);
+          if (!meta) {
+            return undefined;
+          }
+
+          const position = getPositionForRenderState(targetState || state, modelId);
+          return getTableScreenRectForPosition(position, meta, padding);
+        }
+
+        function getTableScreenRectForPosition(position, meta, padding) {
+          if (!position || !meta) {
+            return undefined;
+          }
+
+          const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
+          const extra = Math.max(0, Number(padding) || 0);
+          const x = position.x * zoom + state.viewport.panX - extra;
+          const y = position.y * zoom + state.viewport.panY - extra;
+
+          return {
+            height: meta.height * zoom + extra * 2,
+            width: meta.width * zoom + extra * 2,
+            x,
+            y,
+          };
+        }
+
+        function getOverlayScreenRect(overlay, padding) {
+          if (!overlay) {
+            return undefined;
+          }
+
+          return getLineScreenRect(
+            overlay.x1,
+            overlay.y1,
+            overlay.x2,
+            overlay.y2,
+            padding,
+          );
+        }
+
+        function getLineScreenRect(x1, y1, x2, y2, padding) {
+          const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
+          const extra = Math.max(0, Number(padding) || 0);
+          const minX = Math.min(x1, x2) * zoom + state.viewport.panX - extra;
+          const minY = Math.min(y1, y2) * zoom + state.viewport.panY - extra;
+          const maxX = Math.max(x1, x2) * zoom + state.viewport.panX + extra;
+          const maxY = Math.max(y1, y2) * zoom + state.viewport.panY + extra;
+
+          return {
+            height: Math.max(1, maxY - minY),
+            width: Math.max(1, maxX - minX),
+            x: minX,
+            y: minY,
+          };
+        }
+
         function drawCatalogCanvas(renderMode) {
           const viewportRect = getViewportRect();
           const visibleBounds = getVisibleWorldBounds(CATALOG_TILE_PRELOAD_WORLD_PADDING);

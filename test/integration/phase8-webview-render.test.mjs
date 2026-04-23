@@ -101,18 +101,24 @@ test("phase8 browser runtime uses drag preview rendering instead of full reroute
   const html = render();
 
   assert.match(html, /let dragPreviewFrame = 0/);
+  assert.match(html, /let pendingDragPreviewRects = \[\]/);
   assert.match(html, /function scheduleDragPreviewRender\(\)/);
   assert.match(html, /function applyManualPositionState\(modelId\)/);
-  assert.match(html, /function applySelectionState\(\)/);
+  assert.match(html, /function applySelectionState\(previousState, action\)/);
+  assert.match(html, /function redrawCanvasRegions\(screenRects, options\)/);
+  assert.match(html, /function queueDragPreviewRects\(previousState, modelId\)/);
   assert.match(
     html,
-    /action\.type === "set-table-manual-position"[\s\S]*drag &&[\s\S]*drag\.kind === "table"[\s\S]*scheduleDragPreviewRender\(\)/,
+    /action\.type === "set-table-manual-position"[\s\S]*drag &&[\s\S]*drag\.kind === "table"[\s\S]*queueDragPreviewRects\(previousState, action\.modelId\)[\s\S]*scheduleDragPreviewRender\(\)/,
   );
   assert.match(html, /applyManualPositionState\(action\.modelId\)/);
   assert.match(html, /applyManualPositionState\(completedDrag\.modelId\)/);
   assert.match(html, /function rerouteModelEdges\(modelId\)/);
   assert.match(html, /function filterNearbyCrossings\(crossings\)/);
-  assert.match(html, /drawCanvas\("drag-preview"\)/);
+  assert.match(
+    html,
+    /pendingDragPreviewRects\.length > 0[\s\S]*redrawCanvasRegions\(pendingDragPreviewRects,\s*\{[\s\S]*skipCrossings: true,[\s\S]*skipMethodOverlays: true,[\s\S]*\}\)/,
+  );
 });
 
 test("phase8 browser runtime caches relation state and buckets spacing checks", () => {
@@ -146,6 +152,22 @@ test("phase8 hierarchical layout uses analyzer seed first and keeps layered bary
   assert.match(html, /function sweepLayerIdsByNeighborBarycenter\(/);
   assert.match(html, /function spaceVisibleEdgeBundleDescriptors\(routes\)/);
   assert.match(html, /function buildOrthogonalPathFromPorts\(/);
+});
+
+test("phase8 browser runtime prefers the server layout for the active refreshed mode", () => {
+  const html = render();
+
+  assert.match(html, /function shouldUseServerLayoutVariant\(layoutMode, tableMetaList\)/);
+  assert.match(html, /function createServerLayoutVariant\(tableMetaList\)/);
+  assert.match(html, /function getServerLayoutVariant\(layoutMode, tableMetaList\)/);
+  assert.match(
+    html,
+    /const serverLayout = getServerLayoutVariant\(layoutMode, tableMetaList\);[\s\S]*if \(serverLayout\) \{\s*return serverLayout;\s*\}/,
+  );
+  assert.match(
+    html,
+    /const activeServerLayout = getServerLayoutVariant\(layoutMode, tableMetaList\);[\s\S]*const fallbackServerLayout = getServerLayoutVariant\(/,
+  );
 });
 
 test("phase8 browser runtime embeds WASM layout optimizer with JS fallback", () => {
@@ -194,6 +216,7 @@ test("phase8 minimap renders component positions and pans by cursor drag", () =>
   assert.match(html, /layoutButtons: layoutButtons\.map/);
   assert.match(html, /function renderMinimap\(renderMode\)/);
   assert.match(html, /renderMode === "viewport" && cachedMinimapMetrics/);
+  assert.match(html, /let metrics = renderMode === "full" \? null : cachedMinimapMetrics/);
   assert.match(html, /function createMinimapMetrics\(bounds\)/);
   assert.match(html, /function updateMinimapViewportCursor\(metrics\)/);
   assert.match(html, /function getViewportWorldRect\(\)/);

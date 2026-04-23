@@ -2,6 +2,7 @@ export function getBrowserDomSource(): string {
   return `
         function readPanelMeta(panel) {
           return {
+            detailBody: panel.querySelector("[data-panel-body]"),
             element: panel,
             emptyMethodHint: panel.querySelector("[data-empty-method-hint]"),
             emptyPropertyHint: panel.querySelector("[data-empty-property-hint]"),

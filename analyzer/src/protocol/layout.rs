@@ -13,7 +13,11 @@ pub enum CrossingMarkerStyle {
 pub enum LayoutMode {
     Circular,
     Clustered,
+    Flow,
+    Graph,
     Hierarchical,
+    Neural,
+    Radial,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

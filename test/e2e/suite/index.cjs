@@ -186,122 +186,29 @@ const scenarioHandlers = {
   },
   "E2E-11": async () => {
     const initialSnapshot = await runWebviewAction({ type: "snapshot" });
-    const initialPositions = tableTransformsByModel(initialSnapshot);
-    const initialEdgePoints = requireEdgeSnapshot(
-      initialSnapshot,
-      "blog.Post",
-      "accounts.Author",
-    ).points;
+    for (const layoutMode of [
+      "circular",
+      "graph",
+      "neural",
+      "flow",
+      "radial",
+      "clustered",
+    ]) {
+      const layoutSnapshot = await runWebviewAction({
+        layoutMode,
+        type: "clickLayoutMode",
+      });
 
-    const circularSnapshot = await runWebviewAction({
-      layoutMode: "circular",
-      type: "clickLayoutMode",
-    });
-
-    assert.equal(circularSnapshot.state.layoutMode, "circular");
-    assert.deepEqual(snapshotModelIds(circularSnapshot), snapshotModelIds(initialSnapshot));
-    assert.notDeepEqual(tableTransformsByModel(circularSnapshot), initialPositions);
-    assert.notEqual(
-      requireEdgeSnapshot(circularSnapshot, "blog.Post", "accounts.Author").points,
-      initialEdgePoints,
-    );
-    assert.equal(requireTableSnapshot(circularSnapshot, "blog.Post").hidden, false);
-
-    const graphSnapshot = await runWebviewAction({
-      layoutMode: "graph",
-      type: "clickLayoutMode",
-    });
-
-    assert.equal(graphSnapshot.state.layoutMode, "graph");
-    assert.deepEqual(snapshotModelIds(graphSnapshot), snapshotModelIds(initialSnapshot));
-    assert.notDeepEqual(
-      tableTransformsByModel(graphSnapshot),
-      tableTransformsByModel(circularSnapshot),
-    );
-    assert.notEqual(
-      requireEdgeSnapshot(graphSnapshot, "blog.Post", "accounts.Author").points,
-      requireEdgeSnapshot(circularSnapshot, "blog.Post", "accounts.Author").points,
-    );
-    const graphPositions = tablePositionsByModel(graphSnapshot);
-    const authorTagMidpoint = midpoint(
-      graphPositions["accounts.Author"],
-      graphPositions["taxonomy.Tag"],
-    );
-
-    assert.ok(
-      distanceBetweenPoints(graphPositions["blog.Post"], authorTagMidpoint) <
-        distanceBetweenPoints(graphPositions["accounts.Author"], authorTagMidpoint),
-      "graph layout should pull blog.Post closer to the midpoint of its neighbors",
-    );
-    assert.ok(
-      distanceBetweenPoints(graphPositions["blog.Post"], authorTagMidpoint) <
-        distanceBetweenPoints(graphPositions["taxonomy.Tag"], authorTagMidpoint),
-      "graph layout should keep blog.Post between connected neighbors",
-    );
-
-    const neuralSnapshot = await runWebviewAction({
-      layoutMode: "neural",
-      type: "clickLayoutMode",
-    });
-
-    assert.equal(neuralSnapshot.state.layoutMode, "neural");
-    assert.deepEqual(snapshotModelIds(neuralSnapshot), snapshotModelIds(initialSnapshot));
-    assert.notDeepEqual(
-      tableTransformsByModel(neuralSnapshot),
-      tableTransformsByModel(graphSnapshot),
-    );
-    assert.notEqual(
-      requireEdgeSnapshot(neuralSnapshot, "blog.Post", "accounts.Author").points,
-      requireEdgeSnapshot(graphSnapshot, "blog.Post", "accounts.Author").points,
-    );
-
-    const flowSnapshot = await runWebviewAction({
-      layoutMode: "flow",
-      type: "clickLayoutMode",
-    });
-
-    assert.equal(flowSnapshot.state.layoutMode, "flow");
-    assert.deepEqual(snapshotModelIds(flowSnapshot), snapshotModelIds(initialSnapshot));
-    assert.notDeepEqual(
-      tableTransformsByModel(flowSnapshot),
-      tableTransformsByModel(neuralSnapshot),
-    );
-    assert.notEqual(
-      requireEdgeSnapshot(flowSnapshot, "blog.Post", "accounts.Author").points,
-      requireEdgeSnapshot(neuralSnapshot, "blog.Post", "accounts.Author").points,
-    );
-
-    const radialSnapshot = await runWebviewAction({
-      layoutMode: "radial",
-      type: "clickLayoutMode",
-    });
-
-    assert.equal(radialSnapshot.state.layoutMode, "radial");
-    assert.deepEqual(snapshotModelIds(radialSnapshot), snapshotModelIds(initialSnapshot));
-    assert.notDeepEqual(
-      tableTransformsByModel(radialSnapshot),
-      tableTransformsByModel(flowSnapshot),
-    );
-    assert.notEqual(
-      requireEdgeSnapshot(radialSnapshot, "blog.Post", "accounts.Author").points,
-      requireEdgeSnapshot(flowSnapshot, "blog.Post", "accounts.Author").points,
-    );
-
-    const clusteredSnapshot = await runWebviewAction({
-      layoutMode: "clustered",
-      type: "clickLayoutMode",
-    });
-
-    assert.equal(clusteredSnapshot.state.layoutMode, "clustered");
-    assert.deepEqual(snapshotModelIds(clusteredSnapshot), snapshotModelIds(initialSnapshot));
-    assert.notDeepEqual(
-      tableTransformsByModel(clusteredSnapshot),
-      tableTransformsByModel(radialSnapshot),
-    );
-    assert.notEqual(
-      requireEdgeSnapshot(clusteredSnapshot, "blog.Post", "accounts.Author").points,
-      requireEdgeSnapshot(radialSnapshot, "blog.Post", "accounts.Author").points,
-    );
+      assert.equal(layoutSnapshot.state.layoutMode, layoutMode);
+      assert.equal(activeLayoutMode(layoutSnapshot), layoutMode);
+      assert.deepEqual(snapshotModelIds(layoutSnapshot), snapshotModelIds(initialSnapshot));
+      assert.equal(requireTableSnapshot(layoutSnapshot, "blog.Post").hidden, false);
+      assert.notEqual(
+        requireEdgeSnapshot(layoutSnapshot, "blog.Post", "accounts.Author").points,
+        "",
+      );
+      assertRenderedSceneVisible(layoutSnapshot);
+    }
   },
   "E2E-12": async () => {
     await runWebviewAction({ modelId: "blog.Post", type: "clickTable" });

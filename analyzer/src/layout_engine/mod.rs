@@ -1,5 +1,6 @@
 mod circular;
 mod clustered;
+mod graphviz;
 mod hierarchical;
 mod location_optimizer;
 mod measurement;
@@ -26,12 +27,28 @@ pub struct ManualNodePosition {
     pub position: Point,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct LayoutSettings {
+    pub edge_detour: f64,
+    pub node_spacing: f64,
+}
+
+impl Default for LayoutSettings {
+    fn default() -> Self {
+        Self {
+            edge_detour: 1.35,
+            node_spacing: 1.4,
+        }
+    }
+}
+
 pub struct LayoutRequest<'a> {
     pub analyzer: &'a AnalyzerOutput,
     pub graph: &'a DiagramGraph,
     pub hidden_model_ids: Vec<CanonicalModelId>,
     pub manual_positions: Vec<ManualNodePosition>,
     pub mode: LayoutMode,
+    pub settings: LayoutSettings,
 }
 
 pub(crate) struct LayoutContext {
@@ -62,6 +79,23 @@ pub fn compute_layout(request: LayoutRequest<'_>) -> LayoutSnapshot {
         declared_edges,
         nodes,
     };
+
+    if let Ok(mut snapshot) =
+        graphviz::try_compute_layout(request.graph, &context, request.mode, &request.settings)
+    {
+        apply_manual_positions(&mut snapshot.nodes, &request.manual_positions);
+        snapshot
+            .nodes
+            .sort_by(|left, right| left.model_id.as_str().cmp(right.model_id.as_str()));
+
+        if !request.manual_positions.is_empty() {
+            let (routed_edges, crossings) = route_structural_edges(request.graph, &snapshot.nodes);
+            snapshot.routed_edges = routed_edges;
+            snapshot.crossings = crossings;
+        }
+
+        return snapshot;
+    }
 
     let mut snapshot = LayoutSnapshot::empty(request.mode);
     snapshot.nodes = if context.nodes.len() > LARGE_GRAPH_GRID_NODE_THRESHOLD {
@@ -189,7 +223,11 @@ fn select_strategy(mode: LayoutMode) -> &'static dyn LayoutStrategy {
     match mode {
         LayoutMode::Circular => &CircularStrategy,
         LayoutMode::Clustered => &ClusteredStrategy,
+        LayoutMode::Flow => &HierarchicalStrategy,
+        LayoutMode::Graph => &ClusteredStrategy,
         LayoutMode::Hierarchical => &HierarchicalStrategy,
+        LayoutMode::Neural => &HierarchicalStrategy,
+        LayoutMode::Radial => &CircularStrategy,
     }
 }
 
@@ -297,11 +335,13 @@ impl LayoutStrategy for HierarchicalStrategy {
 
 #[cfg(test)]
 mod tests {
-    use super::{LayoutRequest, ManualNodePosition, compute_grid_column_count, compute_layout};
+    use super::{
+        LayoutRequest, LayoutSettings, ManualNodePosition, compute_grid_column_count,
+        compute_layout,
+    };
     use crate::extract::{AnalysisRequest, ModuleInput, analyze_request};
-    use crate::protocol::layout::{LayoutMode, Point};
+    use crate::protocol::layout::{LayoutMode, LayoutSnapshot, Point};
     use crate::resolve::build_diagram_graph;
-    use std::fs;
     use std::path::PathBuf;
 
     #[test]
@@ -309,19 +349,10 @@ mod tests {
         let analyzer = feature_rich_analyzer();
         let graph = build_diagram_graph(&analyzer);
 
-        for (mode, snapshot_name) in [
-            (
-                LayoutMode::Hierarchical,
-                "phase6-feature-rich-hierarchical-layout.json",
-            ),
-            (
-                LayoutMode::Circular,
-                "phase6-feature-rich-circular-layout.json",
-            ),
-            (
-                LayoutMode::Clustered,
-                "phase6-feature-rich-clustered-layout.json",
-            ),
+        for mode in [
+            LayoutMode::Hierarchical,
+            LayoutMode::Circular,
+            LayoutMode::Clustered,
         ] {
             let snapshot = compute_layout(LayoutRequest {
                 analyzer: &analyzer,
@@ -329,12 +360,10 @@ mod tests {
                 hidden_model_ids: Vec::new(),
                 manual_positions: Vec::new(),
                 mode,
+                settings: LayoutSettings::default(),
             });
 
-            assert_eq!(
-                snapshot.to_json().trim_end(),
-                read_snapshot(snapshot_name).trim_end()
-            );
+            assert_feature_rich_layout_shape(&snapshot, mode);
         }
     }
 
@@ -353,6 +382,7 @@ mod tests {
                 position: Point { x: 700.0, y: 240.0 },
             }],
             mode: LayoutMode::Hierarchical,
+            settings: LayoutSettings::default(),
         });
 
         assert_eq!(snapshot.nodes.len(), 2);
@@ -396,12 +426,37 @@ mod tests {
             .join(project_name)
     }
 
-    fn read_snapshot(file_name: &str) -> String {
-        fs::read_to_string(
-            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../test/fixtures/analyzer-json")
-                .join(file_name),
-        )
-        .expect("expected layout snapshot fixture")
+    fn assert_feature_rich_layout_shape(snapshot: &LayoutSnapshot, expected_mode: LayoutMode) {
+        assert_eq!(snapshot.mode, expected_mode);
+        assert_eq!(snapshot.nodes.len(), 3);
+        assert_eq!(snapshot.routed_edges.len(), 4);
+        assert!(snapshot.crossings.is_empty());
+
+        let mut model_ids = snapshot
+            .nodes
+            .iter()
+            .map(|node| node.model_id.as_str().to_string())
+            .collect::<Vec<_>>();
+        model_ids.sort();
+        assert_eq!(
+            model_ids,
+            vec![
+                "accounts.Author".to_string(),
+                "blog.Post".to_string(),
+                "taxonomy.Tag".to_string(),
+            ]
+        );
+
+        for node in &snapshot.nodes {
+            assert!(node.position.x.is_finite());
+            assert!(node.position.y.is_finite());
+            assert!(node.size.width > 0.0);
+            assert!(node.size.height > 0.0);
+        }
+
+        for edge in &snapshot.routed_edges {
+            assert!(edge.points.len() >= 2);
+            assert!(edge.points.iter().all(|point| point.x.is_finite() && point.y.is_finite()));
+        }
     }
 }

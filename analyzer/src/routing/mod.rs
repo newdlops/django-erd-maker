@@ -5,9 +5,10 @@ mod orthogonal_router;
 use crate::protocol::graph::{DiagramGraph, StructuralGraphEdge};
 use crate::protocol::layout::{EdgeCrossing, NodeLayout, RoutedEdgePath};
 use anchor::select_anchors;
-use crossing_detector::detect_crossings;
 use orthogonal_router::route_orthogonal;
 use std::collections::BTreeMap;
+
+pub(crate) use crossing_detector::detect_crossings;
 
 const MAX_CROSSING_DETECTION_EDGES: usize = 500;
 

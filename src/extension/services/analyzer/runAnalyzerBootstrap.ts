@@ -5,9 +5,16 @@ import path from "node:path";
 
 import type { LayoutMode } from "../../../shared/graph/layoutContract";
 import { decodeDiagramBootstrapPayload } from "../../../shared/protocol/decodeDiagramBootstrap";
-import type { DiagramBootstrapPayload } from "../../../shared/protocol/webviewContract";
+import type {
+  DiagramBootstrapPayload,
+  DiagramInteractionSettingsSnapshot,
+} from "../../../shared/protocol/webviewContract";
 import type { DjangoWorkspaceDiscoveryResult } from "../discovery/discoveryTypes";
 import type { Logger } from "../logging/logger";
+import {
+  createGraphvizEnvironment,
+  type GraphvizRuntimeResolution,
+} from "../graphviz/graphvizRuntime";
 import { resolveAnalyzerBinaryPath } from "./resolveAnalyzerBinaryPath";
 
 export interface AnalyzerBootstrapResult {
@@ -20,6 +27,8 @@ export async function runAnalyzerBootstrap(
   discovery: DjangoWorkspaceDiscoveryResult,
   layoutMode: LayoutMode,
   logger?: Logger,
+  interactionSettings?: DiagramInteractionSettingsSnapshot,
+  graphvizRuntime?: GraphvizRuntimeResolution,
 ): Promise<AnalyzerBootstrapResult> {
   const started = Date.now();
   const analyzerBinaryPath = await resolveAnalyzerBinaryPath(extensionRootPath);
@@ -36,6 +45,7 @@ export async function runAnalyzerBootstrap(
       `Analyzer bootstrap starting`,
       `binary=${analyzerBinaryPath}`,
       `layout=${layoutMode}`,
+      `graphviz=${graphvizRuntime?.kind ?? "none"}`,
       `workspaceRoot=${discovery.selectedRoot}`,
       `modules=${modules.length}`,
     ].join(" · "),
@@ -58,11 +68,16 @@ export async function runAnalyzerBootstrap(
         "bootstrap",
         "--mode",
         layoutMode,
+        "--node-spacing",
+        String(interactionSettings?.nodeSpacing ?? 1.4),
+        "--edge-detour",
+        String(interactionSettings?.edgeDetour ?? 1.35),
         "--request-file",
         requestPath,
       ],
       {
         cwd: extensionRootPath,
+        env: createGraphvizEnvironment(process.env, graphvizRuntime),
         maxBuffer: 100 * 1024 * 1024,
       },
     );
@@ -101,6 +116,7 @@ function execFileAsync(
   args: string[],
   options: {
     cwd: string;
+    env: Record<string, string | undefined>;
     maxBuffer: number;
   },
 ): Promise<{ stderr: string; stdout: string }> {

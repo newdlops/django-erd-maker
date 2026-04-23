@@ -21,7 +21,7 @@ export function getBrowserControllerScript(nonce: string): string {
         const minimapCanvas = document.querySelector("[data-erd-minimap-canvas]");
         const minimapViewport = document.querySelector("[data-erd-minimap-viewport]");
         const crossingsLayer = document.querySelector('[data-layer="crossings"]');
-        const methodButtons = Array.from(document.querySelectorAll("[data-method-button]"));
+        let methodButtons = Array.from(document.querySelectorAll("[data-method-button]"));
         const modelPanels = Array.from(document.querySelectorAll("[data-model-panel]"));
         const overlays = Array.from(document.querySelectorAll(".erd-method-overlay"));
         const tables = Array.from(document.querySelectorAll("[data-model-id].erd-table"));
@@ -104,8 +104,15 @@ ${getBrowserRenderSource()}
 ${getBrowserEventSource()}
 ${getBrowserTestSource()}
 
-        applyState();
-        vscode?.postMessage({ type: "diagram.ready" });
+        const scheduleInitialRender =
+          typeof window.requestAnimationFrame === "function"
+            ? window.requestAnimationFrame.bind(window)
+            : (callback) => window.setTimeout(callback, 0);
+
+        scheduleInitialRender(() => {
+          applyState();
+          vscode?.postMessage({ type: "diagram.ready" });
+        });
       })();
     </script>
   `;

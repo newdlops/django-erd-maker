@@ -1,5 +1,5 @@
 use crate::extract::{AnalysisRequest, ModuleInput, analyze_request, analyze_request_with_metrics};
-use crate::layout_engine::{LayoutRequest, compute_layout};
+use crate::layout_engine::{LayoutRequest, LayoutSettings, compute_layout};
 use crate::protocol::hello::HelloPayload;
 use crate::protocol::layout::LayoutMode;
 use crate::protocol::webview::{
@@ -42,6 +42,7 @@ pub fn run() {
                         hidden_model_ids: Vec::new(),
                         manual_positions: Vec::new(),
                         mode: command.mode,
+                        settings: command.settings.clone(),
                     });
                     println!("{}", layout.to_json());
                     return;
@@ -63,6 +64,7 @@ pub fn run() {
                         hidden_model_ids: Vec::new(),
                         manual_positions: Vec::new(),
                         mode: command.mode,
+                        settings: command.settings.clone(),
                     });
                     let mut payload = DiagramBootstrapPayload::new(
                         analyzer,
@@ -179,17 +181,44 @@ fn read_analysis_request_file(file_path: &str) -> Result<AnalysisRequest, String
 struct LayoutCommand {
     mode: LayoutMode,
     request: AnalysisRequest,
+    settings: LayoutSettings,
 }
 
 fn parse_layout_command(arguments: &[String]) -> Result<LayoutCommand, String> {
     if arguments.len() < 2 || arguments[0] != "--mode" {
-        return Err("layout requires --mode <hierarchical|circular|clustered>".to_string());
+        return Err(
+            "layout requires --mode <hierarchical|graph|radial|neural|flow|circular|clustered>"
+                .to_string(),
+        );
     }
 
     let mode = parse_layout_mode(&arguments[1])?;
-    let request = parse_analysis_request(&arguments[2..])?;
+    let mut settings = LayoutSettings::default();
+    let mut index = 2usize;
 
-    Ok(LayoutCommand { mode, request })
+    while index < arguments.len() {
+        match arguments[index].as_str() {
+            "--node-spacing" => {
+                settings.node_spacing =
+                    parse_layout_setting_value(arguments.get(index + 1), "--node-spacing")?;
+                index += 2;
+            }
+            "--edge-detour" => {
+                settings.edge_detour =
+                    parse_layout_setting_value(arguments.get(index + 1), "--edge-detour")?;
+                index += 2;
+            }
+            _ => break,
+        }
+    }
+
+    let request = parse_analysis_request(&arguments[index..])?;
+
+    Ok(LayoutCommand {
+        mode,
+        request,
+        settings,
+    })
 }
 
 fn parse_module_argument(value: &str) -> Result<ModuleInput, String> {
@@ -213,11 +242,22 @@ fn parse_layout_mode(value: &str) -> Result<LayoutMode, String> {
     match value {
         "circular" => Ok(LayoutMode::Circular),
         "clustered" => Ok(LayoutMode::Clustered),
+        "flow" => Ok(LayoutMode::Flow),
+        "graph" => Ok(LayoutMode::Graph),
         "hierarchical" => Ok(LayoutMode::Hierarchical),
+        "neural" => Ok(LayoutMode::Neural),
+        "radial" => Ok(LayoutMode::Radial),
         _ => Err(format!(
-            "unsupported layout mode '{value}'; expected hierarchical, circular, or clustered"
+            "unsupported layout mode '{value}'; expected hierarchical, graph, radial, neural, flow, circular, or clustered"
         )),
     }
+}
+
+fn parse_layout_setting_value(value: Option<&String>, flag: &str) -> Result<f64, String> {
+    value
+        .ok_or_else(|| format!("{flag} requires a numeric value"))?
+        .parse::<f64>()
+        .map_err(|error| format!("invalid {flag} value: {error}"))
 }
 
 fn initial_view_state(

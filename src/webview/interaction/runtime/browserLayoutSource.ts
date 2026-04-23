@@ -21,8 +21,14 @@ export function getBrowserLayoutSource(): string {
         }
 
         function getLayoutVariant(layoutMode, settingsOverride) {
+          const serverLayout = getServerLayoutVariant(layoutMode, tableMetaList);
+          if (serverLayout) {
+            return serverLayout;
+          }
+
           const tuning = createLayoutTuning(settingsOverride);
           const cacheKey = JSON.stringify([
+            renderModel && renderModel.baseLayoutMode ? renderModel.baseLayoutMode : "",
             tuning.edgeDetour,
             tuning.nodeSpacing,
             tableMetaList.length,
@@ -52,6 +58,42 @@ export function getBrowserLayoutSource(): string {
           }
 
           return layoutVariantCache.get("hierarchical") || {};
+        }
+
+        function shouldUseServerLayoutVariant(layoutMode, tableMetaList) {
+          return (
+            typeof renderModel !== "undefined" &&
+            renderModel &&
+            renderModel.baseLayoutMode === layoutMode &&
+            Array.isArray(tableMetaList) &&
+            tableMetaList.length > 0 &&
+            tableMetaList.every((table) =>
+              table.basePosition &&
+              Number.isFinite(table.basePosition.x) &&
+              Number.isFinite(table.basePosition.y)
+            )
+          );
+        }
+
+        function createServerLayoutVariant(tableMetaList) {
+          const positions = {};
+
+          tableMetaList.forEach((table) => {
+            positions[table.modelId] = {
+              x: round2(table.basePosition.x),
+              y: round2(table.basePosition.y),
+            };
+          });
+
+          return positions;
+        }
+
+        function getServerLayoutVariant(layoutMode, tableMetaList) {
+          if (!shouldUseServerLayoutVariant(layoutMode, tableMetaList)) {
+            return undefined;
+          }
+
+          return createServerLayoutVariant(tableMetaList);
         }
 
         function createLayoutVariants(tableMetaList, tuning = createLayoutTuning()) {
@@ -251,10 +293,17 @@ export function getBrowserLayoutSource(): string {
             return baseLayoutCache;
           }
 
-          const fallback = getLayoutVariant("hierarchical", appliedSettings);
-          const active = layoutMode === "hierarchical"
-            ? fallback
-            : getLayoutVariant(layoutMode, appliedSettings);
+          const activeServerLayout = getServerLayoutVariant(layoutMode, tableMetaList);
+          const fallbackServerLayout = getServerLayoutVariant(
+            renderModel && renderModel.baseLayoutMode ? renderModel.baseLayoutMode : "",
+            tableMetaList,
+          );
+          const fallback = fallbackServerLayout || getLayoutVariant("hierarchical", appliedSettings);
+          const active = activeServerLayout || (
+            layoutMode === "hierarchical"
+              ? fallback
+              : getLayoutVariant(layoutMode, appliedSettings)
+          );
 
           baseLayoutCache = {
             active,

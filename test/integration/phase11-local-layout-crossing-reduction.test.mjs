@@ -256,6 +256,27 @@ test("phase11 graph layout keeps dense relation components separated and respond
   );
 });
 
+test("phase11 active refreshed mode uses the server-provided base positions as the layout variant", () => {
+  const tables = [
+    createTable("mesh.Alpha", "Alpha", { x: 48, y: 64 }),
+    createTable("mesh.Beta", "Beta", { x: 336, y: 188 }),
+  ];
+  const runtime = createBrowserLayoutRuntimeWithRenderModel(
+    [],
+    tables,
+    {
+      layoutMode: "graph",
+    },
+    {
+      baseLayoutMode: "graph",
+    },
+  );
+  const graphLayout = runtime.getLayoutVariant("graph");
+
+  assert.deepEqual(graphLayout["mesh.Alpha"], tables[0].basePosition);
+  assert.deepEqual(graphLayout["mesh.Beta"], tables[1].basePosition);
+});
+
 test("phase11 edge detour tuning pushes reverse edges onto wider outer lanes", () => {
   const tables = [
     createTable("mesh.Left", "Left", { x: 0, y: 120 }),
@@ -326,6 +347,56 @@ function createBrowserLayoutRuntime(edgeMeta, tableMetaList = [], stateOverride 
       ...stateOverride,
     },
     tableMetaList,
+  );
+}
+
+function createBrowserLayoutRuntimeWithRenderModel(
+  edgeMeta,
+  tableMetaList = [],
+  stateOverride = {},
+  renderModelOverride = {},
+) {
+  const source = getBrowserLayoutSource();
+  const factory = new Function(
+    "edgeMeta",
+    "state",
+    "tableMetaList",
+    "renderModel",
+    `${source}
+    const tableMetaById = new Map(tableMetaList.map((table) => [table.modelId, table]));
+    let layoutVariantCache = new Map();
+    let layoutVariantCacheKey = "";
+    function isVisibleModel() {
+      return true;
+    }
+    function getCurrentPosition(modelId) {
+      const table = tableMetaById.get(modelId);
+      return table ? table.basePosition : { x: 0, y: 0 };
+    }
+    function getAppliedLayoutSettings() {
+      return state.settings;
+    }
+    return {
+      getLayoutVariant,
+      getResolvedBaseLayouts,
+    };`,
+  );
+
+  return factory(
+    edgeMeta,
+    {
+      layoutMode: "graph",
+      settings: {
+        edgeDetour: 1.2,
+        nodeSpacing: 1.25,
+      },
+      ...stateOverride,
+    },
+    tableMetaList,
+    {
+      baseLayoutMode: "graph",
+      ...renderModelOverride,
+    },
   );
 }
 
