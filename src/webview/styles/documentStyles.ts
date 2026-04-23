@@ -1,5 +1,9 @@
 export function getDocumentStyles(): string {
   return `
+    html {
+      height: 100%;
+    }
+
     :root {
       color-scheme: dark;
       --bg: #081018;
@@ -20,7 +24,8 @@ export function getDocumentStyles(): string {
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      min-height: 100vh;
+      min-height: 100dvh;
+      height: 100%;
       background:
         radial-gradient(circle at 10% 12%, rgba(109, 208, 176, 0.18), transparent 26%),
         radial-gradient(circle at 84% 18%, rgba(255, 191, 105, 0.16), transparent 22%),
@@ -36,6 +41,7 @@ export function getDocumentStyles(): string {
       gap: 18px;
       grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
       padding: 18px;
+      min-height: 100dvh;
     }
 
     .erd-sidebar,
@@ -52,7 +58,7 @@ export function getDocumentStyles(): string {
       flex-direction: column;
       gap: 16px;
       padding: 20px;
-      max-height: calc(100vh - 36px);
+      max-height: calc(100dvh - 36px);
       overflow: auto;
     }
 
@@ -260,7 +266,7 @@ export function getDocumentStyles(): string {
     .erd-stage {
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
-      min-height: calc(100vh - 36px);
+      min-height: calc(100dvh - 36px);
       overflow: hidden;
     }
 
@@ -283,6 +289,7 @@ export function getDocumentStyles(): string {
       position: relative;
       border-radius: 24px;
       margin: 12px;
+      min-height: 0;
       background:
         linear-gradient(var(--grid) 1px, transparent 1px),
         linear-gradient(90deg, var(--grid) 1px, transparent 1px),
@@ -293,7 +300,72 @@ export function getDocumentStyles(): string {
 
     .erd-canvas.is-panning { cursor: grabbing; }
     .erd-canvas.is-dragging-table { cursor: default; }
-    .erd-scene { width: 100%; height: 100%; min-height: 720px; display: block; }
+    .erd-scene { width: 100%; height: 100%; display: block; }
+    .erd-gpu-warning {
+      position: absolute;
+      inset: 18px;
+      display: grid;
+      align-content: center;
+      justify-items: start;
+      gap: 10px;
+      padding: 28px;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 124, 112, 0.24);
+      background: rgba(7, 18, 28, 0.92);
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+      z-index: 3;
+    }
+    .erd-gpu-warning__eyebrow {
+      margin: 0;
+      color: var(--accent-2);
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .erd-gpu-warning__title {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.15;
+    }
+    .erd-gpu-warning__body {
+      margin: 0;
+      max-width: 56ch;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .erd-minimap {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 220px;
+      height: 148px;
+      padding: 8px;
+      border-radius: 18px;
+      border: 1px solid rgba(129, 169, 181, 0.28);
+      background: rgba(7, 18, 28, 0.88);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
+      backdrop-filter: blur(10px);
+      touch-action: none;
+      z-index: 2;
+    }
+    .erd-minimap__canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+    }
+    .erd-minimap__viewport {
+      position: absolute;
+      inset: 8px auto auto 8px;
+      border-radius: 10px;
+      border: 2px solid rgba(255, 191, 105, 0.94);
+      box-shadow: 0 0 0 1px rgba(7, 18, 28, 0.82);
+      background: rgba(255, 191, 105, 0.12);
+      pointer-events: none;
+      min-width: 10px;
+      min-height: 10px;
+    }
     .erd-scene__backdrop { fill: transparent; }
     .erd-viewport { transition: transform 120ms ease-out; transform-origin: 0 0; }
 
@@ -394,6 +466,11 @@ export function getDocumentStyles(): string {
     @media (max-width: 620px) {
       .erd-panel__controls {
         grid-template-columns: 1fr;
+      }
+
+      .erd-minimap {
+        top: 12px;
+        right: 12px;
       }
     }
   `;

@@ -261,24 +261,25 @@ export function getBrowserLayoutSource(): string {
 
         function findTableAtCanvasPoint(event) {
           const point = toWorldPoint(event);
-          const orderedTables = renderModel.modelCatalogMode
-            ? getCatalogTableIdsNearPoint(point)
-                .map((modelId) => tableMetaById.get(modelId))
-                .filter(Boolean)
-                .reverse()
+          const orderedTables = typeof queryTableMetaNearWorldPoint === "function"
+            ? queryTableMetaNearWorldPoint(point)
             : Array.from(tableMetaById.values()).reverse();
 
           return orderedTables.find((table) => {
-            if (!isVisibleModel(table.modelId)) {
+            const meta = table.meta || table;
+            const modelId = meta.modelId;
+            if (!isVisibleModel(modelId)) {
               return false;
             }
 
-            const position = getCurrentPosition(table.modelId);
+            const position = table.x !== undefined && table.y !== undefined
+              ? { x: table.x, y: table.y }
+              : getCurrentPosition(modelId);
             return (
               point.x >= position.x &&
-              point.x <= position.x + table.width &&
+              point.x <= position.x + meta.width &&
               point.y >= position.y &&
-              point.y <= position.y + table.height
+              point.y <= position.y + meta.height
             );
           });
         }

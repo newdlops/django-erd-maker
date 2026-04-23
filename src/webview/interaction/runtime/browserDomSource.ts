@@ -15,24 +15,20 @@ export function getBrowserDomSource(): string {
 
         function readTableMeta(table) {
           return {
-            appLabel: table.dataset.appLabel || "",
+            appLabel: table.appLabel || "",
             basePosition: {
-              x: Number(table.dataset.baseX || 0),
-              y: Number(table.dataset.baseY || 0),
+              x: Number(table.position?.x || 0),
+              y: Number(table.position?.y || 0),
             },
-            dividers: {
-              methods: table.querySelector('[data-table-divider="methods"]'),
-              properties: table.querySelector('[data-table-divider="properties"]'),
-            },
-            element: table,
-            height: Number(table.dataset.height || 0),
-            hasExplicitDatabaseTableName: table.dataset.explicitDbTable === "true",
-            modelId: table.dataset.modelId || "",
-            modelName: table.dataset.modelName || "",
-            methodsSection: table.querySelector('[data-table-section="methods"]'),
-            propertiesSection: table.querySelector('[data-table-section="properties"]'),
-            tableName: table.dataset.tableName || table.dataset.modelName || "",
-            width: Number(table.dataset.width || 0),
+            fieldRows: Array.isArray(table.fieldRows) ? table.fieldRows.slice() : [],
+            hasExplicitDatabaseTableName: table.hasExplicitDatabaseTableName === true,
+            height: Number(table.size?.height || 0),
+            methods: Array.isArray(table.methods) ? table.methods.slice() : [],
+            modelId: table.modelId || "",
+            modelName: table.modelName || "",
+            properties: Array.isArray(table.properties) ? table.properties.slice() : [],
+            tableName: table.databaseTableName || table.modelName || "",
+            width: Number(table.size?.width || 0),
           };
         }
   `;

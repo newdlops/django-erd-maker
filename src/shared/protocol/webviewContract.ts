@@ -49,6 +49,16 @@ export interface DiagramReadyMessage {
   type: "diagram.ready";
 }
 
+export interface DiagramLogMessage {
+  details?: Record<string, boolean | number | string | undefined>;
+  event: string;
+  level: "debug" | "error" | "info" | "warn";
+  message: string;
+  timestamp: string;
+  type: "diagram.log";
+  version: string;
+}
+
 export interface DiagramInteractionSettingsSnapshot {
   panSpeed: number;
   zoomSpeed: number;
@@ -67,5 +77,6 @@ export interface UpdateSetupSettingsMessage {
 export type ExtensionToWebviewMessage = InitializeDiagramMessage | RefreshDiagramMessage;
 export type WebviewToExtensionMessage =
   | DiagramReadyMessage
+  | DiagramLogMessage
   | RequestRefreshMessage
   | UpdateSetupSettingsMessage;

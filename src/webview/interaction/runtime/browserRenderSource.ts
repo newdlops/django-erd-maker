@@ -1,24 +1,21 @@
 export function getBrowserRenderSource(): string {
   return `
         let viewportRenderFrame = 0;
+        let cachedMinimapMetrics = null;
 
         function applyState() {
-          viewport.dataset.transform =
-            "translate(" + state.viewport.panX + " " + state.viewport.panY + ") scale(" + state.viewport.zoom + ")";
           renderSummary();
           renderSetupControls();
-          renderTables();
-          renderEdgesAndCrossings();
           renderOverlays();
           renderPanels();
           renderHiddenTableList();
           drawCanvas("full");
+          renderMinimap("full");
         }
 
         function applyViewportState() {
-          viewport.dataset.transform =
-            "translate(" + state.viewport.panX + " " + state.viewport.panY + ") scale(" + state.viewport.zoom + ")";
           drawCanvas("viewport");
+          renderMinimap("viewport");
         }
 
         function cancelViewportRender() {
@@ -53,157 +50,212 @@ export function getBrowserRenderSource(): string {
             return;
           }
 
+          if (
+            action.type === "set-layout-mode" ||
+            action.type === "set-table-hidden" ||
+            action.type === "set-table-manual-position" ||
+            action.type === "reset-view"
+          ) {
+            invalidateSceneGraph();
+          }
+
           if (action.type === "set-interaction-setting") {
             renderSetupControls();
             return;
-          }
-
-          if (renderModel.modelCatalogMode && isCatalogSceneAction(action)) {
-            invalidateCatalogSceneCache();
           }
 
           cancelViewportRender();
           applyState();
         }
 
-        function isCatalogSceneAction(action) {
-          switch (action.type) {
-            case "reset-view":
-            case "set-layout-mode":
-            case "set-table-hidden":
-            case "set-table-manual-position":
-              return true;
-            default:
-              return false;
+        function renderMinimap(renderMode) {
+          if (!minimap || !minimapCanvas || !minimapViewport) {
+            return;
           }
+
+          if (renderMode === "viewport" && cachedMinimapMetrics) {
+            updateMinimapViewportCursor(cachedMinimapMetrics);
+            return;
+          }
+
+          const bounds = computeLayoutBounds(state.layoutMode, state.tableOptions);
+          const metrics = createMinimapMetrics(bounds);
+          if (!metrics) {
+            cachedMinimapMetrics = null;
+            minimap.hidden = true;
+            return;
+          }
+
+          cachedMinimapMetrics = metrics;
+          minimap.hidden = false;
+          const context = minimapCanvas.getContext("2d");
+          if (!context) {
+            return;
+          }
+
+          context.clearRect(0, 0, metrics.width, metrics.height);
+          drawMinimapTables(context, metrics);
+          updateMinimapViewportCursor(metrics);
+        }
+
+        function createMinimapMetrics(bounds) {
+          if (!bounds || !minimapCanvas) {
+            return undefined;
+          }
+
+          const viewportRect = getViewportScreenRect();
+          const worldWidth = Math.max(1, bounds.maxX - bounds.minX);
+          const worldHeight = Math.max(1, bounds.maxY - bounds.minY);
+          const maxWidth = Math.max(150, Math.min(300, viewportRect.width * 0.24));
+          const maxHeight = Math.max(104, Math.min(228, viewportRect.height * 0.28));
+          const worldAspect = worldWidth / worldHeight;
+          let cssWidth = maxWidth;
+          let cssHeight = Math.max(88, Math.min(maxHeight, cssWidth / Math.max(0.2, worldAspect)));
+
+          if (cssHeight > maxHeight) {
+            cssHeight = maxHeight;
+            cssWidth = Math.max(132, Math.min(maxWidth, cssHeight * worldAspect));
+          }
+
+          minimap.style.width = round2(cssWidth) + "px";
+          minimap.style.height = round2(cssHeight) + "px";
+
+          const rect = minimapCanvas.getBoundingClientRect();
+          const width = Math.max(1, rect.width || minimapCanvas.clientWidth || cssWidth);
+          const height = Math.max(1, rect.height || minimapCanvas.clientHeight || cssHeight);
+          const padding = 8;
+          const scale = Math.max(
+            0.0001,
+            Math.min((width - padding * 2) / worldWidth, (height - padding * 2) / worldHeight),
+          );
+          const deviceScale = getDeviceScale();
+          const pixelWidth = Math.max(1, Math.round(width * deviceScale));
+          const pixelHeight = Math.max(1, Math.round(height * deviceScale));
+
+          if (minimapCanvas.width !== pixelWidth || minimapCanvas.height !== pixelHeight) {
+            minimapCanvas.width = pixelWidth;
+            minimapCanvas.height = pixelHeight;
+          }
+
+          const context = minimapCanvas.getContext("2d");
+          if (context) {
+            context.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
+          }
+
+          return {
+            bounds,
+            height,
+            offsetX: round2((width - worldWidth * scale) / 2),
+            offsetY: round2((height - worldHeight * scale) / 2),
+            scale,
+            width,
+          };
+        }
+
+        function drawMinimapTables(context, metrics) {
+          context.save();
+          context.fillStyle = "rgba(182, 231, 217, 0.18)";
+          context.strokeStyle = "rgba(182, 231, 217, 0.34)";
+          context.lineWidth = 1;
+
+          for (const [modelId, meta] of tableMetaById.entries()) {
+            if (!isVisibleModel(modelId)) {
+              continue;
+            }
+
+            const position = getCurrentPosition(modelId);
+            const rect = worldRectToMinimapRect(
+              {
+                maxX: position.x + meta.width,
+                maxY: position.y + meta.height,
+                minX: position.x,
+                minY: position.y,
+              },
+              metrics,
+            );
+            const isSelected = state.selectedModelId === modelId;
+
+            context.fillStyle = isSelected ? "rgba(255, 191, 105, 0.56)" : "rgba(182, 231, 217, 0.22)";
+            context.strokeStyle = isSelected ? "rgba(255, 191, 105, 0.88)" : "rgba(182, 231, 217, 0.38)";
+            context.fillRect(rect.x, rect.y, rect.width, rect.height);
+            context.strokeRect(rect.x, rect.y, rect.width, rect.height);
+          }
+
+          context.restore();
+        }
+
+        function updateMinimapViewportCursor(metrics) {
+          const minimapRect = fitMinimapCursorRect(
+            worldRectToMinimapRect(getViewportWorldRect(), metrics),
+            metrics,
+          );
+
+          minimapViewport.style.transform =
+            "translate(" + round2(minimapRect.x) + "px, " + round2(minimapRect.y) + "px)";
+          minimapViewport.style.width = round2(minimapRect.width) + "px";
+          minimapViewport.style.height = round2(minimapRect.height) + "px";
+        }
+
+        function getViewportWorldRect() {
+          const rect = getViewportScreenRect();
+          const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
+
+          return {
+            maxX: (rect.width - state.viewport.panX) / zoom,
+            maxY: (rect.height - state.viewport.panY) / zoom,
+            minX: -state.viewport.panX / zoom,
+            minY: -state.viewport.panY / zoom,
+          };
+        }
+
+        function fitMinimapCursorRect(rect, metrics) {
+          const width = Math.min(metrics.width, Math.max(10, rect.width));
+          const height = Math.min(metrics.height, Math.max(10, rect.height));
+          const x = rect.x - Math.max(0, width - rect.width) / 2;
+          const y = rect.y - Math.max(0, height - rect.height) / 2;
+
+          return {
+            height,
+            width,
+            x: Math.max(0, Math.min(Math.max(0, metrics.width - width), x)),
+            y: Math.max(0, Math.min(Math.max(0, metrics.height - height), y)),
+          };
+        }
+
+        function worldRectToMinimapRect(rect, metrics) {
+          return {
+            height: Math.max(2, (rect.maxY - rect.minY) * metrics.scale),
+            width: Math.max(2, (rect.maxX - rect.minX) * metrics.scale),
+            x: metrics.offsetX + (rect.minX - metrics.bounds.minX) * metrics.scale,
+            y: metrics.offsetY + (rect.minY - metrics.bounds.minY) * metrics.scale,
+          };
+        }
+
+        function getMinimapWorldPoint(event) {
+          const metrics = cachedMinimapMetrics || createMinimapMetrics(computeLayoutBounds(state.layoutMode, state.tableOptions));
+          if (!metrics || !minimapCanvas) {
+            return undefined;
+          }
+
+          const rect = minimapCanvas.getBoundingClientRect();
+          const localX = event.clientX - rect.left;
+          const localY = event.clientY - rect.top;
+          const worldX = metrics.bounds.minX + (localX - metrics.offsetX) / metrics.scale;
+          const worldY = metrics.bounds.minY + (localY - metrics.offsetY) / metrics.scale;
+
+          return {
+            x: round2(Math.max(metrics.bounds.minX, Math.min(metrics.bounds.maxX, worldX))),
+            y: round2(Math.max(metrics.bounds.minY, Math.min(metrics.bounds.maxY, worldY))),
+          };
         }
 
         function isVisibleModel(modelId) {
           return !getTableOptions(state, modelId).hidden;
         }
 
-        function renderCrossingMarkup(crossing) {
-          return '<div class="erd-crossing erd-crossing--bridge" data-crossing-id="' +
-            crossing.id +
-            '" data-x="' +
-            crossing.position.x +
-            '" data-y="' +
-            crossing.position.y +
-            '"></div>';
-        }
-
-        function renderEdgesAndCrossings() {
-          const visibleEdges = [];
-          const visibleEdgeEntries = [];
-          renderedEdges = [];
-
-          for (const meta of edgeMeta) {
-            const sourceTable = tableMetaById.get(meta.sourceModelId);
-            const targetTable = tableMetaById.get(meta.targetModelId);
-            if (!sourceTable || !targetTable) {
-              continue;
-            }
-
-            const sourceHidden = !isVisibleModel(meta.sourceModelId);
-            const targetHidden = !isVisibleModel(meta.targetModelId);
-            meta.element.toggleAttribute("hidden", sourceHidden || targetHidden);
-            if (sourceHidden || targetHidden) {
-              continue;
-            }
-
-            visibleEdgeEntries.push({
-              meta,
-              sourcePosition: getCurrentPosition(meta.sourceModelId),
-              sourceTable,
-              targetPosition: getCurrentPosition(meta.targetModelId),
-              targetTable,
-            });
-          }
-
-          if (renderModel.modelCatalogMode) {
-            for (const routed of routeCatalogEdgesWithPorts(visibleEdgeEntries)) {
-              const pointsAttribute = pointsToAttribute(routed.points);
-              routed.entry.meta.element.setAttribute("points", pointsAttribute);
-              routed.entry.meta.element.dataset.points = pointsAttribute;
-              renderedEdges.push({
-                edgeId: routed.entry.meta.edgeId,
-                meta: routed.entry.meta,
-                points: routed.points,
-              });
-            }
-
-            renderedCrossings = [];
-            if (crossingsLayer) {
-              crossingsLayer.innerHTML = "";
-            }
-            return;
-          }
-
-          for (const entry of visibleEdgeEntries) {
-            const points = buildOrthogonalPath(
-              entry.sourcePosition,
-              entry.sourceTable,
-              entry.targetPosition,
-              entry.targetTable,
-            );
-            const pointsAttribute = pointsToAttribute(points);
-            entry.meta.element.setAttribute("points", pointsAttribute);
-            entry.meta.element.dataset.points = pointsAttribute;
-            visibleEdges.push({
-              edgeId: entry.meta.edgeId,
-              points,
-            });
-            renderedEdges.push({
-              edgeId: entry.meta.edgeId,
-              meta: entry.meta,
-              points,
-            });
-          }
-
-          if (!crossingsLayer) {
-            renderedCrossings = [];
-            if (crossingsLayer) {
-              crossingsLayer.innerHTML = "";
-            }
-            return;
-          }
-
-          const crossings = [];
-          let crossingIndex = 1;
-
-          for (let left = 0; left < visibleEdges.length; left += 1) {
-            for (let right = left + 1; right < visibleEdges.length; right += 1) {
-              for (const leftSegment of findSegments(visibleEdges[left].points)) {
-                for (const rightSegment of findSegments(visibleEdges[right].points)) {
-                  const intersection = segmentIntersection(leftSegment, rightSegment);
-                  if (!intersection) {
-                    continue;
-                  }
-
-                  if (
-                    isPointAtSegmentEndpoint(intersection, leftSegment) ||
-                    isPointAtSegmentEndpoint(intersection, rightSegment)
-                  ) {
-                    continue;
-                  }
-
-                  crossings.push({
-                    id: "runtime-crossing-" + crossingIndex,
-                    position: intersection,
-                  });
-                  crossingIndex += 1;
-                }
-              }
-            }
-          }
-
-          renderedCrossings = crossings;
-          crossingsLayer.innerHTML = crossings.map(renderCrossingMarkup).join("");
-        }
-
         function renderHiddenTableList() {
           for (const [modelId, item] of hiddenItemsById.entries()) {
-            item.toggleAttribute("hidden", !getTableOptions(state, modelId).hidden);
+            item.hidden = !getTableOptions(state, modelId).hidden;
           }
         }
 
@@ -229,23 +281,17 @@ export function getBrowserRenderSource(): string {
               isVisibleModel(meta.sourceModelId) &&
               isVisibleModel(meta.targetModelId);
 
-            meta.element.dataset.x1 = String(sourceCenter.x);
-            meta.element.dataset.y1 = String(sourceCenter.y);
-            meta.element.dataset.x2 = String(targetCenter.x);
-            meta.element.dataset.y2 = String(targetCenter.y);
-            meta.element.classList.toggle("is-active", Boolean(active));
-            meta.element.toggleAttribute("hidden", !active);
             renderedOverlays.push({
               active: Boolean(active),
+              id: meta.id,
+              methodName: meta.methodName,
+              sourceModelId: meta.sourceModelId,
+              targetModelId: meta.targetModelId,
               x1: sourceCenter.x,
               x2: targetCenter.x,
               y1: sourceCenter.y,
               y2: targetCenter.y,
             });
-          }
-
-          for (const [modelId, meta] of tableMetaById.entries()) {
-            meta.element.classList.toggle("is-method-target", isMethodTarget(modelId));
           }
         }
 
@@ -255,28 +301,28 @@ export function getBrowserRenderSource(): string {
             const options = getTableOptions(state, modelId);
 
             meta.element.classList.toggle("is-selected", selected);
-            meta.element.toggleAttribute("hidden", !selected);
+            meta.element.hidden = !selected;
             if (meta.methodHiddenHint) {
-              meta.methodHiddenHint.toggleAttribute("hidden", options.showMethods);
+              meta.methodHiddenHint.hidden = options.showMethods;
             }
             if (meta.methodList) {
               const hasMethods = meta.methodList.children.length > 0;
-              meta.methodList.toggleAttribute("hidden", !options.showMethods || !hasMethods);
+              meta.methodList.hidden = !options.showMethods || !hasMethods;
             }
             if (meta.emptyMethodHint) {
               const hasMethods = meta.methodList && meta.methodList.children.length > 0;
-              meta.emptyMethodHint.toggleAttribute("hidden", Boolean(hasMethods));
+              meta.emptyMethodHint.hidden = Boolean(hasMethods);
             }
             if (meta.propertyHiddenHint) {
-              meta.propertyHiddenHint.toggleAttribute("hidden", options.showProperties);
+              meta.propertyHiddenHint.hidden = options.showProperties;
             }
             if (meta.propertyList) {
               const hasProperties = meta.propertyList.children.length > 0;
-              meta.propertyList.toggleAttribute("hidden", !options.showProperties || !hasProperties);
+              meta.propertyList.hidden = !options.showProperties || !hasProperties;
             }
             if (meta.emptyPropertyHint) {
               const hasProperties = meta.propertyList && meta.propertyList.children.length > 0;
-              meta.emptyPropertyHint.toggleAttribute("hidden", Boolean(hasProperties));
+              meta.emptyPropertyHint.hidden = Boolean(hasProperties);
             }
 
             for (const button of meta.toggleButtons) {
@@ -332,51 +378,8 @@ export function getBrowserRenderSource(): string {
           }
         }
 
-        function renderTables() {
-          for (const [modelId, meta] of tableMetaById.entries()) {
-            const selected = state.selectedModelId === modelId;
-            const options = getTableOptions(state, modelId);
-            const position = getCurrentPosition(modelId);
-            const isDraggingTable = drag && drag.kind === "table" && drag.modelId === modelId;
-
-            meta.element.classList.toggle("is-selected", selected);
-            meta.element.classList.toggle("is-dragging", Boolean(isDraggingTable));
-            meta.element.setAttribute(
-              "transform",
-              "translate(" + position.x + " " + position.y + ")",
-            );
-            meta.element.dataset.hidden = String(options.hidden);
-            meta.element.dataset.methodHighlights = String(options.showMethodHighlights);
-            meta.element.dataset.showMethods = String(options.showMethods);
-            meta.element.dataset.showProperties = String(options.showProperties);
-            meta.element.toggleAttribute("hidden", options.hidden);
-
-            if (meta.methodsSection) {
-              meta.methodsSection.toggleAttribute("hidden", !options.showMethods);
-            }
-            if (meta.propertiesSection) {
-              meta.propertiesSection.toggleAttribute("hidden", !options.showProperties);
-            }
-            if (meta.dividers.methods) {
-              meta.dividers.methods.toggleAttribute(
-                "hidden",
-                !options.showMethods || !meta.methodsSection || meta.methodsSection.children.length === 0,
-              );
-            }
-            if (meta.dividers.properties) {
-              meta.dividers.properties.toggleAttribute(
-                "hidden",
-                !options.showProperties || !meta.propertiesSection || meta.propertiesSection.children.length === 0,
-              );
-            }
-          }
-        }
-
         function isMethodTarget(modelId) {
-          return overlayMeta.some((meta) =>
-            meta.element.classList.contains("is-active") &&
-            meta.targetModelId === modelId,
-          );
+          return renderedOverlays.some((overlay) => overlay.active && overlay.targetModelId === modelId);
         }
 
         function updateToggleButton(button, options) {

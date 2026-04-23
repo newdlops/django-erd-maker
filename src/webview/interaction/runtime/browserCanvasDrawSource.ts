@@ -1,1221 +1,1607 @@
 export function getBrowserCanvasDrawSource(): string {
   return `
-        const CATALOG_BUCKET_SIZE = 768;
-        const CATALOG_TILE_SIZE = 1024;
-        const CATALOG_TILE_PRELOAD_WORLD_PADDING = 160;
-        const CATALOG_TILE_RASTER_BUDGET_MS = 6;
-        const CATALOG_TILE_WARMUP_LIMIT = 2;
-        const CATALOG_CROSSING_BUCKET_SIZE = 192;
-        const CATALOG_CROSSING_CHECK_BUDGET = 60000;
-        const CATALOG_CROSSING_MARKER_MIN_ZOOM = 0.1;
-        const CATALOG_CROSSING_MAX_MARKERS = 900;
-        const CATALOG_CROSSING_MAX_SEGMENTS = 3600;
+        const GPU_TILE_SIZE = 960;
+        const GPU_TABLE_LABEL_ZOOM = 0.16;
+        const GPU_TABLE_SUBTITLE_ZOOM = 0.24;
+        const GPU_TABLE_DETAIL_ZOOM = 0.58;
+        const GPU_TABLE_DETAIL_LIMIT = 56;
+        const GPU_LABEL_ATLAS_SIZE = 2048;
+        const GPU_MAX_SEGMENTS_PER_FRAME = 240000;
+        const GPU_MAX_LABELS_PER_FRAME = 2200;
+        const WEBGPU_UNIFORM_BYTES = 32;
 
-        let panSnapshotCanvas = null;
-        let panSnapshotContext = null;
-        let lastDrawViewport = null;
-        let catalogSpatialBuckets = null;
-        let catalogTableBoundsById = null;
-        let catalogTileCache = new Map();
-        let catalogRasterQueue = [];
-        let catalogQueuedTiles = new Set();
-        let catalogRasterFrame = 0;
-        let catalogSceneVersion = 1;
-        let catalogWarmVersion = 0;
+        let gpuRenderer = null;
+        let sceneGraph = null;
         let latestCatalogCrossings = [];
 
-        function invalidateCatalogSceneCache() {
-          catalogSceneVersion += 1;
-          catalogSpatialBuckets = null;
-          catalogTableBoundsById = null;
-          catalogTileCache.clear();
-          catalogRasterQueue = [];
-          catalogQueuedTiles.clear();
-          catalogWarmVersion = 0;
-
-          if (catalogRasterFrame) {
-            window.cancelAnimationFrame(catalogRasterFrame);
-            catalogRasterFrame = 0;
-          }
-        }
-
-        function drawCanvas(renderMode) {
-          resizeDrawingCanvas();
-
-          if (renderModel.modelCatalogMode) {
-            drawCatalogCanvas(renderMode);
-            lastDrawViewport = {
-              panX: state.viewport.panX,
-              panY: state.viewport.panY,
-              zoom: state.viewport.zoom,
-            };
-            return;
-          }
-
-          const viewportRect = getViewportRect();
-          const currentViewport = {
-            panX: state.viewport.panX,
-            panY: state.viewport.panY,
-            zoom: state.viewport.zoom,
-          };
-
-          if (renderMode === "viewport" && canReusePanSnapshot(currentViewport, viewportRect)) {
-            drawCanvasFromPanSnapshot(currentViewport, viewportRect);
-          } else {
-            drawingContext.clearRect(0, 0, viewportRect.width, viewportRect.height);
-            drawScene(getVisibleWorldBounds(), null);
-          }
-
-          updatePanSnapshot();
-          lastDrawViewport = currentViewport;
-        }
-
-        function drawCatalogCanvas(renderMode) {
-          const viewportRect = getViewportRect();
-          const visibleBounds = getVisibleWorldBounds(CATALOG_TILE_PRELOAD_WORLD_PADDING);
-          const visibleTiles = collectVisibleCatalogTiles(visibleBounds);
-
-          warmCatalogTiles(visibleTiles);
-          queueCatalogTilesForRaster(visibleTiles);
-
-          drawingContext.clearRect(0, 0, viewportRect.width, viewportRect.height);
-          drawingContext.save();
-          drawingContext.translate(state.viewport.panX, state.viewport.panY);
-          drawingContext.scale(state.viewport.zoom, state.viewport.zoom);
-
-          drawCatalogEdges(visibleBounds);
-
-          let renderedContentTileCount = 0;
-          for (const tile of visibleTiles) {
-            if (tile.renderedVersion !== catalogSceneVersion || !tile.canvas) {
-              continue;
-            }
-
-            drawingContext.drawImage(tile.canvas, tile.x, tile.y, tile.width, tile.height);
-            if (tile.tableCount > 0) {
-              renderedContentTileCount += 1;
-            }
-          }
-
-          if (renderedContentTileCount === 0) {
-            drawTables(visibleBounds);
-          }
-
-          drawCatalogDynamicTableOverlays(visibleBounds);
-          drawingContext.restore();
-          scheduleCatalogTileRasterization();
-        }
-
-        function drawCatalogEdges(visibleBounds) {
-          latestCatalogCrossings = [];
-          if (!renderedEdges.length) {
-            return;
-          }
-
-          const visibleSegments = [];
-          drawingContext.save();
-          drawingContext.lineCap = "round";
-          drawingContext.lineJoin = "round";
-
-          for (const edge of renderedEdges) {
-            if (!polylineIntersectsBounds(edge.points, visibleBounds, 96)) {
-              continue;
-            }
-
-            collectCatalogEdgeSegments(edge, visibleBounds, visibleSegments);
-            drawingContext.strokeStyle = catalogEdgeStrokeStyle(edge.meta);
-            drawingContext.lineWidth = catalogEdgeLineWidth(edge.meta);
-            drawingContext.globalAlpha = edge.meta.provenance === "derived_reverse" ? 0.58 : 0.72;
-            if (edge.meta.provenance === "derived_reverse") {
-              drawingContext.setLineDash([14, 12]);
-            } else {
-              drawingContext.setLineDash([]);
-            }
-
-            drawPolyline(edge.points);
-          }
-
-          drawingContext.restore();
-          latestCatalogCrossings = collectCatalogCrossings(visibleSegments, visibleBounds);
-          drawCatalogCrossings(latestCatalogCrossings);
-        }
-
-        function catalogEdgeStrokeStyle(edgeMeta) {
-          if (edgeMeta.cssKind.includes("many-to-many")) {
-            return "#f7d18a";
-          }
-
-          if (edgeMeta.cssKind.includes("one-to-one")) {
-            return "#a8d8ff";
-          }
-
-          return edgeMeta.provenance === "derived_reverse" ? "#9dcfe1" : "#b6e7d9";
-        }
-
-        function catalogEdgeLineWidth(edgeMeta) {
-          if (edgeMeta.cssKind.includes("many-to-many")) {
-            return 4.8;
-          }
-
-          if (edgeMeta.cssKind.includes("one-to-one")) {
-            return 4.4;
-          }
-
-          return 4.2;
-        }
-
-        function collectCatalogEdgeSegments(edge, visibleBounds, segments) {
-          if (state.viewport.zoom < CATALOG_CROSSING_MARKER_MIN_ZOOM) {
-            return;
-          }
-
-          if (segments.length >= CATALOG_CROSSING_MAX_SEGMENTS) {
-            return;
-          }
-
-          for (const segment of findSegments(edge.points)) {
-            if (segments.length >= CATALOG_CROSSING_MAX_SEGMENTS) {
-              return;
-            }
-
-            const horizontal = segment.start.y === segment.end.y;
-            const vertical = segment.start.x === segment.end.x;
-            if (!horizontal && !vertical) {
-              continue;
-            }
-
-            if (samePoint(segment.start, segment.end)) {
-              continue;
-            }
-
-            if (
-              !segmentIntersectsBounds(
-                segment.start.x,
-                segment.start.y,
-                segment.end.x,
-                segment.end.y,
-                visibleBounds,
-                64,
-              )
-            ) {
-              continue;
-            }
-
-            segments.push({
-              edgeId: edge.edgeId,
-              end: segment.end,
-              horizontal,
-              start: segment.start,
-              vertical,
-            });
-          }
-        }
-
-        function collectCatalogCrossings(segments, visibleBounds) {
-          if (state.viewport.zoom < CATALOG_CROSSING_MARKER_MIN_ZOOM || segments.length < 2) {
-            return [];
-          }
-
-          const buckets = new Map();
-          for (const segment of segments) {
-            const range = getCatalogCrossingBucketRange(segment, visibleBounds, 64);
-
-            for (let row = range.startRow; row <= range.endRow; row += 1) {
-              for (let column = range.startColumn; column <= range.endColumn; column += 1) {
-                const key = column + ":" + row;
-                let bucket = buckets.get(key);
-                if (!bucket) {
-                  bucket = {
-                    horizontal: [],
-                    vertical: [],
-                  };
-                  buckets.set(key, bucket);
-                }
-
-                if (segment.horizontal) {
-                  bucket.horizontal.push(segment);
-                } else {
-                  bucket.vertical.push(segment);
-                }
-              }
-            }
-          }
-
-          const crossings = [];
-          const seenCrossings = new Set();
-          let checkedPairs = 0;
-
-          for (const bucket of buckets.values()) {
-            if (!bucket.horizontal.length || !bucket.vertical.length) {
-              continue;
-            }
-
-            for (const horizontal of bucket.horizontal) {
-              for (const vertical of bucket.vertical) {
-                if (checkedPairs >= CATALOG_CROSSING_CHECK_BUDGET) {
-                  return crossings;
-                }
-                checkedPairs += 1;
-
-                if (horizontal.edgeId === vertical.edgeId) {
-                  continue;
-                }
-
-                const intersection = segmentIntersection(horizontal, vertical);
-                if (!intersection) {
-                  continue;
-                }
-
-                if (!pointInBounds(intersection.x, intersection.y, visibleBounds, 16)) {
-                  continue;
-                }
-
-                if (
-                  isPointAtSegmentEndpoint(intersection, horizontal) ||
-                  isPointAtSegmentEndpoint(intersection, vertical)
-                ) {
-                  continue;
-                }
-
-                const key = Math.round(intersection.x) + ":" + Math.round(intersection.y);
-                if (seenCrossings.has(key)) {
-                  continue;
-                }
-
-                seenCrossings.add(key);
-                crossings.push({
-                  bridgeHorizontal:
-                    Math.abs(horizontal.end.x - horizontal.start.x) >=
-                    Math.abs(vertical.end.y - vertical.start.y),
-                  position: intersection,
-                });
-
-                if (crossings.length >= CATALOG_CROSSING_MAX_MARKERS) {
-                  return crossings;
-                }
-              }
-            }
-          }
-
-          return crossings;
-        }
-
-        function getCatalogCrossingBucketRange(segment, visibleBounds, padding) {
-          const minX = Math.max(Math.min(segment.start.x, segment.end.x), visibleBounds.left - padding);
-          const maxX = Math.min(Math.max(segment.start.x, segment.end.x), visibleBounds.right + padding);
-          const minY = Math.max(Math.min(segment.start.y, segment.end.y), visibleBounds.top - padding);
-          const maxY = Math.min(Math.max(segment.start.y, segment.end.y), visibleBounds.bottom + padding);
+        function detectGpuSupport() {
+          const hasWebgl2 = typeof window.WebGL2RenderingContext === "function";
+          const hasWebgpu = typeof navigator !== "undefined" && Boolean(navigator.gpu);
 
           return {
-            endColumn: Math.floor(maxX / CATALOG_CROSSING_BUCKET_SIZE),
-            endRow: Math.floor(maxY / CATALOG_CROSSING_BUCKET_SIZE),
-            startColumn: Math.floor(minX / CATALOG_CROSSING_BUCKET_SIZE),
-            startRow: Math.floor(minY / CATALOG_CROSSING_BUCKET_SIZE),
+            hasWebgl2,
+            hasWebgpu,
+            reason:
+              "This ERD view requires WebGL2 or WebGPU support. Update the VS Code host or enable GPU acceleration.",
+            supported: hasWebgl2 || hasWebgpu,
           };
         }
 
-        function drawCatalogCrossings(crossings) {
-          if (!crossings.length) {
+        function showGpuUnsupportedWarning(reason) {
+          if (!gpuWarning) {
             return;
           }
 
-          const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
-          const radius = Math.max(5, Math.min(24, 5.5 / zoom));
-          const strokeWidth = Math.max(1.4, Math.min(6, 1.4 / zoom));
-
-          drawingContext.save();
-          drawingContext.lineCap = "round";
-          drawingContext.lineJoin = "round";
-
-          for (const crossing of crossings) {
-            const x = crossing.position.x;
-            const y = crossing.position.y;
-
-            drawingContext.globalAlpha = 0.82;
-            drawingContext.fillStyle = "#07121b";
-            drawingContext.beginPath();
-            drawingContext.arc(x, y, radius * 0.86, 0, Math.PI * 2);
-            drawingContext.fill();
-
-            drawingContext.globalAlpha = 0.94;
-            drawingContext.strokeStyle = "rgba(255, 191, 105, 0.95)";
-            drawingContext.lineWidth = strokeWidth;
-            drawingContext.beginPath();
-            if (crossing.bridgeHorizontal) {
-              drawingContext.moveTo(x - radius, y);
-              drawingContext.quadraticCurveTo(x, y - radius * 0.9, x + radius, y);
-            } else {
-              drawingContext.moveTo(x, y - radius);
-              drawingContext.quadraticCurveTo(x + radius * 0.9, y, x, y + radius);
-            }
-            drawingContext.stroke();
+          gpuWarning.hidden = false;
+          const message = gpuWarning.querySelector("[data-erd-gpu-warning-message]");
+          if (message) {
+            message.textContent = reason;
           }
-
-          drawingContext.restore();
         }
 
-        function drawCatalogDynamicTableOverlays(visibleBounds) {
-          if (drag && drag.kind === "table") {
-            const meta = tableMetaById.get(drag.modelId);
-            const table = tableRenderById.get(drag.modelId);
-            const position = meta ? getCurrentPosition(drag.modelId) : null;
-            if (
-              meta &&
-              table &&
-              position &&
-              rectIntersectsBounds(position.x, position.y, meta.width, meta.height, visibleBounds, 56)
-            ) {
-              drawCatalogSelectionOverlay(position, meta, "dragging");
+        function invalidateCatalogSceneCache() {
+          invalidateSceneGraph();
+        }
+
+        function invalidateSceneGraph() {
+          sceneGraph = null;
+          renderedEdges = [];
+          renderedCrossings = [];
+          latestCatalogCrossings = [];
+        }
+
+        async function createGpuRenderer(gpuSupport) {
+          if (gpuSupport.hasWebgpu) {
+            try {
+              const webGpuRenderer = await createWebGpuRenderer();
+              if (webGpuRenderer) {
+                return webGpuRenderer;
+              }
+            } catch (error) {
+              console.warn("WebGPU renderer initialization failed; falling back to WebGL2.", error);
+              logErd("warn", "renderer.webgpu.fallback", {
+                reason: error instanceof Error ? error.message : String(error),
+                renderer: "webgl2",
+              });
             }
           }
 
-          const selectedModelId = state.selectedModelId;
-          if (!selectedModelId || (drag && drag.kind === "table" && drag.modelId === selectedModelId)) {
-            return;
+          if (!gpuSupport.hasWebgl2) {
+            return null;
           }
 
-          const meta = tableMetaById.get(selectedModelId);
-          const table = tableRenderById.get(selectedModelId);
-          const options = meta ? getTableOptions(state, selectedModelId) : null;
-          if (!meta || !table || (options && options.hidden)) {
-            return;
-          }
-
-          const position = getCurrentPosition(selectedModelId);
-          if (!rectIntersectsBounds(position.x, position.y, meta.width, meta.height, visibleBounds, 56)) {
-            return;
-          }
-
-          drawCatalogSelectionOverlay(position, meta, "selected");
+          return createWebGl2Renderer();
         }
 
-        function drawCatalogSelectionOverlay(position, meta, variant) {
-          drawingContext.save();
-          drawingContext.strokeStyle = variant === "dragging"
-            ? "rgba(168, 216, 255, 0.72)"
-            : "rgba(109, 208, 176, 0.62)";
-          drawingContext.lineWidth = 2.2;
-          drawRoundRectOn(drawingContext, position.x, position.y, meta.width, meta.height, 7);
-          drawingContext.stroke();
-          drawingContext.restore();
-        }
+        async function createWebGpuRenderer() {
+          if (!navigator.gpu) {
+            return null;
+          }
 
-        function collectVisibleCatalogTiles(visibleBounds) {
-          const paddedBounds = {
-            bottom: visibleBounds.bottom,
-            left: visibleBounds.left,
-            right: visibleBounds.right,
-            top: visibleBounds.top,
+          const adapter = await navigator.gpu.requestAdapter({
+            powerPreference: "high-performance",
+          });
+          if (!adapter) {
+            return null;
+          }
+
+          const device = await adapter.requestDevice();
+          device.pushErrorScope("validation");
+          const format = navigator.gpu.getPreferredCanvasFormat();
+          const commonBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+              {
+                binding: 0,
+                buffer: { type: "uniform" },
+                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+              },
+            ],
+          });
+          const spriteBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+              {
+                binding: 0,
+                sampler: { type: "filtering" },
+                visibility: GPUShaderStage.FRAGMENT,
+              },
+              {
+                binding: 1,
+                texture: { sampleType: "float" },
+                visibility: GPUShaderStage.FRAGMENT,
+              },
+            ],
+          });
+          const renderer = {
+            atlas: createWebGpuLabelAtlas(device),
+            backend: "webgpu",
+            commonBindGroupLayout,
+            context: null,
+            device,
+            format,
+            segment: createWebGpuSegmentPipeline(device, format, commonBindGroupLayout),
+            sprite: createWebGpuSpritePipeline(
+              device,
+              format,
+              commonBindGroupLayout,
+              spriteBindGroupLayout,
+            ),
+            spriteBindGroupLayout,
+            table: createWebGpuTablePipeline(device, format, commonBindGroupLayout),
+            uniformBuffer: device.createBuffer({
+              size: WEBGPU_UNIFORM_BYTES,
+              usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+            }),
           };
-          const range = getTileRangeForBounds(paddedBounds);
-          const tiles = [];
 
-          for (let row = range.startRow; row <= range.endRow; row += 1) {
-            for (let column = range.startColumn; column <= range.endColumn; column += 1) {
-              tiles.push(getOrCreateCatalogTile(column, row));
-            }
+          renderer.commonBindGroup = device.createBindGroup({
+            entries: [
+              {
+                binding: 0,
+                resource: {
+                  buffer: renderer.uniformBuffer,
+                },
+              },
+            ],
+            layout: commonBindGroupLayout,
+          });
+          renderer.spriteBindGroup = createWebGpuSpriteBindGroup(renderer);
+          const validationError = await device.popErrorScope();
+          if (validationError) {
+            logErd("warn", "renderer.webgpu.validation_failed", {
+              message: validationError.message,
+              renderer: "webgpu",
+            });
+            return null;
           }
 
-          return tiles;
+          bindWebGpuDiagnostics(renderer);
+          const context = drawingCanvas.getContext("webgpu");
+          if (!context) {
+            return null;
+          }
+
+          renderer.context = context;
+          configureWebGpuCanvas(renderer);
+          return renderer;
         }
 
-        function queueCatalogTilesForRaster(tiles) {
-          for (const tile of tiles) {
-            if (tile.renderedVersion === catalogSceneVersion) {
-              continue;
-            }
+        function bindWebGpuDiagnostics(renderer) {
+          renderer.device.addEventListener("uncapturederror", (event) => {
+            logErd("error", "renderer.webgpu.error", {
+              message: event.error ? event.error.message : String(event),
+              renderer: "webgpu",
+            });
+          });
 
-            const key = getCatalogTileKey(tile.column, tile.row);
-            if (catalogQueuedTiles.has(key)) {
-              continue;
-            }
-
-            catalogQueuedTiles.add(key);
-            catalogRasterQueue.push(key);
-          }
-        }
-
-        function warmCatalogTiles(tiles) {
-          if (catalogWarmVersion === catalogSceneVersion) {
-            return;
-          }
-
-          const startedAt = performance.now();
-          let warmed = 0;
-
-          for (const tile of tiles) {
-            if (tile.renderedVersion === catalogSceneVersion) {
-              continue;
-            }
-
-            rasterizeCatalogTile(tile);
-            warmed += 1;
-            if (
-              warmed >= CATALOG_TILE_WARMUP_LIMIT ||
-              performance.now() - startedAt >= CATALOG_TILE_RASTER_BUDGET_MS
-            ) {
-              break;
-            }
-          }
-
-          catalogWarmVersion = catalogSceneVersion;
-        }
-
-        function scheduleCatalogTileRasterization() {
-          if (!catalogRasterQueue.length || catalogRasterFrame) {
-            return;
-          }
-
-          catalogRasterFrame = window.requestAnimationFrame(() => {
-            catalogRasterFrame = 0;
-            rasterizeCatalogTileBatch();
+          renderer.device.lost.then((info) => {
+            logErd("error", "renderer.webgpu.lost", {
+              message: info.message || "",
+              reason: info.reason || "unknown",
+              renderer: "webgpu",
+            });
           });
         }
 
-        function rasterizeCatalogTileBatch() {
+        function createWebGl2Renderer() {
+          const gl = drawingCanvas.getContext("webgl2", {
+            alpha: false,
+            antialias: true,
+            depth: false,
+            desynchronized: true,
+            powerPreference: "high-performance",
+            preserveDrawingBuffer: false,
+            stencil: false,
+          });
+          if (!gl) {
+            return null;
+          }
+
+          const tableProgram = createProgram(gl, tableVertexShaderSource(), tableFragmentShaderSource());
+          const segmentProgram = createProgram(gl, segmentVertexShaderSource(), segmentFragmentShaderSource());
+          const spriteProgram = createProgram(gl, spriteVertexShaderSource(), spriteFragmentShaderSource());
+          if (!tableProgram || !segmentProgram || !spriteProgram) {
+            return null;
+          }
+
+          const renderer = {
+            atlas: createLabelAtlas(gl),
+            backend: "webgl2",
+            gl,
+            segment: {
+              buffers: {
+                corners: createStaticBuffer(gl, new Float32Array([0, -1, 1, -1, 0, 1, 1, 1])),
+                instances: gl.createBuffer(),
+              },
+              program: segmentProgram,
+            },
+            sprite: {
+              buffers: {
+                corners: createStaticBuffer(gl, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1])),
+                instances: gl.createBuffer(),
+              },
+              program: spriteProgram,
+            },
+            table: {
+              buffers: {
+                corners: createStaticBuffer(gl, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1])),
+                instances: gl.createBuffer(),
+              },
+              program: tableProgram,
+            },
+          };
+
+          gl.disable(gl.DEPTH_TEST);
+          gl.enable(gl.BLEND);
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+          return renderer;
+        }
+
+        function configureWebGpuCanvas(renderer) {
+          renderer.context.configure({
+            alphaMode: "opaque",
+            device: renderer.device,
+            format: renderer.format,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT,
+          });
+        }
+
+        function createWebGpuLabelAtlas(device) {
+          const canvas = document.createElement("canvas");
+          canvas.width = GPU_LABEL_ATLAS_SIZE;
+          canvas.height = GPU_LABEL_ATLAS_SIZE;
+          const context = canvas.getContext("2d", {
+            alpha: true,
+            colorSpace: "srgb",
+            willReadFrequently: true,
+          });
+          if (!context) {
+            return null;
+          }
+
+          const texture = device.createTexture({
+            format: "rgba8unorm",
+            size: [canvas.width, canvas.height],
+            usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+          });
+          const sampler = device.createSampler({
+            addressModeU: "clamp-to-edge",
+            addressModeV: "clamp-to-edge",
+            magFilter: "linear",
+            minFilter: "linear",
+          });
+
+          return {
+            canvas,
+            context,
+            map: new Map(),
+            nextX: 8,
+            nextY: 8,
+            rowHeight: 0,
+            sampler,
+            texture,
+          };
+        }
+
+        function createWebGpuTablePipeline(device, format, commonBindGroupLayout) {
+          const pipelineLayout = device.createPipelineLayout({
+            bindGroupLayouts: [commonBindGroupLayout],
+          });
+
+          return {
+            corners: createWebGpuStaticBuffer(device, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1])),
+            instanceBuffer: null,
+            instanceBytes: 0,
+            pipeline: device.createRenderPipeline({
+              fragment: {
+                entryPoint: "fs",
+                module: device.createShaderModule({ code: webGpuTableShaderSource() }),
+                targets: [createWebGpuBlendTarget(format)],
+              },
+              layout: pipelineLayout,
+              primitive: { topology: "triangle-strip" },
+              vertex: {
+                buffers: [
+                  {
+                    arrayStride: 8,
+                    attributes: [{ format: "float32x2", offset: 0, shaderLocation: 0 }],
+                    stepMode: "vertex",
+                  },
+                  {
+                    arrayStride: 56,
+                    attributes: [
+                      { format: "float32x4", offset: 0, shaderLocation: 1 },
+                      { format: "float32x4", offset: 16, shaderLocation: 2 },
+                      { format: "float32x4", offset: 32, shaderLocation: 3 },
+                      { format: "float32x2", offset: 48, shaderLocation: 4 },
+                    ],
+                    stepMode: "instance",
+                  },
+                ],
+                entryPoint: "vs",
+                module: device.createShaderModule({ code: webGpuTableShaderSource() }),
+              },
+            }),
+          };
+        }
+
+        function createWebGpuSegmentPipeline(device, format, commonBindGroupLayout) {
+          const pipelineLayout = device.createPipelineLayout({
+            bindGroupLayouts: [commonBindGroupLayout],
+          });
+
+          return {
+            corners: createWebGpuStaticBuffer(device, new Float32Array([0, -1, 1, -1, 0, 1, 1, 1])),
+            instanceBuffer: null,
+            instanceBytes: 0,
+            pipeline: device.createRenderPipeline({
+              fragment: {
+                entryPoint: "fs",
+                module: device.createShaderModule({ code: webGpuSegmentShaderSource() }),
+                targets: [createWebGpuBlendTarget(format)],
+              },
+              layout: pipelineLayout,
+              primitive: { topology: "triangle-strip" },
+              vertex: {
+                buffers: [
+                  {
+                    arrayStride: 8,
+                    attributes: [{ format: "float32x2", offset: 0, shaderLocation: 0 }],
+                    stepMode: "vertex",
+                  },
+                  {
+                    arrayStride: 48,
+                    attributes: [
+                      { format: "float32x4", offset: 0, shaderLocation: 1 },
+                      { format: "float32", offset: 16, shaderLocation: 2 },
+                      { format: "float32x4", offset: 32, shaderLocation: 3 },
+                    ],
+                    stepMode: "instance",
+                  },
+                ],
+                entryPoint: "vs",
+                module: device.createShaderModule({ code: webGpuSegmentShaderSource() }),
+              },
+            }),
+          };
+        }
+
+        function createWebGpuSpritePipeline(
+          device,
+          format,
+          commonBindGroupLayout,
+          spriteBindGroupLayout,
+        ) {
+          const pipelineLayout = device.createPipelineLayout({
+            bindGroupLayouts: [commonBindGroupLayout, spriteBindGroupLayout],
+          });
+
+          return {
+            corners: createWebGpuStaticBuffer(device, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1])),
+            instanceBuffer: null,
+            instanceBytes: 0,
+            pipeline: device.createRenderPipeline({
+              fragment: {
+                entryPoint: "fs",
+                module: device.createShaderModule({ code: webGpuSpriteShaderSource() }),
+                targets: [createWebGpuBlendTarget(format)],
+              },
+              layout: pipelineLayout,
+              primitive: { topology: "triangle-strip" },
+              vertex: {
+                buffers: [
+                  {
+                    arrayStride: 8,
+                    attributes: [{ format: "float32x2", offset: 0, shaderLocation: 0 }],
+                    stepMode: "vertex",
+                  },
+                  {
+                    arrayStride: 36,
+                    attributes: [
+                      { format: "float32x4", offset: 0, shaderLocation: 1 },
+                      { format: "float32x4", offset: 16, shaderLocation: 2 },
+                      { format: "float32", offset: 32, shaderLocation: 3 },
+                    ],
+                    stepMode: "instance",
+                  },
+                ],
+                entryPoint: "vs",
+                module: device.createShaderModule({ code: webGpuSpriteShaderSource() }),
+              },
+            }),
+          };
+        }
+
+        function createWebGpuBlendTarget(format) {
+          return {
+            blend: {
+              alpha: {
+                dstFactor: "one-minus-src-alpha",
+                operation: "add",
+                srcFactor: "one",
+              },
+              color: {
+                dstFactor: "one-minus-src-alpha",
+                operation: "add",
+                srcFactor: "src-alpha",
+              },
+            },
+            format,
+          };
+        }
+
+        function createWebGpuSpriteBindGroup(renderer) {
+          if (!renderer.atlas) {
+            return null;
+          }
+
+          return renderer.device.createBindGroup({
+            entries: [
+              {
+                binding: 0,
+                resource: renderer.atlas.sampler,
+              },
+              {
+                binding: 1,
+                resource: renderer.atlas.texture.createView(),
+              },
+            ],
+            layout: renderer.spriteBindGroupLayout,
+          });
+        }
+
+        function createWebGpuStaticBuffer(device, data) {
+          const buffer = device.createBuffer({
+            mappedAtCreation: true,
+            size: alignWebGpuBufferSize(data.byteLength),
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX,
+          });
+          new Float32Array(buffer.getMappedRange()).set(data);
+          buffer.unmap();
+          return buffer;
+        }
+
+        function ensureWebGpuInstanceBuffer(device, target, byteLength) {
+          const requiredBytes = alignWebGpuBufferSize(Math.max(4, byteLength));
+          if (!target.instanceBuffer || target.instanceBytes < requiredBytes) {
+            target.instanceBuffer = device.createBuffer({
+              size: requiredBytes,
+              usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX,
+            });
+            target.instanceBytes = requiredBytes;
+          }
+
+          return target.instanceBuffer;
+        }
+
+        function alignWebGpuBufferSize(byteLength) {
+          return Math.max(4, Math.ceil(byteLength / 4) * 4);
+        }
+
+        function createLabelAtlas(gl) {
+          const canvas = document.createElement("canvas");
+          canvas.width = GPU_LABEL_ATLAS_SIZE;
+          canvas.height = GPU_LABEL_ATLAS_SIZE;
+          const context = canvas.getContext("2d", {
+            alpha: true,
+            colorSpace: "srgb",
+            willReadFrequently: true,
+          });
+          if (!context) {
+            return null;
+          }
+
+          const texture = gl.createTexture();
+          gl.bindTexture(gl.TEXTURE_2D, texture);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+          gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            canvas.width,
+            canvas.height,
+            0,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            null,
+          );
+
+          return {
+            canvas,
+            context,
+            map: new Map(),
+            nextX: 8,
+            nextY: 8,
+            rowHeight: 0,
+            texture,
+          };
+        }
+
+        function createProgram(gl, vertexSource, fragmentSource) {
+          const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexSource);
+          const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
+          if (!vertexShader || !fragmentShader) {
+            return null;
+          }
+
+          const program = gl.createProgram();
+          gl.attachShader(program, vertexShader);
+          gl.attachShader(program, fragmentShader);
+          gl.linkProgram(program);
+          gl.deleteShader(vertexShader);
+          gl.deleteShader(fragmentShader);
+
+          if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            console.warn(gl.getProgramInfoLog(program) || "GPU program link failed.");
+            gl.deleteProgram(program);
+            return null;
+          }
+
+          return program;
+        }
+
+        function createShader(gl, type, source) {
+          const shader = gl.createShader(type);
+          gl.shaderSource(shader, source);
+          gl.compileShader(shader);
+
+          if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            console.warn(gl.getShaderInfoLog(shader) || "GPU shader compile failed.");
+            gl.deleteShader(shader);
+            return null;
+          }
+
+          return shader;
+        }
+
+        function createStaticBuffer(gl, data) {
+          const buffer = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+          gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+          return buffer;
+        }
+
+        function ensureSceneGraph() {
+          if (sceneGraph) {
+            return sceneGraph;
+          }
+
           const startedAt = performance.now();
-          let renderedAny = false;
-
-          while (catalogRasterQueue.length > 0) {
-            const key = catalogRasterQueue.shift();
-            catalogQueuedTiles.delete(key);
-            const tile = catalogTileCache.get(key);
-            if (!tile || tile.renderedVersion === catalogSceneVersion) {
-              continue;
-            }
-
-            rasterizeCatalogTile(tile);
-            renderedAny = true;
-
-            if (performance.now() - startedAt >= CATALOG_TILE_RASTER_BUDGET_MS) {
-              break;
-            }
-          }
-
-          if (renderedAny) {
-            scheduleViewportRender();
-          }
-
-          if (catalogRasterQueue.length > 0) {
-            scheduleCatalogTileRasterization();
-          }
-        }
-
-        function rasterizeCatalogTile(tile) {
-          ensureCatalogSceneIndex();
-          ensureCatalogTileCanvas(tile);
-
-          if (!tile.context) {
-            return;
-          }
-
-          tile.context.setTransform(1, 0, 0, 1, 0, 0);
-          tile.context.clearRect(0, 0, tile.canvas.width, tile.canvas.height);
-          tile.context.setTransform(getDeviceScale(), 0, 0, getDeviceScale(), 0, 0);
-
-          const tableIds = collectCatalogTableIdsInBounds(tile.bounds);
-          tile.tableCount = tableIds.length;
-          for (const modelId of tableIds) {
-            const meta = tableMetaById.get(modelId);
-            const table = tableRenderById.get(modelId);
-            const bounds = catalogTableBoundsById.get(modelId);
-            if (!meta || !table || !bounds) {
-              continue;
-            }
-
-            drawCatalogCachedTable(tile.context, bounds.x - tile.x, bounds.y - tile.y, meta, table);
-          }
-
-          tile.renderedVersion = catalogSceneVersion;
-        }
-
-        function drawCatalogCachedTable(context, localX, localY, meta, table) {
-          const tableName = table.databaseTableName || meta.tableName || table.modelName;
-          const modelName = table.modelName || meta.modelName || table.modelId;
-
-          context.save();
-          context.fillStyle = "#0f1e2c";
-          context.strokeStyle = "rgba(123, 196, 170, 0.22)";
-          context.lineWidth = 1.2;
-          drawRoundRectOn(context, localX, localY, meta.width, meta.height, 7);
-          context.fill();
-          context.stroke();
-
-          context.fillStyle = "rgba(123, 196, 170, 0.11)";
-          context.save();
-          drawRoundRectOn(context, localX, localY, meta.width, meta.height, 7);
-          context.clip();
-          context.fillRect(localX + 1, localY + 1, meta.width - 2, 32);
-          context.restore();
-
-          context.strokeStyle = "rgba(154, 184, 177, 0.18)";
-          context.beginPath();
-          context.moveTo(localX, localY + 33);
-          context.lineTo(localX + meta.width, localY + 33);
-          context.stroke();
-
-          context.textAlign = "left";
-          context.textBaseline = "middle";
-          drawFittedTextOn(
-            context,
-            modelName,
-            localX + 12,
-            localY + 17,
-            meta.width - 24,
-            "#f1f7f4",
-            "700 13px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-          );
-          drawFittedTextOn(
-            context,
-            tableName,
-            localX + 12,
-            localY + 55,
-            meta.width - 24,
-            "#9fb7b0",
-            "500 12px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-          );
-          context.restore();
-        }
-
-        function ensureCatalogSceneIndex() {
-          if (catalogSpatialBuckets && catalogTableBoundsById) {
-            return;
-          }
-
-          catalogSpatialBuckets = new Map();
-          catalogTableBoundsById = new Map();
+          const nextScene = {
+            edgeBuckets: new Map(),
+            edgeSegments: [],
+            tableBuckets: new Map(),
+            tables: [],
+            tablesById: new Map(),
+          };
 
           for (const [modelId, meta] of tableMetaById.entries()) {
-            const options = getTableOptions(state, modelId);
-            if (options.hidden) {
-              continue;
-            }
-
-            const table = tableRenderById.get(modelId);
-            if (!table) {
+            if (!isVisibleModel(modelId)) {
               continue;
             }
 
             const position = getCurrentPosition(modelId);
-            const bounds = {
+            const record = {
               height: meta.height,
+              maxX: position.x + meta.width,
+              maxY: position.y + meta.height,
+              meta,
+              modelId,
+              options: getTableOptions(state, modelId),
+              table: tableRenderById.get(modelId),
               width: meta.width,
               x: position.x,
               y: position.y,
             };
 
-            catalogTableBoundsById.set(modelId, bounds);
-            addCatalogTableToBuckets(modelId, bounds);
+            nextScene.tables.push(record);
+            nextScene.tablesById.set(modelId, record);
+            addToBuckets(
+              nextScene.tableBuckets,
+              {
+                bottom: record.maxY,
+                left: record.x,
+                right: record.maxX,
+                top: record.y,
+              },
+              modelId,
+            );
           }
-        }
 
-        function addCatalogTableToBuckets(modelId, bounds) {
-          const range = getBucketRangeForBounds({
-            bottom: bounds.y + bounds.height,
-            left: bounds.x,
-            right: bounds.x + bounds.width,
-            top: bounds.y,
+          const visibleEdgeEntries = [];
+          for (const meta of edgeMeta) {
+            const sourceTable = tableMetaById.get(meta.sourceModelId);
+            const targetTable = tableMetaById.get(meta.targetModelId);
+            if (!sourceTable || !targetTable || !isVisibleModel(meta.sourceModelId) || !isVisibleModel(meta.targetModelId)) {
+              continue;
+            }
+
+            visibleEdgeEntries.push({
+              meta,
+              sourcePosition: getCurrentPosition(meta.sourceModelId),
+              sourceTable,
+              targetPosition: getCurrentPosition(meta.targetModelId),
+              targetTable,
+            });
+          }
+
+          renderedEdges = renderModel.modelCatalogMode
+            ? routeCatalogEdgesWithPorts(visibleEdgeEntries).map((routed) => ({
+                edgeId: routed.entry.meta.edgeId,
+                meta: routed.entry.meta,
+                points: routed.points,
+              }))
+            : visibleEdgeEntries.map((entry) => ({
+                edgeId: entry.meta.edgeId,
+                meta: entry.meta,
+                points: buildOrthogonalPath(
+                  entry.sourcePosition,
+                  entry.sourceTable,
+                  entry.targetPosition,
+                  entry.targetTable,
+                ),
+              }));
+
+          for (const edge of renderedEdges) {
+            for (const segment of findSegments(edge.points)) {
+              const segmentIndex = nextScene.edgeSegments.length;
+              const bounds = {
+                bottom: Math.max(segment.start.y, segment.end.y),
+                left: Math.min(segment.start.x, segment.end.x),
+                right: Math.max(segment.start.x, segment.end.x),
+                top: Math.min(segment.start.y, segment.end.y),
+              };
+
+              nextScene.edgeSegments.push({
+                bounds,
+                edgeId: edge.edgeId,
+                meta: edge.meta,
+                points: edge.points,
+                segment,
+              });
+              addToBuckets(nextScene.edgeBuckets, bounds, segmentIndex);
+            }
+          }
+
+          renderedCrossings = [];
+          sceneGraph = nextScene;
+          logErdDuration("info", "scene.graph.built", startedAt, {
+            edgeSegments: nextScene.edgeSegments.length,
+            renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
+            tables: nextScene.tables.length,
           });
+          return sceneGraph;
+        }
+
+        function addToBuckets(buckets, bounds, value) {
+          const range = getBucketRange(bounds);
 
           for (let row = range.startRow; row <= range.endRow; row += 1) {
             for (let column = range.startColumn; column <= range.endColumn; column += 1) {
-              const key = getCatalogBucketKey(column, row);
-              if (!catalogSpatialBuckets.has(key)) {
-                catalogSpatialBuckets.set(key, []);
+              const key = column + ":" + row;
+              if (!buckets.has(key)) {
+                buckets.set(key, []);
               }
-              catalogSpatialBuckets.get(key).push(modelId);
+              buckets.get(key).push(value);
             }
           }
         }
 
-        function collectCatalogTableIdsInBounds(bounds) {
-          ensureCatalogSceneIndex();
-          const ids = new Set();
-          const range = getBucketRangeForBounds(bounds);
-
-          for (let row = range.startRow; row <= range.endRow; row += 1) {
-            for (let column = range.startColumn; column <= range.endColumn; column += 1) {
-              const key = getCatalogBucketKey(column, row);
-              const bucket = catalogSpatialBuckets.get(key);
-              if (!bucket) {
-                continue;
-              }
-
-              for (const modelId of bucket) {
-                const tableBounds = catalogTableBoundsById.get(modelId);
-                if (!tableBounds) {
-                  continue;
-                }
-
-                if (
-                  rectIntersectsBounds(
-                    tableBounds.x,
-                    tableBounds.y,
-                    tableBounds.width,
-                    tableBounds.height,
-                    bounds,
-                    0,
-                  )
-                ) {
-                  ids.add(modelId);
-                }
-              }
-            }
-          }
-
-          return Array.from(ids).sort((left, right) => left.localeCompare(right));
+        function getBucketRange(bounds) {
+          return {
+            endColumn: Math.floor(bounds.right / GPU_TILE_SIZE),
+            endRow: Math.floor(bounds.bottom / GPU_TILE_SIZE),
+            startColumn: Math.floor(bounds.left / GPU_TILE_SIZE),
+            startRow: Math.floor(bounds.top / GPU_TILE_SIZE),
+          };
         }
 
-        function getCatalogTableIdsNearPoint(point) {
-          ensureCatalogSceneIndex();
-          const range = getBucketRangeForBounds({
+        function queryTableMetaNearWorldPoint(point) {
+          const scene = ensureSceneGraph();
+          const ids = collectBucketValues(scene.tableBuckets, {
             bottom: point.y,
             left: point.x,
             right: point.x,
             top: point.y,
           });
-          const ids = new Set();
+
+          return ids
+            .map((modelId) => scene.tablesById.get(modelId))
+            .filter(Boolean)
+            .sort((left, right) => right.y - left.y || right.x - left.x);
+        }
+
+        function collectBucketValues(buckets, bounds) {
+          const values = new Set();
+          const range = getBucketRange(bounds);
 
           for (let row = range.startRow; row <= range.endRow; row += 1) {
             for (let column = range.startColumn; column <= range.endColumn; column += 1) {
-              const bucket = catalogSpatialBuckets && catalogSpatialBuckets.get(getCatalogBucketKey(column, row));
+              const bucket = buckets.get(column + ":" + row);
               if (!bucket) {
                 continue;
               }
 
-              for (const modelId of bucket) {
-                ids.add(modelId);
+              for (const value of bucket) {
+                values.add(value);
               }
             }
           }
 
-          return Array.from(ids);
+          return Array.from(values);
         }
 
-        function getOrCreateCatalogTile(column, row) {
-          const key = getCatalogTileKey(column, row);
-          const existing = catalogTileCache.get(key);
-          if (existing) {
-            return existing;
-          }
-
-          const tile = {
-            bounds: {
-              bottom: (row + 1) * CATALOG_TILE_SIZE,
-              left: column * CATALOG_TILE_SIZE,
-              right: (column + 1) * CATALOG_TILE_SIZE,
-              top: row * CATALOG_TILE_SIZE,
-            },
-            canvas: null,
-            column,
-            context: null,
-            height: CATALOG_TILE_SIZE,
-            key,
-            renderedVersion: 0,
-            row,
-            tableCount: 0,
-            width: CATALOG_TILE_SIZE,
-            x: column * CATALOG_TILE_SIZE,
-            y: row * CATALOG_TILE_SIZE,
-          };
-
-          catalogTileCache.set(key, tile);
-          return tile;
-        }
-
-        function ensureCatalogTileCanvas(tile) {
-          if (!tile.canvas) {
-            tile.canvas = document.createElement("canvas");
-            tile.context = tile.canvas.getContext("2d");
-          }
-
-          if (!tile.context) {
+        function drawCanvas(renderMode) {
+          if (!gpuRenderer) {
             return;
           }
 
-          const deviceScale = getDeviceScale();
-          const pixelWidth = Math.max(1, Math.round(tile.width * deviceScale));
-          const pixelHeight = Math.max(1, Math.round(tile.height * deviceScale));
-          if (tile.canvas.width !== pixelWidth || tile.canvas.height !== pixelHeight) {
-            tile.canvas.width = pixelWidth;
-            tile.canvas.height = pixelHeight;
-          }
-        }
+          const startedAt = performance.now();
+          resizeDrawingCanvas();
+          const scene = ensureSceneGraph();
+          const visibleBounds = getVisibleWorldBounds(96);
+          const visibleTables = collectVisibleTables(scene, visibleBounds);
+          const visibleSegments = collectVisibleSegments(scene, visibleBounds);
+          const visibleOverlays = collectVisibleOverlaySegments(visibleBounds);
+          const labels = collectVisibleLabels(visibleTables);
 
-        function getCatalogBucketKey(column, row) {
-          return column + ":" + row;
-        }
-
-        function getCatalogTileKey(column, row) {
-          return column + ":" + row;
-        }
-
-        function getBucketRangeForBounds(bounds) {
-          return {
-            endColumn: Math.floor(bounds.right / CATALOG_BUCKET_SIZE),
-            endRow: Math.floor(bounds.bottom / CATALOG_BUCKET_SIZE),
-            startColumn: Math.floor(bounds.left / CATALOG_BUCKET_SIZE),
-            startRow: Math.floor(bounds.top / CATALOG_BUCKET_SIZE),
-          };
-        }
-
-        function getTileRangeForBounds(bounds) {
-          return {
-            endColumn: Math.floor(bounds.right / CATALOG_TILE_SIZE),
-            endRow: Math.floor(bounds.bottom / CATALOG_TILE_SIZE),
-            startColumn: Math.floor(bounds.left / CATALOG_TILE_SIZE),
-            startRow: Math.floor(bounds.top / CATALOG_TILE_SIZE),
-          };
-        }
-
-        function drawScene(visibleBounds, clipRect) {
-          drawingContext.save();
-          if (clipRect) {
-            drawingContext.beginPath();
-            drawingContext.rect(clipRect.x, clipRect.y, clipRect.width, clipRect.height);
-            drawingContext.clip();
-          }
-          drawingContext.translate(state.viewport.panX, state.viewport.panY);
-          drawingContext.scale(state.viewport.zoom, state.viewport.zoom);
-          drawEdges(visibleBounds);
-          drawMethodOverlays(visibleBounds);
-          drawCrossings(visibleBounds);
-          drawTables(visibleBounds);
-          drawingContext.restore();
-        }
-
-        function drawCanvasFromPanSnapshot(currentViewport, viewportRect) {
-          const deltaX = currentViewport.panX - lastDrawViewport.panX;
-          const deltaY = currentViewport.panY - lastDrawViewport.panY;
-          drawingContext.clearRect(0, 0, viewportRect.width, viewportRect.height);
-          drawingContext.drawImage(
-            panSnapshotCanvas,
-            deltaX,
-            deltaY,
-            viewportRect.width,
-            viewportRect.height,
-          );
-
-          for (const clipRect of getExposedScreenRects(deltaX, deltaY, viewportRect)) {
-            drawScene(getWorldBoundsForScreenRect(clipRect), clipRect);
-          }
-        }
-
-        function canReusePanSnapshot(currentViewport, viewportRect) {
-          if (!lastDrawViewport || !panSnapshotCanvas) {
-            return false;
-          }
-
-          if (currentViewport.zoom !== lastDrawViewport.zoom) {
-            return false;
-          }
-
-          const deltaX = currentViewport.panX - lastDrawViewport.panX;
-          const deltaY = currentViewport.panY - lastDrawViewport.panY;
-          if (deltaX === 0 && deltaY === 0) {
-            return false;
-          }
-
-          return (
-            Math.abs(deltaX) < viewportRect.width &&
-            Math.abs(deltaY) < viewportRect.height &&
-            panSnapshotCanvas.width === drawingCanvas.width &&
-            panSnapshotCanvas.height === drawingCanvas.height
-          );
-        }
-
-        function updatePanSnapshot() {
-          if (!panSnapshotCanvas) {
-            panSnapshotCanvas = document.createElement("canvas");
-            panSnapshotContext = panSnapshotCanvas.getContext("2d");
-          }
-
-          if (!panSnapshotContext) {
+          if (gpuRenderer.backend === "webgpu") {
+            drawWebGpuScene(gpuRenderer, visibleSegments, visibleOverlays, visibleTables, labels);
+            logRenderFrame(startedAt, renderMode, visibleTables, visibleSegments, visibleOverlays, labels);
             return;
           }
 
-          if (
-            panSnapshotCanvas.width !== drawingCanvas.width ||
-            panSnapshotCanvas.height !== drawingCanvas.height
-          ) {
-            panSnapshotCanvas.width = drawingCanvas.width;
-            panSnapshotCanvas.height = drawingCanvas.height;
+          clearGpuScene(gpuRenderer);
+          drawSegmentBatch(gpuRenderer, visibleSegments, false);
+          drawSegmentBatch(gpuRenderer, visibleOverlays, true);
+          drawTableBatch(gpuRenderer, visibleTables);
+          drawLabelBatch(gpuRenderer, labels);
+          logRenderFrame(startedAt, renderMode, visibleTables, visibleSegments, visibleOverlays, labels);
+        }
+
+        function logRenderFrame(startedAt, renderMode, visibleTables, visibleSegments, visibleOverlays, labels) {
+          const durationMs = round2(performance.now() - startedAt);
+          if (renderMode !== "full" && durationMs < ERD_LOG_SLOW_RENDER_MS) {
+            return;
           }
 
-          panSnapshotContext.setTransform(1, 0, 0, 1, 0, 0);
-          panSnapshotContext.clearRect(0, 0, panSnapshotCanvas.width, panSnapshotCanvas.height);
-          panSnapshotContext.drawImage(
-            drawingCanvas,
-            0,
-            0,
-            drawingCanvas.width,
-            drawingCanvas.height,
-            0,
-            0,
-            panSnapshotCanvas.width,
-            panSnapshotCanvas.height,
-          );
+          logErd(durationMs >= ERD_LOG_SLOW_RENDER_MS ? "warn" : "info", "render.frame", {
+            durationMs,
+            canvasHeight: drawingCanvas.height,
+            canvasWidth: drawingCanvas.width,
+            labels: labels.length,
+            mode: renderMode || "unknown",
+            overlaySegments: visibleOverlays.length,
+            panX: round2(state.viewport.panX),
+            panY: round2(state.viewport.panY),
+            renderer: gpuRenderer.backend,
+            segments: visibleSegments.length,
+            tables: visibleTables.length,
+            zoom: round2(state.viewport.zoom),
+          });
         }
 
-        function getExposedScreenRects(deltaX, deltaY, viewportRect) {
-          const rects = [];
-          if (deltaX > 0) {
-            rects.push({ x: 0, y: 0, width: deltaX, height: viewportRect.height });
-          } else if (deltaX < 0) {
-            rects.push({
-              x: viewportRect.width + deltaX,
-              y: 0,
-              width: -deltaX,
-              height: viewportRect.height,
-            });
-          }
+        function collectVisibleTables(scene, bounds) {
+          const ids = collectBucketValues(scene.tableBuckets, bounds);
 
-          if (deltaY > 0) {
-            rects.push({ x: 0, y: 0, width: viewportRect.width, height: deltaY });
-          } else if (deltaY < 0) {
-            rects.push({
-              x: 0,
-              y: viewportRect.height + deltaY,
-              width: viewportRect.width,
-              height: -deltaY,
-            });
-          }
-
-          return rects.filter((rect) => rect.width > 0 && rect.height > 0);
+          return ids
+            .map((modelId) => scene.tablesById.get(modelId))
+            .filter((record) =>
+              record &&
+              rectIntersectsBounds(record.x, record.y, record.width, record.height, bounds, 0),
+            )
+            .sort((left, right) => left.y - right.y || left.x - right.x);
         }
 
-        function getViewportRect() {
-          const rect = canvas.getBoundingClientRect();
-          return {
-            height: rect.height,
-            width: rect.width,
-          };
-        }
-
-        function getWorldBoundsForScreenRect(screenRect) {
-          const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
-          return {
-            bottom: (screenRect.y + screenRect.height - state.viewport.panY) / zoom,
-            left: (screenRect.x - state.viewport.panX) / zoom,
-            right: (screenRect.x + screenRect.width - state.viewport.panX) / zoom,
-            top: (screenRect.y - state.viewport.panY) / zoom,
-          };
-        }
-
-        function drawCrossings(visibleBounds) {
-          drawingContext.save();
-          drawingContext.strokeStyle = "rgba(255, 191, 105, 0.92)";
-          drawingContext.fillStyle = "#0c141c";
-          drawingContext.lineWidth = 1.4;
-          for (const crossing of renderedCrossings) {
-            if (!pointInBounds(crossing.position.x, crossing.position.y, visibleBounds, 20)) {
-              continue;
-            }
-
-            drawingContext.beginPath();
-            drawingContext.arc(crossing.position.x, crossing.position.y, 6.5, 0, Math.PI * 2);
-            drawingContext.fill();
-            drawingContext.stroke();
-            drawingContext.beginPath();
-            drawingContext.moveTo(crossing.position.x - 7, crossing.position.y);
-            drawingContext.quadraticCurveTo(
-              crossing.position.x,
-              crossing.position.y - 7,
-              crossing.position.x + 7,
-              crossing.position.y,
+        function collectVisibleSegments(scene, bounds) {
+          return collectBucketValues(scene.edgeBuckets, bounds)
+            .slice(0, GPU_MAX_SEGMENTS_PER_FRAME)
+            .map((segmentIndex) => scene.edgeSegments[segmentIndex])
+            .filter((record) =>
+              record &&
+              segmentIntersectsBounds(
+                record.segment.start.x,
+                record.segment.start.y,
+                record.segment.end.x,
+                record.segment.end.y,
+                bounds,
+                80,
+              ),
             );
-            drawingContext.stroke();
-          }
-          drawingContext.restore();
         }
 
-        function drawEdges(visibleBounds) {
-          for (const edge of renderedEdges) {
-            if (!polylineIntersectsBounds(edge.points, visibleBounds, 48)) {
-              continue;
-            }
-
-            drawingContext.save();
-            drawingContext.strokeStyle = edge.meta.cssKind.includes("many-to-many")
-              ? "#f7d18a"
-              : edge.meta.provenance === "derived_reverse"
-                ? "#9dcfe1"
-                : "#b6e7d9";
-            drawingContext.lineWidth = 2.3;
-            drawingContext.lineCap = "round";
-            drawingContext.lineJoin = "round";
-            if (edge.meta.provenance === "derived_reverse") {
-              drawingContext.setLineDash([7, 6]);
-            }
-            drawPolyline(edge.points);
-            drawingContext.restore();
-          }
+        function collectVisibleOverlaySegments(bounds) {
+          return renderedOverlays
+            .filter((overlay) => overlay.active)
+            .map((overlay) => ({
+              meta: { cssKind: "method-overlay", provenance: "overlay" },
+              segment: {
+                end: { x: overlay.x2, y: overlay.y2 },
+                start: { x: overlay.x1, y: overlay.y1 },
+              },
+            }))
+            .filter((record) =>
+              segmentIntersectsBounds(
+                record.segment.start.x,
+                record.segment.start.y,
+                record.segment.end.x,
+                record.segment.end.y,
+                bounds,
+                80,
+              ),
+            );
         }
 
-        function drawMethodOverlays(visibleBounds) {
-          for (const overlay of renderedOverlays) {
-            if (!overlay.active) {
-              continue;
-            }
-            if (
-              !segmentIntersectsBounds(
-                overlay.x1,
-                overlay.y1,
-                overlay.x2,
-                overlay.y2,
-                visibleBounds,
-                32,
-              )
-            ) {
-              continue;
-            }
-
-            drawingContext.save();
-            drawingContext.strokeStyle = "rgba(255, 191, 105, 0.72)";
-            drawingContext.lineWidth = 3;
-            drawingContext.setLineDash([10, 8]);
-            drawingContext.beginPath();
-            drawingContext.moveTo(overlay.x1, overlay.y1);
-            drawingContext.lineTo(overlay.x2, overlay.y2);
-            drawingContext.stroke();
-            drawingContext.restore();
+        function collectVisibleLabels(visibleTables) {
+          const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
+          if (zoom < GPU_TABLE_LABEL_ZOOM) {
+            return [];
           }
-        }
 
-        function drawTables(visibleBounds) {
-          for (const [modelId, meta] of tableMetaById.entries()) {
-            const options = getTableOptions(state, modelId);
-            if (options.hidden) {
-              continue;
-            }
+          const labels = [];
+          const allowDetails = zoom >= GPU_TABLE_DETAIL_ZOOM && visibleTables.length <= GPU_TABLE_DETAIL_LIMIT;
 
-            const table = tableRenderById.get(modelId);
+          for (const record of visibleTables) {
+            const table = record.table;
             if (!table) {
               continue;
             }
 
-            const position = getCurrentPosition(modelId);
-            if (!rectIntersectsBounds(position.x, position.y, meta.width, meta.height, visibleBounds, 56)) {
+            labels.push(createLabelDescriptor(table.modelName, "700 14px Georgia, serif", "#f4f7f1", record.x + 14, record.y + 14, Math.max(40, record.width - 28)));
+            if (zoom >= GPU_TABLE_SUBTITLE_ZOOM) {
+              labels.push(createLabelDescriptor(table.databaseTableName, "500 12px Georgia, serif", "#9fb7b0", record.x + 14, record.y + 34, Math.max(40, record.width - 28)));
+            }
+
+            if (!allowDetails) {
               continue;
             }
 
-            drawTableFrame(position, meta, table, options);
-            drawModelTableContent(position, meta, table);
+            let cursorY = record.y + 56;
+            for (const row of record.meta.fieldRows) {
+              if (cursorY + 16 > record.y + record.height - 12) {
+                break;
+              }
+              labels.push(createLabelDescriptor(row.text, "500 12px Georgia, serif", row.tone === "enum-option" ? "#e4d3a7" : "#c7d7d4", record.x + 14, cursorY, Math.max(40, record.width - 28)));
+              cursorY += 16;
+            }
+
+            if (record.options.showProperties) {
+              for (const property of record.meta.properties) {
+                if (cursorY + 16 > record.y + record.height - 12) {
+                  break;
+                }
+                labels.push(createLabelDescriptor("@ " + property, "500 12px Georgia, serif", "#a8d8ff", record.x + 14, cursorY, Math.max(40, record.width - 28)));
+                cursorY += 16;
+              }
+            }
+
+            if (record.options.showMethods) {
+              for (const method of record.meta.methods) {
+                if (cursorY + 16 > record.y + record.height - 12) {
+                  break;
+                }
+                labels.push(createLabelDescriptor("fn " + method.name, "500 12px Georgia, serif", "#ffcf8a", record.x + 14, cursorY, Math.max(40, record.width - 28)));
+                cursorY += 16;
+              }
+            }
+
+            if (labels.length >= GPU_MAX_LABELS_PER_FRAME) {
+              return labels;
+            }
+          }
+
+          return labels;
+        }
+
+        function createLabelDescriptor(text, font, color, x, y, maxWidth) {
+          return { color, font, maxWidth, text, x, y };
+        }
+
+        function drawWebGpuScene(renderer, segments, overlays, tables, labels) {
+          const device = renderer.device;
+          const validateDraw = (renderer.drawValidationChecks || 0) < 3;
+
+          if (validateDraw) {
+            renderer.drawValidationChecks = (renderer.drawValidationChecks || 0) + 1;
+            device.pushErrorScope("validation");
+          }
+
+          try {
+            updateWebGpuCommonUniforms(renderer);
+            const encoder = device.createCommandEncoder();
+            const pass = encoder.beginRenderPass({
+              colorAttachments: [
+                {
+                  clearValue: { a: 1, b: 0.055, g: 0.035, r: 0.020 },
+                  loadOp: "clear",
+                  storeOp: "store",
+                  view: renderer.context.getCurrentTexture().createView(),
+                },
+              ],
+            });
+
+            drawWebGpuSegmentBatch(renderer, pass, segments, false);
+            drawWebGpuSegmentBatch(renderer, pass, overlays, true);
+            drawWebGpuTableBatch(renderer, pass, tables);
+            drawWebGpuLabelBatch(renderer, pass, labels);
+            pass.end();
+            device.queue.submit([encoder.finish()]);
+          } catch (error) {
+            logErd("error", "renderer.webgpu.draw_failed", {
+              message: error instanceof Error ? error.message : String(error),
+              renderer: "webgpu",
+            });
+          } finally {
+            if (validateDraw) {
+              device.popErrorScope()
+                .then((error) => {
+                  if (!error) {
+                    return;
+                  }
+
+                  logErd("error", "renderer.webgpu.draw_validation_failed", {
+                    message: error.message,
+                    renderer: "webgpu",
+                  });
+                })
+                .catch((error) => {
+                  logErd("error", "renderer.webgpu.draw_validation_scope_failed", {
+                    message: error instanceof Error ? error.message : String(error),
+                    renderer: "webgpu",
+                  });
+                });
+            }
           }
         }
 
-        function drawTableFrame(position, meta, table, options) {
-          const selected = state.selectedModelId === table.modelId;
-          const methodTarget = isMethodTarget(table.modelId);
-          const dragging = drag && drag.kind === "table" && drag.modelId === table.modelId;
-
-          drawingContext.save();
-          drawingContext.shadowColor = "rgba(0, 0, 0, 0.3)";
-          drawingContext.shadowBlur = 28;
-          drawingContext.shadowOffsetY = 14;
-          drawingContext.fillStyle = "#0f1e2c";
-          drawingContext.strokeStyle = dragging
-            ? "rgba(168, 216, 255, 0.72)"
-            : methodTarget
-              ? "rgba(255, 191, 105, 0.72)"
-              : selected
-                ? "rgba(109, 208, 176, 0.62)"
-                : "rgba(123, 196, 170, 0.26)";
-          drawingContext.lineWidth = selected || methodTarget || dragging ? 2.2 : 1.4;
-          drawRoundRectOn(drawingContext, position.x, position.y, meta.width, meta.height, 7);
-          drawingContext.fill();
-          drawingContext.stroke();
-          drawingContext.shadowColor = "transparent";
-          drawingContext.fillStyle = selected ? "rgba(109, 208, 176, 0.16)" : "rgba(123, 196, 170, 0.11)";
-          drawingContext.save();
-          drawRoundRectOn(drawingContext, position.x, position.y, meta.width, meta.height, 7);
-          drawingContext.clip();
-          drawingContext.fillRect(position.x + 1, position.y + 1, meta.width - 2, 32);
-          drawingContext.restore();
-          drawingContext.strokeStyle = "rgba(154, 184, 177, 0.22)";
-          drawingContext.lineWidth = 1;
-          drawingContext.beginPath();
-          drawingContext.moveTo(position.x, position.y + 33);
-          drawingContext.lineTo(position.x + meta.width, position.y + 33);
-          drawingContext.stroke();
-          drawingContext.restore();
+        function updateWebGpuCommonUniforms(renderer) {
+          renderer.device.queue.writeBuffer(
+            renderer.uniformBuffer,
+            0,
+            new Float32Array([
+              drawingCanvas.width,
+              drawingCanvas.height,
+              state.viewport.panX,
+              state.viewport.panY,
+              Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM),
+              getDeviceScale(),
+              0,
+              0,
+            ]),
+          );
         }
 
-        function drawModelTableContent(position, meta, table) {
-          const tableName = table.databaseTableName || meta.tableName || table.modelName;
-          const modelName = table.modelName || meta.modelName || table.modelId;
-          drawingContext.save();
-          drawingContext.textAlign = "left";
-          drawingContext.textBaseline = "middle";
-          drawFittedTextOn(
-            drawingContext,
-            modelName,
-            position.x + 12,
-            position.y + 17,
-            meta.width - 24,
-            "#f1f7f4",
-            "700 13px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-          );
-          drawFittedTextOn(
-            drawingContext,
-            tableName,
-            position.x + 12,
-            position.y + 55,
-            meta.width - 24,
-            "#9fb7b0",
-            "500 12px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-          );
-          drawingContext.restore();
-        }
-
-        function drawPolyline(points) {
-          if (points.length === 0) {
+        function drawWebGpuSegmentBatch(renderer, pass, segments, overlay) {
+          if (!segments.length) {
             return;
           }
 
-          drawingContext.beginPath();
-          drawingContext.moveTo(points[0].x, points[0].y);
-          for (const point of points.slice(1)) {
-            drawingContext.lineTo(point.x, point.y);
+          const data = new Float32Array(segments.length * 12);
+          for (let index = 0; index < segments.length; index += 1) {
+            const record = segments[index];
+            const color = overlay ? [0.98, 0.81, 0.54, 0.52] : edgeColor(record.meta);
+            const width = overlay ? 1.3 : edgeWidth(record.meta);
+            const offset = index * 12;
+
+            data[offset + 0] = record.segment.start.x;
+            data[offset + 1] = record.segment.start.y;
+            data[offset + 2] = record.segment.end.x;
+            data[offset + 3] = record.segment.end.y;
+            data[offset + 4] = width;
+            data[offset + 8] = color[0];
+            data[offset + 9] = color[1];
+            data[offset + 10] = color[2];
+            data[offset + 11] = color[3];
           }
-          drawingContext.stroke();
+
+          const buffer = ensureWebGpuInstanceBuffer(renderer.device, renderer.segment, data.byteLength);
+          renderer.device.queue.writeBuffer(buffer, 0, data);
+          pass.setPipeline(renderer.segment.pipeline);
+          pass.setBindGroup(0, renderer.commonBindGroup);
+          pass.setVertexBuffer(0, renderer.segment.corners);
+          pass.setVertexBuffer(1, buffer);
+          pass.draw(4, segments.length);
         }
 
-        function drawRoundRectOn(context, x, y, width, height, radius) {
-          context.beginPath();
-          if (context.roundRect) {
-            context.roundRect(x, y, width, height, radius);
+        function drawWebGpuTableBatch(renderer, pass, tables) {
+          if (!tables.length) {
             return;
           }
 
-          context.moveTo(x + radius, y);
-          context.lineTo(x + width - radius, y);
-          context.quadraticCurveTo(x + width, y, x + width, y + radius);
-          context.lineTo(x + width, y + height - radius);
-          context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-          context.lineTo(x + radius, y + height);
-          context.quadraticCurveTo(x, y + height, x, y + height - radius);
-          context.lineTo(x, y + radius);
-          context.quadraticCurveTo(x, y, x + radius, y);
-          context.closePath();
+          const data = new Float32Array(tables.length * 14);
+          for (let index = 0; index < tables.length; index += 1) {
+            const record = tables[index];
+            const colors = tableColors(record);
+            const offset = index * 14;
+
+            data[offset + 0] = record.x;
+            data[offset + 1] = record.y;
+            data[offset + 2] = record.width;
+            data[offset + 3] = record.height;
+            data[offset + 4] = colors.fill[0];
+            data[offset + 5] = colors.fill[1];
+            data[offset + 6] = colors.fill[2];
+            data[offset + 7] = colors.fill[3];
+            data[offset + 8] = colors.stroke[0];
+            data[offset + 9] = colors.stroke[1];
+            data[offset + 10] = colors.stroke[2];
+            data[offset + 11] = colors.stroke[3];
+            data[offset + 12] = 16;
+            data[offset + 13] = colors.borderWidth;
+          }
+
+          const buffer = ensureWebGpuInstanceBuffer(renderer.device, renderer.table, data.byteLength);
+          renderer.device.queue.writeBuffer(buffer, 0, data);
+          pass.setPipeline(renderer.table.pipeline);
+          pass.setBindGroup(0, renderer.commonBindGroup);
+          pass.setVertexBuffer(0, renderer.table.corners);
+          pass.setVertexBuffer(1, buffer);
+          pass.draw(4, tables.length);
         }
 
-        function drawText(text, x, y, color, font) {
-          drawingContext.fillStyle = color;
-          drawingContext.font = font;
-          drawingContext.fillText(String(text), x, y);
+        function drawWebGpuLabelBatch(renderer, pass, labels) {
+          if (!labels.length || !renderer.atlas || !renderer.spriteBindGroup) {
+            return;
+          }
+
+          const instances = [];
+          for (const label of labels) {
+            const entry = ensureAtlasLabel(renderer, label);
+            if (!entry) {
+              continue;
+            }
+
+            instances.push(
+              label.x,
+              label.y,
+              entry.width,
+              entry.height,
+              entry.u0,
+              entry.v0,
+              entry.u1,
+              entry.v1,
+              1,
+            );
+          }
+
+          if (!instances.length) {
+            return;
+          }
+
+          const data = new Float32Array(instances);
+          const buffer = ensureWebGpuInstanceBuffer(renderer.device, renderer.sprite, data.byteLength);
+          renderer.device.queue.writeBuffer(buffer, 0, data);
+          pass.setPipeline(renderer.sprite.pipeline);
+          pass.setBindGroup(0, renderer.commonBindGroup);
+          pass.setBindGroup(1, renderer.spriteBindGroup);
+          pass.setVertexBuffer(0, renderer.sprite.corners);
+          pass.setVertexBuffer(1, buffer);
+          pass.draw(4, instances.length / 9);
         }
 
-        function drawFittedTextOn(context, text, x, y, maxWidth, color, font) {
-          const value = String(text);
-          context.fillStyle = color;
+        function clearGpuScene(renderer) {
+          const gl = renderer.gl;
+          gl.viewport(0, 0, drawingCanvas.width, drawingCanvas.height);
+          gl.clearColor(0.020, 0.035, 0.055, 1);
+          gl.clear(gl.COLOR_BUFFER_BIT);
+        }
+
+        function drawSegmentBatch(renderer, segments, overlay) {
+          if (!segments.length) {
+            return;
+          }
+
+          const gl = renderer.gl;
+          const data = new Float32Array(segments.length * 9);
+          for (let index = 0; index < segments.length; index += 1) {
+            const record = segments[index];
+            const color = overlay ? [0.98, 0.81, 0.54, 0.52] : edgeColor(record.meta);
+            const width = overlay ? 1.3 : edgeWidth(record.meta);
+            const offset = index * 9;
+
+            data[offset + 0] = record.segment.start.x;
+            data[offset + 1] = record.segment.start.y;
+            data[offset + 2] = record.segment.end.x;
+            data[offset + 3] = record.segment.end.y;
+            data[offset + 4] = width;
+            data[offset + 5] = color[0];
+            data[offset + 6] = color[1];
+            data[offset + 7] = color[2];
+            data[offset + 8] = color[3];
+          }
+
+          gl.useProgram(renderer.segment.program);
+          bindCommonUniforms(gl, renderer.segment.program);
+          bindBufferData(gl, renderer.segment.buffers.instances, data);
+          bindCornerAttribute(gl, renderer.segment.program, renderer.segment.buffers.corners, "a_corner");
+          bindInstancedFloat(gl, renderer.segment.program, renderer.segment.buffers.instances, "a_segment", 4, 9, 0);
+          bindInstancedFloat(gl, renderer.segment.program, renderer.segment.buffers.instances, "a_halfWidth", 1, 9, 4);
+          bindInstancedFloat(gl, renderer.segment.program, renderer.segment.buffers.instances, "a_color", 4, 9, 5);
+          gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, segments.length);
+        }
+
+        function drawTableBatch(renderer, tables) {
+          if (!tables.length) {
+            return;
+          }
+
+          const gl = renderer.gl;
+          const data = new Float32Array(tables.length * 14);
+          for (let index = 0; index < tables.length; index += 1) {
+            const record = tables[index];
+            const colors = tableColors(record);
+            const offset = index * 14;
+
+            data[offset + 0] = record.x;
+            data[offset + 1] = record.y;
+            data[offset + 2] = record.width;
+            data[offset + 3] = record.height;
+            data[offset + 4] = colors.fill[0];
+            data[offset + 5] = colors.fill[1];
+            data[offset + 6] = colors.fill[2];
+            data[offset + 7] = colors.fill[3];
+            data[offset + 8] = colors.stroke[0];
+            data[offset + 9] = colors.stroke[1];
+            data[offset + 10] = colors.stroke[2];
+            data[offset + 11] = colors.stroke[3];
+            data[offset + 12] = 16;
+            data[offset + 13] = colors.borderWidth;
+          }
+
+          gl.useProgram(renderer.table.program);
+          bindCommonUniforms(gl, renderer.table.program);
+          bindBufferData(gl, renderer.table.buffers.instances, data);
+          bindCornerAttribute(gl, renderer.table.program, renderer.table.buffers.corners, "a_corner");
+          bindInstancedFloat(gl, renderer.table.program, renderer.table.buffers.instances, "a_bounds", 4, 14, 0);
+          bindInstancedFloat(gl, renderer.table.program, renderer.table.buffers.instances, "a_fill", 4, 14, 4);
+          bindInstancedFloat(gl, renderer.table.program, renderer.table.buffers.instances, "a_stroke", 4, 14, 8);
+          bindInstancedFloat(gl, renderer.table.program, renderer.table.buffers.instances, "a_style", 2, 14, 12);
+          gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, tables.length);
+        }
+
+        function drawLabelBatch(renderer, labels) {
+          if (!labels.length || !renderer.atlas) {
+            return;
+          }
+
+          const gl = renderer.gl;
+          const instances = [];
+
+          for (const label of labels) {
+            const entry = ensureAtlasLabel(renderer, label);
+            if (!entry) {
+              continue;
+            }
+
+            instances.push(
+              label.x,
+              label.y,
+              entry.width,
+              entry.height,
+              entry.u0,
+              entry.v0,
+              entry.u1,
+              entry.v1,
+              1,
+            );
+          }
+
+          if (!instances.length) {
+            return;
+          }
+
+          gl.useProgram(renderer.sprite.program);
+          bindCommonUniforms(gl, renderer.sprite.program);
+          bindBufferData(gl, renderer.sprite.buffers.instances, new Float32Array(instances));
+          bindCornerAttribute(gl, renderer.sprite.program, renderer.sprite.buffers.corners, "a_corner");
+          bindInstancedFloat(gl, renderer.sprite.program, renderer.sprite.buffers.instances, "a_bounds", 4, 9, 0);
+          bindInstancedFloat(gl, renderer.sprite.program, renderer.sprite.buffers.instances, "a_uvBounds", 4, 9, 4);
+          bindInstancedFloat(gl, renderer.sprite.program, renderer.sprite.buffers.instances, "a_alpha", 1, 9, 8);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, renderer.atlas.texture);
+          gl.uniform1i(gl.getUniformLocation(renderer.sprite.program, "u_texture"), 0);
+          gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, instances.length / 9);
+        }
+
+        function ensureAtlasLabel(renderer, label) {
+          const atlas = renderer.atlas;
+          const key = label.font + "|" + label.color + "|" + trimTextToWidth(atlas.context, label.font, label.text, label.maxWidth);
+          if (atlas.map.has(key)) {
+            return atlas.map.get(key);
+          }
+
+          const text = key.split("|").slice(2).join("|");
+          const fontSize = Math.max(12, Number.parseInt(label.font.match(/([0-9]+)px/)?.[1] || "12", 10));
+          atlas.context.font = label.font;
+          const width = Math.max(2, Math.ceil(atlas.context.measureText(text).width));
+          const height = Math.max(14, Math.ceil(fontSize * 1.5));
+          const slot = allocateAtlasSlot(atlas, width + 8, height + 8);
+          if (!slot) {
+            return null;
+          }
+
+          atlas.context.clearRect(slot.x, slot.y, slot.width, slot.height);
+          atlas.context.font = label.font;
+          atlas.context.fillStyle = label.color;
+          atlas.context.textBaseline = "top";
+          atlas.context.fillText(text, slot.x + 4, slot.y + 4);
+
+          const pixels = atlas.context.getImageData(slot.x, slot.y, slot.width, slot.height);
+          if (renderer.backend === "webgpu") {
+            writeWebGpuAtlasSlot(renderer, atlas, slot, pixels);
+          } else {
+            renderer.gl.bindTexture(renderer.gl.TEXTURE_2D, atlas.texture);
+            renderer.gl.texSubImage2D(renderer.gl.TEXTURE_2D, 0, slot.x, slot.y, renderer.gl.RGBA, renderer.gl.UNSIGNED_BYTE, pixels);
+          }
+
+          const entry = {
+            height: height + 2,
+            u0: slot.x / atlas.canvas.width,
+            u1: (slot.x + slot.width) / atlas.canvas.width,
+            v0: slot.y / atlas.canvas.height,
+            v1: (slot.y + slot.height) / atlas.canvas.height,
+            width: width + 2,
+          };
+          atlas.map.set(key, entry);
+          return entry;
+        }
+
+        function writeWebGpuAtlasSlot(renderer, atlas, slot, pixels) {
+          const sourceBytesPerRow = slot.width * 4;
+          const bytesPerRow = Math.ceil(sourceBytesPerRow / 256) * 256;
+          const upload = new Uint8Array(bytesPerRow * slot.height);
+
+          for (let row = 0; row < slot.height; row += 1) {
+            const sourceStart = row * sourceBytesPerRow;
+            upload.set(
+              pixels.data.subarray(sourceStart, sourceStart + sourceBytesPerRow),
+              row * bytesPerRow,
+            );
+          }
+
+          renderer.device.queue.writeTexture(
+            {
+              origin: { x: slot.x, y: slot.y },
+              texture: atlas.texture,
+            },
+            upload,
+            {
+              bytesPerRow,
+              rowsPerImage: slot.height,
+            },
+            {
+              height: slot.height,
+              width: slot.width,
+            },
+          );
+        }
+
+        function allocateAtlasSlot(atlas, width, height) {
+          if (atlas.nextX + width > atlas.canvas.width - 8) {
+            atlas.nextX = 8;
+            atlas.nextY += atlas.rowHeight + 8;
+            atlas.rowHeight = 0;
+          }
+
+          if (atlas.nextY + height > atlas.canvas.height - 8) {
+            atlas.context.clearRect(0, 0, atlas.canvas.width, atlas.canvas.height);
+            atlas.map.clear();
+            atlas.nextX = 8;
+            atlas.nextY = 8;
+            atlas.rowHeight = 0;
+          }
+
+          const slot = {
+            height,
+            width,
+            x: atlas.nextX,
+            y: atlas.nextY,
+          };
+          atlas.nextX += width + 8;
+          atlas.rowHeight = Math.max(atlas.rowHeight, height);
+          return slot;
+        }
+
+        function trimTextToWidth(context, font, text, maxWidth) {
           context.font = font;
-          if (context.measureText(value).width <= maxWidth) {
-            context.fillText(value, x, y);
-            return;
+          if (context.measureText(text).width <= maxWidth) {
+            return text;
           }
 
-          let truncated = value;
-          while (truncated.length > 1 && context.measureText(truncated + "…").width > maxWidth) {
-            truncated = truncated.slice(0, -1);
+          let trimmed = text;
+          while (trimmed.length > 4 && context.measureText(trimmed + "…").width > maxWidth) {
+            trimmed = trimmed.slice(0, -1);
           }
-          context.fillText(truncated.length > 1 ? truncated + "…" : "…", x, y);
+          return trimmed + "…";
         }
 
-        function drawFittedText(text, x, y, maxWidth, color, font) {
-          drawFittedTextOn(drawingContext, text, x, y, maxWidth, color, font);
-        }
+        function tableColors(record) {
+          const selected = state.selectedModelId === record.modelId;
+          const methodTarget = isMethodTarget(record.modelId);
+          const dragging = drag && drag.kind === "table" && drag.modelId === record.modelId;
 
-        function resizeDrawingCanvas() {
-          const rect = canvas.getBoundingClientRect();
-          if (rect.width <= 0 || rect.height <= 0) {
-            return;
-          }
-
-          const deviceScale = getDeviceScale();
-          const width = Math.max(1, Math.round(rect.width * deviceScale));
-          const height = Math.max(1, Math.round(rect.height * deviceScale));
-          if (drawingCanvas.width !== width || drawingCanvas.height !== height) {
-            drawingCanvas.width = width;
-            drawingCanvas.height = height;
-          }
-          drawingContext.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
-        }
-
-        function getDeviceScale() {
-          return window.devicePixelRatio || 1;
-        }
-
-        function getVisibleWorldBounds(padding) {
-          const rect = canvas.getBoundingClientRect();
-          const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
-          const extra = padding || 0;
           return {
-            bottom: (rect.height - state.viewport.panY) / zoom + extra,
-            left: -state.viewport.panX / zoom - extra,
-            right: (rect.width - state.viewport.panX) / zoom + extra,
-            top: -state.viewport.panY / zoom - extra,
+            borderWidth: selected || dragging ? 3.2 : 1.4,
+            fill: selected ? [0.15, 0.24, 0.22, 0.98] : [0.06, 0.12, 0.18, 0.96],
+            stroke: dragging
+              ? [0.66, 0.85, 1.0, 0.9]
+              : selected
+                ? [1.0, 0.75, 0.41, 0.92]
+                : methodTarget
+                  ? [0.66, 0.85, 1.0, 0.74]
+                  : [0.48, 0.77, 0.67, 0.28],
           };
         }
 
-        function pointInBounds(x, y, bounds, padding) {
-          return (
-            x >= bounds.left - padding &&
-            x <= bounds.right + padding &&
-            y >= bounds.top - padding &&
-            y <= bounds.bottom + padding
-          );
+        function edgeColor(meta) {
+          if ((meta.cssKind || "").includes("many-to-many")) {
+            return [0.97, 0.82, 0.54, meta.provenance === "derived_reverse" ? 0.52 : 0.72];
+          }
+          if ((meta.cssKind || "").includes("one-to-one")) {
+            return [0.66, 0.85, 1.0, meta.provenance === "derived_reverse" ? 0.48 : 0.68];
+          }
+          return meta.provenance === "derived_reverse"
+            ? [0.62, 0.81, 0.88, 0.44]
+            : [0.71, 0.91, 0.85, 0.56];
+        }
+
+        function edgeWidth(meta) {
+          return (meta.cssKind || "").includes("many-to-many") ? 4.2 : 3.2;
+        }
+
+        function bindCommonUniforms(gl, program) {
+          gl.uniform2f(gl.getUniformLocation(program, "u_canvas"), drawingCanvas.width, drawingCanvas.height);
+          gl.uniform2f(gl.getUniformLocation(program, "u_pan"), state.viewport.panX, state.viewport.panY);
+          gl.uniform1f(gl.getUniformLocation(program, "u_zoom"), Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM));
+          gl.uniform1f(gl.getUniformLocation(program, "u_deviceScale"), getDeviceScale());
+        }
+
+        function bindBufferData(gl, buffer, data) {
+          gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+          gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+        }
+
+        function bindCornerAttribute(gl, program, buffer, name) {
+          const location = gl.getAttribLocation(program, name);
+          gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+          gl.enableVertexAttribArray(location);
+          gl.vertexAttribPointer(location, 2, gl.FLOAT, false, 0, 0);
+          gl.vertexAttribDivisor(location, 0);
+        }
+
+        function bindInstancedFloat(gl, program, buffer, name, size, strideFloats, offsetFloats) {
+          const location = gl.getAttribLocation(program, name);
+          gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+          gl.enableVertexAttribArray(location);
+          gl.vertexAttribPointer(location, size, gl.FLOAT, false, strideFloats * 4, offsetFloats * 4);
+          gl.vertexAttribDivisor(location, 1);
+        }
+
+        function getViewportRect() {
+          const rect = getViewportScreenRect();
+          return { height: Math.max(1, rect.height), width: Math.max(1, rect.width) };
+        }
+
+        function resizeDrawingCanvas() {
+          const viewportRect = getViewportRect();
+          const deviceScale = getDeviceScale();
+          const width = Math.max(1, Math.round(viewportRect.width * deviceScale));
+          const height = Math.max(1, Math.round(viewportRect.height * deviceScale));
+
+          if (drawingCanvas.width !== width || drawingCanvas.height !== height) {
+            drawingCanvas.width = width;
+            drawingCanvas.height = height;
+            if (gpuRenderer && gpuRenderer.backend === "webgpu") {
+              configureWebGpuCanvas(gpuRenderer);
+            }
+          }
+        }
+
+        function getDeviceScale() {
+          return Math.max(1, window.devicePixelRatio || 1);
+        }
+
+        function getVisibleWorldBounds(padding) {
+          const viewportRect = getViewportRect();
+          const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
+          const worldPadding = Number.isFinite(padding) ? padding : 0;
+
+          return {
+            bottom: (viewportRect.height - state.viewport.panY) / zoom + worldPadding,
+            left: -state.viewport.panX / zoom - worldPadding,
+            right: (viewportRect.width - state.viewport.panX) / zoom + worldPadding,
+            top: -state.viewport.panY / zoom - worldPadding,
+          };
         }
 
         function rectIntersectsBounds(x, y, width, height, bounds, padding) {
+          const extra = Number.isFinite(padding) ? padding : 0;
           return !(
-            x + width < bounds.left - padding ||
-            x > bounds.right + padding ||
-            y + height < bounds.top - padding ||
-            y > bounds.bottom + padding
-          );
-        }
-
-        function polylineIntersectsBounds(points, bounds, padding) {
-          if (points.length === 0) {
-            return false;
-          }
-
-          let minX = Number.POSITIVE_INFINITY;
-          let minY = Number.POSITIVE_INFINITY;
-          let maxX = Number.NEGATIVE_INFINITY;
-          let maxY = Number.NEGATIVE_INFINITY;
-
-          for (const point of points) {
-            minX = Math.min(minX, point.x);
-            minY = Math.min(minY, point.y);
-            maxX = Math.max(maxX, point.x);
-            maxY = Math.max(maxY, point.y);
-          }
-
-          return rectIntersectsBounds(
-            minX,
-            minY,
-            Math.max(1, maxX - minX),
-            Math.max(1, maxY - minY),
-            bounds,
-            padding,
+            x + width < bounds.left - extra ||
+            x > bounds.right + extra ||
+            y + height < bounds.top - extra ||
+            y > bounds.bottom + extra
           );
         }
 
         function segmentIntersectsBounds(x1, y1, x2, y2, bounds, padding) {
+          const extra = Number.isFinite(padding) ? padding : 0;
           const minX = Math.min(x1, x2);
-          const minY = Math.min(y1, y2);
           const maxX = Math.max(x1, x2);
+          const minY = Math.min(y1, y2);
           const maxY = Math.max(y1, y2);
-          return rectIntersectsBounds(
-            minX,
-            minY,
-            Math.max(1, maxX - minX),
-            Math.max(1, maxY - minY),
-            bounds,
-            padding,
+
+          return !(
+            maxX < bounds.left - extra ||
+            minX > bounds.right + extra ||
+            maxY < bounds.top - extra ||
+            minY > bounds.bottom + extra
           );
+        }
+
+        function webGpuCommonShaderSource() {
+          return [
+            "struct ErdCommonUniforms {",
+            "  canvas: vec2<f32>,",
+            "  pan: vec2<f32>,",
+            "  zoom: f32,",
+            "  deviceScale: f32,",
+            "  pad0: vec2<f32>,",
+            "};",
+            "@group(0) @binding(0) var<uniform> erdUniforms: ErdCommonUniforms;",
+            "fn world_to_clip(world: vec2<f32>) -> vec4<f32> {",
+            "  let screen = (world * erdUniforms.zoom + erdUniforms.pan) * erdUniforms.deviceScale;",
+            "  let clip = screen / erdUniforms.canvas * 2.0 - vec2<f32>(1.0, 1.0);",
+            "  return vec4<f32>(clip.x, -clip.y, 0.0, 1.0);",
+            "}",
+          ].join("\\n");
+        }
+
+        function webGpuTableShaderSource() {
+          return webGpuCommonShaderSource() + "\\n" + [
+            "struct VertexIn {",
+            "  @location(0) corner: vec2<f32>,",
+            "  @location(1) bounds: vec4<f32>,",
+            "  @location(2) fill: vec4<f32>,",
+            "  @location(3) stroke: vec4<f32>,",
+            "  @location(4) style: vec2<f32>,",
+            "};",
+            "struct VertexOut {",
+            "  @builtin(position) position: vec4<f32>,",
+            "  @location(0) local: vec2<f32>,",
+            "  @location(1) size: vec2<f32>,",
+            "  @location(2) fill: vec4<f32>,",
+            "  @location(3) stroke: vec4<f32>,",
+            "  @location(4) style: vec2<f32>,",
+            "};",
+            "@vertex fn vs(input: VertexIn) -> VertexOut {",
+            "  var out: VertexOut;",
+            "  let world = input.bounds.xy + input.corner * input.bounds.zw;",
+            "  out.position = world_to_clip(world);",
+            "  out.local = input.corner * input.bounds.zw;",
+            "  out.size = input.bounds.zw;",
+            "  out.fill = input.fill;",
+            "  out.stroke = input.stroke;",
+            "  out.style = input.style;",
+            "  return out;",
+            "}",
+            "fn rounded_box_sdf(p: vec2<f32>, b: vec2<f32>, r: f32) -> f32 {",
+            "  let q = abs(p - b * 0.5) - (b * 0.5 - vec2<f32>(r, r));",
+            "  return length(max(q, vec2<f32>(0.0, 0.0))) + min(max(q.x, q.y), 0.0) - r;",
+            "}",
+            "@fragment fn fs(input: VertexOut) -> @location(0) vec4<f32> {",
+            "  let radius = min(input.style.x, min(input.size.x, input.size.y) * 0.5);",
+            "  let dist = rounded_box_sdf(input.local, input.size, radius);",
+            "  let aa = max(fwidth(dist), 0.75);",
+            "  let alpha = 1.0 - smoothstep(0.0, aa, dist);",
+            "  let inner = 1.0 - smoothstep(-input.style.y - aa, -input.style.y + aa, dist);",
+            "  let color = mix(input.stroke, input.fill, inner);",
+            "  return vec4<f32>(color.rgb, color.a * alpha);",
+            "}",
+          ].join("\\n");
+        }
+
+        function webGpuSegmentShaderSource() {
+          return webGpuCommonShaderSource() + "\\n" + [
+            "struct VertexIn {",
+            "  @location(0) corner: vec2<f32>,",
+            "  @location(1) segment: vec4<f32>,",
+            "  @location(2) halfWidth: f32,",
+            "  @location(3) color: vec4<f32>,",
+            "};",
+            "struct VertexOut {",
+            "  @builtin(position) position: vec4<f32>,",
+            "  @location(0) color: vec4<f32>,",
+            "};",
+            "@vertex fn vs(input: VertexIn) -> VertexOut {",
+            "  var out: VertexOut;",
+            "  let start = input.segment.xy;",
+            "  let end = input.segment.zw;",
+            "  let delta = end - start;",
+            "  let len = max(length(delta), 0.0001);",
+            "  let tangent = delta / len;",
+            "  let normal = vec2<f32>(-tangent.y, tangent.x);",
+            "  let base = mix(start, end, input.corner.x);",
+            "  let world = base + normal * input.corner.y * input.halfWidth;",
+            "  out.position = world_to_clip(world);",
+            "  out.color = input.color;",
+            "  return out;",
+            "}",
+            "@fragment fn fs(input: VertexOut) -> @location(0) vec4<f32> {",
+            "  return input.color;",
+            "}",
+          ].join("\\n");
+        }
+
+        function webGpuSpriteShaderSource() {
+          return webGpuCommonShaderSource() + "\\n" + [
+            "@group(1) @binding(0) var spriteSampler: sampler;",
+            "@group(1) @binding(1) var spriteTexture: texture_2d<f32>;",
+            "struct VertexIn {",
+            "  @location(0) corner: vec2<f32>,",
+            "  @location(1) bounds: vec4<f32>,",
+            "  @location(2) uvBounds: vec4<f32>,",
+            "  @location(3) alpha: f32,",
+            "};",
+            "struct VertexOut {",
+            "  @builtin(position) position: vec4<f32>,",
+            "  @location(0) uv: vec2<f32>,",
+            "  @location(1) alpha: f32,",
+            "};",
+            "@vertex fn vs(input: VertexIn) -> VertexOut {",
+            "  var out: VertexOut;",
+            "  let world = input.bounds.xy + input.corner * input.bounds.zw;",
+            "  out.position = world_to_clip(world);",
+            "  out.uv = mix(input.uvBounds.xy, input.uvBounds.zw, input.corner);",
+            "  out.alpha = input.alpha;",
+            "  return out;",
+            "}",
+            "@fragment fn fs(input: VertexOut) -> @location(0) vec4<f32> {",
+            "  let color = textureSample(spriteTexture, spriteSampler, input.uv);",
+            "  return vec4<f32>(color.rgb, color.a * input.alpha);",
+            "}",
+          ].join("\\n");
+        }
+
+        function tableVertexShaderSource() {
+          return "#version 300 es\\n" +
+            "in vec2 a_corner; in vec4 a_bounds; in vec4 a_fill; in vec4 a_stroke; in vec2 a_style;\\n" +
+            "uniform vec2 u_canvas; uniform vec2 u_pan; uniform float u_zoom; uniform float u_deviceScale;\\n" +
+            "out vec2 v_local; out vec2 v_size; out vec4 v_fill; out vec4 v_stroke; out vec2 v_style;\\n" +
+            "void main() { vec2 world = a_bounds.xy + a_corner * a_bounds.zw; vec2 screen = (world * u_zoom + u_pan) * u_deviceScale; vec2 clip = screen / u_canvas * 2.0 - 1.0; gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0); v_local = a_corner * a_bounds.zw; v_size = a_bounds.zw; v_fill = a_fill; v_stroke = a_stroke; v_style = a_style; }";
+        }
+
+        function tableFragmentShaderSource() {
+          return "#version 300 es\\nprecision mediump float;\\n" +
+            "in vec2 v_local; in vec2 v_size; in vec4 v_fill; in vec4 v_stroke; in vec2 v_style; out vec4 outColor;\\n" +
+            "float roundedBoxSDF(vec2 p, vec2 b, float r) { vec2 q = abs(p - b * 0.5) - (b * 0.5 - vec2(r)); return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }\\n" +
+            "void main() { float radius = min(v_style.x, min(v_size.x, v_size.y) * 0.5); float dist = roundedBoxSDF(v_local, v_size, radius); float aa = max(fwidth(dist), 0.75); float alpha = 1.0 - smoothstep(0.0, aa, dist); float inner = 1.0 - smoothstep(-v_style.y - aa, -v_style.y + aa, dist); vec4 color = mix(v_stroke, v_fill, inner); outColor = vec4(color.rgb, color.a * alpha); if (outColor.a <= 0.01) { discard; } }";
+        }
+
+        function segmentVertexShaderSource() {
+          return "#version 300 es\\n" +
+            "in vec2 a_corner; in vec4 a_segment; in float a_halfWidth; in vec4 a_color;\\n" +
+            "uniform vec2 u_canvas; uniform vec2 u_pan; uniform float u_zoom; uniform float u_deviceScale;\\n" +
+            "out vec4 v_color;\\n" +
+            "void main() { vec2 start = a_segment.xy; vec2 end = a_segment.zw; vec2 delta = end - start; float len = max(length(delta), 0.0001); vec2 tangent = delta / len; vec2 normal = vec2(-tangent.y, tangent.x); vec2 base = mix(start, end, a_corner.x); vec2 world = base + normal * a_corner.y * a_halfWidth; vec2 screen = (world * u_zoom + u_pan) * u_deviceScale; vec2 clip = screen / u_canvas * 2.0 - 1.0; gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0); v_color = a_color; }";
+        }
+
+        function segmentFragmentShaderSource() {
+          return "#version 300 es\\nprecision mediump float; in vec4 v_color; out vec4 outColor; void main() { outColor = v_color; }";
+        }
+
+        function spriteVertexShaderSource() {
+          return "#version 300 es\\n" +
+            "in vec2 a_corner; in vec4 a_bounds; in vec4 a_uvBounds; in float a_alpha;\\n" +
+            "uniform vec2 u_canvas; uniform vec2 u_pan; uniform float u_zoom; uniform float u_deviceScale;\\n" +
+            "out vec2 v_uv; out float v_alpha;\\n" +
+            "void main() { vec2 world = a_bounds.xy + a_corner * a_bounds.zw; vec2 screen = (world * u_zoom + u_pan) * u_deviceScale; vec2 clip = screen / u_canvas * 2.0 - 1.0; gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0); v_uv = mix(a_uvBounds.xy, a_uvBounds.zw, a_corner); v_alpha = a_alpha; }";
+        }
+
+        function spriteFragmentShaderSource() {
+          return "#version 300 es\\nprecision mediump float; in vec2 v_uv; in float v_alpha; uniform sampler2D u_texture; out vec4 outColor; void main() { vec4 color = texture(u_texture, v_uv); outColor = vec4(color.rgb, color.a * v_alpha); if (outColor.a <= 0.01) { discard; } }";
         }
   `;
 }

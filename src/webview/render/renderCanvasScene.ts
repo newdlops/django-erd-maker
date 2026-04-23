@@ -1,8 +1,16 @@
 import type { DiagramRenderModel } from "../state/createDiagramRenderModel";
-import { escapeHtml, serializeJsonForScriptTag } from "./escapeHtml";
+import { serializeJsonForScriptTag } from "./escapeHtml";
 
-export function renderCanvasScene(viewModel: DiagramRenderModel): string {
-  const renderModelJson = serializeJsonForScriptTag(viewModel);
+export function renderCanvasScene(viewModel: DiagramRenderModel, appVersion: string): string {
+  const renderModelJson = serializeJsonForScriptTag({
+    appVersion,
+    crossings: viewModel.crossings,
+    edges: viewModel.edges,
+    layoutMode: viewModel.layoutMode,
+    modelCatalogMode: viewModel.modelCatalogMode,
+    overlays: viewModel.overlays,
+    tables: viewModel.tables,
+  });
 
   return `
     <section class="erd-stage">
@@ -27,53 +35,34 @@ export function renderCanvasScene(viewModel: DiagramRenderModel): string {
         <canvas
           class="erd-scene erd-drawing-canvas"
           data-erd-drawing-canvas
-          width="${viewModel.canvas.width}"
-          height="${viewModel.canvas.height}"
+          width="1"
+          height="1"
           aria-label="Django ERD diagram"
         ></canvas>
-        <script id="erd-render-model" type="application/json">${renderModelJson}</script>
-        <div class="erd-scene-metadata" data-erd-scene-metadata hidden>
-          <div class="erd-viewport" data-erd-viewport></div>
-          <div class="erd-edges" data-layer="structural">
-            ${viewModel.edges.map(renderEdgeMetadata).join("")}
-          </div>
-          <div class="erd-method-overlays" data-layer="method">
-            ${viewModel.overlays.map(renderMethodOverlayMetadata).join("")}
-          </div>
-          <div class="erd-crossings" data-layer="crossings">
-            ${viewModel.crossings.map(renderCrossingMetadata).join("")}
-          </div>
-          <div class="erd-tables" data-layer="tables">
-            ${viewModel.tables.map(renderTableMetadata).join("")}
-          </div>
+        <section class="erd-gpu-warning" data-erd-gpu-warning hidden>
+          <p class="erd-gpu-warning__eyebrow">GPU Renderer Required</p>
+          <h2 class="erd-gpu-warning__title">WebGL2 or WebGPU support is required.</h2>
+          <p class="erd-gpu-warning__body" data-erd-gpu-warning-message>
+            This ERD view now requires a GPU-capable webview renderer.
+          </p>
+        </section>
+        <div
+          class="erd-minimap"
+          data-erd-minimap
+          aria-label="Diagram minimap"
+          role="application"
+        >
+          <canvas
+            class="erd-minimap__canvas"
+            data-erd-minimap-canvas
+            width="1"
+            height="1"
+          ></canvas>
+          <div class="erd-minimap__viewport" data-erd-minimap-viewport></div>
         </div>
+        <script id="erd-render-model" type="application/json">${renderModelJson}</script>
       </div>
     </section>
-  `;
-}
-
-function renderCrossingMetadata(crossing: DiagramRenderModel["crossings"][number]): string {
-  return `
-    <div
-      class="erd-crossing erd-crossing--${escapeHtml(crossing.markerStyle)}"
-      data-crossing-id="${escapeHtml(crossing.id)}"
-      data-x="${crossing.position.x}"
-      data-y="${crossing.position.y}"
-    ></div>
-  `;
-}
-
-function renderEdgeMetadata(edge: DiagramRenderModel["edges"][number]): string {
-  return `
-    <div
-      class="erd-edge erd-edge--${escapeHtml(edge.cssKind)} erd-edge--${escapeHtml(edge.provenance)}"
-      data-css-kind="${escapeHtml(edge.cssKind)}"
-      data-edge-id="${escapeHtml(edge.edgeId)}"
-      data-provenance="${escapeHtml(edge.provenance)}"
-      data-source-model="${escapeHtml(edge.sourceModelId)}"
-      data-target-model="${escapeHtml(edge.targetModelId)}"
-      data-points="${escapeHtml(edge.points)}"
-    ></div>
   `;
 }
 
@@ -87,63 +76,5 @@ function renderLayoutButton(
       class="erd-tool${layoutMode === activeMode ? " is-active" : ""}"
       data-layout-mode="${layoutMode}"
     >${layoutMode}</button>
-  `;
-}
-
-function renderMethodOverlayMetadata(
-  overlay: DiagramRenderModel["overlays"][number],
-): string {
-  return `
-    <div
-      class="erd-method-overlay"
-      data-confidence="${escapeHtml(overlay.confidence)}"
-      data-method-name="${escapeHtml(overlay.methodName)}"
-      data-source-model="${escapeHtml(overlay.sourceModelId)}"
-      data-target-model="${escapeHtml(overlay.targetModelId)}"
-      id="${escapeHtml(overlay.id)}"
-    ></div>
-  `;
-}
-
-function renderTableMetadata(table: DiagramRenderModel["tables"][number]): string {
-  const detailedSections =
-    table.fieldRows.length > 0 || table.properties.length > 0 || table.methods.length > 0
-      ? `
-        <div data-table-section="fields">
-          ${table.fieldRows.map((row) => `<span>${escapeHtml(row.text)}</span>`).join("")}
-        </div>
-        <div data-table-divider="properties" ${table.showProperties && table.properties.length > 0 ? "" : "hidden"}></div>
-        <div data-table-section="properties" ${table.showProperties ? "" : "hidden"}>
-          ${table.properties.map((property) => `<span>${escapeHtml(property)}</span>`).join("")}
-        </div>
-        <div data-table-divider="methods" ${table.showMethods && table.methods.length > 0 ? "" : "hidden"}></div>
-        <div data-table-section="methods" ${table.showMethods ? "" : "hidden"}>
-          ${table.methods.map((method) => `<span>${escapeHtml(method.name)}</span>`).join("")}
-        </div>
-      `
-      : "";
-
-  return `
-    <div
-      class="erd-table${table.selected ? " is-selected" : ""}"
-      data-app-label="${escapeHtml(table.appLabel)}"
-      data-base-x="${table.position.x}"
-      data-base-y="${table.position.y}"
-      data-explicit-db-table="${String(table.hasExplicitDatabaseTableName)}"
-      data-hidden="${String(table.hidden)}"
-      data-method-highlights="${String(table.showMethodHighlights)}"
-      data-model-id="${escapeHtml(table.modelId)}"
-      data-model-name="${escapeHtml(table.modelName)}"
-      data-show-methods="${String(table.showMethods)}"
-      data-show-properties="${String(table.showProperties)}"
-      data-width="${table.size.width}"
-      data-height="${table.size.height}"
-      data-table-name="${escapeHtml(table.databaseTableName)}"
-      transform="translate(${table.position.x} ${table.position.y})"
-      tabindex="0"
-      ${table.hidden ? "hidden" : ""}
-    >
-      ${detailedSections}
-    </div>
   `;
 }

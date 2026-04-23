@@ -1,36 +1,37 @@
 export function getBrowserTestSource(): string {
   return `
         function createTestSnapshot() {
-          const crossings = crossingsLayer
-            ? Array.from(crossingsLayer.querySelectorAll("[data-crossing-id]")).map((element) => ({
-                hidden: element.hasAttribute("hidden"),
-                id: element.dataset.crossingId || "",
-              }))
-            : [];
-
           return {
             catalogCrossings: latestCatalogCrossings.map((crossing) => ({
               x: crossing.position.x,
               y: crossing.position.y,
             })),
-            crossings,
-            edges: edgeMeta.map((meta) => ({
-              edgeId: meta.edgeId,
-              hidden: meta.element.hasAttribute("hidden"),
-              points: meta.element.getAttribute("points") || "",
-              sourceModelId: meta.sourceModelId,
-              targetModelId: meta.targetModelId,
+            crossings: renderedCrossings.map((crossing) => ({
+              hidden: false,
+              id: crossing.id || "",
             })),
+            edges: renderedEdges.map((edge) => ({
+              edgeId: edge.edgeId,
+              hidden: false,
+              points: pointsToAttribute(edge.points),
+              sourceModelId: edge.meta.sourceModelId,
+              targetModelId: edge.meta.targetModelId,
+            })),
+            gpu: {
+              initialized: Boolean(gpuRenderer),
+              warningVisible: Boolean(gpuWarning && !gpuWarning.hidden),
+            },
             hiddenModelIds: state.tableOptions
               .filter((options) => options.hidden)
               .map((options) => options.modelId),
-            overlays: overlayMeta.map((meta) => ({
-              active: meta.element.classList.contains("is-active"),
-              hidden: meta.element.hasAttribute("hidden"),
-              id: meta.element.id || "",
-              methodName: meta.methodName,
-              sourceModelId: meta.sourceModelId,
-              targetModelId: meta.targetModelId,
+            minimap: createMinimapTestSnapshot(),
+            overlays: renderedOverlays.map((overlay) => ({
+              active: overlay.active,
+              hidden: !overlay.active,
+              id: overlay.id || "",
+              methodName: overlay.methodName,
+              sourceModelId: overlay.sourceModelId,
+              targetModelId: overlay.targetModelId,
             })),
             panels: Array.from(panelMetaById.entries()).map(([modelId, meta]) => ({
               activeMethodNames: Array.from(
@@ -44,16 +45,58 @@ export function getBrowserTestSource(): string {
             })),
             state: cloneState(state),
             tables: Array.from(tableMetaById.entries()).map(([modelId, meta]) => ({
-              hidden: meta.element.hasAttribute("hidden"),
-              isMethodTarget: meta.element.classList.contains("is-method-target"),
+              hidden: getTableOptions(state, modelId).hidden,
+              isMethodTarget: isMethodTarget(modelId),
               modelId,
-              selected: meta.element.classList.contains("is-selected"),
-              showMethodHighlights: meta.element.dataset.methodHighlights === "true",
-              showMethods: meta.element.dataset.showMethods === "true",
-              showProperties: meta.element.dataset.showProperties === "true",
+              selected: state.selectedModelId === modelId,
+              showMethodHighlights: getTableOptions(state, modelId).showMethodHighlights,
+              showMethods: getTableOptions(state, modelId).showMethods,
+              showProperties: getTableOptions(state, modelId).showProperties,
               tableName: meta.tableName,
-              transform: meta.element.getAttribute("transform") || "",
+              transform:
+                "translate(" +
+                getCurrentPosition(modelId).x +
+                " " +
+                getCurrentPosition(modelId).y +
+                ")",
             })),
+          };
+        }
+
+        function createMinimapTestSnapshot() {
+          const canvasRect = minimapCanvas
+            ? minimapCanvas.getBoundingClientRect()
+            : { height: 0, width: 0 };
+          const viewportRect = readMinimapViewportRect();
+
+          return {
+            canvasRect: {
+              height: canvasRect.height,
+              width: canvasRect.width,
+            },
+            viewport: viewportRect,
+            visible: Boolean(minimap && !minimap.hidden),
+          };
+        }
+
+        function readMinimapViewportRect() {
+          if (!minimapViewport) {
+            return {
+              height: 0,
+              width: 0,
+              x: 0,
+              y: 0,
+            };
+          }
+
+          const transform = minimapViewport.style.transform || "";
+          const match = transform.match(/translate\\((-?[0-9.]+)px,\\s*(-?[0-9.]+)px\\)/);
+
+          return {
+            height: Number.parseFloat(minimapViewport.style.height || "0") || 0,
+            width: Number.parseFloat(minimapViewport.style.width || "0") || 0,
+            x: match ? Number(match[1]) : 0,
+            y: match ? Number(match[2]) : 0,
           };
         }
 
@@ -75,6 +118,12 @@ export function getBrowserTestSource(): string {
                 "layout button " + action.layoutMode,
               ).click();
               return;
+            case "clickZoomAction":
+              requireElement(
+                zoomButtons.find((button) => button.dataset.zoomAction === action.zoomAction),
+                "zoom button " + action.zoomAction,
+              ).click();
+              return;
             case "clickMethod":
               requireElement(
                 methodButtons.find((button) =>
@@ -91,10 +140,10 @@ export function getBrowserTestSource(): string {
               ).click();
               return;
             case "clickTable":
-              requireElement(
-                tableMetaById.get(action.modelId) && tableMetaById.get(action.modelId).element,
-                "table " + action.modelId,
-              ).click();
+              dispatch({
+                modelId: action.modelId,
+                type: "select-model",
+              });
               return;
             case "clickTableToggle":
               requireElement(

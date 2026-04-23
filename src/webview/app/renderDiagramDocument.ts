@@ -1,5 +1,6 @@
 import type { DjangoWorkspaceDiscoveryResult } from "../../shared/protocol/discoveryContract";
 import type { DiagramBootstrapPayload } from "../../shared/protocol/webviewContract";
+import packageManifest from "../../../package.json";
 import { getBrowserControllerScript } from "../interaction/browserController";
 import { serializeJsonForScriptTag } from "../render/escapeHtml";
 import { renderCanvasScene } from "../render/renderCanvasScene";
@@ -35,7 +36,7 @@ export function renderDiagramDocument(
     >
       <script id="erd-initial-state" type="application/json">${initialStateJson}</script>
       ${renderInspector(viewModel, initialState)}
-      ${renderCanvasScene(viewModel)}
+      ${renderCanvasScene(viewModel, packageManifest.version)}
     </main>
     ${getBrowserControllerScript(nonce)}
   </body>

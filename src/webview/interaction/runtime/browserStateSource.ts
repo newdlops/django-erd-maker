@@ -11,9 +11,84 @@ export function getBrowserStateSource(): string {
         const defaultInteractionSettings = ${defaultInteractionSettingsJson};
         const interactionSettingDescriptors = ${interactionSettingDescriptorsJson};
         const MIN_VIEWPORT_ZOOM = 0.005;
+        const ERD_LOG_SLOW_RENDER_MS = 16;
+        const ERD_LOG_SLOW_EVENT_MS = 8;
+
+        function createErdLogTimestamp() {
+          const now = new Date();
+          const pad = (value, size) => String(value).padStart(size, "0");
+
+          return (
+            now.getFullYear() +
+            "-" +
+            pad(now.getMonth() + 1, 2) +
+            "-" +
+            pad(now.getDate(), 2) +
+            " " +
+            pad(now.getHours(), 2) +
+            ":" +
+            pad(now.getMinutes(), 2) +
+            ":" +
+            pad(now.getSeconds(), 2) +
+            "." +
+            pad(now.getMilliseconds(), 3)
+          );
+        }
+
+        function getErdLogVersion() {
+          return renderModel.appVersion || "0.0.0";
+        }
+
+        function logErd(level, event, details) {
+          const timestamp = createErdLogTimestamp();
+          const version = getErdLogVersion();
+          const detailText = details ? " " + JSON.stringify(details) : "";
+          const message = "[" + timestamp + "][v" + version + "] " + event;
+          const line = message + detailText;
+
+          if (level === "error") {
+            console.error(line);
+          } else if (level === "warn") {
+            console.warn(line);
+          } else {
+            console.info(line);
+          }
+
+          vscode?.postMessage({
+            details,
+            event,
+            level,
+            message,
+            timestamp,
+            type: "diagram.log",
+            version,
+          });
+        }
+
+        function logErdDuration(level, event, startedAt, details) {
+          logErd(level, event, {
+            ...(details || {}),
+            durationMs: round2(performance.now() - startedAt),
+          });
+        }
 
         function cloneState(source) {
           return JSON.parse(JSON.stringify(source));
+        }
+
+        function getViewportScreenRect() {
+          const drawingRect = drawingCanvas
+            ? drawingCanvas.getBoundingClientRect()
+            : undefined;
+          const rect =
+            drawingRect && drawingRect.width > 1 && drawingRect.height > 1
+              ? drawingRect
+              : canvas.getBoundingClientRect();
+
+          return {
+            height: Math.max(1, rect.height),
+            width: Math.max(1, rect.width),
+          };
         }
 
         function getTableOptions(currentState, modelId) {
@@ -56,9 +131,9 @@ export function getBrowserStateSource(): string {
         }
 
         function computeViewportForLayout(layoutMode, tableOptions, options) {
-          const canvasRect = canvas.getBoundingClientRect();
-          const canvasWidth = Math.max(1, canvasRect.width);
-          const canvasHeight = Math.max(1, canvasRect.height);
+          const viewportRect = getViewportScreenRect();
+          const canvasWidth = viewportRect.width;
+          const canvasHeight = viewportRect.height;
           if (canvasWidth <= 1 || canvasHeight <= 1) {
             return {
               panX: 32,
@@ -147,9 +222,9 @@ export function getBrowserStateSource(): string {
             };
           }
 
-          const canvasRect = canvas.getBoundingClientRect();
-          const canvasWidth = Math.max(1, canvasRect.width);
-          const canvasHeight = Math.max(1, canvasRect.height);
+          const viewportRect = getViewportScreenRect();
+          const canvasWidth = viewportRect.width;
+          const canvasHeight = viewportRect.height;
           const centerX = (bounds.minX + bounds.maxX) / 2;
           const centerY = (bounds.minY + bounds.maxY) / 2;
 
@@ -201,6 +276,17 @@ export function getBrowserStateSource(): string {
             minX,
             minY,
             visibleCount,
+          };
+        }
+
+        function createViewportPanToWorldPointAction(worldPoint) {
+          const viewportRect = getViewportScreenRect();
+          const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
+
+          return {
+            panX: Math.round((viewportRect.width / 2 - worldPoint.x * zoom) * 100) / 100,
+            panY: Math.round((viewportRect.height / 2 - worldPoint.y * zoom) * 100) / 100,
+            type: "set-viewport-pan",
           };
         }
 

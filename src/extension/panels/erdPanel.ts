@@ -8,6 +8,7 @@ import type { LiveDiagramResult } from "../services/diagram/loadLiveDiagram";
 import type { DiagramBootstrapPayload } from "../../shared/protocol/webviewContract";
 import { mergePipelineTimings } from "../../shared/protocol/mergePipelineTimings";
 import type { DjangoWorkspaceDiscoveryResult } from "../../shared/protocol/discoveryContract";
+import { getExtensionLogger } from "../services/logging/extensionLogger";
 import type {
   DiagramTestAction,
   DiagramTestErrorMessage,
@@ -130,6 +131,9 @@ export class ErdPanel {
         this.webviewReady = true;
         this.resolveAllReadyWaiters();
         return;
+      case "diagram.log":
+        this.writeWebviewLog(message);
+        return;
       case "diagram.updateSetupSettings":
         this.persistedSetupSettings = {
           ...message.settings,
@@ -149,6 +153,27 @@ export class ErdPanel {
       case "diagram.test.snapshot":
         this.resolveTestRequest(message);
         return;
+    }
+  }
+
+  private writeWebviewLog(message: Extract<PanelMessage, { type: "diagram.log" }>): void {
+    const suffix = message.details
+      ? ` ${JSON.stringify(message.details)}`
+      : "";
+    const logMessage = `${message.message}${suffix}`;
+    const logger = getExtensionLogger();
+
+    switch (message.level) {
+      case "error":
+        logger.error(logMessage);
+        return;
+      case "warn":
+        logger.warn(logMessage);
+        return;
+      case "debug":
+      case "info":
+      default:
+        logger.info(logMessage);
     }
   }
 
