@@ -37,15 +37,16 @@
     ]
   },
   "scripts": {
-    "build": "npm run build:extension && npm run build:analyzer",
+    "build": "npm run build:layout-wasm && npm run build:extension && npm run build:analyzer",
     "build:analyzer": "cargo build --manifest-path analyzer/Cargo.toml",
     "build:extension": "npm exec --yes --package typescript -- tsc -p .",
+    "build:layout-wasm": "node scripts/build-layout-wasm.mjs",
     "typecheck": "npm exec --yes --package typescript -- tsc -p . --noEmit",
     "lint": "npm run typecheck",
     "test:phase2": "npm run build && node --test test/integration/phase2-discovery.test.mjs",
     "verify:release": "npm run build && node scripts/verify-release-artifacts.mjs",
     "test:e2e": "npm run build && node test/e2e/run-e2e.mjs",
-    "test": "npm run typecheck && cargo test --manifest-path analyzer/Cargo.toml",
+    "test": "npm run build:layout-wasm && npm run typecheck && cargo test --manifest-path layout-core/Cargo.toml && cargo test --manifest-path analyzer/Cargo.toml",
     "analyzer:run": "cargo run --manifest-path analyzer/Cargo.toml"
   },
   "devDependencies": {

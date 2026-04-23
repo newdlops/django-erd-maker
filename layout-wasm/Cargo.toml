@@ -1,0 +1,12 @@
+[package]
+name = "django-erd-layout-wasm"
+version = "0.0.1"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+name = "django_erd_layout_wasm"
+path = "src/lib.rs"
+
+[dependencies]
+django-erd-layout-core = { path = "../layout-core" }

@@ -3,6 +3,7 @@ export function getBrowserRenderSource(): string {
         const MAX_RUNTIME_CROSSING_EDGE_COUNT = 120;
         let viewportRenderFrame = 0;
         let dragPreviewFrame = 0;
+        let cachedMinimapMetrics = null;
 
         function applyState() {
           viewport.dataset.transform =
@@ -16,21 +17,30 @@ export function getBrowserRenderSource(): string {
           renderPanels();
           renderHiddenTableList();
           drawCanvas("full");
-          renderMinimap();
+          renderMinimap("full");
         }
 
         function applyViewportState() {
           viewport.dataset.transform =
             "translate(" + state.viewport.panX + " " + state.viewport.panY + ") scale(" + state.viewport.zoom + ")";
           drawCanvas("viewport");
-          renderMinimap();
+          renderMinimap("viewport");
+        }
+
+        function applyGeometryState() {
+          viewport.dataset.transform =
+            "translate(" + state.viewport.panX + " " + state.viewport.panY + ") scale(" + state.viewport.zoom + ")";
+          renderTables();
+          renderEdgesAndCrossings();
+          renderOverlays();
+          drawCanvas("full");
+          renderMinimap("full");
         }
 
         function applyDragPreviewState() {
           viewport.dataset.transform =
             "translate(" + state.viewport.panX + " " + state.viewport.panY + ") scale(" + state.viewport.zoom + ")";
           drawCanvas("drag-preview");
-          renderMinimap();
         }
 
         function cancelViewportRender() {
@@ -95,6 +105,16 @@ export function getBrowserRenderSource(): string {
             return;
           }
 
+          if (action.type === "set-table-manual-position") {
+            if (renderModel.modelCatalogMode) {
+              invalidateCatalogSceneCache();
+            }
+            cancelDragPreviewRender();
+            cancelViewportRender();
+            applyGeometryState();
+            return;
+          }
+
           if (action.type === "set-interaction-setting") {
             renderSetupControls();
             renderRefreshButtons();
@@ -125,8 +145,13 @@ export function getBrowserRenderSource(): string {
           }
         }
 
-        function renderMinimap() {
+        function renderMinimap(renderMode) {
           if (!minimap || !minimapCanvas || !minimapViewport) {
+            return;
+          }
+
+          if (renderMode === "viewport" && cachedMinimapMetrics) {
+            updateMinimapViewportCursor(cachedMinimapMetrics);
             return;
           }
 
@@ -137,10 +162,12 @@ export function getBrowserRenderSource(): string {
           );
           const metrics = createMinimapMetrics(bounds);
           if (!metrics) {
+            cachedMinimapMetrics = null;
             minimap.toggleAttribute("hidden", true);
             return;
           }
 
+          cachedMinimapMetrics = metrics;
           minimap.toggleAttribute("hidden", false);
           const context = minimapCanvas.getContext("2d");
           if (!context) {
@@ -228,20 +255,41 @@ export function getBrowserRenderSource(): string {
         }
 
         function updateMinimapViewportCursor(metrics) {
-          const rect = canvas.getBoundingClientRect();
+          const minimapRect = fitMinimapCursorRect(
+            worldRectToMinimapRect(getViewportWorldRect(), metrics),
+            metrics,
+          );
+
+          minimapViewport.style.transform =
+            "translate(" + round2(minimapRect.x) + "px, " + round2(minimapRect.y) + "px)";
+          minimapViewport.style.width = round2(minimapRect.width) + "px";
+          minimapViewport.style.height = round2(minimapRect.height) + "px";
+        }
+
+        function getViewportWorldRect() {
+          const rect = getViewportScreenRect();
           const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
-          const viewportWorldRect = {
+
+          return {
             maxX: (rect.width - state.viewport.panX) / zoom,
             maxY: (rect.height - state.viewport.panY) / zoom,
             minX: -state.viewport.panX / zoom,
             minY: -state.viewport.panY / zoom,
           };
-          const minimapRect = worldRectToMinimapRect(viewportWorldRect, metrics);
+        }
 
-          minimapViewport.style.transform =
-            "translate(" + round2(minimapRect.x) + "px, " + round2(minimapRect.y) + "px)";
-          minimapViewport.style.width = round2(Math.max(8, minimapRect.width)) + "px";
-          minimapViewport.style.height = round2(Math.max(8, minimapRect.height)) + "px";
+        function fitMinimapCursorRect(rect, metrics) {
+          const width = Math.min(metrics.width, Math.max(8, rect.width));
+          const height = Math.min(metrics.height, Math.max(8, rect.height));
+          const x = rect.x - Math.max(0, width - rect.width) / 2;
+          const y = rect.y - Math.max(0, height - rect.height) / 2;
+
+          return {
+            height,
+            width,
+            x: Math.max(0, Math.min(Math.max(0, metrics.width - width), x)),
+            y: Math.max(0, Math.min(Math.max(0, metrics.height - height), y)),
+          };
         }
 
         function worldRectToMinimapRect(rect, metrics) {

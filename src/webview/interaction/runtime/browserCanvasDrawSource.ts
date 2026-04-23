@@ -909,11 +909,7 @@ export function getBrowserCanvasDrawSource(): string {
         }
 
         function getViewportRect() {
-          const rect = canvas.getBoundingClientRect();
-          return {
-            height: rect.height,
-            width: rect.width,
-          };
+          return getViewportScreenRect();
         }
 
         function getWorldBoundsForScreenRect(screenRect) {
@@ -1160,7 +1156,7 @@ export function getBrowserCanvasDrawSource(): string {
         }
 
         function resizeDrawingCanvas() {
-          const rect = canvas.getBoundingClientRect();
+          const rect = getViewportScreenRect();
           if (rect.width <= 0 || rect.height <= 0) {
             return;
           }
@@ -1180,7 +1176,7 @@ export function getBrowserCanvasDrawSource(): string {
         }
 
         function getVisibleWorldBounds(padding) {
-          const rect = canvas.getBoundingClientRect();
+          const rect = getViewportScreenRect();
           const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
           const extra = padding || 0;
           return {

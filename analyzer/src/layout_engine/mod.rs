@@ -1,6 +1,7 @@
 mod circular;
 mod clustered;
 mod hierarchical;
+mod location_optimizer;
 mod measurement;
 
 use crate::protocol::analysis::AnalyzerOutput;
@@ -8,6 +9,7 @@ use crate::protocol::graph::{DiagramGraph, StructuralEdgeProvenance};
 use crate::protocol::layout::{LayoutMode, LayoutSnapshot, NodeLayout, Point};
 use crate::protocol::model_identity::CanonicalModelId;
 use crate::routing::route_structural_edges;
+use location_optimizer::optimize_locations;
 use measurement::{MeasuredNode, measure_visible_nodes};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -68,6 +70,7 @@ pub fn compute_layout(request: LayoutRequest<'_>) -> LayoutSnapshot {
         select_strategy(request.mode).compute(&context)
     };
 
+    snapshot.nodes = optimize_locations(request.graph, &snapshot.nodes);
     apply_manual_positions(&mut snapshot.nodes, &request.manual_positions);
     snapshot
         .nodes

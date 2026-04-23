@@ -82,6 +82,7 @@ export interface EdgeRenderModel {
 }
 
 export interface DiagramRenderModel {
+  baseLayoutMode: DiagramBootstrapPayload["layout"]["mode"];
   canvas: { height: number; width: number };
   crossings: EdgeCrossing[];
   edges: EdgeRenderModel[];
@@ -142,6 +143,7 @@ export function createDiagramRenderModel(
         .filter(isDefined);
 
   return {
+    baseLayoutMode: payload.layout.mode,
     canvas: canvasSize(payload, renderedTables, modelCatalogMode),
     crossings: modelCatalogMode ? [] : payload.layout.crossings,
     edges: modelCatalogMode

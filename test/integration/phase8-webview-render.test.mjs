@@ -28,6 +28,7 @@ test("phase8 document renders canvas scene metadata, routed edges, crossings, ch
   assert.match(html, /data-erd-minimap-viewport/);
   assert.match(html, /aria-label="Django ERD diagram"/);
   assert.match(html, /id="erd-render-model"/);
+  assert.match(html, /"baseLayoutMode":"hierarchical"/);
   assert.match(html, /data-table-name="blog_post"/);
   assert.match(html, /data-edge-id="edge-post-tags"/);
   assert.match(html, /data-crossing-id="crossing-1"/);
@@ -68,15 +69,18 @@ test("phase8 setup explains that layout settings apply after refresh", () => {
 
 test("phase8 browser controller declares layout settings before initial viewport calculation", () => {
   const html = render();
+  const wasmRuntimeIndex = html.indexOf("const layoutWasmRuntime = createLayoutWasmRuntime");
   const stateDeclarationIndex = html.indexOf("let state = null");
   const appliedSettingsIndex = html.indexOf("let appliedLayoutSettings = pickLayoutRoutingSettings");
   const viewportCalculationIndex = html.indexOf("computeInitialViewport(initialStateValue)");
 
+  assert.ok(wasmRuntimeIndex >= 0, "controller should initialize layout WASM before viewport calculation");
   assert.ok(stateDeclarationIndex >= 0, "controller should declare state before initialization");
   assert.ok(appliedSettingsIndex >= 0, "controller should declare applied layout settings before initialization");
   assert.ok(viewportCalculationIndex >= 0, "controller should compute the initial viewport");
   assert.ok(
-    stateDeclarationIndex < viewportCalculationIndex &&
+    wasmRuntimeIndex < viewportCalculationIndex &&
+      stateDeclarationIndex < viewportCalculationIndex &&
       appliedSettingsIndex < viewportCalculationIndex,
     "initial viewport calculation should not run while layout setting state is in the temporal dead zone",
   );
@@ -117,9 +121,16 @@ test("phase8 browser runtime caches relation state and buckets spacing checks", 
   assert.match(html, /function createAdaptiveSweepIterations\(iterations, tableCount\)/);
 });
 
-test("phase8 hierarchical layout prefers the layered barycenter pipeline for relation graphs", () => {
+test("phase8 hierarchical layout uses analyzer seed first and keeps layered barycenter fallback", () => {
   const html = render();
 
+  assert.match(html, /function shouldUseAnalyzerHierarchicalSeed\(tableMetaList\)/);
+  assert.match(html, /function createAnalyzerSeedLayout\(tableMetaList\)/);
+  assert.match(html, /renderModel\.baseLayoutMode === "hierarchical"/);
+  assert.match(
+    html,
+    /case "hierarchical":[\s\S]*shouldUseAnalyzerHierarchicalSeed\(tableMetaList\)[\s\S]*createAnalyzerSeedLayout\(tableMetaList\)/,
+  );
   assert.match(
     html,
     /function createHierarchicalLayout\(tableMetaList, tuning = createLayoutTuning\(\)\)[\s\S]*hasRelationEdgesInLayout\(relationState\)[\s\S]*createLayeredRelationLayout\(/,
@@ -128,6 +139,28 @@ test("phase8 hierarchical layout prefers the layered barycenter pipeline for rel
   assert.match(html, /function sweepLayerIdsByNeighborBarycenter\(/);
   assert.match(html, /function spaceVisibleEdgeBundleDescriptors\(routes\)/);
   assert.match(html, /function buildOrthogonalPathFromPorts\(/);
+});
+
+test("phase8 browser runtime embeds WASM layout optimizer with JS fallback", () => {
+  const html = render();
+
+  assert.match(html, /script-src 'nonce-[^']+' 'wasm-unsafe-eval'/);
+  assert.match(html, /const layoutWasmBase64 = "[A-Za-z0-9+/=]+"/);
+  assert.match(html, /function createLayoutWasmRuntime\(base64\)/);
+  assert.match(html, /new WebAssembly\.Module\(bytes\)/);
+  assert.match(html, /function tryOptimizeLayoutWithWasm\(tableMetaList, positions, settingsOverride\)/);
+  assert.match(html, /function createLayoutWasmOptimizerSettings\(settingsOverride\)/);
+  assert.match(html, /writer\.writeF64\(settings\.nodeSpacing\)/);
+  assert.match(html, /writer\.writeF64\(settings\.edgeDetour\)/);
+  assert.match(html, /function tryComputeLayoutBoundsWithWasm\(tables, optionsByModelId, layout\)/);
+  assert.match(
+    html,
+    /function finalizeLayoutVariant\(tableMetaList, positions, options\)[\s\S]*tryOptimizeLayoutWithWasm\([\s\S]*tableMetaList,[\s\S]*positions,[\s\S]*finalizeOptions\.tuning/,
+  );
+  assert.match(
+    html,
+    /function computeLayoutBounds\(layoutMode, tableOptions, settingsOverride\)[\s\S]*tryComputeLayoutBoundsWithWasm\(tableMetaById\.values\(\), optionsByModelId, layout\)/,
+  );
 });
 
 test("phase8 viewport fit and center use visible component bounds", () => {
@@ -149,12 +182,23 @@ test("phase8 minimap renders component positions and pans by cursor drag", () =>
   const html = render();
 
   assert.match(html, /const minimap = document\.querySelector\("\[data-erd-minimap\]"\)/);
-  assert.match(html, /function renderMinimap\(\)/);
+  assert.match(html, /scene: createSceneSnapshot\(\)/);
+  assert.match(html, /canvasInkSample: sampleCanvasInk\(\)/);
+  assert.match(html, /layoutButtons: layoutButtons\.map/);
+  assert.match(html, /function renderMinimap\(renderMode\)/);
+  assert.match(html, /renderMode === "viewport" && cachedMinimapMetrics/);
   assert.match(html, /function createMinimapMetrics\(bounds\)/);
   assert.match(html, /function updateMinimapViewportCursor\(metrics\)/);
+  assert.match(html, /function getViewportWorldRect\(\)/);
+  assert.match(html, /function fitMinimapCursorRect\(rect, metrics\)/);
+  assert.match(html, /function getViewportScreenRect\(\)/);
+  assert.match(html, /drawingRect && drawingRect\.width > 1 && drawingRect\.height > 1/);
   assert.match(html, /function getMinimapWorldPoint\(event\)/);
   assert.match(html, /minimap\.addEventListener\("pointerdown"/);
   assert.match(html, /dispatch\(createViewportPanToWorldPointAction\(worldPoint\)\)/);
+  assert.match(html, /case "clickZoomAction":/);
+  assert.match(html, /case "pointerPanBy":/);
+  assert.match(html, /case "setSetupControl":/);
 });
 
 test("phase8 canvas scene keeps hidden table metadata in the DOM with hidden state", () => {

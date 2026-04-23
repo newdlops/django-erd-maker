@@ -82,6 +82,7 @@ export function getBrowserLayoutSource(): string {
                   iterations: Math.round(54 * tuning.nodeSpacing),
                   margin: 128 * tuning.nodeSpacing,
                   springStrength: 0.018,
+                  tuning,
                 },
               );
             case "clustered":
@@ -94,6 +95,7 @@ export function getBrowserLayoutSource(): string {
                   iterations: Math.round(48 * tuning.nodeSpacing),
                   margin: 120 * tuning.nodeSpacing,
                   springStrength: 0.025,
+                  tuning,
                 },
               );
             case "flow":
@@ -107,6 +109,7 @@ export function getBrowserLayoutSource(): string {
                   iterations: Math.round(56 * tuning.nodeSpacing),
                   margin: 128 * tuning.nodeSpacing,
                   springStrength: 0.022,
+                  tuning,
                 },
               );
             case "graph":
@@ -119,6 +122,7 @@ export function getBrowserLayoutSource(): string {
                   iterations: Math.round(66 * tuning.nodeSpacing),
                   margin: 136 * tuning.nodeSpacing,
                   springStrength: 0.016,
+                  tuning,
                 },
               );
             case "neural":
@@ -132,6 +136,7 @@ export function getBrowserLayoutSource(): string {
                   iterations: Math.round(58 * tuning.nodeSpacing),
                   margin: 132 * tuning.nodeSpacing,
                   springStrength: 0.018,
+                  tuning,
                 },
               );
             case "radial":
@@ -144,10 +149,25 @@ export function getBrowserLayoutSource(): string {
                   iterations: Math.round(56 * tuning.nodeSpacing),
                   margin: 132 * tuning.nodeSpacing,
                   springStrength: 0.018,
+                  tuning,
                 },
               );
             case "hierarchical":
             default:
+              if (shouldUseAnalyzerHierarchicalSeed(tableMetaList)) {
+                const seedPositions = createAnalyzerSeedLayout(tableMetaList);
+                const wasmPositions =
+                  typeof tryOptimizeLayoutWithWasm === "function"
+                    ? tryOptimizeLayoutWithWasm(tableMetaList, seedPositions, tuning)
+                    : undefined;
+
+                return normalizePositionMap(
+                  clonePositionMap(wasmPositions || seedPositions),
+                  tableMetaList,
+                  96 * tuning.nodeSpacing,
+                );
+              }
+
               return finalizeLayoutVariant(
                 tableMetaList,
                 createHierarchicalLayout(tableMetaList, tuning),
@@ -158,9 +178,38 @@ export function getBrowserLayoutSource(): string {
                   iterations: Math.round(60 * tuning.nodeSpacing),
                   margin: 136 * tuning.nodeSpacing,
                   springStrength: 0.018,
+                  tuning,
                 },
               );
           }
+        }
+
+        function shouldUseAnalyzerHierarchicalSeed(tableMetaList) {
+          return (
+            typeof renderModel !== "undefined" &&
+            renderModel &&
+            renderModel.baseLayoutMode === "hierarchical" &&
+            Array.isArray(tableMetaList) &&
+            tableMetaList.length > 0 &&
+            tableMetaList.every((table) =>
+              table.basePosition &&
+              Number.isFinite(table.basePosition.x) &&
+              Number.isFinite(table.basePosition.y)
+            )
+          );
+        }
+
+        function createAnalyzerSeedLayout(tableMetaList) {
+          const positions = {};
+
+          tableMetaList.forEach((table) => {
+            positions[table.modelId] = {
+              x: round2(table.basePosition?.x || 0),
+              y: round2(table.basePosition?.y || 0),
+            };
+          });
+
+          return positions;
         }
 
         function createLayoutTuning(settingsOverride) {
@@ -308,7 +357,23 @@ export function getBrowserLayoutSource(): string {
 
         function finalizeLayoutVariant(tableMetaList, positions, options) {
           const finalizeOptions = createAdaptiveFinalizeOptions(tableMetaList, options || {});
-          const workingPositions = clonePositionMap(positions);
+          const wasmPositions =
+            typeof tryOptimizeLayoutWithWasm === "function"
+              ? tryOptimizeLayoutWithWasm(
+                  tableMetaList,
+                  positions,
+                  finalizeOptions.tuning || createLayoutTuning(),
+                )
+              : undefined;
+          const workingPositions = clonePositionMap(wasmPositions || positions);
+
+          if (wasmPositions) {
+            return normalizePositionMap(
+              workingPositions,
+              tableMetaList,
+              finalizeOptions.margin || 72,
+            );
+          }
 
           if (tableMetaList.length > 1) {
             relaxLayoutSpacing(tableMetaList, positions, workingPositions, finalizeOptions);

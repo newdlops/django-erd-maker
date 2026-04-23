@@ -2,6 +2,7 @@ import { getBrowserCanvasDrawSource } from "./runtime/browserCanvasDrawSource";
 import { getBrowserDomSource } from "./runtime/browserDomSource";
 import { getBrowserEventSource } from "./runtime/browserEventSource";
 import { getBrowserLayoutSource } from "./runtime/browserLayoutSource";
+import { getBrowserLayoutWasmSource } from "./runtime/browserLayoutWasmSource";
 import { getBrowserRenderSource } from "./runtime/browserRenderSource";
 import { getBrowserStateSource } from "./runtime/browserStateSource";
 import { getBrowserTestSource } from "./runtime/browserTestSource";
@@ -47,6 +48,7 @@ export function getBrowserControllerScript(nonce: string): string {
           return;
         }
 
+${getBrowserLayoutWasmSource()}
 ${getBrowserStateSource()}
         const renderModel = JSON.parse(renderModelElement.textContent || "{}");
         const edgeMeta = edges.map((edge) => ({

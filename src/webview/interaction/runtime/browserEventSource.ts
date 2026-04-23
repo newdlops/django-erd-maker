@@ -342,7 +342,7 @@ export function getBrowserEventSource(): string {
           if (renderModel.modelCatalogMode) {
             invalidateCatalogSceneCache();
           }
-          applyState();
+          applyGeometryState();
         });
 
         drawingCanvas.addEventListener("pointercancel", (event) => {
@@ -366,7 +366,7 @@ export function getBrowserEventSource(): string {
           if (renderModel.modelCatalogMode) {
             invalidateCatalogSceneCache();
           }
-          applyState();
+          applyGeometryState();
         });
 
         drawingCanvas.addEventListener("pointerleave", () => {
@@ -377,7 +377,7 @@ export function getBrowserEventSource(): string {
           drag = null;
           canvas.classList.remove("is-panning");
           canvas.classList.remove("is-dragging-table");
-          applyState();
+          applyViewportState();
         });
 
         drawingCanvas.addEventListener("wheel", (event) => {

@@ -16,6 +16,21 @@ export function getBrowserStateSource(): string {
           return JSON.parse(JSON.stringify(source));
         }
 
+        function getViewportScreenRect() {
+          const drawingRect = drawingCanvas
+            ? drawingCanvas.getBoundingClientRect()
+            : undefined;
+          const rect =
+            drawingRect && drawingRect.width > 1 && drawingRect.height > 1
+              ? drawingRect
+              : canvas.getBoundingClientRect();
+
+          return {
+            height: Math.max(1, rect.height),
+            width: Math.max(1, rect.width),
+          };
+        }
+
         function getTableOptions(currentState, modelId) {
           return (
             currentState.tableOptions.find((options) => options.modelId === modelId) || {
@@ -60,9 +75,9 @@ export function getBrowserStateSource(): string {
         }
 
         function computeViewportForLayout(layoutMode, tableOptions, options) {
-          const canvasRect = canvas.getBoundingClientRect();
-          const canvasWidth = Math.max(1, canvasRect.width);
-          const canvasHeight = Math.max(1, canvasRect.height);
+          const viewportRect = getViewportScreenRect();
+          const canvasWidth = viewportRect.width;
+          const canvasHeight = viewportRect.height;
           if (canvasWidth <= 1 || canvasHeight <= 1) {
             return {
               panX: 32,
@@ -151,9 +166,9 @@ export function getBrowserStateSource(): string {
             };
           }
 
-          const canvasRect = canvas.getBoundingClientRect();
-          const canvasWidth = Math.max(1, canvasRect.width);
-          const canvasHeight = Math.max(1, canvasRect.height);
+          const viewportRect = getViewportScreenRect();
+          const canvasWidth = viewportRect.width;
+          const canvasHeight = viewportRect.height;
           const centerX = (bounds.minX + bounds.maxX) / 2;
           const centerY = (bounds.minY + bounds.maxY) / 2;
 
@@ -165,9 +180,9 @@ export function getBrowserStateSource(): string {
         }
 
         function createCenteredViewportZoomAction(nextZoom) {
-          const canvasRect = canvas.getBoundingClientRect();
-          const anchorX = canvasRect.width / 2;
-          const anchorY = canvasRect.height / 2;
+          const viewportRect = getViewportScreenRect();
+          const anchorX = viewportRect.width / 2;
+          const anchorY = viewportRect.height / 2;
           const previousZoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
           const zoom = clampZoom(nextZoom);
           const worldX = (anchorX - state.viewport.panX) / previousZoom;
@@ -182,12 +197,12 @@ export function getBrowserStateSource(): string {
         }
 
         function createViewportPanToWorldPointAction(worldPoint) {
-          const canvasRect = canvas.getBoundingClientRect();
+          const viewportRect = getViewportScreenRect();
           const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
 
           return {
-            panX: Math.round((canvasRect.width / 2 - worldPoint.x * zoom) * 100) / 100,
-            panY: Math.round((canvasRect.height / 2 - worldPoint.y * zoom) * 100) / 100,
+            panX: Math.round((viewportRect.width / 2 - worldPoint.x * zoom) * 100) / 100,
+            panY: Math.round((viewportRect.height / 2 - worldPoint.y * zoom) * 100) / 100,
             type: "set-viewport-pan",
           };
         }
@@ -200,6 +215,14 @@ export function getBrowserStateSource(): string {
             ]),
           );
           const layout = getLayoutForMode(layoutMode, settingsOverride);
+          const wasmBounds =
+            typeof tryComputeLayoutBoundsWithWasm === "function"
+              ? tryComputeLayoutBoundsWithWasm(tableMetaById.values(), optionsByModelId, layout)
+              : undefined;
+          if (wasmBounds) {
+            return wasmBounds;
+          }
+
           const bounds = createEmptyLayoutBounds();
 
           for (const table of tableMetaById.values()) {

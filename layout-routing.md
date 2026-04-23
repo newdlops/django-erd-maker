@@ -57,6 +57,9 @@ Django 모델 ERD는 직사각형 테이블 노드와 방향성 FK/M2M 관계가
 - layout option 변경은 즉시 재계산하지 않고 Refresh 이후 적용한다.
 - 드래그 중에는 전체 레이아웃과 edge routing을 다시 계산하지 않는다. preview 렌더링만 수행하고 drop 시점에 필요한 계산을 수행한다.
 - layout variant는 lazy cache로 계산한다. 사용자가 선택하지 않은 레이아웃을 초기 렌더링에서 모두 계산하지 않는다.
+- 테이블 geometry 수집, edge endpoint 기반 교차 완화, table move command 생성, 최종 위치 보정은 `layout-core` Rust 로직으로 계산한다.
+- analyzer 프로세스는 같은 `layout-core`를 직접 호출하고, webview는 `layout-wasm`으로 빌드한 WASM을 동기 초기화해 layout finalize/bounds 계산에 우선 사용한다.
+- WASM 초기화가 실패하거나 브라우저 환경에서 막히면 기존 JS relaxation/bounds 계산으로 fallback하되, 기본 hierarchical은 analyzer seed 좌표를 우선 사용해 브라우저 재계산량을 줄인다.
 - barycenter sweep, transpose, collision relaxation, grid routing은 노드/edge 수에 따라 반복 횟수와 후보 수를 제한한다.
 - edge routing은 port/lane assignment 이후 obstacle-aware 후보 중 최저 비용 경로를 선택하되, dense graph에서는 비싼 grid search를 건너뛸 수 있다.
 

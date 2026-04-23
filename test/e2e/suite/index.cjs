@@ -364,6 +364,78 @@ const scenarioHandlers = {
     assert.ok(draggedPosition.x > initialPosition.x + 80);
     assert.ok(draggedPosition.y > initialPosition.y + 40);
   },
+  "E2E-14": async () => {
+    const initialSnapshot = await runWebviewAction({ type: "snapshot" });
+
+    assertRenderedSceneVisible(initialSnapshot);
+    assertMinimapViewportMatchesState(initialSnapshot);
+    assert.equal(activeLayoutMode(initialSnapshot), initialSnapshot.state.layoutMode);
+
+    const pannedSnapshot = await runWebviewAction({
+      delta: { x: 96, y: 64 },
+      type: "pointerPanBy",
+    });
+
+    assert.notEqual(pannedSnapshot.state.viewport.panX, initialSnapshot.state.viewport.panX);
+    assert.notEqual(pannedSnapshot.state.viewport.panY, initialSnapshot.state.viewport.panY);
+    assertRenderedSceneVisible(pannedSnapshot);
+    assertMinimapViewportMatchesState(pannedSnapshot);
+
+    const zoomInSnapshot = await runWebviewAction({
+      type: "clickZoomAction",
+      zoomAction: "in",
+    });
+
+    assert.ok(
+      zoomInSnapshot.state.viewport.zoom > pannedSnapshot.state.viewport.zoom,
+      "Zoom In should increase viewport zoom.",
+    );
+
+    const zoomOutSnapshot = await runWebviewAction({
+      type: "clickZoomAction",
+      zoomAction: "out",
+    });
+
+    assert.ok(
+      zoomOutSnapshot.state.viewport.zoom < zoomInSnapshot.state.viewport.zoom,
+      "Zoom Out should decrease viewport zoom.",
+    );
+
+    const fitSnapshot = await runWebviewAction({
+      type: "clickZoomAction",
+      zoomAction: "fit",
+    });
+
+    assertVisibleTablesInsideViewport(fitSnapshot);
+    assertMinimapViewportMatchesState(fitSnapshot);
+
+    const centeredSnapshot = await runWebviewAction({
+      type: "clickZoomAction",
+      zoomAction: "center",
+    });
+
+    assertComponentCenterNearViewportCenter(centeredSnapshot);
+    assertMinimapViewportMatchesState(centeredSnapshot);
+
+    for (const layoutMode of [
+      "hierarchical",
+      "graph",
+      "radial",
+      "neural",
+      "flow",
+      "circular",
+      "clustered",
+    ]) {
+      const layoutSnapshot = await runWebviewAction({
+        layoutMode,
+        type: "clickLayoutMode",
+      });
+
+      assert.equal(layoutSnapshot.state.layoutMode, layoutMode);
+      assert.equal(activeLayoutMode(layoutSnapshot), layoutMode);
+      assertRenderedSceneVisible(layoutSnapshot);
+    }
+  },
   "E2E-15": async (state) => {
     assert.equal(state.payload.graph.nodes.length, 3);
     await vscode.commands.executeCommand("djangoErd.refreshDiagram");
@@ -371,6 +443,29 @@ const scenarioHandlers = {
 
     assert.deepEqual(modelIds(refreshedState), modelIds(state));
     assert.equal(refreshedState.payload.graph.structuralEdges.length, state.payload.graph.structuralEdges.length);
+  },
+  "E2E-19": async () => {
+    await runWebviewAction({
+      key: "nodeSpacing",
+      type: "setSetupControl",
+      value: 2.35,
+    });
+    await runWebviewAction({
+      key: "edgeDetour",
+      type: "setSetupControl",
+      value: 2.4,
+    });
+
+    await vscode.commands.executeCommand("djangoErd.refreshDiagram");
+    await waitForPanelState();
+
+    const refreshedSnapshot = await runWebviewAction({ type: "snapshot" });
+
+    assert.equal(refreshedSnapshot.state.settings.nodeSpacing, 2.35);
+    assert.equal(refreshedSnapshot.state.settings.edgeDetour, 2.4);
+    assertRenderedSceneVisible(refreshedSnapshot);
+    assertVisibleTablesInsideViewport(refreshedSnapshot);
+    assertMinimapViewportMatchesState(refreshedSnapshot);
   },
   "E2E-16": async (state) => {
     assert.deepEqual(modelIds(state), ["orphan.Comment"]);
@@ -397,6 +492,187 @@ const scenarioHandlers = {
     assert.match(state.html, /data-table-name="catalog_product_entity"/);
   },
 };
+
+function assertRenderedSceneVisible(snapshot) {
+  assert.ok(snapshot.scene.canvasRect.width > 320, "Expected webview canvas to have visible width.");
+  assert.ok(snapshot.scene.canvasRect.height > 320, "Expected webview canvas to have visible height.");
+  assert.ok(snapshot.scene.drawingCanvas.width > 0, "Expected drawing canvas backing width.");
+  assert.ok(snapshot.scene.drawingCanvas.height > 0, "Expected drawing canvas backing height.");
+  assert.ok(snapshot.scene.canvasInkSample.sampledPixels > 0, "Expected canvas pixels to be sampled.");
+  assert.ok(snapshot.scene.canvasInkSample.inkPixels > 0, "Expected rendered canvas to contain drawn pixels.");
+  assert.ok(snapshot.scene.visibleTableIds.length > 0, "Expected at least one table shape in the viewport.");
+  assert.ok(visibleTableSnapshots(snapshot).length > 0, "Expected visible table metadata.");
+}
+
+function assertVisibleTablesInsideViewport(snapshot) {
+  const tolerance = 8;
+  const { height, width } = snapshot.scene.canvasRect;
+
+  for (const table of visibleTableSnapshots(snapshot)) {
+    assert.ok(
+      table.screenRect.left >= -tolerance,
+      `Expected ${table.modelId} left edge to fit viewport.`,
+    );
+    assert.ok(
+      table.screenRect.top >= -tolerance,
+      `Expected ${table.modelId} top edge to fit viewport.`,
+    );
+    assert.ok(
+      table.screenRect.right <= width + tolerance,
+      `Expected ${table.modelId} right edge to fit viewport.`,
+    );
+    assert.ok(
+      table.screenRect.bottom <= height + tolerance,
+      `Expected ${table.modelId} bottom edge to fit viewport.`,
+    );
+  }
+}
+
+function assertComponentCenterNearViewportCenter(snapshot) {
+  const bounds = visibleTableScreenBounds(snapshot);
+  const componentCenter = {
+    x: (bounds.left + bounds.right) / 2,
+    y: (bounds.top + bounds.bottom) / 2,
+  };
+  const viewportCenter = {
+    x: snapshot.scene.canvasRect.width / 2,
+    y: snapshot.scene.canvasRect.height / 2,
+  };
+
+  assert.ok(
+    Math.abs(componentCenter.x - viewportCenter.x) <= 4,
+    "Move To Center should align component center with viewport center on the x axis.",
+  );
+  assert.ok(
+    Math.abs(componentCenter.y - viewportCenter.y) <= 4,
+    "Move To Center should align component center with viewport center on the y axis.",
+  );
+}
+
+function assertMinimapViewportMatchesState(snapshot) {
+  assert.equal(snapshot.scene.minimap.visible, true, "Expected minimap to be visible.");
+  const bounds = visibleTableWorldBounds(snapshot);
+  const minimap = snapshot.scene.minimap;
+  const expected = expectedMinimapViewportRect(snapshot, bounds, minimap.canvasRect);
+  const actual = minimap.viewport;
+  const tolerance = 1.5;
+
+  assert.ok(
+    Math.abs(actual.x - expected.x) <= tolerance,
+    `Expected minimap viewport x=${actual.x} to match ${expected.x}.`,
+  );
+  assert.ok(
+    Math.abs(actual.y - expected.y) <= tolerance,
+    `Expected minimap viewport y=${actual.y} to match ${expected.y}.`,
+  );
+  assert.ok(
+    Math.abs(actual.width - expected.width) <= tolerance,
+    `Expected minimap viewport width=${actual.width} to match ${expected.width}.`,
+  );
+  assert.ok(
+    Math.abs(actual.height - expected.height) <= tolerance,
+    `Expected minimap viewport height=${actual.height} to match ${expected.height}.`,
+  );
+}
+
+function expectedMinimapViewportRect(snapshot, bounds, minimapCanvasRect) {
+  const worldWidth = Math.max(1, bounds.right - bounds.left);
+  const worldHeight = Math.max(1, bounds.bottom - bounds.top);
+  const padding = 10;
+  const scale = Math.max(
+    0.0001,
+    Math.min(
+      (minimapCanvasRect.width - padding * 2) / worldWidth,
+      (minimapCanvasRect.height - padding * 2) / worldHeight,
+    ),
+  );
+  const offsetX = (minimapCanvasRect.width - worldWidth * scale) / 2;
+  const offsetY = (minimapCanvasRect.height - worldHeight * scale) / 2;
+  const zoom = Math.max(snapshot.state.viewport.zoom, 0.005);
+  const viewportWorldRect = {
+    maxX: (snapshot.scene.drawingCanvas.rectWidth - snapshot.state.viewport.panX) / zoom,
+    maxY: (snapshot.scene.drawingCanvas.rectHeight - snapshot.state.viewport.panY) / zoom,
+    minX: -snapshot.state.viewport.panX / zoom,
+    minY: -snapshot.state.viewport.panY / zoom,
+  };
+  const rawRect = {
+    height: Math.max(2, (viewportWorldRect.maxY - viewportWorldRect.minY) * scale),
+    width: Math.max(2, (viewportWorldRect.maxX - viewportWorldRect.minX) * scale),
+    x: offsetX + (viewportWorldRect.minX - bounds.left) * scale,
+    y: offsetY + (viewportWorldRect.minY - bounds.top) * scale,
+  };
+
+  return fitMinimapCursorRect(rawRect, minimapCanvasRect);
+}
+
+function fitMinimapCursorRect(rect, minimapCanvasRect) {
+  const width = Math.min(minimapCanvasRect.width, Math.max(8, rect.width));
+  const height = Math.min(minimapCanvasRect.height, Math.max(8, rect.height));
+  const x = rect.x - Math.max(0, width - rect.width) / 2;
+  const y = rect.y - Math.max(0, height - rect.height) / 2;
+
+  return {
+    height,
+    width,
+    x: Math.max(0, Math.min(Math.max(0, minimapCanvasRect.width - width), x)),
+    y: Math.max(0, Math.min(Math.max(0, minimapCanvasRect.height - height), y)),
+  };
+}
+
+function visibleTableScreenBounds(snapshot) {
+  const tables = visibleTableSnapshots(snapshot);
+
+  assert.ok(tables.length > 0, "Expected visible tables for screen bounds.");
+  return tables.reduce(
+    (bounds, table) => ({
+      bottom: Math.max(bounds.bottom, table.screenRect.bottom),
+      left: Math.min(bounds.left, table.screenRect.left),
+      right: Math.max(bounds.right, table.screenRect.right),
+      top: Math.min(bounds.top, table.screenRect.top),
+    }),
+    {
+      bottom: Number.NEGATIVE_INFINITY,
+      left: Number.POSITIVE_INFINITY,
+      right: Number.NEGATIVE_INFINITY,
+      top: Number.POSITIVE_INFINITY,
+    },
+  );
+}
+
+function visibleTableWorldBounds(snapshot) {
+  const tables = visibleTableSnapshots(snapshot);
+
+  assert.ok(tables.length > 0, "Expected visible tables for world bounds.");
+  return tables.reduce(
+    (bounds, table) => {
+      const position = parseTranslate(table.transform);
+
+      return {
+        bottom: Math.max(bounds.bottom, position.y + table.height),
+        left: Math.min(bounds.left, position.x),
+        right: Math.max(bounds.right, position.x + table.width),
+        top: Math.min(bounds.top, position.y),
+      };
+    },
+    {
+      bottom: Number.NEGATIVE_INFINITY,
+      left: Number.POSITIVE_INFINITY,
+      right: Number.NEGATIVE_INFINITY,
+      top: Number.POSITIVE_INFINITY,
+    },
+  );
+}
+
+function visibleTableSnapshots(snapshot) {
+  return snapshot.tables.filter((table) => !table.hidden);
+}
+
+function activeLayoutMode(snapshot) {
+  const activeButtons = snapshot.layoutButtons.filter((button) => button.active);
+
+  assert.equal(activeButtons.length, 1, "Expected one active layout button.");
+  return activeButtons[0].layoutMode;
+}
 
 function edgeKinds(state) {
   return state.payload.graph.structuralEdges.map((edge) => edge.kind);

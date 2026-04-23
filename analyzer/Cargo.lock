@@ -60,9 +60,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "django-erd-layout-core"
+version = "0.0.1"
+
+[[package]]
 name = "django-erd-maker-analyzer"
 version = "0.0.1"
 dependencies = [
+ "django-erd-layout-core",
  "rustpython-parser",
  "serde",
  "serde_json",
