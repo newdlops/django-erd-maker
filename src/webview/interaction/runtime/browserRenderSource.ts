@@ -19,7 +19,7 @@ export function getBrowserRenderSource(): string {
         const layoutLabels = ${layoutLabelsJson};
 
         function normalizeLayoutModeId(layoutMode) {
-          return layoutMode === "clustered" ? "fmmm" : layoutMode;
+          return layoutMode === "clustered" ? "fast_multipole_multilevel" : layoutMode;
         }
 
         function getLayoutLabel(layoutMode) {
