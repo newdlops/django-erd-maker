@@ -163,6 +163,10 @@ struct LayoutQualityMetrics {
   std::size_t nodeSpacingOverlaps = 0;
   std::size_t overlappingEdges = 0;
   std::size_t routeSegments = 0;
+  double aspectRatio = 0.0;
+  double boundingBoxArea = 0.0;
+  double edgeLengthStddev = 0.0;
+  double meanEdgeLength = 0.0;
 };
 
 struct RouteOccupancy {
@@ -2251,6 +2255,60 @@ LayoutQualityMetrics measureLayoutQuality(
 
   metrics.overlappingEdges = static_cast<std::size_t>(
     std::count(overlappingEdgeFlags.begin(), overlappingEdgeFlags.end(), true));
+
+  double minX = std::numeric_limits<double>::infinity();
+  double minY = std::numeric_limits<double>::infinity();
+  double maxX = -std::numeric_limits<double>::infinity();
+  double maxY = -std::numeric_limits<double>::infinity();
+  for (const NodeRecord& node : nodes) {
+    const double centerX = sanitizeNodeCenterX(node, attributes);
+    const double centerY = sanitizeNodeCenterY(node, attributes);
+    const double width = sanitizeNodeWidth(node, attributes);
+    const double height = sanitizeNodeHeight(node, attributes);
+    const double left = centerX - width / 2.0;
+    const double right = centerX + width / 2.0;
+    const double top = centerY - height / 2.0;
+    const double bottom = centerY + height / 2.0;
+    if (left < minX) minX = left;
+    if (right > maxX) maxX = right;
+    if (top < minY) minY = top;
+    if (bottom > maxY) maxY = bottom;
+  }
+  if (std::isfinite(minX) && std::isfinite(maxX) && std::isfinite(minY) && std::isfinite(maxY)
+      && maxX > minX && maxY > minY) {
+    const double width = maxX - minX;
+    const double height = maxY - minY;
+    metrics.boundingBoxArea = width * height;
+    const double bigger = std::max(width, height);
+    const double smaller = std::max(1.0, std::min(width, height));
+    metrics.aspectRatio = bigger / smaller;
+  }
+
+  double lengthSum = 0.0;
+  double lengthSumSq = 0.0;
+  std::size_t lengthCount = 0;
+  for (const std::vector<RoutePoint>& route : routes) {
+    if (route.size() < 2) {
+      continue;
+    }
+    double length = 0.0;
+    for (std::size_t pointIndex = 1; pointIndex < route.size(); ++pointIndex) {
+      const double dx = route[pointIndex].x - route[pointIndex - 1].x;
+      const double dy = route[pointIndex].y - route[pointIndex - 1].y;
+      length += std::sqrt(dx * dx + dy * dy);
+    }
+    lengthSum += length;
+    lengthSumSq += length * length;
+    lengthCount += 1;
+  }
+  if (lengthCount > 0) {
+    const double count = static_cast<double>(lengthCount);
+    const double mean = lengthSum / count;
+    metrics.meanEdgeLength = mean;
+    const double variance = std::max(0.0, (lengthSumSq / count) - mean * mean);
+    metrics.edgeLengthStddev = std::sqrt(variance);
+  }
+
   return metrics;
 }
 
@@ -4330,6 +4388,10 @@ void writeLayoutEngineMetadata(
          << ",\"edgeSegmentOverlaps\":" << quality.edgeSegmentOverlaps
          << ",\"overlappingEdges\":" << quality.overlappingEdges
          << ",\"routeSegments\":" << quality.routeSegments
+         << ",\"boundingBoxArea\":" << quality.boundingBoxArea
+         << ",\"aspectRatio\":" << quality.aspectRatio
+         << ",\"meanEdgeLength\":" << quality.meanEdgeLength
+         << ",\"edgeLengthStddev\":" << quality.edgeLengthStddev
          << "}";
 }
 
@@ -4460,9 +4522,8 @@ int main(int argc, char** argv) {
       : routeAllEdges(nodes, edges, attributes, true);
     std::vector<std::vector<std::string>> crossingIdsByEdge(edges.size());
     std::size_t totalRouteCrossings = 0;
-    const std::vector<EdgeCrossingRecord> crossings = straightLineMode
-      ? detectRouteCrossings(edges, routes, crossingIdsByEdge, totalRouteCrossings)
-      : std::vector<EdgeCrossingRecord>{};
+    const std::vector<EdgeCrossingRecord> crossings =
+      detectRouteCrossings(edges, routes, crossingIdsByEdge, totalRouteCrossings);
     LayoutQualityMetrics quality = measureLayoutQuality(nodes, edges, routes, attributes);
     quality.edgeCrossings = totalRouteCrossings;
     const Bounds bounds = measureBounds(nodes, routes, attributes);

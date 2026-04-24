@@ -422,9 +422,13 @@ export interface EdgeCrossing {
 export interface LayoutEngineMetadata {
   actualAlgorithm?: string;
   actualMode?: LayoutMode;
+  aspectRatio?: number;
+  boundingBoxArea?: number;
   edgeCrossings?: number;
+  edgeLengthStddev?: number;
   edgeNodeIntersections?: number;
   edgeSegmentOverlaps?: number;
+  meanEdgeLength?: number;
   nodeOverlaps?: number;
   nodeSpacingOverlaps?: number;
   overlappingEdges?: number;
