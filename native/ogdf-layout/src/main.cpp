@@ -39,6 +39,7 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -95,6 +96,18 @@ struct RoutePoint {
   double y = 0.0;
 };
 
+struct VisibilityPort {
+  RoutePoint point;
+  RoutePoint stub;
+};
+
+struct VisibilityRoute {
+  bool found = false;
+  std::vector<RoutePoint> points;
+  std::size_t sourcePortIndex = 0;
+  std::size_t targetPortIndex = 0;
+};
+
 struct LayoutRunMetadata {
   std::string requestedMode;
   std::string actualMode;
@@ -102,6 +115,21 @@ struct LayoutRunMetadata {
   std::string actualAlgorithm;
   std::string strategy;
   std::string strategyReason;
+};
+
+struct LayoutQualityMetrics {
+  std::size_t edgeNodeIntersections = 0;
+  std::size_t edgeSegmentOverlaps = 0;
+  std::size_t nodeOverlaps = 0;
+  std::size_t nodeSpacingOverlaps = 0;
+  std::size_t overlappingEdges = 0;
+  std::size_t routeSegments = 0;
+};
+
+struct AxisRouteSegment {
+  std::size_t edgeIndex = 0;
+  double end = 0.0;
+  double start = 0.0;
 };
 
 constexpr std::size_t kSugiyamaSurrogateNodeThreshold = 10000;
@@ -118,6 +146,16 @@ constexpr double kTreeNodeDistance = 96.0;
 constexpr double kTreeComponentDistance = 260.0;
 constexpr double kRadialLevelDistance = 220.0;
 constexpr double kRadialComponentDistance = 360.0;
+constexpr double kPostLayoutNodeGapX = 56.0;
+constexpr double kPostLayoutNodeGapY = 42.0;
+constexpr int kOverlapRelaxationIterations = 64;
+constexpr double kDistantEdgeMinThreshold = 1800.0;
+constexpr double kDistantEdgeLengthFactor = 5.0;
+constexpr double kDistantEdgeMinTarget = 420.0;
+constexpr double kDistantEdgeMaxTarget = 1120.0;
+constexpr double kDistantEdgeTargetFactor = 2.25;
+constexpr double kVisibilityLaneClearance = 14.0;
+constexpr double kMetricCoordinateScale = 100.0;
 
 struct DisjointSet {
   explicit DisjointSet(std::size_t size)
@@ -1246,6 +1284,354 @@ void packDisconnectedComponents(
   clearEdgeBends(edges, attributes);
 }
 
+double centerDistance(
+  const NodeRecord& left,
+  const NodeRecord& right,
+  ogdf::GraphAttributes& attributes) {
+  const double dx = sanitizeNodeCenterX(left, attributes) - sanitizeNodeCenterX(right, attributes);
+  const double dy = sanitizeNodeCenterY(left, attributes) - sanitizeNodeCenterY(right, attributes);
+  return std::hypot(dx, dy);
+}
+
+double medianValue(std::vector<double> values) {
+  if (values.empty()) {
+    return 0.0;
+  }
+
+  std::sort(values.begin(), values.end());
+  const std::size_t middle = values.size() / 2;
+  if (values.size() % 2 == 1) {
+    return values[middle];
+  }
+
+  return (values[middle - 1] + values[middle]) / 2.0;
+}
+
+void compactDistantConnectedNodes(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes) {
+  if (nodes.size() <= 2 || edges.empty()) {
+    return;
+  }
+
+  std::unordered_map<ogdf::node, std::size_t> indicesByNode;
+  indicesByNode.reserve(nodes.size());
+  for (std::size_t index = 0; index < nodes.size(); ++index) {
+    indicesByNode.emplace(nodes[index].handle, index);
+  }
+
+  std::vector<std::vector<std::size_t>> neighbors(nodes.size());
+  std::vector<double> edgeLengths;
+  edgeLengths.reserve(edges.size());
+
+  for (const EdgeRecord& edge : edges) {
+    const auto source = indicesByNode.find(edge.sourceHandle);
+    const auto target = indicesByNode.find(edge.targetHandle);
+    if (
+      source == indicesByNode.end()
+      || target == indicesByNode.end()
+      || source->second == target->second) {
+      continue;
+    }
+
+    neighbors[source->second].push_back(target->second);
+    neighbors[target->second].push_back(source->second);
+    const double length = centerDistance(nodes[source->second], nodes[target->second], attributes);
+    if (length > 1.0 && isFiniteCoordinate(length)) {
+      edgeLengths.push_back(length);
+    }
+  }
+
+  const double medianEdgeLength = medianValue(std::move(edgeLengths));
+  if (medianEdgeLength <= 1.0) {
+    return;
+  }
+
+  const double threshold = std::max(
+    kDistantEdgeMinThreshold,
+    medianEdgeLength * kDistantEdgeLengthFactor);
+  const double targetDistance = std::max(
+    kDistantEdgeMinTarget,
+    std::min(kDistantEdgeMaxTarget, medianEdgeLength * kDistantEdgeTargetFactor));
+
+  for (std::size_t index = 0; index < nodes.size(); ++index) {
+    if (neighbors[index].empty()) {
+      continue;
+    }
+
+    double neighborX = 0.0;
+    double neighborY = 0.0;
+    for (std::size_t neighbor : neighbors[index]) {
+      neighborX += sanitizeNodeCenterX(nodes[neighbor], attributes);
+      neighborY += sanitizeNodeCenterY(nodes[neighbor], attributes);
+    }
+    neighborX /= static_cast<double>(neighbors[index].size());
+    neighborY /= static_cast<double>(neighbors[index].size());
+
+    const double centerX = sanitizeNodeCenterX(nodes[index], attributes);
+    const double centerY = sanitizeNodeCenterY(nodes[index], attributes);
+    const double dx = centerX - neighborX;
+    const double dy = centerY - neighborY;
+    const double distance = std::hypot(dx, dy);
+    if (distance <= threshold || distance <= 1.0) {
+      continue;
+    }
+
+    const double directionX = dx / distance;
+    const double directionY = dy / distance;
+    const double tangentOffset = (static_cast<double>(index % 7) - 3.0) * 18.0;
+    attributes.x(nodes[index].handle) =
+      neighborX + directionX * targetDistance - directionY * tangentOffset;
+    attributes.y(nodes[index].handle) =
+      neighborY + directionY * targetDistance + directionX * tangentOffset;
+  }
+}
+
+void resolveNodeOverlaps(
+  const std::vector<NodeRecord>& nodes,
+  ogdf::GraphAttributes& attributes) {
+  if (nodes.size() <= 1) {
+    return;
+  }
+
+  std::vector<std::size_t> order;
+  order.reserve(nodes.size());
+  double maxWidth = 1.0;
+  for (std::size_t index = 0; index < nodes.size(); ++index) {
+    order.push_back(index);
+    maxWidth = std::max(maxWidth, sanitizeNodeWidth(nodes[index], attributes));
+  }
+
+  for (int iteration = 0; iteration < kOverlapRelaxationIterations; ++iteration) {
+    std::sort(
+      order.begin(),
+      order.end(),
+      [&](std::size_t left, std::size_t right) {
+        return sanitizeNodeCenterX(nodes[left], attributes)
+          < sanitizeNodeCenterX(nodes[right], attributes);
+      });
+
+    double maxShift = 0.0;
+    bool moved = false;
+
+    for (std::size_t leftOrder = 0; leftOrder < order.size(); ++leftOrder) {
+      const std::size_t leftIndex = order[leftOrder];
+      const NodeRecord& left = nodes[leftIndex];
+      const double leftX = sanitizeNodeCenterX(left, attributes);
+      const double leftY = sanitizeNodeCenterY(left, attributes);
+      const double leftWidth = sanitizeNodeWidth(left, attributes);
+      const double leftHeight = sanitizeNodeHeight(left, attributes);
+
+      for (std::size_t rightOrder = leftOrder + 1; rightOrder < order.size(); ++rightOrder) {
+        const std::size_t rightIndex = order[rightOrder];
+        const NodeRecord& right = nodes[rightIndex];
+        const double rightX = sanitizeNodeCenterX(right, attributes);
+        const double dx = rightX - leftX;
+        if (dx > maxWidth + kPostLayoutNodeGapX) {
+          break;
+        }
+
+        const double rightY = sanitizeNodeCenterY(right, attributes);
+        const double rightWidth = sanitizeNodeWidth(right, attributes);
+        const double rightHeight = sanitizeNodeHeight(right, attributes);
+        const double overlapX =
+          (leftWidth + rightWidth) / 2.0 + kPostLayoutNodeGapX - std::abs(dx);
+        if (overlapX <= 0.0) {
+          continue;
+        }
+
+        const double dy = rightY - leftY;
+        const double overlapY =
+          (leftHeight + rightHeight) / 2.0 + kPostLayoutNodeGapY - std::abs(dy);
+        if (overlapY <= 0.0) {
+          continue;
+        }
+
+        if (overlapX <= overlapY) {
+          const double direction = std::abs(dx) < 0.01
+            ? (leftIndex % 2 == 0 ? 1.0 : -1.0)
+            : (dx >= 0.0 ? 1.0 : -1.0);
+          const double shift = overlapX / 2.0 + 2.0;
+          attributes.x(left.handle) -= direction * shift;
+          attributes.x(right.handle) += direction * shift;
+          maxShift = std::max(maxShift, shift);
+        } else {
+          const double direction = std::abs(dy) < 0.01
+            ? (leftIndex % 2 == 0 ? 1.0 : -1.0)
+            : (dy >= 0.0 ? 1.0 : -1.0);
+          const double shift = overlapY / 2.0 + 2.0;
+          attributes.y(left.handle) -= direction * shift;
+          attributes.y(right.handle) += direction * shift;
+          maxShift = std::max(maxShift, shift);
+        }
+        moved = true;
+      }
+    }
+
+    if (!moved || maxShift < 0.1) {
+      break;
+    }
+  }
+}
+
+Rect expandedNodeRectAt(
+  const NodeRecord& node,
+  ogdf::GraphAttributes& attributes,
+  double centerX,
+  double centerY) {
+  const double width = sanitizeNodeWidth(node, attributes);
+  const double height = sanitizeNodeHeight(node, attributes);
+  return {
+    centerY + height / 2.0 + kPostLayoutNodeGapY / 2.0,
+    centerX - width / 2.0 - kPostLayoutNodeGapX / 2.0,
+    centerX + width / 2.0 + kPostLayoutNodeGapX / 2.0,
+    centerY - height / 2.0 - kPostLayoutNodeGapY / 2.0,
+  };
+}
+
+bool rectsOverlap(const Rect& left, const Rect& right) {
+  return left.left < right.right
+    && left.right > right.left
+    && left.top < right.bottom
+    && left.bottom > right.top;
+}
+
+bool hasNodeSpacingConflicts(
+  const std::vector<NodeRecord>& nodes,
+  ogdf::GraphAttributes& attributes) {
+  for (std::size_t leftIndex = 0; leftIndex < nodes.size(); ++leftIndex) {
+    const Rect left = expandedNodeRectAt(
+      nodes[leftIndex],
+      attributes,
+      sanitizeNodeCenterX(nodes[leftIndex], attributes),
+      sanitizeNodeCenterY(nodes[leftIndex], attributes));
+    for (std::size_t rightIndex = leftIndex + 1; rightIndex < nodes.size(); ++rightIndex) {
+      const Rect right = expandedNodeRectAt(
+        nodes[rightIndex],
+        attributes,
+        sanitizeNodeCenterX(nodes[rightIndex], attributes),
+        sanitizeNodeCenterY(nodes[rightIndex], attributes));
+      if (rectsOverlap(left, right)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+bool overlapsPlacedRects(const Rect& rect, const std::vector<Rect>& placedRects) {
+  return std::any_of(
+    placedRects.begin(),
+    placedRects.end(),
+    [&](const Rect& placed) {
+      return rectsOverlap(rect, placed);
+    });
+}
+
+void placeNodesWithoutOverlaps(
+  const std::vector<NodeRecord>& nodes,
+  ogdf::GraphAttributes& attributes) {
+  if (nodes.size() <= 1) {
+    return;
+  }
+
+  std::vector<std::size_t> order;
+  order.reserve(nodes.size());
+  double totalWidth = 0.0;
+  double totalHeight = 0.0;
+  for (std::size_t index = 0; index < nodes.size(); ++index) {
+    order.push_back(index);
+    totalWidth += sanitizeNodeWidth(nodes[index], attributes);
+    totalHeight += sanitizeNodeHeight(nodes[index], attributes);
+  }
+
+  std::sort(
+    order.begin(),
+    order.end(),
+    [&](std::size_t left, std::size_t right) {
+      const double leftY = sanitizeNodeCenterY(nodes[left], attributes);
+      const double rightY = sanitizeNodeCenterY(nodes[right], attributes);
+      if (std::abs(leftY - rightY) > 0.01) {
+        return leftY < rightY;
+      }
+      return sanitizeNodeCenterX(nodes[left], attributes)
+        < sanitizeNodeCenterX(nodes[right], attributes);
+    });
+
+  const double averageWidth = totalWidth / static_cast<double>(nodes.size());
+  const double averageHeight = totalHeight / static_cast<double>(nodes.size());
+  const double stepX = std::max(averageWidth + kPostLayoutNodeGapX, 160.0);
+  const double stepY = std::max(averageHeight + kPostLayoutNodeGapY, 120.0);
+  const int maxRing = static_cast<int>(std::ceil(std::sqrt(static_cast<double>(nodes.size())))) + 12;
+  std::vector<Rect> placedRects;
+  placedRects.reserve(nodes.size());
+
+  for (std::size_t nodeIndex : order) {
+    const NodeRecord& node = nodes[nodeIndex];
+    const double desiredX = sanitizeNodeCenterX(node, attributes);
+    const double desiredY = sanitizeNodeCenterY(node, attributes);
+    double bestX = desiredX;
+    double bestY = desiredY;
+    bool placed = false;
+
+    const Rect desiredRect = expandedNodeRectAt(node, attributes, desiredX, desiredY);
+    if (!overlapsPlacedRects(desiredRect, placedRects)) {
+      placed = true;
+    }
+
+    for (int ring = 1; !placed && ring <= maxRing; ++ring) {
+      double bestDistance = std::numeric_limits<double>::infinity();
+      for (int offsetY = -ring; offsetY <= ring; ++offsetY) {
+        for (int offsetX = -ring; offsetX <= ring; ++offsetX) {
+          if (std::abs(offsetX) != ring && std::abs(offsetY) != ring) {
+            continue;
+          }
+
+          const double candidateX = desiredX + static_cast<double>(offsetX) * stepX;
+          const double candidateY = desiredY + static_cast<double>(offsetY) * stepY;
+          const Rect candidateRect = expandedNodeRectAt(node, attributes, candidateX, candidateY);
+          if (overlapsPlacedRects(candidateRect, placedRects)) {
+            continue;
+          }
+
+          const double distance =
+            std::pow(candidateX - desiredX, 2.0) + std::pow(candidateY - desiredY, 2.0);
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            bestX = candidateX;
+            bestY = candidateY;
+            placed = true;
+          }
+        }
+      }
+    }
+
+    if (!placed) {
+      const std::size_t fallbackIndex = placedRects.size();
+      const std::size_t columns = std::max<std::size_t>(
+        1,
+        static_cast<std::size_t>(std::ceil(std::sqrt(static_cast<double>(nodes.size())))));
+      bestX = static_cast<double>(fallbackIndex % columns) * stepX;
+      bestY = static_cast<double>(fallbackIndex / columns) * stepY;
+    }
+
+    attributes.x(node.handle) = bestX;
+    attributes.y(node.handle) = bestY;
+    placedRects.push_back(expandedNodeRectAt(node, attributes, bestX, bestY));
+  }
+}
+
+void enforceNodeSeparation(
+  const std::vector<NodeRecord>& nodes,
+  ogdf::GraphAttributes& attributes) {
+  resolveNodeOverlaps(nodes, attributes);
+  if (hasNodeSpacingConflicts(nodes, attributes)) {
+    placeNodesWithoutOverlaps(nodes, attributes);
+  }
+}
+
 Rect graphNodeBounds(
   const std::vector<NodeRecord>& nodes,
   ogdf::GraphAttributes& attributes) {
@@ -1264,6 +1650,58 @@ Rect graphNodeBounds(
     bounds.bottom = std::max(bounds.bottom, rect.bottom);
   }
   return bounds;
+}
+
+bool compactExcessiveLayoutFootprint(
+  const std::string& mode,
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes) {
+  if (nodes.size() <= 2) {
+    return false;
+  }
+
+  const Rect bounds = graphNodeBounds(nodes, attributes);
+  const double width = rectWidth(bounds);
+  const double height = rectHeight(bounds);
+  if (width <= 1.0 || height <= 1.0) {
+    return false;
+  }
+
+  const double centerX = rectCenterX(bounds);
+  const double centerY = rectCenterY(bounds);
+  const double nodeFactor = std::sqrt(static_cast<double>(nodes.size()));
+
+  if (mode == "fast_multipole" || mode == "fast_multipole_multilevel") {
+    const double targetMaxDimension = std::max(24000.0, nodeFactor * 680.0);
+    const double maxDimension = std::max(width, height);
+    if (maxDimension <= targetMaxDimension) {
+      return false;
+    }
+
+    const double scale = std::max(0.22, targetMaxDimension / maxDimension);
+    transformLayoutGeometry(nodes, edges, attributes, [=](double x, double y) {
+      return std::make_pair(
+        centerX + (x - centerX) * scale,
+        centerY + (y - centerY) * scale);
+    });
+    return true;
+  }
+
+  if (isSugiyamaMode(mode)) {
+    const double targetWidth = std::max(28000.0, std::max(height * 2.2, nodeFactor * 760.0));
+    if (width <= targetWidth) {
+      return false;
+    }
+
+    const double scaleX = std::max(0.24, targetWidth / width);
+    transformLayoutGeometry(nodes, edges, attributes, [=](double x, double y) {
+      return std::make_pair(centerX + (x - centerX) * scaleX, y);
+    });
+    return true;
+  }
+
+  return false;
 }
 
 double clampToSpan(double value, double minValue, double maxValue) {
@@ -1363,6 +1801,772 @@ double routeScore(
     + static_cast<double>(points.size()) * 20.0;
 }
 
+long long metricLaneKey(double value) {
+  return static_cast<long long>(std::llround(value * kMetricCoordinateScale));
+}
+
+bool intervalsOverlap(double leftStart, double leftEnd, double rightStart, double rightEnd) {
+  return std::min(leftEnd, rightEnd) - std::max(leftStart, rightStart) > 1.0;
+}
+
+void addAxisRouteSegment(
+  std::unordered_map<long long, std::vector<AxisRouteSegment>>& groups,
+  long long laneKey,
+  std::size_t edgeIndex,
+  double start,
+  double end) {
+  const double minAxis = std::min(start, end);
+  const double maxAxis = std::max(start, end);
+  if (maxAxis - minAxis <= 1.0) {
+    return;
+  }
+
+  groups[laneKey].push_back({ edgeIndex, maxAxis, minAxis });
+}
+
+std::size_t countAxisSegmentOverlaps(
+  std::vector<AxisRouteSegment>& segments,
+  std::vector<bool>& overlappingEdgeFlags) {
+  std::sort(
+    segments.begin(),
+    segments.end(),
+    [](const AxisRouteSegment& left, const AxisRouteSegment& right) {
+      if (std::abs(left.start - right.start) > 0.01) {
+        return left.start < right.start;
+      }
+      return left.end < right.end;
+    });
+
+  std::size_t overlaps = 0;
+  for (std::size_t leftIndex = 0; leftIndex < segments.size(); ++leftIndex) {
+    const AxisRouteSegment& left = segments[leftIndex];
+    for (std::size_t rightIndex = leftIndex + 1; rightIndex < segments.size(); ++rightIndex) {
+      const AxisRouteSegment& right = segments[rightIndex];
+      if (right.start >= left.end - 1.0) {
+        break;
+      }
+      if (left.edgeIndex == right.edgeIndex) {
+        continue;
+      }
+      if (!intervalsOverlap(left.start, left.end, right.start, right.end)) {
+        continue;
+      }
+
+      overlaps += 1;
+      if (left.edgeIndex < overlappingEdgeFlags.size()) {
+        overlappingEdgeFlags[left.edgeIndex] = true;
+      }
+      if (right.edgeIndex < overlappingEdgeFlags.size()) {
+        overlappingEdgeFlags[right.edgeIndex] = true;
+      }
+    }
+  }
+
+  return overlaps;
+}
+
+std::size_t countNodeRectOverlaps(
+  const std::vector<NodeRecord>& nodes,
+  ogdf::GraphAttributes& attributes,
+  bool includeSpacing) {
+  std::vector<Rect> rects;
+  rects.reserve(nodes.size());
+  for (const NodeRecord& node : nodes) {
+    rects.push_back(
+      includeSpacing
+        ? expandedNodeRectAt(
+            node,
+            attributes,
+            sanitizeNodeCenterX(node, attributes),
+            sanitizeNodeCenterY(node, attributes))
+        : nodeRect(node, attributes));
+  }
+
+  std::sort(
+    rects.begin(),
+    rects.end(),
+    [](const Rect& left, const Rect& right) {
+      return left.left < right.left;
+    });
+
+  std::size_t overlaps = 0;
+  for (std::size_t leftIndex = 0; leftIndex < rects.size(); ++leftIndex) {
+    const Rect& left = rects[leftIndex];
+    for (std::size_t rightIndex = leftIndex + 1; rightIndex < rects.size(); ++rightIndex) {
+      const Rect& right = rects[rightIndex];
+      if (right.left >= left.right) {
+        break;
+      }
+      if (rectsOverlap(left, right)) {
+        overlaps += 1;
+      }
+    }
+  }
+
+  return overlaps;
+}
+
+LayoutQualityMetrics measureLayoutQuality(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  const std::vector<std::vector<RoutePoint>>& routes,
+  ogdf::GraphAttributes& attributes) {
+  LayoutQualityMetrics metrics;
+  metrics.nodeOverlaps = countNodeRectOverlaps(nodes, attributes, false);
+  metrics.nodeSpacingOverlaps = countNodeRectOverlaps(nodes, attributes, true);
+
+  std::unordered_map<long long, std::vector<AxisRouteSegment>> horizontalSegmentsByLane;
+  std::unordered_map<long long, std::vector<AxisRouteSegment>> verticalSegmentsByLane;
+
+  for (std::size_t edgeIndex = 0; edgeIndex < routes.size() && edgeIndex < edges.size(); ++edgeIndex) {
+    const std::vector<RoutePoint>& route = routes[edgeIndex];
+    if (route.size() < 2) {
+      continue;
+    }
+
+    const EdgeRecord& edge = edges[edgeIndex];
+    for (std::size_t pointIndex = 1; pointIndex < route.size(); ++pointIndex) {
+      const RoutePoint& start = route[pointIndex - 1];
+      const RoutePoint& end = route[pointIndex];
+      metrics.routeSegments += 1;
+
+      for (const NodeRecord& node : nodes) {
+        if (node.handle == edge.sourceHandle || node.handle == edge.targetHandle) {
+          continue;
+        }
+        if (segmentIntersectsRect(start, end, nodeRect(node, attributes))) {
+          metrics.edgeNodeIntersections += 1;
+        }
+      }
+
+      if (std::abs(start.y - end.y) < 0.01) {
+        addAxisRouteSegment(
+          horizontalSegmentsByLane,
+          metricLaneKey(start.y),
+          edgeIndex,
+          start.x,
+          end.x);
+      } else if (std::abs(start.x - end.x) < 0.01) {
+        addAxisRouteSegment(
+          verticalSegmentsByLane,
+          metricLaneKey(start.x),
+          edgeIndex,
+          start.y,
+          end.y);
+      }
+    }
+  }
+
+  std::vector<bool> overlappingEdgeFlags(edges.size(), false);
+  for (auto& entry : horizontalSegmentsByLane) {
+    metrics.edgeSegmentOverlaps += countAxisSegmentOverlaps(entry.second, overlappingEdgeFlags);
+  }
+  for (auto& entry : verticalSegmentsByLane) {
+    metrics.edgeSegmentOverlaps += countAxisSegmentOverlaps(entry.second, overlappingEdgeFlags);
+  }
+
+  metrics.overlappingEdges = static_cast<std::size_t>(
+    std::count(overlappingEdgeFlags.begin(), overlappingEdgeFlags.end(), true));
+  return metrics;
+}
+
+void addLaneValue(std::vector<double>& lanes, double value) {
+  if (!isFiniteCoordinate(value)) {
+    return;
+  }
+  lanes.push_back(value);
+}
+
+void ensureLaneValue(std::vector<double>& lanes, double value) {
+  if (!isFiniteCoordinate(value)) {
+    return;
+  }
+
+  const bool exists = std::any_of(
+    lanes.begin(),
+    lanes.end(),
+    [=](double existing) {
+      return std::abs(existing - value) < 0.01;
+    });
+  if (!exists) {
+    lanes.insert(lanes.begin(), value);
+  }
+}
+
+std::vector<double> nearestUniqueLaneValues(
+  std::vector<double> lanes,
+  double reference,
+  std::size_t limit) {
+  std::sort(
+    lanes.begin(),
+    lanes.end(),
+    [=](double left, double right) {
+      const double leftDistance = std::abs(left - reference);
+      const double rightDistance = std::abs(right - reference);
+      if (std::abs(leftDistance - rightDistance) > 0.01) {
+        return leftDistance < rightDistance;
+      }
+      return left < right;
+    });
+
+  std::vector<double> selected;
+  selected.reserve(std::min(limit, lanes.size()));
+  for (double lane : lanes) {
+    const bool duplicate = std::any_of(
+      selected.begin(),
+      selected.end(),
+      [=](double existing) {
+        return std::abs(existing - lane) < 28.0;
+      });
+    if (duplicate) {
+      continue;
+    }
+
+    selected.push_back(lane);
+    if (selected.size() >= limit) {
+      break;
+    }
+  }
+
+  return selected;
+}
+
+double normalizeLaneValue(double value) {
+  return std::round(value * 100.0) / 100.0;
+}
+
+void addRequiredLane(std::vector<double>& lanes, double value) {
+  if (!isFiniteCoordinate(value)) {
+    return;
+  }
+  lanes.push_back(normalizeLaneValue(value));
+}
+
+double distanceToClosestAnchor(double value, const std::vector<double>& anchors) {
+  double distance = std::numeric_limits<double>::infinity();
+  for (double anchor : anchors) {
+    distance = std::min(distance, std::abs(value - anchor));
+  }
+  return distance;
+}
+
+std::vector<double> selectVisibilityLanes(
+  std::vector<double> required,
+  std::vector<double> candidates,
+  const std::vector<double>& anchors,
+  std::size_t limit) {
+  std::vector<double> lanes;
+  lanes.reserve(limit);
+
+  for (double lane : required) {
+    addRequiredLane(lanes, lane);
+  }
+
+  std::sort(lanes.begin(), lanes.end());
+  lanes.erase(
+    std::unique(
+      lanes.begin(),
+      lanes.end(),
+      [](double left, double right) {
+        return std::abs(left - right) < 0.01;
+      }),
+    lanes.end());
+
+  std::vector<double> normalizedCandidates;
+  normalizedCandidates.reserve(candidates.size());
+  for (double candidate : candidates) {
+    if (isFiniteCoordinate(candidate)) {
+      normalizedCandidates.push_back(normalizeLaneValue(candidate));
+    }
+  }
+  std::sort(normalizedCandidates.begin(), normalizedCandidates.end());
+  normalizedCandidates.erase(
+    std::unique(
+      normalizedCandidates.begin(),
+      normalizedCandidates.end(),
+      [](double left, double right) {
+        return std::abs(left - right) < 0.01;
+      }),
+    normalizedCandidates.end());
+
+  std::sort(
+    normalizedCandidates.begin(),
+    normalizedCandidates.end(),
+    [&](double left, double right) {
+      const double leftDistance = distanceToClosestAnchor(left, anchors);
+      const double rightDistance = distanceToClosestAnchor(right, anchors);
+      if (std::abs(leftDistance - rightDistance) > 0.01) {
+        return leftDistance < rightDistance;
+      }
+      return left < right;
+    });
+
+  for (double candidate : normalizedCandidates) {
+    if (lanes.size() >= limit) {
+      break;
+    }
+
+    const bool exists = std::any_of(
+      lanes.begin(),
+      lanes.end(),
+      [=](double existing) {
+        return std::abs(existing - candidate) < 0.01;
+      });
+    if (!exists) {
+      lanes.push_back(candidate);
+    }
+  }
+
+  std::sort(lanes.begin(), lanes.end());
+  return lanes;
+}
+
+int findLaneIndex(const std::vector<double>& lanes, double value) {
+  const double normalized = normalizeLaneValue(value);
+  for (std::size_t index = 0; index < lanes.size(); ++index) {
+    if (std::abs(lanes[index] - normalized) < 0.01) {
+      return static_cast<int>(index);
+    }
+  }
+  return -1;
+}
+
+bool pointInsideRect(const RoutePoint& point, const Rect& rect) {
+  return point.x > rect.left
+    && point.x < rect.right
+    && point.y > rect.top
+    && point.y < rect.bottom;
+}
+
+bool pointInsideAnyRect(const RoutePoint& point, const std::vector<Rect>& obstacles) {
+  return std::any_of(
+    obstacles.begin(),
+    obstacles.end(),
+    [&](const Rect& rect) {
+      return pointInsideRect(point, rect);
+    });
+}
+
+std::vector<std::pair<double, double>> blockedIntervalsForHorizontalLane(
+  double y,
+  const std::vector<Rect>& obstacles) {
+  std::vector<std::pair<double, double>> intervals;
+  for (const Rect& obstacle : obstacles) {
+    if (y > obstacle.top && y < obstacle.bottom) {
+      intervals.emplace_back(obstacle.left, obstacle.right);
+    }
+  }
+  std::sort(intervals.begin(), intervals.end());
+  return intervals;
+}
+
+std::vector<std::pair<double, double>> blockedIntervalsForVerticalLane(
+  double x,
+  const std::vector<Rect>& obstacles) {
+  std::vector<std::pair<double, double>> intervals;
+  for (const Rect& obstacle : obstacles) {
+    if (x > obstacle.left && x < obstacle.right) {
+      intervals.emplace_back(obstacle.top, obstacle.bottom);
+    }
+  }
+  std::sort(intervals.begin(), intervals.end());
+  return intervals;
+}
+
+bool intervalIntersectsAnyBlocked(
+  double start,
+  double end,
+  const std::vector<std::pair<double, double>>& blockedIntervals) {
+  const double minValue = std::min(start, end);
+  const double maxValue = std::max(start, end);
+  for (const auto& blocked : blockedIntervals) {
+    if (blocked.first >= maxValue) {
+      break;
+    }
+    if (blocked.second > minValue && blocked.first < maxValue) {
+      return true;
+    }
+  }
+  return false;
+}
+
+VisibilityRoute routeVisibilityGrid(
+  const RoutePoint& start,
+  const RoutePoint& end,
+  const Rect& graphBounds,
+  const std::vector<Rect>& obstacles,
+  double laneOffset) {
+  constexpr std::size_t maxVisibilityLanes = 64;
+  constexpr double outerGap = 220.0;
+
+  std::vector<double> requiredX;
+  std::vector<double> requiredY;
+  std::vector<double> candidateX;
+  std::vector<double> candidateY;
+  addRequiredLane(requiredX, start.x);
+  addRequiredLane(requiredX, end.x);
+  addRequiredLane(requiredX, graphBounds.left - outerGap - std::abs(laneOffset));
+  addRequiredLane(requiredX, graphBounds.right + outerGap + std::abs(laneOffset));
+  addRequiredLane(requiredY, start.y);
+  addRequiredLane(requiredY, end.y);
+  addRequiredLane(requiredY, graphBounds.top - outerGap - std::abs(laneOffset));
+  addRequiredLane(requiredY, graphBounds.bottom + outerGap + std::abs(laneOffset));
+
+  for (const Rect& obstacle : obstacles) {
+    addRequiredLane(candidateX, obstacle.left - kVisibilityLaneClearance);
+    addRequiredLane(candidateX, obstacle.right + kVisibilityLaneClearance);
+    addRequiredLane(candidateY, obstacle.top - kVisibilityLaneClearance);
+    addRequiredLane(candidateY, obstacle.bottom + kVisibilityLaneClearance);
+  }
+
+  const double midX = (start.x + end.x) / 2.0;
+  const double midY = (start.y + end.y) / 2.0;
+  const std::vector<double> xAnchors = { start.x, end.x, midX };
+  const std::vector<double> yAnchors = { start.y, end.y, midY };
+  const std::vector<double> xLanes =
+    selectVisibilityLanes(std::move(requiredX), std::move(candidateX), xAnchors, maxVisibilityLanes);
+  const std::vector<double> yLanes =
+    selectVisibilityLanes(std::move(requiredY), std::move(candidateY), yAnchors, maxVisibilityLanes);
+  const int startX = findLaneIndex(xLanes, start.x);
+  const int startY = findLaneIndex(yLanes, start.y);
+  const int endX = findLaneIndex(xLanes, end.x);
+  const int endY = findLaneIndex(yLanes, end.y);
+
+  if (startX < 0 || startY < 0 || endX < 0 || endY < 0) {
+    return {};
+  }
+
+  const std::size_t width = xLanes.size();
+  const std::size_t height = yLanes.size();
+  const std::size_t total = width * height;
+  const auto nodeIndex = [=](std::size_t x, std::size_t y) {
+    return y * width + x;
+  };
+  const std::size_t startNode = nodeIndex(static_cast<std::size_t>(startX), static_cast<std::size_t>(startY));
+  const std::size_t endNode = nodeIndex(static_cast<std::size_t>(endX), static_cast<std::size_t>(endY));
+
+  std::vector<bool> blockedPoint(total, false);
+  for (std::size_t y = 0; y < height; ++y) {
+    for (std::size_t x = 0; x < width; ++x) {
+      const std::size_t index = nodeIndex(x, y);
+      if (index == startNode || index == endNode) {
+        continue;
+      }
+      blockedPoint[index] = pointInsideAnyRect({ xLanes[x], yLanes[y] }, obstacles);
+    }
+  }
+
+  std::vector<std::vector<std::pair<double, double>>> horizontalBlocked;
+  horizontalBlocked.reserve(height);
+  for (double y : yLanes) {
+    horizontalBlocked.push_back(blockedIntervalsForHorizontalLane(y, obstacles));
+  }
+  std::vector<std::vector<std::pair<double, double>>> verticalBlocked;
+  verticalBlocked.reserve(width);
+  for (double x : xLanes) {
+    verticalBlocked.push_back(blockedIntervalsForVerticalLane(x, obstacles));
+  }
+
+  std::vector<double> distance(total, std::numeric_limits<double>::infinity());
+  std::vector<std::size_t> previous(total, total);
+  using QueueEntry = std::pair<double, std::size_t>;
+  std::priority_queue<QueueEntry, std::vector<QueueEntry>, std::greater<QueueEntry>> pending;
+
+  distance[startNode] = 0.0;
+  pending.emplace(0.0, startNode);
+
+  while (!pending.empty()) {
+    const auto [cost, current] = pending.top();
+    pending.pop();
+    if (cost > distance[current] + 0.01) {
+      continue;
+    }
+    if (current == endNode) {
+      break;
+    }
+
+    const std::size_t x = current % width;
+    const std::size_t y = current / width;
+    const auto visit = [&](std::size_t nextX, std::size_t nextY, bool horizontal) {
+      const std::size_t next = nodeIndex(nextX, nextY);
+      if (blockedPoint[next]) {
+        return;
+      }
+
+      const bool blocked = horizontal
+        ? intervalIntersectsAnyBlocked(xLanes[x], xLanes[nextX], horizontalBlocked[y])
+        : intervalIntersectsAnyBlocked(yLanes[y], yLanes[nextY], verticalBlocked[x]);
+      if (blocked) {
+        return;
+      }
+
+      const double stepCost = horizontal
+        ? std::abs(xLanes[x] - xLanes[nextX])
+        : std::abs(yLanes[y] - yLanes[nextY]);
+      const double nextCost = cost + stepCost;
+      if (nextCost + 0.01 >= distance[next]) {
+        return;
+      }
+
+      distance[next] = nextCost;
+      previous[next] = current;
+      pending.emplace(nextCost, next);
+    };
+
+    if (x > 0) {
+      visit(x - 1, y, true);
+    }
+    if (x + 1 < width) {
+      visit(x + 1, y, true);
+    }
+    if (y > 0) {
+      visit(x, y - 1, false);
+    }
+    if (y + 1 < height) {
+      visit(x, y + 1, false);
+    }
+  }
+
+  if (!std::isfinite(distance[endNode])) {
+    return {};
+  }
+
+  std::vector<RoutePoint> reversedPoints;
+  for (std::size_t current = endNode; current != total; current = previous[current]) {
+    const std::size_t x = current % width;
+    const std::size_t y = current / width;
+    reversedPoints.push_back({ xLanes[x], yLanes[y] });
+    if (current == startNode) {
+      break;
+    }
+  }
+
+  std::reverse(reversedPoints.begin(), reversedPoints.end());
+  return { true, compressRoutePoints(std::move(reversedPoints)) };
+}
+
+VisibilityRoute routeVisibilityGridWithPorts(
+  const std::vector<VisibilityPort>& sourcePorts,
+  const std::vector<VisibilityPort>& targetPorts,
+  const Rect& graphBounds,
+  const std::vector<Rect>& obstacles,
+  double laneOffset) {
+  constexpr std::size_t maxVisibilityLanes = 72;
+  constexpr double outerGap = 220.0;
+
+  if (sourcePorts.empty() || targetPorts.empty()) {
+    return {};
+  }
+
+  std::vector<double> requiredX;
+  std::vector<double> requiredY;
+  std::vector<double> candidateX;
+  std::vector<double> candidateY;
+  std::vector<double> xAnchors;
+  std::vector<double> yAnchors;
+
+  addRequiredLane(requiredX, graphBounds.left - outerGap - std::abs(laneOffset));
+  addRequiredLane(requiredX, graphBounds.right + outerGap + std::abs(laneOffset));
+  addRequiredLane(requiredY, graphBounds.top - outerGap - std::abs(laneOffset));
+  addRequiredLane(requiredY, graphBounds.bottom + outerGap + std::abs(laneOffset));
+
+  for (const VisibilityPort& port : sourcePorts) {
+    addRequiredLane(requiredX, port.stub.x);
+    addRequiredLane(requiredY, port.stub.y);
+    xAnchors.push_back(port.stub.x);
+    yAnchors.push_back(port.stub.y);
+  }
+  for (const VisibilityPort& port : targetPorts) {
+    addRequiredLane(requiredX, port.stub.x);
+    addRequiredLane(requiredY, port.stub.y);
+    xAnchors.push_back(port.stub.x);
+    yAnchors.push_back(port.stub.y);
+  }
+
+  for (const Rect& obstacle : obstacles) {
+    addRequiredLane(candidateX, obstacle.left - kVisibilityLaneClearance);
+    addRequiredLane(candidateX, obstacle.right + kVisibilityLaneClearance);
+    addRequiredLane(candidateY, obstacle.top - kVisibilityLaneClearance);
+    addRequiredLane(candidateY, obstacle.bottom + kVisibilityLaneClearance);
+  }
+
+  const std::vector<double> xLanes =
+    selectVisibilityLanes(std::move(requiredX), std::move(candidateX), xAnchors, maxVisibilityLanes);
+  const std::vector<double> yLanes =
+    selectVisibilityLanes(std::move(requiredY), std::move(candidateY), yAnchors, maxVisibilityLanes);
+  const std::size_t width = xLanes.size();
+  const std::size_t height = yLanes.size();
+  const std::size_t total = width * height;
+  const auto nodeIndex = [=](std::size_t x, std::size_t y) {
+    return y * width + x;
+  };
+
+  std::vector<bool> blockedPoint(total, false);
+  for (std::size_t y = 0; y < height; ++y) {
+    for (std::size_t x = 0; x < width; ++x) {
+      blockedPoint[nodeIndex(x, y)] = pointInsideAnyRect({ xLanes[x], yLanes[y] }, obstacles);
+    }
+  }
+
+  std::vector<std::vector<std::pair<double, double>>> horizontalBlocked;
+  horizontalBlocked.reserve(height);
+  for (double y : yLanes) {
+    horizontalBlocked.push_back(blockedIntervalsForHorizontalLane(y, obstacles));
+  }
+  std::vector<std::vector<std::pair<double, double>>> verticalBlocked;
+  verticalBlocked.reserve(width);
+  for (double x : xLanes) {
+    verticalBlocked.push_back(blockedIntervalsForVerticalLane(x, obstacles));
+  }
+
+  std::vector<int> sourcePortByNode(total, -1);
+  std::vector<int> targetPortByNode(total, -1);
+  std::vector<double> distance(total, std::numeric_limits<double>::infinity());
+  std::vector<std::size_t> previous(total, total);
+  using QueueEntry = std::pair<double, std::size_t>;
+  std::priority_queue<QueueEntry, std::vector<QueueEntry>, std::greater<QueueEntry>> pending;
+
+  for (std::size_t portIndex = 0; portIndex < sourcePorts.size(); ++portIndex) {
+    const int x = findLaneIndex(xLanes, sourcePorts[portIndex].stub.x);
+    const int y = findLaneIndex(yLanes, sourcePorts[portIndex].stub.y);
+    if (x < 0 || y < 0) {
+      continue;
+    }
+    const std::size_t index = nodeIndex(static_cast<std::size_t>(x), static_cast<std::size_t>(y));
+    blockedPoint[index] = false;
+    if (distance[index] <= 0.0) {
+      continue;
+    }
+    distance[index] = 0.0;
+    sourcePortByNode[index] = static_cast<int>(portIndex);
+    pending.emplace(0.0, index);
+  }
+
+  for (std::size_t portIndex = 0; portIndex < targetPorts.size(); ++portIndex) {
+    const int x = findLaneIndex(xLanes, targetPorts[portIndex].stub.x);
+    const int y = findLaneIndex(yLanes, targetPorts[portIndex].stub.y);
+    if (x < 0 || y < 0) {
+      continue;
+    }
+    const std::size_t index = nodeIndex(static_cast<std::size_t>(x), static_cast<std::size_t>(y));
+    blockedPoint[index] = false;
+    targetPortByNode[index] = static_cast<int>(portIndex);
+  }
+
+  std::size_t bestEndNode = total;
+  while (!pending.empty()) {
+    const auto [cost, current] = pending.top();
+    pending.pop();
+    if (cost > distance[current] + 0.01) {
+      continue;
+    }
+    if (targetPortByNode[current] >= 0) {
+      bestEndNode = current;
+      break;
+    }
+
+    const std::size_t x = current % width;
+    const std::size_t y = current / width;
+    const auto visit = [&](std::size_t nextX, std::size_t nextY, bool horizontal) {
+      const std::size_t next = nodeIndex(nextX, nextY);
+      if (blockedPoint[next]) {
+        return;
+      }
+
+      const bool blocked = horizontal
+        ? intervalIntersectsAnyBlocked(xLanes[x], xLanes[nextX], horizontalBlocked[y])
+        : intervalIntersectsAnyBlocked(yLanes[y], yLanes[nextY], verticalBlocked[x]);
+      if (blocked) {
+        return;
+      }
+
+      const double stepCost = horizontal
+        ? std::abs(xLanes[x] - xLanes[nextX])
+        : std::abs(yLanes[y] - yLanes[nextY]);
+      const double nextCost = cost + stepCost;
+      if (nextCost + 0.01 >= distance[next]) {
+        return;
+      }
+
+      distance[next] = nextCost;
+      previous[next] = current;
+      sourcePortByNode[next] = sourcePortByNode[current];
+      pending.emplace(nextCost, next);
+    };
+
+    if (x > 0) {
+      visit(x - 1, y, true);
+    }
+    if (x + 1 < width) {
+      visit(x + 1, y, true);
+    }
+    if (y > 0) {
+      visit(x, y - 1, false);
+    }
+    if (y + 1 < height) {
+      visit(x, y + 1, false);
+    }
+  }
+
+  if (bestEndNode == total || sourcePortByNode[bestEndNode] < 0 || targetPortByNode[bestEndNode] < 0) {
+    return {};
+  }
+
+  std::vector<RoutePoint> reversedPoints;
+  for (std::size_t current = bestEndNode; current != total; current = previous[current]) {
+    const std::size_t x = current % width;
+    const std::size_t y = current / width;
+    reversedPoints.push_back({ xLanes[x], yLanes[y] });
+    if (previous[current] == total) {
+      break;
+    }
+  }
+
+  std::reverse(reversedPoints.begin(), reversedPoints.end());
+  return {
+    true,
+    compressRoutePoints(std::move(reversedPoints)),
+    static_cast<std::size_t>(sourcePortByNode[bestEndNode]),
+    static_cast<std::size_t>(targetPortByNode[bestEndNode]),
+  };
+}
+
+VisibilityPort makeVisibilityPort(
+  const Rect& rect,
+  const std::string& side,
+  double offset,
+  double inset,
+  double stub) {
+  if (side == "left") {
+    const double y = clampToSpan(rectCenterY(rect) + offset, rect.top + inset, rect.bottom - inset);
+    return { { rect.left, y }, { rect.left - stub, y } };
+  }
+  if (side == "right") {
+    const double y = clampToSpan(rectCenterY(rect) + offset, rect.top + inset, rect.bottom - inset);
+    return { { rect.right, y }, { rect.right + stub, y } };
+  }
+  if (side == "top") {
+    const double x = clampToSpan(rectCenterX(rect) + offset, rect.left + inset, rect.right - inset);
+    return { { x, rect.top }, { x, rect.top - stub } };
+  }
+
+  const double x = clampToSpan(rectCenterX(rect) + offset, rect.left + inset, rect.right - inset);
+  return { { x, rect.bottom }, { x, rect.bottom + stub } };
+}
+
+std::vector<VisibilityPort> makeVisibilityPorts(
+  const Rect& rect,
+  double offset,
+  double inset,
+  double stub) {
+  return {
+    makeVisibilityPort(rect, "left", offset, inset, stub),
+    makeVisibilityPort(rect, "right", offset, inset, stub),
+    makeVisibilityPort(rect, "top", offset, inset, stub),
+    makeVisibilityPort(rect, "bottom", offset, inset, stub),
+  };
+}
+
 std::vector<RoutePoint> routeObstacleAwareEdge(
   const EdgeRecord& edge,
   std::size_t edgeIndex,
@@ -1377,12 +2581,22 @@ std::vector<RoutePoint> routeObstacleAwareEdge(
   constexpr double portInset = 18.0;
   constexpr double stub = 52.0;
   constexpr double outerGap = 170.0;
+  constexpr double obstacleMargin = 6.0;
+  constexpr double laneGap = kVisibilityLaneClearance;
 
   RoutePoint start;
   RoutePoint end;
   RoutePoint startStub;
   RoutePoint endStub;
   std::vector<std::vector<RoutePoint>> candidates;
+  std::vector<Rect> obstacles;
+  obstacles.reserve(nodes.size());
+  for (const NodeRecord& node : nodes) {
+    if (node.handle == edge.sourceHandle || node.handle == edge.targetHandle) {
+      continue;
+    }
+    obstacles.push_back(nodeRect(node, attributes, obstacleMargin));
+  }
 
   if (horizontal) {
     const bool leftToRight = rectCenterX(target) >= rectCenterX(source);
@@ -1400,6 +2614,58 @@ std::vector<RoutePoint> routeObstacleAwareEdge(
     const double topLane = graphBounds.top - outerGap - std::abs(laneOffset);
     const double bottomLane = graphBounds.bottom + outerGap + std::abs(laneOffset);
     candidates.push_back({ start, startStub, { midX, startStub.y }, { midX, endStub.y }, endStub, end });
+
+    std::vector<double> verticalLanes;
+    std::vector<double> horizontalLanes;
+    const double minX = std::min(startStub.x, endStub.x);
+    const double maxX = std::max(startStub.x, endStub.x);
+    const double minY = std::min(startStub.y, endStub.y);
+    const double maxY = std::max(startStub.y, endStub.y);
+    for (const Rect& obstacle : obstacles) {
+      if (obstacle.bottom >= minY - laneGap && obstacle.top <= maxY + laneGap) {
+        addLaneValue(verticalLanes, obstacle.left - laneGap);
+        addLaneValue(verticalLanes, obstacle.right + laneGap);
+      }
+      if (obstacle.right >= minX - laneGap && obstacle.left <= maxX + laneGap) {
+        addLaneValue(horizontalLanes, obstacle.top - laneGap);
+        addLaneValue(horizontalLanes, obstacle.bottom + laneGap);
+      }
+    }
+
+    for (double lane : nearestUniqueLaneValues(verticalLanes, midX, 8)) {
+      candidates.push_back({ start, startStub, { lane, startStub.y }, { lane, endStub.y }, endStub, end });
+    }
+    for (double lane : nearestUniqueLaneValues(horizontalLanes, (startStub.y + endStub.y) / 2.0, 12)) {
+      candidates.push_back({ start, startStub, { startStub.x, lane }, { endStub.x, lane }, endStub, end });
+    }
+
+    std::vector<double> sourceLanes = nearestUniqueLaneValues(verticalLanes, startStub.x, 4);
+    std::vector<double> targetLanes = nearestUniqueLaneValues(verticalLanes, endStub.x, 4);
+    std::vector<double> bridgeLanes = nearestUniqueLaneValues(
+      horizontalLanes,
+      (startStub.y + endStub.y) / 2.0,
+      8);
+    ensureLaneValue(sourceLanes, startStub.x);
+    ensureLaneValue(targetLanes, endStub.x);
+    ensureLaneValue(bridgeLanes, topLane);
+    ensureLaneValue(bridgeLanes, bottomLane);
+    for (double sourceLane : sourceLanes) {
+      for (double targetLane : targetLanes) {
+        for (double bridgeLane : bridgeLanes) {
+          candidates.push_back({
+            start,
+            startStub,
+            { sourceLane, startStub.y },
+            { sourceLane, bridgeLane },
+            { targetLane, bridgeLane },
+            { targetLane, endStub.y },
+            endStub,
+            end,
+          });
+        }
+      }
+    }
+
     candidates.push_back({ start, startStub, { startStub.x, topLane }, { endStub.x, topLane }, endStub, end });
     candidates.push_back({ start, startStub, { startStub.x, bottomLane }, { endStub.x, bottomLane }, endStub, end });
   } else {
@@ -1418,17 +2684,130 @@ std::vector<RoutePoint> routeObstacleAwareEdge(
     const double leftLane = graphBounds.left - outerGap - std::abs(laneOffset);
     const double rightLane = graphBounds.right + outerGap + std::abs(laneOffset);
     candidates.push_back({ start, startStub, { startStub.x, midY }, { endStub.x, midY }, endStub, end });
+
+    std::vector<double> verticalLanes;
+    std::vector<double> horizontalLanes;
+    const double minX = std::min(startStub.x, endStub.x);
+    const double maxX = std::max(startStub.x, endStub.x);
+    const double minY = std::min(startStub.y, endStub.y);
+    const double maxY = std::max(startStub.y, endStub.y);
+    for (const Rect& obstacle : obstacles) {
+      if (obstacle.bottom >= minY - laneGap && obstacle.top <= maxY + laneGap) {
+        addLaneValue(verticalLanes, obstacle.left - laneGap);
+        addLaneValue(verticalLanes, obstacle.right + laneGap);
+      }
+      if (obstacle.right >= minX - laneGap && obstacle.left <= maxX + laneGap) {
+        addLaneValue(horizontalLanes, obstacle.top - laneGap);
+        addLaneValue(horizontalLanes, obstacle.bottom + laneGap);
+      }
+    }
+
+    for (double lane : nearestUniqueLaneValues(horizontalLanes, midY, 8)) {
+      candidates.push_back({ start, startStub, { startStub.x, lane }, { endStub.x, lane }, endStub, end });
+    }
+    for (double lane : nearestUniqueLaneValues(verticalLanes, (startStub.x + endStub.x) / 2.0, 12)) {
+      candidates.push_back({ start, startStub, { lane, startStub.y }, { lane, endStub.y }, endStub, end });
+    }
+
+    std::vector<double> sourceLanes = nearestUniqueLaneValues(horizontalLanes, startStub.y, 4);
+    std::vector<double> targetLanes = nearestUniqueLaneValues(horizontalLanes, endStub.y, 4);
+    std::vector<double> bridgeLanes = nearestUniqueLaneValues(
+      verticalLanes,
+      (startStub.x + endStub.x) / 2.0,
+      8);
+    ensureLaneValue(sourceLanes, startStub.y);
+    ensureLaneValue(targetLanes, endStub.y);
+    ensureLaneValue(bridgeLanes, leftLane);
+    ensureLaneValue(bridgeLanes, rightLane);
+    for (double sourceLane : sourceLanes) {
+      for (double targetLane : targetLanes) {
+        for (double bridgeLane : bridgeLanes) {
+          candidates.push_back({
+            start,
+            startStub,
+            { startStub.x, sourceLane },
+            { bridgeLane, sourceLane },
+            { bridgeLane, targetLane },
+            { endStub.x, targetLane },
+            endStub,
+            end,
+          });
+        }
+      }
+    }
+
     candidates.push_back({ start, startStub, { leftLane, startStub.y }, { leftLane, endStub.y }, endStub, end });
     candidates.push_back({ start, startStub, { rightLane, startStub.y }, { rightLane, endStub.y }, endStub, end });
   }
 
-  std::vector<Rect> obstacles;
-  obstacles.reserve(nodes.size());
-  for (const NodeRecord& node : nodes) {
-    if (node.handle == edge.sourceHandle || node.handle == edge.targetHandle) {
-      continue;
+  const std::vector<VisibilityPort> sourcePorts =
+    makeVisibilityPorts(source, laneOffset, portInset, stub);
+  const std::vector<VisibilityPort> targetPorts =
+    makeVisibilityPorts(target, -laneOffset, portInset, stub);
+  const VisibilityRoute visibilityRoute =
+    routeVisibilityGridWithPorts(sourcePorts, targetPorts, graphBounds, obstacles, laneOffset);
+  if (visibilityRoute.found && visibilityRoute.points.size() >= 2) {
+    std::vector<RoutePoint> candidate;
+    candidate.reserve(visibilityRoute.points.size() + 2);
+    candidate.push_back(sourcePorts[visibilityRoute.sourcePortIndex].point);
+    candidate.insert(candidate.end(), visibilityRoute.points.begin(), visibilityRoute.points.end());
+    candidate.push_back(targetPorts[visibilityRoute.targetPortIndex].point);
+    candidate = compressRoutePoints(std::move(candidate));
+    if (routeScore(candidate, obstacles) < 1'000'000.0) {
+      return candidate;
     }
-    obstacles.push_back(nodeRect(node, attributes, 18.0));
+    candidates.push_back(std::move(candidate));
+  }
+
+  const double outerTop = graphBounds.top - outerGap - std::abs(laneOffset);
+  const double outerBottom = graphBounds.bottom + outerGap + std::abs(laneOffset);
+  const double outerLeft = graphBounds.left - outerGap - std::abs(laneOffset);
+  const double outerRight = graphBounds.right + outerGap + std::abs(laneOffset);
+  for (const VisibilityPort& sourcePort : sourcePorts) {
+    for (const VisibilityPort& targetPort : targetPorts) {
+      std::vector<std::vector<RoutePoint>> outerCandidates = {
+        {
+          sourcePort.point,
+          sourcePort.stub,
+          { sourcePort.stub.x, outerTop },
+          { targetPort.stub.x, outerTop },
+          targetPort.stub,
+          targetPort.point,
+        },
+        {
+          sourcePort.point,
+          sourcePort.stub,
+          { sourcePort.stub.x, outerBottom },
+          { targetPort.stub.x, outerBottom },
+          targetPort.stub,
+          targetPort.point,
+        },
+        {
+          sourcePort.point,
+          sourcePort.stub,
+          { outerLeft, sourcePort.stub.y },
+          { outerLeft, targetPort.stub.y },
+          targetPort.stub,
+          targetPort.point,
+        },
+        {
+          sourcePort.point,
+          sourcePort.stub,
+          { outerRight, sourcePort.stub.y },
+          { outerRight, targetPort.stub.y },
+          targetPort.stub,
+          targetPort.point,
+        },
+      };
+
+      for (std::vector<RoutePoint>& candidate : outerCandidates) {
+        candidate = compressRoutePoints(std::move(candidate));
+        if (routeScore(candidate, obstacles) < 1'000'000.0) {
+          return candidate;
+        }
+        candidates.push_back(std::move(candidate));
+      }
+    }
   }
 
   std::vector<RoutePoint> best;
@@ -2006,7 +3385,7 @@ void updateBounds(Bounds& bounds, double x, double y, bool& hasPoint) {
 
 Bounds measureBounds(
   const std::vector<NodeRecord>& nodes,
-  const std::vector<EdgeRecord>& edges,
+  const std::vector<std::vector<RoutePoint>>& routes,
   ogdf::GraphAttributes& attributes) {
   Bounds bounds;
   bool hasPoint = false;
@@ -2023,8 +3402,8 @@ Bounds measureBounds(
       hasPoint);
   }
 
-  for (std::size_t edgeIndex = 0; edgeIndex < edges.size(); ++edgeIndex) {
-    for (const RoutePoint& point : routeObstacleAwareEdge(edges[edgeIndex], edgeIndex, nodes, attributes)) {
+  for (const std::vector<RoutePoint>& route : routes) {
+    for (const RoutePoint& point : route) {
       updateBounds(bounds, point.x, point.y, hasPoint);
     }
   }
@@ -2035,6 +3414,20 @@ Bounds measureBounds(
   }
 
   return bounds;
+}
+
+std::vector<std::vector<RoutePoint>> routeAllEdges(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes) {
+  std::vector<std::vector<RoutePoint>> routes;
+  routes.reserve(edges.size());
+
+  for (std::size_t edgeIndex = 0; edgeIndex < edges.size(); ++edgeIndex) {
+    routes.push_back(routeObstacleAwareEdge(edges[edgeIndex], edgeIndex, nodes, attributes));
+  }
+
+  return routes;
 }
 
 std::string escapeJson(const std::string& value) {
@@ -2070,14 +3463,23 @@ void writePoint(std::ostream& stream, double x, double y, const Bounds& bounds) 
   stream << "{\"x\":" << (x - bounds.minX) << ",\"y\":" << (y - bounds.minY) << "}";
 }
 
-void writeLayoutEngineMetadata(std::ostream& stream, const LayoutRunMetadata& metadata) {
+void writeLayoutEngineMetadata(
+  std::ostream& stream,
+  const LayoutRunMetadata& metadata,
+  const LayoutQualityMetrics& quality) {
   stream << "{\"requestedMode\":\"" << escapeJson(metadata.requestedMode)
          << "\",\"actualMode\":\"" << escapeJson(metadata.actualMode)
          << "\",\"requestedAlgorithm\":\"" << escapeJson(metadata.requestedAlgorithm)
          << "\",\"actualAlgorithm\":\"" << escapeJson(metadata.actualAlgorithm)
          << "\",\"strategy\":\"" << escapeJson(metadata.strategy)
          << "\",\"strategyReason\":\"" << escapeJson(metadata.strategyReason)
-         << "\"}";
+         << "\",\"nodeOverlaps\":" << quality.nodeOverlaps
+         << ",\"nodeSpacingOverlaps\":" << quality.nodeSpacingOverlaps
+         << ",\"edgeNodeIntersections\":" << quality.edgeNodeIntersections
+         << ",\"edgeSegmentOverlaps\":" << quality.edgeSegmentOverlaps
+         << ",\"overlappingEdges\":" << quality.overlappingEdges
+         << ",\"routeSegments\":" << quality.routeSegments
+         << "}";
 }
 
 void writeLayoutJson(
@@ -2087,10 +3489,12 @@ void writeLayoutJson(
   const std::vector<NodeRecord>& nodes,
   const std::vector<EdgeRecord>& edges,
   ogdf::GraphAttributes& attributes,
+  const std::vector<std::vector<RoutePoint>>& routes,
+  const LayoutQualityMetrics& quality,
   const Bounds& bounds) {
   stream << std::fixed << std::setprecision(3);
   stream << "{\"crossings\":[],\"engineMetadata\":";
-  writeLayoutEngineMetadata(stream, metadata);
+  writeLayoutEngineMetadata(stream, metadata, quality);
   stream << ",\"mode\":\"" << escapeJson(mode) << "\",\"nodes\":[";
 
   for (std::size_t index = 0; index < nodes.size(); ++index) {
@@ -2122,7 +3526,7 @@ void writeLayoutJson(
     }
 
     stream << "{\"crossingIds\":[],\"edgeId\":\"" << escapeJson(edge.edgeId) << "\",\"points\":[";
-    const std::vector<RoutePoint> route = routeObstacleAwareEdge(edge, index, nodes, attributes);
+    const std::vector<RoutePoint>& route = routes[index];
     for (std::size_t pointIndex = 0; pointIndex < route.size(); ++pointIndex) {
       if (pointIndex > 0) {
         stream << ",";
@@ -2154,10 +3558,21 @@ int main(int argc, char** argv) {
     }
 
     sanitizeLayoutGeometry(nodes, edges, attributes);
+    if (compactExcessiveLayoutFootprint(arguments.mode, nodes, edges, attributes)) {
+      if (!metadata.strategyReason.empty()) {
+        metadata.strategyReason += "; ";
+      }
+      metadata.strategyReason += "post-layout footprint compaction capped oversized axes";
+    }
+    compactDistantConnectedNodes(nodes, edges, attributes);
+    enforceNodeSeparation(nodes, attributes);
     packDisconnectedComponents(nodes, edges, attributes);
+    enforceNodeSeparation(nodes, attributes);
     sanitizeLayoutGeometry(nodes, edges, attributes);
-    const Bounds bounds = measureBounds(nodes, edges, attributes);
-    writeLayoutJson(std::cout, arguments.mode, metadata, nodes, edges, attributes, bounds);
+    const std::vector<std::vector<RoutePoint>> routes = routeAllEdges(nodes, edges, attributes);
+    const LayoutQualityMetrics quality = measureLayoutQuality(nodes, edges, routes, attributes);
+    const Bounds bounds = measureBounds(nodes, routes, attributes);
+    writeLayoutJson(std::cout, arguments.mode, metadata, nodes, edges, attributes, routes, quality, bounds);
     return 0;
   } catch (const std::exception& error) {
     std::cerr << error.what() << std::endl;

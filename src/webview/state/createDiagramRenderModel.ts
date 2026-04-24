@@ -135,6 +135,17 @@ export function createDiagramRenderModel(
   const renderedTables = modelCatalogMode
     ? tables.map((table) => toCatalogTable(table, catalogDegreeByModel.get(table.modelId) ?? 0))
     : tables;
+  const routedEdges = payload.layout.routedEdges
+    .map((route) => createEdgeRenderModel(route, payload.graph.structuralEdges))
+    .filter((edge): edge is EdgeRenderModel => Boolean(edge));
+  const catalogEdges = modelCatalogMode
+    ? payload.graph.structuralEdges
+        .map((edge) => createCatalogEdgeRenderModel(edge, layoutNodesById))
+        .filter((edge): edge is EdgeRenderModel => Boolean(edge))
+    : [];
+  const renderedEdges = modelCatalogMode && routedEdges.length === 0
+    ? catalogEdges
+    : routedEdges;
 
   const overlays = modelCatalogMode
     ? []
@@ -161,15 +172,9 @@ export function createDiagramRenderModel(
         .filter(isDefined);
 
   return {
-    canvas: canvasSize(payload, renderedTables, modelCatalogMode),
+    canvas: canvasSize(payload, renderedTables, modelCatalogMode && routedEdges.length === 0),
     crossings: modelCatalogMode ? [] : payload.layout.crossings,
-    edges: modelCatalogMode
-      ? payload.graph.structuralEdges
-          .map((edge) => createCatalogEdgeRenderModel(edge, layoutNodesById))
-          .filter((edge): edge is EdgeRenderModel => Boolean(edge))
-      : payload.layout.routedEdges
-          .map((route) => createEdgeRenderModel(route, payload.graph.structuralEdges))
-          .filter((edge): edge is EdgeRenderModel => Boolean(edge)),
+    edges: renderedEdges,
     inspector: {
       diagnostics: createDiagnostics(payload),
       discovery: discovery ? createDiscoveryRenderModel(discovery) : undefined,

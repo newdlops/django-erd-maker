@@ -402,8 +402,14 @@ export interface EdgeCrossing {
 export interface LayoutEngineMetadata {
   actualAlgorithm?: string;
   actualMode?: LayoutMode;
+  edgeNodeIntersections?: number;
+  edgeSegmentOverlaps?: number;
+  nodeOverlaps?: number;
+  nodeSpacingOverlaps?: number;
+  overlappingEdges?: number;
   requestedAlgorithm?: string;
   requestedMode?: LayoutMode;
+  routeSegments?: number;
   strategy?: string;
   strategyReason?: string;
 }

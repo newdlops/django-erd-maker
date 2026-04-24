@@ -379,7 +379,7 @@ export function getBrowserLayoutSource(): string {
           ]);
         }
 
-        function getStaticOrLiveEdgePath(entry) {
+        function getStaticEdgePath(entry) {
           const staticPoints = parseEdgePoints(entry.meta.points);
           const sourceAtBase = samePosition(entry.sourcePosition, entry.sourceTable.basePosition);
           const targetAtBase = samePosition(entry.targetPosition, entry.targetTable.basePosition);
@@ -388,11 +388,46 @@ export function getBrowserLayoutSource(): string {
             return staticPoints;
           }
 
+          return [];
+        }
+
+        function getStaticOrLiveEdgePath(entry) {
+          const staticPoints = getStaticEdgePath(entry);
+          if (staticPoints.length >= 2) {
+            return staticPoints;
+          }
+
           return buildOrthogonalPath(
             entry.sourcePosition,
             entry.sourceTable,
             entry.targetPosition,
             entry.targetTable,
+          );
+        }
+
+        function getStaticOrCatalogEdgePaths(edgeEntries) {
+          const routedEdges = [];
+          const catalogEntries = [];
+
+          for (const entry of edgeEntries) {
+            const staticPoints = getStaticEdgePath(entry);
+            if (staticPoints.length >= 2) {
+              routedEdges.push({
+                edgeId: entry.meta.edgeId,
+                meta: entry.meta,
+                points: staticPoints,
+              });
+            } else {
+              catalogEntries.push(entry);
+            }
+          }
+
+          return routedEdges.concat(
+            routeCatalogEdgesWithPorts(catalogEntries).map((routed) => ({
+              edgeId: routed.entry.meta.edgeId,
+              meta: routed.entry.meta,
+              points: routed.points,
+            })),
           );
         }
 

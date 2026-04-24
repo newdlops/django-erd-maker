@@ -646,11 +646,7 @@ export function getBrowserCanvasDrawSource(): string {
           }
 
           renderedEdges = renderModel.modelCatalogMode
-            ? routeCatalogEdgesWithPorts(visibleEdgeEntries).map((routed) => ({
-                edgeId: routed.entry.meta.edgeId,
-                meta: routed.entry.meta,
-                points: routed.points,
-              }))
+            ? getStaticOrCatalogEdgePaths(visibleEdgeEntries)
             : visibleEdgeEntries.map((entry) => ({
                 edgeId: entry.meta.edgeId,
                 meta: entry.meta,
@@ -659,23 +655,26 @@ export function getBrowserCanvasDrawSource(): string {
 
           for (const edge of renderedEdges) {
             for (const segment of findSegments(edge.points)) {
-              const segmentIndex = nextScene.edgeSegments.length;
-              const bounds = {
-                bottom: Math.max(segment.start.y, segment.end.y),
-                left: Math.min(segment.start.x, segment.end.x),
-                right: Math.max(segment.start.x, segment.end.x),
-                top: Math.min(segment.start.y, segment.end.y),
-              };
+              const visibleSegments = clipSegmentAgainstTables(segment, edge.meta, nextScene);
+              for (const visibleSegment of visibleSegments) {
+                const segmentIndex = nextScene.edgeSegments.length;
+                const bounds = {
+                  bottom: Math.max(visibleSegment.start.y, visibleSegment.end.y),
+                  left: Math.min(visibleSegment.start.x, visibleSegment.end.x),
+                  right: Math.max(visibleSegment.start.x, visibleSegment.end.x),
+                  top: Math.min(visibleSegment.start.y, visibleSegment.end.y),
+                };
 
-              nextScene.edgeSegments.push({
-                bounds,
-                edgeId: edge.edgeId,
-                meta: edge.meta,
-                points: edge.points,
-                segment,
-                segmentIndex,
-              });
-              addToBuckets(nextScene.edgeBuckets, bounds, segmentIndex);
+                nextScene.edgeSegments.push({
+                  bounds,
+                  edgeId: edge.edgeId,
+                  meta: edge.meta,
+                  points: edge.points,
+                  segment: visibleSegment,
+                  segmentIndex,
+                });
+                addToBuckets(nextScene.edgeBuckets, bounds, segmentIndex);
+              }
             }
           }
 
@@ -710,6 +709,144 @@ export function getBrowserCanvasDrawSource(): string {
             startColumn: Math.floor(bounds.left / GPU_TILE_SIZE),
             startRow: Math.floor(bounds.top / GPU_TILE_SIZE),
           };
+        }
+
+        function clipSegmentAgainstTables(segment, meta, scene) {
+          const vertical = Math.abs(segment.start.x - segment.end.x) < 0.01;
+          const horizontal = Math.abs(segment.start.y - segment.end.y) < 0.01;
+          if (!vertical && !horizontal) {
+            return [segment];
+          }
+
+          const intervals = [];
+          const padding = 5;
+          const sourceModelId = meta.sourceModelId || "";
+          const targetModelId = meta.targetModelId || "";
+
+          if (vertical) {
+            const x = segment.start.x;
+            const minY = Math.min(segment.start.y, segment.end.y);
+            const maxY = Math.max(segment.start.y, segment.end.y);
+            const tables = collectClipCandidateTables(scene, {
+              bottom: maxY + padding,
+              left: x - padding,
+              right: x + padding,
+              top: minY - padding,
+            });
+            for (const table of tables) {
+              if (table.modelId === sourceModelId || table.modelId === targetModelId) {
+                continue;
+              }
+
+              const left = table.x - padding;
+              const right = table.x + table.width + padding;
+              if (x <= left || x >= right) {
+                continue;
+              }
+
+              const top = table.y - padding;
+              const bottom = table.y + table.height + padding;
+              if (bottom <= minY || top >= maxY) {
+                continue;
+              }
+              intervals.push({ end: Math.min(maxY, bottom), start: Math.max(minY, top) });
+            }
+
+            return createClippedAxisSegments(
+              segment.start.y,
+              segment.end.y,
+              intervals,
+              (start, end) => ({
+                end: { x, y: end },
+                start: { x, y: start },
+              }),
+            );
+          }
+
+          const y = segment.start.y;
+          const minX = Math.min(segment.start.x, segment.end.x);
+          const maxX = Math.max(segment.start.x, segment.end.x);
+          const tables = collectClipCandidateTables(scene, {
+            bottom: y + padding,
+            left: minX - padding,
+            right: maxX + padding,
+            top: y - padding,
+          });
+          for (const table of tables) {
+            if (table.modelId === sourceModelId || table.modelId === targetModelId) {
+              continue;
+            }
+
+            const top = table.y - padding;
+            const bottom = table.y + table.height + padding;
+            if (y <= top || y >= bottom) {
+              continue;
+            }
+
+            const left = table.x - padding;
+            const right = table.x + table.width + padding;
+            if (right <= minX || left >= maxX) {
+              continue;
+            }
+            intervals.push({ end: Math.min(maxX, right), start: Math.max(minX, left) });
+          }
+
+          return createClippedAxisSegments(
+            segment.start.x,
+            segment.end.x,
+            intervals,
+            (start, end) => ({
+              end: { x: end, y },
+              start: { x: start, y },
+            }),
+          );
+        }
+
+        function collectClipCandidateTables(scene, bounds) {
+          return collectBucketValues(scene.tableBuckets, bounds)
+            .map((modelId) => scene.tablesById.get(modelId))
+            .filter(Boolean);
+        }
+
+        function createClippedAxisSegments(axisStart, axisEnd, intervals, createSegment) {
+          if (!intervals.length) {
+            return [createSegment(axisStart, axisEnd)];
+          }
+
+          const reversed = axisEnd < axisStart;
+          const minAxis = Math.min(axisStart, axisEnd);
+          const maxAxis = Math.max(axisStart, axisEnd);
+          const sorted = intervals
+            .filter((interval) => interval.end - interval.start > 1)
+            .sort((left, right) => left.start - right.start || left.end - right.end);
+          const segments = [];
+          let cursor = minAxis;
+
+          for (const interval of sorted) {
+            const start = Math.max(minAxis, interval.start);
+            const end = Math.min(maxAxis, interval.end);
+            if (end <= cursor) {
+              continue;
+            }
+            if (start - cursor > 1) {
+              segments.push(
+                reversed
+                  ? createSegment(start, cursor)
+                  : createSegment(cursor, start),
+              );
+            }
+            cursor = Math.max(cursor, end);
+          }
+
+          if (maxAxis - cursor > 1) {
+            segments.push(
+              reversed
+                ? createSegment(maxAxis, cursor)
+                : createSegment(cursor, maxAxis),
+            );
+          }
+
+          return segments;
         }
 
         function queryTableMetaNearWorldPoint(point) {

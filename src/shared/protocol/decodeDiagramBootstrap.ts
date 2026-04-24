@@ -255,8 +255,14 @@ function decodeLayoutEngineMetadata(
   return {
     actualAlgorithm: readOptionalString(metadata, "actualAlgorithm", `${context}.engineMetadata`),
     actualMode: readOptionalLayoutMode(metadata, "actualMode", `${context}.engineMetadata`),
+    edgeNodeIntersections: readOptionalNumber(metadata, "edgeNodeIntersections", `${context}.engineMetadata`),
+    edgeSegmentOverlaps: readOptionalNumber(metadata, "edgeSegmentOverlaps", `${context}.engineMetadata`),
+    nodeOverlaps: readOptionalNumber(metadata, "nodeOverlaps", `${context}.engineMetadata`),
+    nodeSpacingOverlaps: readOptionalNumber(metadata, "nodeSpacingOverlaps", `${context}.engineMetadata`),
+    overlappingEdges: readOptionalNumber(metadata, "overlappingEdges", `${context}.engineMetadata`),
     requestedAlgorithm: readOptionalString(metadata, "requestedAlgorithm", `${context}.engineMetadata`),
     requestedMode: readOptionalLayoutMode(metadata, "requestedMode", `${context}.engineMetadata`),
+    routeSegments: readOptionalNumber(metadata, "routeSegments", `${context}.engineMetadata`),
     strategy: readOptionalString(metadata, "strategy", `${context}.engineMetadata`),
     strategyReason: readOptionalString(metadata, "strategyReason", `${context}.engineMetadata`),
   };
