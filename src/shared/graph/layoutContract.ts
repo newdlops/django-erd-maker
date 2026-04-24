@@ -21,7 +21,7 @@ export const OGDF_LAYOUT_MODES = [
   "hierarchical",
 ] as const;
 export type LayoutMode = (typeof OGDF_LAYOUT_MODES)[number];
-export const DEFAULT_LAYOUT_MODE: LayoutMode = "radial_tree";
+export const DEFAULT_LAYOUT_MODE: LayoutMode = "hierarchical_barycenter";
 
 export interface OgdfLayoutDefinition {
   analyzerMode: AnalyzerLayoutMode;
