@@ -15,7 +15,11 @@ export const OGDF_LAYOUT_TOOLBAR_MODES = [
 ] as const;
 export type ToolbarLayoutMode = (typeof OGDF_LAYOUT_TOOLBAR_MODES)[number];
 
-export const OGDF_LAYOUT_MODES = [...OGDF_LAYOUT_TOOLBAR_MODES, "clustered"] as const;
+export const OGDF_LAYOUT_MODES = [
+  ...OGDF_LAYOUT_TOOLBAR_MODES,
+  "clustered",
+  "hierarchical",
+] as const;
 export type LayoutMode = (typeof OGDF_LAYOUT_MODES)[number];
 export const DEFAULT_LAYOUT_MODE: LayoutMode = "radial_tree";
 
@@ -56,6 +60,15 @@ const OGDF_LAYOUT_DEFINITIONS: Record<LayoutMode, OgdfLayoutDefinition> = {
     label: "Clustered Layout (legacy alias for Fast Multipole Multilevel)",
     ogdfClass: "FastMultipoleMultilevelEmbedder",
     shortLabel: "Clustered",
+    toolbar: false,
+  },
+  hierarchical: {
+    analyzerMode: "hierarchical",
+    family: "legacy",
+    id: "hierarchical",
+    label: "Hierarchical Layout (analyzer family alias for Sugiyama Barycenter)",
+    ogdfClass: "SugiyamaLayout + BarycenterHeuristic",
+    shortLabel: "Hierarchical",
     toolbar: false,
   },
   fast_multipole_multilevel: {
@@ -123,7 +136,13 @@ export function getOgdfLayoutDefinition(layoutMode: LayoutMode): OgdfLayoutDefin
 }
 
 export function normalizeLayoutMode(layoutMode: LayoutMode): ToolbarLayoutMode {
-  return layoutMode === "clustered" ? "fast_multipole_multilevel" : layoutMode;
+  if (layoutMode === "clustered") {
+    return "fast_multipole_multilevel";
+  }
+  if (layoutMode === "hierarchical") {
+    return "hierarchical_barycenter";
+  }
+  return layoutMode;
 }
 
 export function resolveAnalyzerLayoutMode(layoutMode: LayoutMode): AnalyzerLayoutMode {

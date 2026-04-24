@@ -19,7 +19,9 @@ export function getBrowserRenderSource(): string {
         const layoutLabels = ${layoutLabelsJson};
 
         function normalizeLayoutModeId(layoutMode) {
-          return layoutMode === "clustered" ? "fast_multipole_multilevel" : layoutMode;
+          if (layoutMode === "clustered") return "fast_multipole_multilevel";
+          if (layoutMode === "hierarchical") return "hierarchical_barycenter";
+          return layoutMode;
         }
 
         function getLayoutLabel(layoutMode) {
