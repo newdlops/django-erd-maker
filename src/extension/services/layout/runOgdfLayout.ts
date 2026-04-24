@@ -66,11 +66,18 @@ export async function runOgdfLayout(
   );
   const nodesPath = path.join(requestDirectory, "nodes.tsv");
   const edgesPath = path.join(requestDirectory, "edges.tsv");
-  let preserveRequestDirectory = false;
+  const preserveInputs = Boolean(process.env.DJANGO_ERD_PRESERVE_LAYOUT_INPUTS);
+  let preserveRequestDirectory = preserveInputs;
 
   try {
     await writeFile(nodesPath, serializeNodes(payload), "utf8");
     await writeFile(edgesPath, serializeEdges(payload), "utf8");
+
+    if (preserveInputs) {
+      logger?.info(
+        `OGDF layout inputs preserved at ${requestDirectory} (DJANGO_ERD_PRESERVE_LAYOUT_INPUTS=${process.env.DJANGO_ERD_PRESERVE_LAYOUT_INPUTS})`,
+      );
+    }
 
     logger?.info(
       [
