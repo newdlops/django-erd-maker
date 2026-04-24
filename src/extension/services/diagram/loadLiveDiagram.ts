@@ -22,6 +22,7 @@ export async function relayoutLiveDiagram(
   current: LiveDiagramResult,
   layoutMode: LayoutMode,
   logger?: Logger,
+  requestId?: number,
 ): Promise<LiveDiagramResult> {
   const requestedLayoutMode = normalizeLayoutMode(layoutMode);
   const { layoutFailures, payload } = await applyRequestedLayout(
@@ -30,6 +31,7 @@ export async function relayoutLiveDiagram(
     requestedLayoutMode,
     current.layoutFailures,
     logger,
+    requestId,
   );
 
   return {
@@ -46,6 +48,7 @@ export async function loadLiveDiagram(
   layoutMode: LayoutMode,
   discoveryMs?: number,
   logger?: Logger,
+  requestId?: number,
 ): Promise<LiveDiagramResult> {
   const requestedLayoutMode = normalizeLayoutMode(layoutMode);
   const basePayload =
@@ -67,6 +70,7 @@ export async function loadLiveDiagram(
     requestedLayoutMode,
     {},
     logger,
+    requestId,
   );
 
   payload.timings = mergePipelineTimings(payload.timings, {
@@ -115,6 +119,7 @@ async function applyRequestedLayout(
   requestedLayoutMode: LayoutMode,
   previousLayoutFailures: Partial<Record<LayoutMode, string>>,
   logger?: Logger,
+  requestId?: number,
 ): Promise<{
   layoutFailures: Partial<Record<LayoutMode, string>>;
   payload: DiagramBootstrapPayload;
@@ -143,6 +148,7 @@ async function applyRequestedLayout(
     payload,
     requestedLayoutMode,
     logger,
+    requestId,
   );
 
   payload.timings = mergePipelineTimings(payload.timings, {

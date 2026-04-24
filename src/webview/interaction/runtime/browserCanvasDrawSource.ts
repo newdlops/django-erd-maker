@@ -8,6 +8,14 @@ export function getBrowserCanvasDrawSource(): string {
         const GPU_LABEL_ATLAS_SIZE = 2048;
         const GPU_MAX_SEGMENTS_PER_FRAME = 240000;
         const GPU_MAX_LABELS_PER_FRAME = 2200;
+        const GPU_EDGE_LOD_DISABLE_ZOOM = 0.58;
+        const GPU_EDGE_LOD_DENSE_SEGMENTS = 7000;
+        const GPU_EDGE_LOD_OVERVIEW_ZOOM = 0.38;
+        const GPU_EDGE_LOD_OVERVIEW_TARGET = 5600;
+        const GPU_EDGE_LOD_LOW_ZOOM_TARGET = 3600;
+        const GPU_EDGE_LOD_MID_ZOOM_TARGET = 7600;
+        const GPU_DENSE_LABEL_ZOOM = 0.42;
+        const GPU_DENSE_LABEL_TABLE_LIMIT = 520;
         const RENDER_FRAME_SAMPLE_MS = 1000;
         const RENDER_STATS_INTERVAL_MS = 1000;
         const RENDER_STATS_MIN_FRAMES = 60;
@@ -18,6 +26,7 @@ export function getBrowserCanvasDrawSource(): string {
         let lastRenderFrameSampleAt = 0;
         let latestLiveDragEdgeCount = 0;
         let latestLiveDragSegmentCount = 0;
+        let latestEdgeLodStats = createEmptyEdgeLodStats();
         let renderFrameSequence = 0;
         let renderStats = createEmptyRenderStats(performance.now());
         let sceneGraph = null;
@@ -645,12 +654,7 @@ export function getBrowserCanvasDrawSource(): string {
             : visibleEdgeEntries.map((entry) => ({
                 edgeId: entry.meta.edgeId,
                 meta: entry.meta,
-                points: buildOrthogonalPath(
-                  entry.sourcePosition,
-                  entry.sourceTable,
-                  entry.targetPosition,
-                  entry.targetTable,
-                ),
+                points: getStaticOrLiveEdgePath(entry),
               }));
 
           for (const edge of renderedEdges) {
@@ -669,6 +673,7 @@ export function getBrowserCanvasDrawSource(): string {
                 meta: edge.meta,
                 points: edge.points,
                 segment,
+                segmentIndex,
               });
               addToBuckets(nextScene.edgeBuckets, bounds, segmentIndex);
             }
@@ -908,6 +913,10 @@ export function getBrowserCanvasDrawSource(): string {
             renderer: gpuRenderer.backend,
             resizeMs: round2(timings.resizeMs),
             sceneMs: round2(timings.sceneMs),
+            edgeLod: latestEdgeLodStats.applied,
+            edgeLodLimit: latestEdgeLodStats.limit,
+            edgeLodSkippedSegments: latestEdgeLodStats.skippedSegments,
+            edgeLodSourceSegments: latestEdgeLodStats.sourceSegments,
             segments: visibleSegments.length,
             sinceLastFrameMs,
             tables: visibleTables.length,
@@ -947,7 +956,142 @@ export function getBrowserCanvasDrawSource(): string {
               ),
             );
 
-          return applyLiveDragEdgeSegments(records, bounds);
+          return applyLiveDragEdgeSegments(applyEdgeSegmentLod(records), bounds);
+        }
+
+        function createEmptyEdgeLodStats() {
+          return {
+            applied: false,
+            limit: 0,
+            skippedSegments: 0,
+            sourceSegments: 0,
+          };
+        }
+
+        function getEdgeSegmentLodLimit(segmentCount, zoom) {
+          if (segmentCount <= GPU_EDGE_LOD_DENSE_SEGMENTS || zoom >= GPU_EDGE_LOD_DISABLE_ZOOM) {
+            return segmentCount;
+          }
+
+          if (zoom < 0.24) {
+            return Math.min(segmentCount, GPU_EDGE_LOD_LOW_ZOOM_TARGET);
+          }
+
+          if (zoom < GPU_EDGE_LOD_OVERVIEW_ZOOM) {
+            return Math.min(segmentCount, GPU_EDGE_LOD_OVERVIEW_TARGET);
+          }
+
+          return Math.min(segmentCount, GPU_EDGE_LOD_MID_ZOOM_TARGET);
+        }
+
+        function isImportantEdgeSegment(record) {
+          const selectedModelId = state.selectedModelId || "";
+          if (
+            selectedModelId &&
+            (record.meta.sourceModelId === selectedModelId ||
+              record.meta.targetModelId === selectedModelId)
+          ) {
+            return true;
+          }
+
+          const selectedMethod = state.selectedMethodContext;
+          return Boolean(
+            selectedMethod &&
+              record.meta.sourceModelId === selectedMethod.modelId &&
+              record.meta.methodName === selectedMethod.methodName,
+          );
+        }
+
+        function groupVisibleEdgeSegments(records) {
+          const groupsByEdgeId = new Map();
+
+          for (const record of records) {
+            const edgeId = record.edgeId || "segment:" + String(record.segmentIndex || 0);
+            let group = groupsByEdgeId.get(edgeId);
+            if (!group) {
+              group = {
+                important: false,
+                records: [],
+              };
+              groupsByEdgeId.set(edgeId, group);
+            }
+
+            group.important = group.important || isImportantEdgeSegment(record);
+            group.records.push(record);
+          }
+
+          return Array.from(groupsByEdgeId.values());
+        }
+
+        function sampleEdgeSegmentGroups(groups, segmentBudget) {
+          if (segmentBudget <= 0 || !groups.length) {
+            return [];
+          }
+
+          const totalSegments = groups.reduce((total, group) => total + group.records.length, 0);
+          if (totalSegments <= segmentBudget) {
+            return groups.flatMap((group) => group.records);
+          }
+
+          const stride = Math.max(1, Math.ceil(totalSegments / segmentBudget));
+          const sampled = [];
+          const usedGroups = new Set();
+
+          for (let offset = 0; offset < stride && sampled.length < segmentBudget; offset += 1) {
+            for (let index = offset; index < groups.length && sampled.length < segmentBudget; index += stride) {
+              if (usedGroups.has(index)) {
+                continue;
+              }
+
+              const group = groups[index];
+              if (sampled.length > 0 && sampled.length + group.records.length > segmentBudget) {
+                continue;
+              }
+
+              sampled.push(...group.records);
+              usedGroups.add(index);
+            }
+          }
+
+          return sampled;
+        }
+
+        function applyEdgeSegmentLod(records) {
+          const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
+          const limit = getEdgeSegmentLodLimit(records.length, zoom);
+
+          if (limit >= records.length) {
+            latestEdgeLodStats = {
+              applied: false,
+              limit,
+              skippedSegments: 0,
+              sourceSegments: records.length,
+            };
+            return records;
+          }
+
+          const importantRecords = [];
+          const regularGroups = [];
+
+          for (const group of groupVisibleEdgeSegments(records)) {
+            if (group.important) {
+              importantRecords.push(...group.records);
+            } else {
+              regularGroups.push(group);
+            }
+          }
+
+          const remainingLimit = Math.max(0, limit - importantRecords.length);
+          const sampledRecords = sampleEdgeSegmentGroups(regularGroups, remainingLimit);
+          const nextRecords = importantRecords.concat(sampledRecords);
+
+          latestEdgeLodStats = {
+            applied: true,
+            limit,
+            skippedSegments: Math.max(0, records.length - nextRecords.length),
+            sourceSegments: records.length,
+          };
+          return nextRecords;
         }
 
         function getActiveTableDrag() {
@@ -1127,9 +1271,10 @@ export function getBrowserCanvasDrawSource(): string {
           }
 
           const labels = [];
-          const allowDetails = zoom >= GPU_TABLE_DETAIL_ZOOM && visibleTables.length <= GPU_TABLE_DETAIL_LIMIT;
+          const labelTables = getLabelTableRecords(visibleTables, zoom);
+          const allowDetails = zoom >= GPU_TABLE_DETAIL_ZOOM && labelTables.length <= GPU_TABLE_DETAIL_LIMIT;
 
-          for (const record of visibleTables) {
+          for (const record of labelTables) {
             const table = record.table;
             if (!table) {
               continue;
@@ -1179,6 +1324,41 @@ export function getBrowserCanvasDrawSource(): string {
           }
 
           return labels;
+        }
+
+        function getLabelTableRecords(visibleTables, zoom) {
+          if (
+            zoom >= GPU_DENSE_LABEL_ZOOM ||
+            visibleTables.length <= GPU_DENSE_LABEL_TABLE_LIMIT
+          ) {
+            return visibleTables;
+          }
+
+          const importantRecords = [];
+          const regularRecords = [];
+          for (const record of visibleTables) {
+            if (
+              state.selectedModelId === record.modelId ||
+              (state.selectedMethodContext && state.selectedMethodContext.modelId === record.modelId)
+            ) {
+              importantRecords.push(record);
+            } else {
+              regularRecords.push(record);
+            }
+          }
+
+          const remainingLimit = Math.max(0, GPU_DENSE_LABEL_TABLE_LIMIT - importantRecords.length);
+          if (regularRecords.length <= remainingLimit) {
+            return importantRecords.concat(regularRecords);
+          }
+
+          const step = regularRecords.length / Math.max(1, remainingLimit);
+          const sampledRecords = [];
+          for (let index = 0; index < remainingLimit; index += 1) {
+            sampledRecords.push(regularRecords[Math.floor(index * step)]);
+          }
+
+          return importantRecords.concat(sampledRecords);
         }
 
         function createLabelDescriptor(text, font, color, x, y, maxWidth) {

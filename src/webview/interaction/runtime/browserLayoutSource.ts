@@ -379,6 +379,43 @@ export function getBrowserLayoutSource(): string {
           ]);
         }
 
+        function getStaticOrLiveEdgePath(entry) {
+          const staticPoints = parseEdgePoints(entry.meta.points);
+          const sourceAtBase = samePosition(entry.sourcePosition, entry.sourceTable.basePosition);
+          const targetAtBase = samePosition(entry.targetPosition, entry.targetTable.basePosition);
+
+          if (staticPoints.length >= 2 && sourceAtBase && targetAtBase) {
+            return staticPoints;
+          }
+
+          return buildOrthogonalPath(
+            entry.sourcePosition,
+            entry.sourceTable,
+            entry.targetPosition,
+            entry.targetTable,
+          );
+        }
+
+        function parseEdgePoints(value) {
+          if (typeof value !== "string" || value.trim().length === 0) {
+            return [];
+          }
+
+          return value
+            .trim()
+            .split(/\\s+/)
+            .map((pair) => {
+              const [rawX, rawY] = pair.split(",");
+              const x = Number(rawX);
+              const y = Number(rawY);
+              if (!Number.isFinite(x) || !Number.isFinite(y)) {
+                return undefined;
+              }
+              return { x: round2(x), y: round2(y) };
+            })
+            .filter((point) => point !== undefined);
+        }
+
         function routeCatalogEdgesWithPorts(edgeEntries) {
           const endpointRefsByKey = new Map();
           const routes = [];
@@ -545,6 +582,15 @@ export function getBrowserLayoutSource(): string {
 
         function samePoint(left, right) {
           return left.x === right.x && left.y === right.y;
+        }
+
+        function samePosition(left, right) {
+          return (
+            left &&
+            right &&
+            Math.abs(left.x - right.x) < 0.01 &&
+            Math.abs(left.y - right.y) < 0.01
+          );
         }
 
         function toWorldPoint(event) {

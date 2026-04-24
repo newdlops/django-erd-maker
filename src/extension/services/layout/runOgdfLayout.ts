@@ -15,7 +15,7 @@ import type { DiagramBootstrapPayload } from "../../../shared/protocol/webviewCo
 import type { Logger } from "../logging/logger";
 import { resolveOgdfLayoutBinaryPath } from "./resolveOgdfLayoutBinaryPath";
 
-const OGDF_LAYOUT_TIMEOUT_MS = 20_000;
+const OGDF_LAYOUT_TIMEOUT_MS = 60_000;
 
 export interface OgdfLayoutResult {
   applied: boolean;
@@ -31,6 +31,7 @@ export async function runOgdfLayout(
   payload: DiagramBootstrapPayload,
   requestedLayoutMode: LayoutMode,
   logger?: Logger,
+  requestId?: number,
 ): Promise<OgdfLayoutResult> {
   const started = Date.now();
   const binaryPath = await resolveOgdfLayoutBinaryPath(extensionRootPath);
@@ -43,6 +44,7 @@ export async function runOgdfLayout(
     logger?.warn(
       [
         "OGDF layout skipped because no native binary was found",
+        ...(requestId !== undefined ? [`requestId=${requestId}`] : []),
         `layout=${normalizedRequestedLayoutMode}`,
         `label=${layoutDefinition.label}`,
         `ogdfClass=${layoutDefinition.ogdfClass}`,
@@ -59,9 +61,12 @@ export async function runOgdfLayout(
     };
   }
 
-  const requestDirectory = await mkdtemp(path.join(os.tmpdir(), "django-erd-ogdf-"));
+  const requestDirectory = await mkdtemp(
+    path.join(os.tmpdir(), `django-erd-ogdf-${normalizedRequestedLayoutMode}-`),
+  );
   const nodesPath = path.join(requestDirectory, "nodes.tsv");
   const edgesPath = path.join(requestDirectory, "edges.tsv");
+  let preserveRequestDirectory = false;
 
   try {
     await writeFile(nodesPath, serializeNodes(payload), "utf8");
@@ -70,6 +75,7 @@ export async function runOgdfLayout(
     logger?.info(
       [
         "OGDF layout starting",
+        ...(requestId !== undefined ? [`requestId=${requestId}`] : []),
         `binary=${binaryPath}`,
         `layout=${normalizedRequestedLayoutMode}`,
         `label=${layoutDefinition.label}`,
@@ -115,6 +121,7 @@ export async function runOgdfLayout(
     logger?.info(
       [
         `OGDF layout completed in ${Date.now() - started}ms`,
+        ...(requestId !== undefined ? [`requestId=${requestId}`] : []),
         `requested=${metadata?.requestedMode ?? normalizedRequestedLayoutMode}`,
         `reported=${layout.mode}`,
         `actual=${metadata?.actualMode ?? layout.mode}`,
@@ -124,7 +131,12 @@ export async function runOgdfLayout(
         ...(metadata?.strategyReason ? [`strategyReason=${metadata.strategyReason}`] : []),
         `nodes=${layout.nodes.length}`,
         `routedEdges=${layout.routedEdges.length}`,
+        `routePoints=${summary.routePointCount}`,
         `crossings=${layout.crossings.length}`,
+        `nodeBBoxWidth=${summary.nodeBBoxWidth.toFixed(1)}`,
+        `nodeBBoxHeight=${summary.nodeBBoxHeight.toFixed(1)}`,
+        `routeBBoxWidth=${summary.routeBBoxWidth.toFixed(1)}`,
+        `routeBBoxHeight=${summary.routeBBoxHeight.toFixed(1)}`,
         `bboxWidth=${summary.bboxWidth.toFixed(1)}`,
         `bboxHeight=${summary.bboxHeight.toFixed(1)}`,
       ].join(" · "),
@@ -139,12 +151,30 @@ export async function runOgdfLayout(
     };
   } catch (error) {
     const reason = formatOgdfFailureReason(error);
+    preserveRequestDirectory = true;
+    await writeFailureArtifacts(requestDirectory, error, reason);
     logger?.warn(
       [
         "OGDF layout failed; falling back to analyzer layout",
+        ...(requestId !== undefined ? [`requestId=${requestId}`] : []),
         `requested=${normalizedRequestedLayoutMode}`,
         `fallback=${payload.layout.mode}`,
         `reason=${reason}`,
+      ].join(" · "),
+    );
+    logger?.warn(
+      [
+        "OGDF layout input preserved for debugging",
+        ...(requestId !== undefined ? [`requestId=${requestId}`] : []),
+        `directory=${requestDirectory}`,
+        `nodesFile=${nodesPath}`,
+        `edgesFile=${edgesPath}`,
+        `reproduce=${buildOgdfReproductionCommand(
+          binaryPath,
+          normalizedRequestedLayoutMode,
+          nodesPath,
+          edgesPath,
+        )}`,
       ].join(" · "),
     );
     return {
@@ -155,7 +185,9 @@ export async function runOgdfLayout(
       requestedLayoutMode: normalizedRequestedLayoutMode,
     };
   } finally {
-    await rm(requestDirectory, { force: true, recursive: true });
+    if (!preserveRequestDirectory) {
+      await rm(requestDirectory, { force: true, recursive: true });
+    }
   }
 }
 
@@ -242,6 +274,62 @@ function formatOgdfFailureReason(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+async function writeFailureArtifacts(
+  directory: string,
+  error: unknown,
+  reason: string,
+): Promise<void> {
+  const details = error instanceof OgdfExecError ? error.details : undefined;
+  const artifactWrites = [
+    writeFile(
+      path.join(directory, "failure.json"),
+      `${JSON.stringify(
+        {
+          code: details?.code,
+          killed: details?.killed,
+          reason,
+          signal: details?.signal,
+          timedOut: details?.timedOut,
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    ),
+  ];
+
+  if (details) {
+    artifactWrites.push(
+      writeFile(path.join(directory, "stdout.txt"), details.stdout, "utf8"),
+      writeFile(path.join(directory, "stderr.txt"), details.stderr, "utf8"),
+    );
+  }
+
+  await Promise.allSettled(artifactWrites);
+}
+
+function buildOgdfReproductionCommand(
+  binaryPath: string,
+  mode: LayoutMode,
+  nodesPath: string,
+  edgesPath: string,
+): string {
+  return [
+    shellArg(binaryPath),
+    "layout",
+    "--mode",
+    shellArg(mode),
+    "--nodes-file",
+    shellArg(nodesPath),
+    "--edges-file",
+    shellArg(edgesPath),
+  ].join(" ");
+}
+
+function shellArg(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
 function trimFailureText(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) {
@@ -303,37 +391,76 @@ function tsvCell(value: string): string {
 function summarizeLayout(layout: LayoutSnapshot): {
   bboxHeight: number;
   bboxWidth: number;
+  nodeBBoxHeight: number;
+  nodeBBoxWidth: number;
+  routeBBoxHeight: number;
+  routeBBoxWidth: number;
+  routePointCount: number;
 } {
-  let minX = Number.POSITIVE_INFINITY;
-  let minY = Number.POSITIVE_INFINITY;
-  let maxX = Number.NEGATIVE_INFINITY;
-  let maxY = Number.NEGATIVE_INFINITY;
+  const nodeBounds = emptyBounds();
+  const routeBounds = emptyBounds();
+  const combinedBounds = emptyBounds();
+  let routePointCount = 0;
 
   for (const node of layout.nodes) {
-    minX = Math.min(minX, node.position.x);
-    minY = Math.min(minY, node.position.y);
-    maxX = Math.max(maxX, node.position.x + node.size.width);
-    maxY = Math.max(maxY, node.position.y + node.size.height);
+    updateBounds(nodeBounds, node.position.x, node.position.y);
+    updateBounds(nodeBounds, node.position.x + node.size.width, node.position.y + node.size.height);
+    updateBounds(combinedBounds, node.position.x, node.position.y);
+    updateBounds(combinedBounds, node.position.x + node.size.width, node.position.y + node.size.height);
   }
 
   for (const edge of layout.routedEdges) {
     for (const point of edge.points) {
-      minX = Math.min(minX, point.x);
-      minY = Math.min(minY, point.y);
-      maxX = Math.max(maxX, point.x);
-      maxY = Math.max(maxY, point.y);
+      routePointCount += 1;
+      updateBounds(routeBounds, point.x, point.y);
+      updateBounds(combinedBounds, point.x, point.y);
     }
   }
 
-  if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
-    return {
-      bboxHeight: 0,
-      bboxWidth: 0,
-    };
-  }
-
   return {
-    bboxHeight: Math.max(0, maxY - minY),
-    bboxWidth: Math.max(0, maxX - minX),
+    bboxHeight: boundsHeight(combinedBounds),
+    bboxWidth: boundsWidth(combinedBounds),
+    nodeBBoxHeight: boundsHeight(nodeBounds),
+    nodeBBoxWidth: boundsWidth(nodeBounds),
+    routeBBoxHeight: boundsHeight(routeBounds),
+    routeBBoxWidth: boundsWidth(routeBounds),
+    routePointCount,
   };
+}
+
+function emptyBounds(): {
+  maxX: number;
+  maxY: number;
+  minX: number;
+  minY: number;
+} {
+  return {
+    maxX: Number.NEGATIVE_INFINITY,
+    maxY: Number.NEGATIVE_INFINITY,
+    minX: Number.POSITIVE_INFINITY,
+    minY: Number.POSITIVE_INFINITY,
+  };
+}
+
+function updateBounds(
+  bounds: { maxX: number; maxY: number; minX: number; minY: number },
+  x: number,
+  y: number,
+): void {
+  bounds.minX = Math.min(bounds.minX, x);
+  bounds.minY = Math.min(bounds.minY, y);
+  bounds.maxX = Math.max(bounds.maxX, x);
+  bounds.maxY = Math.max(bounds.maxY, y);
+}
+
+function boundsWidth(bounds: { maxX: number; minX: number }): number {
+  return Number.isFinite(bounds.minX) && Number.isFinite(bounds.maxX)
+    ? Math.max(0, bounds.maxX - bounds.minX)
+    : 0;
+}
+
+function boundsHeight(bounds: { maxY: number; minY: number }): number {
+  return Number.isFinite(bounds.minY) && Number.isFinite(bounds.maxY)
+    ? Math.max(0, bounds.maxY - bounds.minY)
+    : 0;
 }

@@ -20,6 +20,7 @@ export async function openDiagram(
   const logger = getExtensionLogger();
   const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   let cachedDiagram: LiveDiagramResult | undefined;
+  let latestRefreshRunId = 0;
 
   if (!workspacePath) {
     throw new Error("Open a Django workspace folder before opening the ERD.");
@@ -29,14 +30,19 @@ export async function openDiagram(
 
   const refreshLoader = ({
     layoutMode = DEFAULT_LAYOUT_MODE,
+    requestId,
     refreshKind = "full",
     viewState,
   }: {
     layoutMode?: LayoutMode;
+    requestId?: number;
     refreshKind?: "full" | "layout";
     viewState?: RefreshViewStateSnapshot;
-  } = {}) =>
-    vscode.window.withProgress(
+  } = {}) => {
+    const refreshRunId = requestId ?? ++latestRefreshRunId;
+    latestRefreshRunId = Math.max(latestRefreshRunId, refreshRunId);
+
+    return vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
         title: "Loading Django ERD",
@@ -48,13 +54,14 @@ export async function openDiagram(
 
         if (refreshKind === "layout" && previousDiagram) {
           logger.info(
-            `Layout refresh reusing cached analyzer payload · layout=${layoutMode}`,
+            `Layout refresh reusing cached analyzer payload · requestId=${refreshRunId} · layout=${layoutMode}`,
           );
           liveDiagram = await relayoutLiveDiagram(
             context.extensionUri.fsPath,
             previousDiagram,
             layoutMode,
             logger,
+            refreshRunId,
           );
         } else {
           const timedDiscovery = await timeAsync(() =>
@@ -67,6 +74,7 @@ export async function openDiagram(
             layoutMode,
             timedDiscovery.durationMs,
             logger,
+            refreshRunId,
           );
         }
 
@@ -79,11 +87,26 @@ export async function openDiagram(
           );
         }
 
-        logLiveDiagramResult(liveDiagram, logger);
+        if (refreshRunId !== latestRefreshRunId) {
+          logger.info(
+            [
+              "Stale diagram refresh result skipped",
+              `requestId=${refreshRunId}`,
+              `latestRequestId=${latestRefreshRunId}`,
+              `requestedLayout=${liveDiagram.payload.layoutExecution?.requestedMode ?? liveDiagram.payload.view.layoutMode}`,
+              `appliedLayout=${liveDiagram.payload.layoutExecution?.appliedMode ?? liveDiagram.payload.layout.mode}`,
+              `layoutStatus=${liveDiagram.payload.layoutExecution?.status ?? "applied"}`,
+            ].join(" · "),
+          );
+          return cachedDiagram ?? liveDiagram;
+        }
+
+        logLiveDiagramResult(liveDiagram, logger, refreshRunId);
         cachedDiagram = liveDiagram;
         return liveDiagram;
       },
     );
+  };
 
   try {
     const liveDiagram = await refreshLoader({
@@ -141,6 +164,7 @@ function logDiscoveryResult(
 function logLiveDiagramResult(
   result: LiveDiagramResult,
   logger: Logger,
+  requestId?: number,
 ): void {
   const { payload } = result;
   const execution = payload.layoutExecution;
@@ -148,6 +172,7 @@ function logLiveDiagramResult(
   logger.info(
     [
       `Diagram payload ready`,
+      ...(requestId !== undefined ? [`requestId=${requestId}`] : []),
       `models=${payload.analyzer.models.length}`,
       `structuralEdges=${payload.graph.structuralEdges.length}`,
       `methodAssociations=${payload.graph.methodAssociations.length}`,

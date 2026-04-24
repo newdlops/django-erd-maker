@@ -23,6 +23,7 @@ import { renderDiagramDocument } from "../../webview/app/renderDiagramDocument";
 interface RefreshRequest {
   layoutMode?: LayoutMode;
   refreshKind?: "full" | "layout";
+  requestId?: number;
   viewState?: RefreshViewStateSnapshot;
 }
 
@@ -62,6 +63,7 @@ export class ErdPanel {
   private persistedSetupSettings: DiagramInteractionSettingsSnapshot | undefined;
   private persistedViewState: RefreshViewStateSnapshot | undefined;
   private refreshLoader: RefreshLoader | undefined;
+  private latestRefreshRequestId = 0;
   private webviewReady = false;
 
   private constructor(private readonly panel: vscode.WebviewPanel) {
@@ -198,14 +200,30 @@ export class ErdPanel {
       return;
     }
 
+    const requestId = ++this.latestRefreshRequestId;
     const liveDiagram = await this.refreshLoader({
       layoutMode:
         request?.layoutMode ??
         this.currentState?.payload.view.layoutMode ??
         DEFAULT_LAYOUT_MODE,
+      requestId,
       refreshKind: request?.refreshKind ?? "full",
       viewState: request?.viewState ?? this.persistedViewState,
     });
+    if (requestId !== this.latestRefreshRequestId) {
+      getExtensionLogger().info(
+        [
+          "Stale diagram refresh result ignored",
+          `requestId=${requestId}`,
+          `latestRequestId=${this.latestRefreshRequestId}`,
+          `requestedLayout=${liveDiagram.payload.layoutExecution?.requestedMode ?? liveDiagram.payload.view.layoutMode}`,
+          `appliedLayout=${liveDiagram.payload.layoutExecution?.appliedMode ?? liveDiagram.payload.layout.mode}`,
+          `layoutStatus=${liveDiagram.payload.layoutExecution?.status ?? "applied"}`,
+        ].join(" · "),
+      );
+      return;
+    }
+
     this.update(liveDiagram, this.refreshLoader);
   }
 

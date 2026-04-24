@@ -22,8 +22,12 @@
 #include <ogdf/planarlayout/PlanarDrawLayout.h>
 #include <ogdf/planarlayout/PlanarStraightLayout.h>
 #include <ogdf/planarlayout/SchnyderLayout.h>
+#include <ogdf/planarity/PlanarSubgraphFast.h>
 #include <ogdf/planarity/PlanarizationGridLayout.h>
 #include <ogdf/planarity/PlanarizationLayout.h>
+#include <ogdf/planarity/RemoveReinsertType.h>
+#include <ogdf/planarity/SubgraphPlanarizer.h>
+#include <ogdf/planarity/VariableEmbeddingInserter.h>
 #include <ogdf/tree/RadialTreeLayout.h>
 #include <ogdf/tree/TreeLayout.h>
 #include <ogdf/uml/OrthoLayoutUML.h>
@@ -68,13 +72,27 @@ struct EdgeRecord {
   ogdf::edge handle = nullptr;
   std::string kind;
   std::string provenance;
+  ogdf::node sourceHandle = nullptr;
   std::string sourceModelId;
+  ogdf::node targetHandle = nullptr;
   std::string targetModelId;
 };
 
 struct Bounds {
   double minX = 0.0;
   double minY = 0.0;
+};
+
+struct Rect {
+  double bottom = 0.0;
+  double left = 0.0;
+  double right = 0.0;
+  double top = 0.0;
+};
+
+struct RoutePoint {
+  double x = 0.0;
+  double y = 0.0;
 };
 
 struct LayoutRunMetadata {
@@ -86,7 +104,15 @@ struct LayoutRunMetadata {
   std::string strategyReason;
 };
 
-constexpr std::size_t kLargeGraphNodeThreshold = 500;
+constexpr std::size_t kSugiyamaSurrogateNodeThreshold = 10000;
+constexpr std::size_t kEnergySurrogateNodeThreshold = 10000;
+constexpr std::size_t kTopologySurrogateNodeThreshold = 10000;
+constexpr std::size_t kPlanarizationGridSurrogateNodeThreshold = 10000;
+constexpr std::size_t kPlanarizationGridProjectionNodeThreshold = 1000;
+constexpr std::size_t kDavidsonHarelReducedNodeThreshold = 10000;
+constexpr int kFastMultipoleMultilevelCoarseNodeBound = 1024;
+constexpr double kPlanarizationPageRatio = 1.25;
+constexpr double kPlanarizationGridSeparation = 96.0;
 constexpr double kTreeLevelDistance = 320.0;
 constexpr double kTreeNodeDistance = 96.0;
 constexpr double kTreeComponentDistance = 260.0;
@@ -293,6 +319,7 @@ std::vector<EdgeRecord> readEdges(
   }
 
   std::vector<EdgeRecord> edges;
+  std::unordered_map<std::string, ogdf::edge> topologyEdgesByPair;
   std::string line;
 
   while (std::getline(stream, line)) {
@@ -322,7 +349,19 @@ std::vector<EdgeRecord> readEdges(
     record.targetModelId = fields[2];
     record.kind = fields[3];
     record.provenance = fields[4];
-    record.handle = graph.newEdge(source->second, target->second);
+    record.sourceHandle = source->second;
+    record.targetHandle = target->second;
+
+    const std::string topologyKey = fields[1] < fields[2]
+      ? fields[1] + "\t" + fields[2]
+      : fields[2] + "\t" + fields[1];
+    const auto existingEdge = topologyEdgesByPair.find(topologyKey);
+    if (existingEdge == topologyEdgesByPair.end()) {
+      record.handle = graph.newEdge(source->second, target->second);
+      topologyEdgesByPair.emplace(topologyKey, record.handle);
+    } else {
+      record.handle = existingEdge->second;
+    }
 
     edges.push_back(record);
   }
@@ -335,8 +374,26 @@ std::size_t idealThreadCount() {
   return std::max<std::size_t>(1, std::min<std::size_t>(8, detected == 0 ? 1 : detected));
 }
 
+ogdf::SubgraphPlanarizer* createBoundedSubgraphPlanarizer() {
+  auto* planarizer = new ogdf::SubgraphPlanarizer();
+  auto* subgraph = new ogdf::PlanarSubgraphFast<int>();
+  auto* inserter = new ogdf::VariableEmbeddingInserter();
+  subgraph->runs(1);
+  subgraph->maxThreads(1);
+  inserter->removeReinsert(ogdf::RemoveReinsertType::None);
+  planarizer->setSubgraph(subgraph);
+  planarizer->setInserter(inserter);
+  planarizer->permutations(1);
+  planarizer->maxThreads(1);
+  return planarizer;
+}
+
 bool isFiniteCoordinate(double value) {
   return std::isfinite(value);
+}
+
+std::string nodeThresholdReason(std::size_t threshold, const std::string& detail) {
+  return "nodes>=" + std::to_string(threshold) + "; " + detail;
 }
 
 double sanitizeNodeWidth(const NodeRecord& node, ogdf::GraphAttributes& attributes) {
@@ -361,6 +418,54 @@ double sanitizeNodeCenterY(const NodeRecord& node, ogdf::GraphAttributes& attrib
   const double fallback = node.y + height / 2.0;
   const double center = attributes.y(node.handle);
   return isFiniteCoordinate(center) ? center : fallback;
+}
+
+Rect nodeRect(
+  const NodeRecord& node,
+  ogdf::GraphAttributes& attributes,
+  double margin = 0.0) {
+  const double width = sanitizeNodeWidth(node, attributes);
+  const double height = sanitizeNodeHeight(node, attributes);
+  const double centerX = sanitizeNodeCenterX(node, attributes);
+  const double centerY = sanitizeNodeCenterY(node, attributes);
+  return {
+    centerY + height / 2.0 + margin,
+    centerX - width / 2.0 - margin,
+    centerX + width / 2.0 + margin,
+    centerY - height / 2.0 - margin,
+  };
+}
+
+Rect handleRect(
+  ogdf::node handle,
+  ogdf::GraphAttributes& attributes,
+  double margin = 0.0) {
+  const double width = std::max(1.0, attributes.width(handle));
+  const double height = std::max(1.0, attributes.height(handle));
+  const double centerX = attributes.x(handle);
+  const double centerY = attributes.y(handle);
+  return {
+    centerY + height / 2.0 + margin,
+    centerX - width / 2.0 - margin,
+    centerX + width / 2.0 + margin,
+    centerY - height / 2.0 - margin,
+  };
+}
+
+double rectWidth(const Rect& rect) {
+  return rect.right - rect.left;
+}
+
+double rectHeight(const Rect& rect) {
+  return rect.bottom - rect.top;
+}
+
+double rectCenterX(const Rect& rect) {
+  return (rect.left + rect.right) / 2.0;
+}
+
+double rectCenterY(const Rect& rect) {
+  return (rect.top + rect.bottom) / 2.0;
 }
 
 void sanitizeLayoutGeometry(
@@ -401,18 +506,16 @@ bool isSugiyamaMode(const std::string& mode) {
 
 void runSugiyamaLayout(const std::string& mode, ogdf::GraphAttributes& attributes) {
   ogdf::SugiyamaLayout layout;
+  const bool expensiveCrossMin =
+    mode == "hierarchical_sifting"
+    || mode == "hierarchical_global_sifting"
+    || mode == "hierarchical_greedy_insert"
+    || mode == "hierarchical_grid_sifting"
+    || mode == "hierarchical_split";
   layout.setRanking(new ogdf::OptimalRanking());
   layout.runs(1);
-  layout.fails(
-    mode == "hierarchical_sifting"
-      || mode == "hierarchical_global_sifting"
-      || mode == "hierarchical_grid_sifting"
-      ? 1
-      : 2);
-  layout.transpose(
-    mode != "hierarchical_sifting"
-    && mode != "hierarchical_global_sifting"
-    && mode != "hierarchical_grid_sifting");
+  layout.fails(expensiveCrossMin ? 1 : 2);
+  layout.transpose(!expensiveCrossMin);
 
   if (mode == "hierarchical_barycenter") {
     layout.setCrossMin(new ogdf::BarycenterHeuristic());
@@ -430,14 +533,16 @@ void runSugiyamaLayout(const std::string& mode, ogdf::GraphAttributes& attribute
     auto* crossMin = new ogdf::GridSifting();
     crossMin->verticalStepsBound(3);
     layout.setCrossMin(crossMin);
+  } else if (mode == "hierarchical_split") {
+    layout.setCrossMin(new ogdf::SplitHeuristic());
   } else {
     layout.setCrossMin(new ogdf::MedianHeuristic());
   }
 
   auto* hierarchy = new ogdf::OptimalHierarchyLayout();
-  hierarchy->layerDistance(140.0);
-  hierarchy->nodeDistance(96.0);
-  hierarchy->weightBalancing(0.8);
+  hierarchy->layerDistance(96.0);
+  hierarchy->nodeDistance(44.0);
+  hierarchy->weightBalancing(0.72);
   layout.setLayout(hierarchy);
   layout.arrangeCCs(true);
   layout.call(attributes);
@@ -456,8 +561,8 @@ std::vector<std::vector<std::size_t>> buildProjectedForestAdjacency(
 
   DisjointSet forest(nodes.size());
   for (const EdgeRecord& edge : edges) {
-    const auto source = indicesByNode.find(edge.handle->source());
-    const auto target = indicesByNode.find(edge.handle->target());
+    const auto source = indicesByNode.find(edge.sourceHandle);
+    const auto target = indicesByNode.find(edge.targetHandle);
 
     if (
       source == indicesByNode.end()
@@ -769,10 +874,10 @@ void applyOrthogonalSurrogateGeometry(
   });
 
   for (const EdgeRecord& edge : edges) {
-    const double sourceX = attributes.x(edge.handle->source());
-    const double sourceY = attributes.y(edge.handle->source());
-    const double targetX = attributes.x(edge.handle->target());
-    const double targetY = attributes.y(edge.handle->target());
+    const double sourceX = attributes.x(edge.sourceHandle);
+    const double sourceY = attributes.y(edge.sourceHandle);
+    const double targetX = attributes.x(edge.targetHandle);
+    const double targetY = attributes.y(edge.targetHandle);
     ogdf::DPolyline bends;
     if (std::abs(sourceX - targetX) > 1.0 && std::abs(sourceY - targetY) > 1.0) {
       bends.pushBack(ogdf::DPoint(sourceX, targetY));
@@ -977,10 +1082,10 @@ void applyClusterSurrogateGeometry(
 
   if (orthogonal) {
     for (const EdgeRecord& edge : edges) {
-      const double sourceX = attributes.x(edge.handle->source());
-      const double sourceY = attributes.y(edge.handle->source());
-      const double targetX = attributes.x(edge.handle->target());
-      const double targetY = attributes.y(edge.handle->target());
+      const double sourceX = attributes.x(edge.sourceHandle);
+      const double sourceY = attributes.y(edge.sourceHandle);
+      const double targetX = attributes.x(edge.targetHandle);
+      const double targetY = attributes.y(edge.targetHandle);
       ogdf::DPolyline bends;
       if (std::abs(sourceX - targetX) > 1.0 && std::abs(sourceY - targetY) > 1.0) {
         bends.pushBack(ogdf::DPoint(sourceX, targetY));
@@ -990,6 +1095,354 @@ void applyClusterSurrogateGeometry(
   } else {
     clearEdgeBends(edges, attributes);
   }
+}
+
+std::vector<std::vector<std::size_t>> collectConnectedComponents(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges) {
+  std::unordered_map<ogdf::node, std::size_t> indicesByNode;
+  indicesByNode.reserve(nodes.size());
+  for (std::size_t index = 0; index < nodes.size(); ++index) {
+    indicesByNode.emplace(nodes[index].handle, index);
+  }
+
+  std::vector<std::vector<std::size_t>> adjacency(nodes.size());
+  for (const EdgeRecord& edge : edges) {
+    const auto source = indicesByNode.find(edge.sourceHandle);
+    const auto target = indicesByNode.find(edge.targetHandle);
+    if (
+      source == indicesByNode.end()
+      || target == indicesByNode.end()
+      || source->second == target->second) {
+      continue;
+    }
+    adjacency[source->second].push_back(target->second);
+    adjacency[target->second].push_back(source->second);
+  }
+
+  std::vector<std::vector<std::size_t>> components;
+  std::vector<bool> seen(nodes.size(), false);
+  for (std::size_t start = 0; start < nodes.size(); ++start) {
+    if (seen[start]) {
+      continue;
+    }
+
+    std::vector<std::size_t> component;
+    std::queue<std::size_t> pending;
+    pending.push(start);
+    seen[start] = true;
+
+    while (!pending.empty()) {
+      const std::size_t current = pending.front();
+      pending.pop();
+      component.push_back(current);
+
+      for (std::size_t next : adjacency[current]) {
+        if (seen[next]) {
+          continue;
+        }
+        seen[next] = true;
+        pending.push(next);
+      }
+    }
+
+    components.push_back(component);
+  }
+
+  return components;
+}
+
+Rect componentRect(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<std::size_t>& component,
+  ogdf::GraphAttributes& attributes) {
+  Rect rect;
+  bool initialized = false;
+
+  for (std::size_t nodeIndex : component) {
+    const Rect node = nodeRect(nodes[nodeIndex], attributes);
+    if (!initialized) {
+      rect = node;
+      initialized = true;
+      continue;
+    }
+
+    rect.left = std::min(rect.left, node.left);
+    rect.right = std::max(rect.right, node.right);
+    rect.top = std::min(rect.top, node.top);
+    rect.bottom = std::max(rect.bottom, node.bottom);
+  }
+
+  return rect;
+}
+
+void translateComponent(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<std::size_t>& component,
+  ogdf::GraphAttributes& attributes,
+  double dx,
+  double dy) {
+  for (std::size_t nodeIndex : component) {
+    const NodeRecord& node = nodes[nodeIndex];
+    attributes.x(node.handle) = sanitizeNodeCenterX(node, attributes) + dx;
+    attributes.y(node.handle) = sanitizeNodeCenterY(node, attributes) + dy;
+  }
+}
+
+void packDisconnectedComponents(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes) {
+  std::vector<std::vector<std::size_t>> components = collectConnectedComponents(nodes, edges);
+  if (components.size() <= 1) {
+    return;
+  }
+
+  std::sort(
+    components.begin(),
+    components.end(),
+    [&](const auto& left, const auto& right) {
+      const Rect leftRect = componentRect(nodes, left, attributes);
+      const Rect rightRect = componentRect(nodes, right, attributes);
+      const double leftArea = rectWidth(leftRect) * rectHeight(leftRect);
+      const double rightArea = rectWidth(rightRect) * rectHeight(rightRect);
+      if (std::abs(leftArea - rightArea) > 0.01) {
+        return leftArea > rightArea;
+      }
+      return left.size() > right.size();
+    });
+
+  constexpr double componentGapX = 220.0;
+  constexpr double componentGapY = 180.0;
+  double totalPackedArea = 0.0;
+  double widest = 0.0;
+  for (const auto& component : components) {
+    const Rect rect = componentRect(nodes, component, attributes);
+    totalPackedArea += (rectWidth(rect) + componentGapX) * (rectHeight(rect) + componentGapY);
+    widest = std::max(widest, rectWidth(rect));
+  }
+
+  const double targetRowWidth = std::max(widest, std::sqrt(totalPackedArea) * 1.28);
+  double cursorX = 0.0;
+  double cursorY = 0.0;
+  double rowHeight = 0.0;
+
+  for (const auto& component : components) {
+    const Rect rect = componentRect(nodes, component, attributes);
+    const double width = rectWidth(rect);
+    const double height = rectHeight(rect);
+
+    if (cursorX > 0.0 && cursorX + width > targetRowWidth) {
+      cursorX = 0.0;
+      cursorY += rowHeight + componentGapY;
+      rowHeight = 0.0;
+    }
+
+    translateComponent(nodes, component, attributes, cursorX - rect.left, cursorY - rect.top);
+    cursorX += width + componentGapX;
+    rowHeight = std::max(rowHeight, height);
+  }
+
+  clearEdgeBends(edges, attributes);
+}
+
+Rect graphNodeBounds(
+  const std::vector<NodeRecord>& nodes,
+  ogdf::GraphAttributes& attributes) {
+  Rect bounds;
+  bool initialized = false;
+  for (const NodeRecord& node : nodes) {
+    const Rect rect = nodeRect(node, attributes);
+    if (!initialized) {
+      bounds = rect;
+      initialized = true;
+      continue;
+    }
+    bounds.left = std::min(bounds.left, rect.left);
+    bounds.right = std::max(bounds.right, rect.right);
+    bounds.top = std::min(bounds.top, rect.top);
+    bounds.bottom = std::max(bounds.bottom, rect.bottom);
+  }
+  return bounds;
+}
+
+double clampToSpan(double value, double minValue, double maxValue) {
+  if (minValue > maxValue) {
+    return (minValue + maxValue) / 2.0;
+  }
+  return std::max(minValue, std::min(maxValue, value));
+}
+
+bool almostSamePoint(const RoutePoint& left, const RoutePoint& right) {
+  return std::abs(left.x - right.x) < 0.01 && std::abs(left.y - right.y) < 0.01;
+}
+
+bool isCollinear(const RoutePoint& left, const RoutePoint& middle, const RoutePoint& right) {
+  return (
+      std::abs(left.x - middle.x) < 0.01
+      && std::abs(middle.x - right.x) < 0.01)
+    || (
+      std::abs(left.y - middle.y) < 0.01
+      && std::abs(middle.y - right.y) < 0.01);
+}
+
+std::vector<RoutePoint> compressRoutePoints(std::vector<RoutePoint> points) {
+  std::vector<RoutePoint> deduped;
+  for (RoutePoint point : points) {
+    if (!isFiniteCoordinate(point.x) || !isFiniteCoordinate(point.y)) {
+      continue;
+    }
+    point.x = std::round(point.x * 100.0) / 100.0;
+    point.y = std::round(point.y * 100.0) / 100.0;
+    if (!deduped.empty() && almostSamePoint(deduped.back(), point)) {
+      continue;
+    }
+    deduped.push_back(point);
+  }
+
+  std::vector<RoutePoint> compressed;
+  for (const RoutePoint& point : deduped) {
+    if (compressed.size() >= 2) {
+      const RoutePoint& prev = compressed[compressed.size() - 1];
+      const RoutePoint& prevPrev = compressed[compressed.size() - 2];
+      if (isCollinear(prevPrev, prev, point)) {
+        compressed.pop_back();
+      }
+    }
+    compressed.push_back(point);
+  }
+
+  return compressed;
+}
+
+bool segmentIntersectsRect(const RoutePoint& start, const RoutePoint& end, const Rect& rect) {
+  if (std::abs(start.x - end.x) < 0.01) {
+    const double minY = std::min(start.y, end.y);
+    const double maxY = std::max(start.y, end.y);
+    return start.x > rect.left
+      && start.x < rect.right
+      && maxY > rect.top
+      && minY < rect.bottom;
+  }
+
+  if (std::abs(start.y - end.y) < 0.01) {
+    const double minX = std::min(start.x, end.x);
+    const double maxX = std::max(start.x, end.x);
+    return start.y > rect.top
+      && start.y < rect.bottom
+      && maxX > rect.left
+      && minX < rect.right;
+  }
+
+  return false;
+}
+
+double routeLength(const std::vector<RoutePoint>& points) {
+  double length = 0.0;
+  for (std::size_t index = 1; index < points.size(); ++index) {
+    length += std::abs(points[index].x - points[index - 1].x)
+      + std::abs(points[index].y - points[index - 1].y);
+  }
+  return length;
+}
+
+double routeScore(
+  const std::vector<RoutePoint>& points,
+  const std::vector<Rect>& obstacles) {
+  double intersections = 0.0;
+  for (std::size_t index = 1; index < points.size(); ++index) {
+    for (const Rect& obstacle : obstacles) {
+      if (segmentIntersectsRect(points[index - 1], points[index], obstacle)) {
+        intersections += 1.0;
+      }
+    }
+  }
+
+  return intersections * 1'000'000.0
+    + routeLength(points)
+    + static_cast<double>(points.size()) * 20.0;
+}
+
+std::vector<RoutePoint> routeObstacleAwareEdge(
+  const EdgeRecord& edge,
+  std::size_t edgeIndex,
+  const std::vector<NodeRecord>& nodes,
+  ogdf::GraphAttributes& attributes) {
+  const Rect graphBounds = graphNodeBounds(nodes, attributes);
+  const Rect source = handleRect(edge.sourceHandle, attributes);
+  const Rect target = handleRect(edge.targetHandle, attributes);
+  const bool horizontal = std::abs(rectCenterX(target) - rectCenterX(source))
+    >= std::abs(rectCenterY(target) - rectCenterY(source));
+  const double laneOffset = (static_cast<double>(edgeIndex % 9) - 4.0) * 26.0;
+  constexpr double portInset = 18.0;
+  constexpr double stub = 52.0;
+  constexpr double outerGap = 170.0;
+
+  RoutePoint start;
+  RoutePoint end;
+  RoutePoint startStub;
+  RoutePoint endStub;
+  std::vector<std::vector<RoutePoint>> candidates;
+
+  if (horizontal) {
+    const bool leftToRight = rectCenterX(target) >= rectCenterX(source);
+    start = {
+      leftToRight ? source.right : source.left,
+      clampToSpan(rectCenterY(source) + laneOffset, source.top + portInset, source.bottom - portInset),
+    };
+    end = {
+      leftToRight ? target.left : target.right,
+      clampToSpan(rectCenterY(target) - laneOffset, target.top + portInset, target.bottom - portInset),
+    };
+    startStub = { start.x + (leftToRight ? stub : -stub), start.y };
+    endStub = { end.x + (leftToRight ? -stub : stub), end.y };
+    const double midX = (startStub.x + endStub.x) / 2.0;
+    const double topLane = graphBounds.top - outerGap - std::abs(laneOffset);
+    const double bottomLane = graphBounds.bottom + outerGap + std::abs(laneOffset);
+    candidates.push_back({ start, startStub, { midX, startStub.y }, { midX, endStub.y }, endStub, end });
+    candidates.push_back({ start, startStub, { startStub.x, topLane }, { endStub.x, topLane }, endStub, end });
+    candidates.push_back({ start, startStub, { startStub.x, bottomLane }, { endStub.x, bottomLane }, endStub, end });
+  } else {
+    const bool topToBottom = rectCenterY(target) >= rectCenterY(source);
+    start = {
+      clampToSpan(rectCenterX(source) + laneOffset, source.left + portInset, source.right - portInset),
+      topToBottom ? source.bottom : source.top,
+    };
+    end = {
+      clampToSpan(rectCenterX(target) - laneOffset, target.left + portInset, target.right - portInset),
+      topToBottom ? target.top : target.bottom,
+    };
+    startStub = { start.x, start.y + (topToBottom ? stub : -stub) };
+    endStub = { end.x, end.y + (topToBottom ? -stub : stub) };
+    const double midY = (startStub.y + endStub.y) / 2.0;
+    const double leftLane = graphBounds.left - outerGap - std::abs(laneOffset);
+    const double rightLane = graphBounds.right + outerGap + std::abs(laneOffset);
+    candidates.push_back({ start, startStub, { startStub.x, midY }, { endStub.x, midY }, endStub, end });
+    candidates.push_back({ start, startStub, { leftLane, startStub.y }, { leftLane, endStub.y }, endStub, end });
+    candidates.push_back({ start, startStub, { rightLane, startStub.y }, { rightLane, endStub.y }, endStub, end });
+  }
+
+  std::vector<Rect> obstacles;
+  obstacles.reserve(nodes.size());
+  for (const NodeRecord& node : nodes) {
+    if (node.handle == edge.sourceHandle || node.handle == edge.targetHandle) {
+      continue;
+    }
+    obstacles.push_back(nodeRect(node, attributes, 18.0));
+  }
+
+  std::vector<RoutePoint> best;
+  double bestScore = std::numeric_limits<double>::infinity();
+  for (std::vector<RoutePoint> candidate : candidates) {
+    candidate = compressRoutePoints(std::move(candidate));
+    const double score = routeScore(candidate, obstacles);
+    if (score < bestScore) {
+      bestScore = score;
+      best = std::move(candidate);
+    }
+  }
+
+  return best;
 }
 
 std::string describeLayoutAlgorithm(const std::string& mode) {
@@ -1110,63 +1563,63 @@ LayoutRunMetadata runLayout(
   LayoutRunMetadata metadata = makeLayoutRunMetadata(mode);
 
   if (isSugiyamaMode(mode)) {
-    const bool largeGraph = nodes.size() >= kLargeGraphNodeThreshold;
-    const bool alwaysSurrogate =
+    const bool requiresSurrogate =
       mode == "hierarchical_global_sifting"
-      || mode == "hierarchical_grid_sifting"
-      || mode == "hierarchical_split";
-    const bool largeGraphSurrogate =
-      largeGraph
-      && mode != "hierarchical"
-      && mode != "hierarchical_barycenter";
+      || mode == "hierarchical_grid_sifting";
+    const bool useSurrogate =
+      requiresSurrogate
+      || (
+        nodes.size() >= kSugiyamaSurrogateNodeThreshold
+        && mode != "hierarchical"
+        && mode != "hierarchical_barycenter");
     std::string actualRunMode = mode;
 
-    if (alwaysSurrogate || largeGraphSurrogate) {
+    if (useSurrogate) {
       actualRunMode =
         mode == "hierarchical_grid_sifting" || mode == "hierarchical_greedy_switch"
           ? "hierarchical"
           : "hierarchical_barycenter";
       metadata.actualMode = mode;
-      metadata.strategy = largeGraphSurrogate ? "large_graph_surrogate" : "surrogate";
+      metadata.strategy = requiresSurrogate ? "surrogate" : "large_graph_surrogate";
 
       if (mode == "hierarchical_sifting") {
         metadata.actualAlgorithm =
           "DjangoErdSiftingSurrogate(SugiyamaLayout + BarycenterHeuristic, layerStagger)";
         metadata.strategyReason =
-          "nodes>=500; sifting cross minimization uses a bounded barycenter base plus layer staggering";
+          nodeThresholdReason(
+            kSugiyamaSurrogateNodeThreshold,
+            "sifting cross minimization uses a bounded barycenter base plus layer staggering");
       } else if (mode == "hierarchical_global_sifting") {
         metadata.actualAlgorithm =
           "DjangoErdGlobalSiftingSurrogate(SugiyamaLayout + BarycenterHeuristic, globalLayerDrift)";
         metadata.strategyReason =
-          largeGraph
-            ? "nodes>=500; global sifting uses a bounded barycenter base plus global layer drift"
-            : "global sifting is approximated with bounded barycenter ordering and global layer drift";
+          "GlobalSifting is unstable on ERD-scale cyclic graphs, so ERD mode uses a bounded barycenter base plus global layer drift";
       } else if (mode == "hierarchical_greedy_insert") {
         metadata.actualAlgorithm =
           "DjangoErdGreedyInsertSurrogate(SugiyamaLayout + BarycenterHeuristic, compactInsert)";
         metadata.strategyReason =
-          largeGraph
-            ? "nodes>=500; greedy insert uses a bounded barycenter base plus compact insertion offsets"
-            : "greedy insert is approximated with bounded barycenter ordering and compact insertion offsets";
+          nodeThresholdReason(
+            kSugiyamaSurrogateNodeThreshold,
+            "greedy insert uses a bounded barycenter base plus compact insertion offsets");
       } else if (mode == "hierarchical_greedy_switch") {
         metadata.actualAlgorithm =
           "DjangoErdGreedySwitchSurrogate(SugiyamaLayout + MedianHeuristic, alternatingSwitch)";
         metadata.strategyReason =
-          largeGraph
-            ? "nodes>=500; greedy switch uses a bounded median base plus alternating layer switches"
-            : "greedy switch is approximated with bounded median ordering and alternating layer switches";
+          nodeThresholdReason(
+            kSugiyamaSurrogateNodeThreshold,
+            "greedy switch uses a bounded median base plus alternating layer switches");
       } else if (mode == "hierarchical_grid_sifting") {
         metadata.actualAlgorithm =
           "DjangoErdGridSiftingSurrogate(SugiyamaLayout + MedianHeuristic, layerGridSnap)";
         metadata.strategyReason =
-          largeGraph
-            ? "nodes>=500; grid sifting uses a bounded median base plus layer grid snapping"
-            : "grid sifting is approximated with bounded median ordering and layer grid snapping";
+          "GridSifting is unstable on ERD-scale cyclic graphs, so ERD mode uses a bounded median base plus layer grid snapping";
       } else {
         metadata.actualAlgorithm =
           "DjangoErdSplitHeuristicSurrogate(SugiyamaLayout + BarycenterHeuristic, splitBands)";
         metadata.strategyReason =
-          "SplitHeuristic is a simultaneous-drawing cross-minimizer, so ERD mode uses a bounded split-band surrogate";
+          nodeThresholdReason(
+            kSugiyamaSurrogateNodeThreshold,
+            "split heuristic uses a bounded barycenter base plus split bands");
       }
     } else {
       metadata.actualAlgorithm += "(runs=1)";
@@ -1175,7 +1628,7 @@ LayoutRunMetadata runLayout(
     }
 
     runSugiyamaLayout(actualRunMode, attributes);
-    if (alwaysSurrogate || largeGraphSurrogate) {
+    if (useSurrogate) {
       if (mode == "hierarchical_sifting") {
         applySiftingSurrogateGeometry(nodes, edges, attributes);
       } else if (mode == "hierarchical_global_sifting") {
@@ -1230,24 +1683,28 @@ LayoutRunMetadata runLayout(
   }
 
   if (mode == "fast_multipole_multilevel") {
-    if (nodes.size() >= kLargeGraphNodeThreshold) {
+    if (nodes.size() >= kEnergySurrogateNodeThreshold) {
       runFastMultipoleLayout(attributes, 180, 4, true);
       metadata.actualMode = "fast_multipole_multilevel";
       metadata.actualAlgorithm =
         "DjangoErdFastMultipoleMultilevelSurrogate(FastMultipoleEmbedder, iterations=180, multipolePrecision=4)";
       metadata.strategy = "large_graph_surrogate";
       metadata.strategyReason =
-        "nodes>=500; multilevel embedder is replaced with bounded fast multipole";
+        nodeThresholdReason(
+          kEnergySurrogateNodeThreshold,
+          "multilevel embedder is replaced with bounded fast multipole");
       return metadata;
     }
 
     ogdf::FastMultipoleMultilevelEmbedder layout;
-    layout.multilevelUntilNumNodesAreLess(64);
-    layout.maxNumThreads(static_cast<int>(idealThreadCount()));
+    layout.multilevelUntilNumNodesAreLess(kFastMultipoleMultilevelCoarseNodeBound);
+    layout.maxNumThreads(static_cast<int>(std::min<std::size_t>(4, idealThreadCount())));
     layout.call(attributes);
-    metadata.actualAlgorithm = "FastMultipoleMultilevelEmbedder(minCoarseNodes=64)";
+    metadata.actualAlgorithm =
+      "FastMultipoleMultilevelEmbedder(minCoarseNodes=1024,maxThreads<=4)";
     metadata.strategy = "bounded";
-    metadata.strategyReason = "coarsening threshold and thread count are capped";
+    metadata.strategyReason =
+      "coarsening stops earlier because OGDF multilevel iterations grow quadratically by level";
     return metadata;
   }
 
@@ -1280,7 +1737,7 @@ LayoutRunMetadata runLayout(
 
   if (mode == "davidson_harel") {
     ogdf::DavidsonHarelLayout layout;
-    const bool largeGraph = nodes.size() >= kLargeGraphNodeThreshold;
+    const bool largeGraph = nodes.size() >= kDavidsonHarelReducedNodeThreshold;
     layout.fixSettings(
       largeGraph
         ? ogdf::DavidsonHarelLayout::SettingsParameter::Standard
@@ -1294,13 +1751,15 @@ LayoutRunMetadata runLayout(
       : "DavidsonHarelLayout(Planar, iterations=120, startTemperature=240)";
     metadata.strategy = largeGraph ? "large_graph_bounded" : "bounded";
     metadata.strategyReason = largeGraph
-      ? "nodes>=500; Davidson-Harel iterations and temperature are reduced"
+      ? nodeThresholdReason(
+          kDavidsonHarelReducedNodeThreshold,
+          "Davidson-Harel iterations and temperature are reduced")
       : "Davidson-Harel iterations are capped";
     return metadata;
   }
 
   if (mode == "planarization") {
-    if (nodes.size() >= kLargeGraphNodeThreshold) {
+    if (nodes.size() >= kTopologySurrogateNodeThreshold) {
       runSugiyamaLayout("hierarchical_barycenter", attributes);
       applyPlanarSurrogateGeometry(nodes, edges, attributes);
       metadata.actualMode = "planarization";
@@ -1308,18 +1767,26 @@ LayoutRunMetadata runLayout(
         "DjangoErdPlanarizationSurrogate(SugiyamaLayout + BarycenterHeuristic, planarSkew)";
       metadata.strategy = "large_graph_surrogate";
       metadata.strategyReason =
-        "nodes>=500; planarization uses a bounded Sugiyama base plus planar skewing";
+        nodeThresholdReason(
+          kTopologySurrogateNodeThreshold,
+          "planarization uses a bounded Sugiyama base plus planar skewing");
       return metadata;
     }
 
     ogdf::PlanarizationLayout layout;
-    layout.pageRatio(1.6);
+    layout.setCrossMin(createBoundedSubgraphPlanarizer());
+    layout.pageRatio(kPlanarizationPageRatio);
     layout.call(attributes);
+    metadata.actualAlgorithm =
+      "PlanarizationLayout(boundedCrossMin=PlanarSubgraphFast(runs=1)+VariableEmbeddingInserter(removeReinsert=None),pageRatio=1.25)";
+    metadata.strategy = "bounded";
+    metadata.strategyReason =
+      "crossing minimization uses one planar subgraph run and fixed embedding insertion for 60s layout";
     return metadata;
   }
 
   if (mode == "planarization_grid") {
-    if (nodes.size() >= kLargeGraphNodeThreshold) {
+    if (nodes.size() >= kPlanarizationGridSurrogateNodeThreshold) {
       runSugiyamaLayout("hierarchical", attributes);
       applyPlanarGridSurrogateGeometry(nodes, edges, attributes);
       metadata.actualMode = "planarization_grid";
@@ -1327,18 +1794,44 @@ LayoutRunMetadata runLayout(
         "DjangoErdPlanarizationGridSurrogate(SugiyamaLayout + MedianHeuristic, gridSnap)";
       metadata.strategy = "large_graph_surrogate";
       metadata.strategyReason =
-        "nodes>=500; planarization grid uses a bounded Sugiyama base snapped to a grid";
+        nodeThresholdReason(
+          kPlanarizationGridSurrogateNodeThreshold,
+          "PlanarizationGridLayout is too slow for interactive ERD layout, so ERD mode uses a bounded Sugiyama base snapped to a grid");
+      return metadata;
+    }
+
+    if (nodes.size() >= kPlanarizationGridProjectionNodeThreshold) {
+      ogdf::PlanarizationLayout layout;
+      layout.setCrossMin(createBoundedSubgraphPlanarizer());
+      layout.pageRatio(kPlanarizationPageRatio);
+      layout.call(attributes);
+      applyPlanarGridSurrogateGeometry(nodes, edges, attributes);
+      metadata.actualMode = "planarization_grid";
+      metadata.actualAlgorithm =
+        "DjangoErdPlanarizationGridProjection(PlanarizationLayout boundedCrossMin, gridSnap)";
+      metadata.strategy = "bounded_projection";
+      metadata.strategyReason =
+        nodeThresholdReason(
+          kPlanarizationGridProjectionNodeThreshold,
+          "PlanarizationGridLayout's MixedModel grid layouter exceeded 60s, so ERD mode keeps bounded planarization and projects it onto a grid");
       return metadata;
     }
 
     ogdf::PlanarizationGridLayout layout;
-    layout.pageRatio(1.6);
+    layout.setCrossMin(createBoundedSubgraphPlanarizer());
+    layout.pageRatio(kPlanarizationPageRatio);
+    layout.separation(kPlanarizationGridSeparation);
     layout.call(attributes);
+    metadata.actualAlgorithm =
+      "PlanarizationGridLayout(boundedCrossMin=PlanarSubgraphFast(runs=1)+VariableEmbeddingInserter(removeReinsert=None),pageRatio=1.25,separation=96)";
+    metadata.strategy = "bounded";
+    metadata.strategyReason =
+      "grid planarization uses bounded crossing minimization and a fixed grid separation for 60s layout";
     return metadata;
   }
 
   if (mode == "ortho") {
-    if (nodes.size() >= kLargeGraphNodeThreshold) {
+    if (nodes.size() >= kTopologySurrogateNodeThreshold) {
       runSugiyamaLayout("hierarchical", attributes);
       applyOrthogonalSurrogateGeometry(nodes, edges, attributes);
       metadata.actualMode = "ortho";
@@ -1346,15 +1839,22 @@ LayoutRunMetadata runLayout(
         "DjangoErdOrthogonalSurrogate(SugiyamaLayout + MedianHeuristic, orthogonalGridRouting)";
       metadata.strategy = "large_graph_surrogate";
       metadata.strategyReason =
-        "nodes>=500; orthogonal layout uses a bounded Sugiyama base snapped to orthogonal routing";
+        nodeThresholdReason(
+          kTopologySurrogateNodeThreshold,
+          "orthogonal layout uses a bounded Sugiyama base snapped to orthogonal routing");
       return metadata;
     }
 
     ogdf::PlanarizationLayout layout;
+    layout.setCrossMin(createBoundedSubgraphPlanarizer());
     layout.setPlanarLayouter(new ogdf::OrthoLayout());
-    layout.pageRatio(1.6);
+    layout.pageRatio(kPlanarizationPageRatio);
     layout.call(attributes);
-    metadata.actualAlgorithm = "PlanarizationLayout + OrthoLayout(pageRatio=1.6)";
+    metadata.actualAlgorithm =
+      "PlanarizationLayout + OrthoLayout(boundedCrossMin=PlanarSubgraphFast(runs=1)+VariableEmbeddingInserter(removeReinsert=None),pageRatio=1.25)";
+    metadata.strategy = "bounded";
+    metadata.strategyReason =
+      "orthogonal planarization uses bounded crossing minimization for 60s layout";
     return metadata;
   }
 
@@ -1400,47 +1900,27 @@ LayoutRunMetadata runLayout(
   }
 
   if (mode == "upward_layer_based" || mode == "upward_planarization") {
-    if (nodes.size() >= kLargeGraphNodeThreshold) {
-      runSugiyamaLayout("hierarchical_barycenter", attributes);
-      applyUpwardSurrogateGeometry(nodes, edges, attributes, mode == "upward_layer_based");
-      metadata.actualMode = mode;
-      metadata.actualAlgorithm = mode == "upward_layer_based"
-        ? "DjangoErdLayerBasedUPRSurrogate(SugiyamaLayout + BarycenterHeuristic, upwardProjection)"
-        : "DjangoErdUpwardPlanarizationSurrogate(SugiyamaLayout + BarycenterHeuristic, upwardProjection)";
-      metadata.strategy = "large_graph_surrogate";
-      metadata.strategyReason =
-        "nodes>=500; upward layout uses a bounded Sugiyama base with upward projection";
-      return metadata;
-    }
-
-    ogdf::UpwardPlanarizationLayout layout;
-    if (mode == "upward_layer_based") {
-      layout.setUPRLayout(new ogdf::LayerBasedUPRLayout());
-    }
-    layout.call(attributes);
+    runSugiyamaLayout("hierarchical_barycenter", attributes);
+    applyUpwardSurrogateGeometry(nodes, edges, attributes, mode == "upward_layer_based");
+    metadata.actualMode = mode;
     metadata.actualAlgorithm = mode == "upward_layer_based"
-      ? "UpwardPlanarizationLayout + LayerBasedUPRLayout"
-      : "UpwardPlanarizationLayout";
+      ? "DjangoErdLayerBasedUPRSurrogate(SugiyamaLayout + BarycenterHeuristic, upwardProjection)"
+      : "DjangoErdUpwardPlanarizationSurrogate(SugiyamaLayout + BarycenterHeuristic, upwardProjection)";
+    metadata.strategy = "surrogate";
+    metadata.strategyReason =
+      "UpwardPlanarizationLayout is unstable on cyclic or disconnected ERD graphs, so ERD mode uses a bounded Sugiyama base with upward projection";
     return metadata;
   }
 
   if (mode == "visibility") {
-    if (nodes.size() >= kLargeGraphNodeThreshold) {
-      runSugiyamaLayout("hierarchical", attributes);
-      applyVisibilitySurrogateGeometry(nodes, edges, attributes);
-      metadata.actualMode = "visibility";
-      metadata.actualAlgorithm =
-        "DjangoErdVisibilitySurrogate(SugiyamaLayout + MedianHeuristic, visibilityGridRouting)";
-      metadata.strategy = "large_graph_surrogate";
-      metadata.strategyReason =
-        "nodes>=500; visibility layout uses a bounded Sugiyama base with grid visibility routing";
-      return metadata;
-    }
-
-    ogdf::VisibilityLayout layout;
-    layout.setMinGridDistance(90);
-    layout.call(attributes);
-    metadata.actualAlgorithm = "VisibilityLayout(minGridDistance=90)";
+    runSugiyamaLayout("hierarchical", attributes);
+    applyVisibilitySurrogateGeometry(nodes, edges, attributes);
+    metadata.actualMode = "visibility";
+    metadata.actualAlgorithm =
+      "DjangoErdVisibilitySurrogate(SugiyamaLayout + MedianHeuristic, visibilityGridRouting)";
+    metadata.strategy = "surrogate";
+    metadata.strategyReason =
+      "VisibilityLayout is unstable on cyclic or disconnected ERD graphs, so ERD mode uses a bounded Sugiyama base with grid visibility routing";
     return metadata;
   }
 
@@ -1457,7 +1937,7 @@ LayoutRunMetadata runLayout(
   }
 
   if (mode == "uml_ortho") {
-    if (nodes.size() >= kLargeGraphNodeThreshold) {
+    if (nodes.size() >= kTopologySurrogateNodeThreshold) {
       runSugiyamaLayout("hierarchical_barycenter", attributes);
       applyOrthogonalSurrogateGeometry(nodes, edges, attributes);
       metadata.actualMode = "uml_ortho";
@@ -1465,7 +1945,9 @@ LayoutRunMetadata runLayout(
         "DjangoErdUmlOrthoSurrogate(SugiyamaLayout + BarycenterHeuristic, umlOrthogonalProjection)";
       metadata.strategy = "large_graph_surrogate";
       metadata.strategyReason =
-        "nodes>=500; UML orthogonal layout uses a bounded Sugiyama base snapped to orthogonal routing";
+        nodeThresholdReason(
+          kTopologySurrogateNodeThreshold,
+          "UML orthogonal layout uses a bounded Sugiyama base snapped to orthogonal routing");
       return metadata;
     }
 
@@ -1477,7 +1959,7 @@ LayoutRunMetadata runLayout(
   }
 
   if (mode == "uml_planarization") {
-    if (nodes.size() >= kLargeGraphNodeThreshold) {
+    if (nodes.size() >= kTopologySurrogateNodeThreshold) {
       runSugiyamaLayout("hierarchical_barycenter", attributes);
       applyUmlPlanarSurrogateGeometry(nodes, edges, attributes);
       metadata.actualMode = "uml_planarization";
@@ -1485,7 +1967,9 @@ LayoutRunMetadata runLayout(
         "DjangoErdUmlPlanarizationSurrogate(SugiyamaLayout + BarycenterHeuristic, umlPlanarProjection)";
       metadata.strategy = "large_graph_surrogate";
       metadata.strategyReason =
-        "nodes>=500; UML planarization uses a bounded Sugiyama base plus planar skewing";
+        nodeThresholdReason(
+          kTopologySurrogateNodeThreshold,
+          "UML planarization uses a bounded Sugiyama base plus planar skewing");
       return metadata;
     }
 
@@ -1539,16 +2023,9 @@ Bounds measureBounds(
       hasPoint);
   }
 
-  for (const EdgeRecord& edge : edges) {
-    const double sourceX = attributes.x(edge.handle->source());
-    const double sourceY = attributes.y(edge.handle->source());
-    const double targetX = attributes.x(edge.handle->target());
-    const double targetY = attributes.y(edge.handle->target());
-    updateBounds(bounds, sourceX, sourceY, hasPoint);
-    updateBounds(bounds, targetX, targetY, hasPoint);
-
-    for (const ogdf::DPoint& bend : attributes.bends(edge.handle)) {
-      updateBounds(bounds, bend.m_x, bend.m_y, hasPoint);
+  for (std::size_t edgeIndex = 0; edgeIndex < edges.size(); ++edgeIndex) {
+    for (const RoutePoint& point : routeObstacleAwareEdge(edges[edgeIndex], edgeIndex, nodes, attributes)) {
+      updateBounds(bounds, point.x, point.y, hasPoint);
     }
   }
 
@@ -1645,31 +2122,12 @@ void writeLayoutJson(
     }
 
     stream << "{\"crossingIds\":[],\"edgeId\":\"" << escapeJson(edge.edgeId) << "\",\"points\":[";
-    bool wrotePoint = false;
-
-    writePoint(
-      stream,
-      attributes.x(edge.handle->source()),
-      attributes.y(edge.handle->source()),
-      bounds);
-    wrotePoint = true;
-
-    for (const ogdf::DPoint& bend : attributes.bends(edge.handle)) {
-      stream << ",";
-      writePoint(stream, bend.m_x, bend.m_y, bounds);
-    }
-
-    const double targetX = attributes.x(edge.handle->target());
-    const double targetY = attributes.y(edge.handle->target());
-    const bool hasTerminalBend = !attributes.bends(edge.handle).empty()
-      && attributes.bends(edge.handle).back().m_x == targetX
-      && attributes.bends(edge.handle).back().m_y == targetY;
-
-    if (!hasTerminalBend) {
-      if (wrotePoint) {
+    const std::vector<RoutePoint> route = routeObstacleAwareEdge(edge, index, nodes, attributes);
+    for (std::size_t pointIndex = 0; pointIndex < route.size(); ++pointIndex) {
+      if (pointIndex > 0) {
         stream << ",";
       }
-      writePoint(stream, targetX, targetY, bounds);
+      writePoint(stream, route[pointIndex].x, route[pointIndex].y, bounds);
     }
 
     stream << "]}";
@@ -1695,6 +2153,8 @@ int main(int argc, char** argv) {
       metadata = runLayout(arguments.mode, nodes, edges, attributes);
     }
 
+    sanitizeLayoutGeometry(nodes, edges, attributes);
+    packDisconnectedComponents(nodes, edges, attributes);
     sanitizeLayoutGeometry(nodes, edges, attributes);
     const Bounds bounds = measureBounds(nodes, edges, attributes);
     writeLayoutJson(std::cout, arguments.mode, metadata, nodes, edges, attributes, bounds);
