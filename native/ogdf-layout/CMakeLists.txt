@@ -18,6 +18,7 @@ add_subdirectory(${OGDF_SOURCE_DIR} ${CMAKE_BINARY_DIR}/ogdf)
 
 add_executable(django-erd-ogdf-layout
   src/main.cpp
+  src/io.cpp
 )
 
 target_link_libraries(django-erd-ogdf-layout PRIVATE OGDF)
