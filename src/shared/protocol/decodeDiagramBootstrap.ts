@@ -255,6 +255,7 @@ function decodeLayoutEngineMetadata(
   return {
     actualAlgorithm: readOptionalString(metadata, "actualAlgorithm", `${context}.engineMetadata`),
     actualMode: readOptionalLayoutMode(metadata, "actualMode", `${context}.engineMetadata`),
+    edgeCrossings: readOptionalNumber(metadata, "edgeCrossings", `${context}.engineMetadata`),
     edgeNodeIntersections: readOptionalNumber(metadata, "edgeNodeIntersections", `${context}.engineMetadata`),
     edgeSegmentOverlaps: readOptionalNumber(metadata, "edgeSegmentOverlaps", `${context}.engineMetadata`),
     nodeOverlaps: readOptionalNumber(metadata, "nodeOverlaps", `${context}.engineMetadata`),

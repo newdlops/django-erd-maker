@@ -15,6 +15,8 @@ export const OGDF_LAYOUT_TOOLBAR_MODES = [
   "hierarchical_split",
   "circular",
   "linear",
+  "constrained_force",
+  "constrained_force_straight",
   "fmmm",
   "fast_multipole",
   "fast_multipole_multilevel",
@@ -41,7 +43,7 @@ export type ToolbarLayoutMode = (typeof OGDF_LAYOUT_TOOLBAR_MODES)[number];
 
 export const OGDF_LAYOUT_MODES = [...OGDF_LAYOUT_TOOLBAR_MODES, "clustered"] as const;
 export type LayoutMode = (typeof OGDF_LAYOUT_MODES)[number];
-export const DEFAULT_LAYOUT_MODE: LayoutMode = OGDF_LAYOUT_MODES[0];
+export const DEFAULT_LAYOUT_MODE: LayoutMode = "constrained_force";
 
 export interface OgdfLayoutDefinition {
   analyzerMode: AnalyzerLayoutMode;
@@ -98,6 +100,24 @@ const OGDF_LAYOUT_DEFINITIONS: Record<LayoutMode, OgdfLayoutDefinition> = {
     label: "Cluster Planarization Layout",
     ogdfClass: "ClusterPlanarizationLayout",
     shortLabel: "Cluster Planar",
+    toolbar: true,
+  },
+  constrained_force: {
+    analyzerMode: "clustered",
+    family: "energy",
+    id: "constrained_force",
+    label: "Constrained Force Layout",
+    ogdfClass: "ConstrainedForceDirectedLayout",
+    shortLabel: "Force+",
+    toolbar: true,
+  },
+  constrained_force_straight: {
+    analyzerMode: "clustered",
+    family: "energy",
+    id: "constrained_force_straight",
+    label: "Constrained Force Layout (Straight Edges)",
+    ogdfClass: "ConstrainedForceDirectedLayout + StraightLineRouter",
+    shortLabel: "Force Line",
     toolbar: true,
   },
   davidson_harel: {
@@ -402,6 +422,7 @@ export interface EdgeCrossing {
 export interface LayoutEngineMetadata {
   actualAlgorithm?: string;
   actualMode?: LayoutMode;
+  edgeCrossings?: number;
   edgeNodeIntersections?: number;
   edgeSegmentOverlaps?: number;
   nodeOverlaps?: number;

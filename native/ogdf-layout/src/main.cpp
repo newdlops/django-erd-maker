@@ -96,6 +96,44 @@ struct RoutePoint {
   double y = 0.0;
 };
 
+struct NodeObstacle {
+  ogdf::node handle = nullptr;
+  std::string nodeId;
+  Rect rect;
+};
+
+struct LineIntent {
+  std::size_t lineIndex = 0;
+  std::string lineId;
+  double laneOffset = 0.0;
+  bool prefersHorizontal = true;
+  ogdf::node sourceHandle = nullptr;
+  std::string sourceNodeId;
+  Rect sourceRect;
+  ogdf::node targetHandle = nullptr;
+  std::string targetNodeId;
+  Rect targetRect;
+};
+
+struct LineSegment {
+  double axisEnd = 0.0;
+  double axisStart = 0.0;
+  bool horizontal = false;
+  long long laneKey = 0;
+  std::size_t lineIndex = 0;
+  std::string lineId;
+  RoutePoint end;
+  RoutePoint start;
+  bool vertical = false;
+};
+
+struct EdgeCrossingRecord {
+  std::string id;
+  std::string leftEdgeId;
+  RoutePoint position;
+  std::string rightEdgeId;
+};
+
 struct VisibilityPort {
   RoutePoint point;
   RoutePoint stub;
@@ -118,6 +156,7 @@ struct LayoutRunMetadata {
 };
 
 struct LayoutQualityMetrics {
+  std::size_t edgeCrossings = 0;
   std::size_t edgeNodeIntersections = 0;
   std::size_t edgeSegmentOverlaps = 0;
   std::size_t nodeOverlaps = 0;
@@ -126,10 +165,9 @@ struct LayoutQualityMetrics {
   std::size_t routeSegments = 0;
 };
 
-struct AxisRouteSegment {
-  std::size_t edgeIndex = 0;
-  double end = 0.0;
-  double start = 0.0;
+struct RouteOccupancy {
+  std::unordered_map<long long, std::vector<LineSegment>> horizontalSegmentsByLane;
+  std::unordered_map<long long, std::vector<LineSegment>> verticalSegmentsByLane;
 };
 
 constexpr std::size_t kSugiyamaSurrogateNodeThreshold = 10000;
@@ -156,6 +194,8 @@ constexpr double kDistantEdgeMaxTarget = 1120.0;
 constexpr double kDistantEdgeTargetFactor = 2.25;
 constexpr double kVisibilityLaneClearance = 14.0;
 constexpr double kMetricCoordinateScale = 100.0;
+constexpr std::size_t kMaxReportedCrossings = 5000;
+constexpr double kRoutingObstacleMargin = 14.0;
 
 struct DisjointSet {
   explicit DisjointSet(std::size_t size)
@@ -200,6 +240,14 @@ struct DisjointSet {
   std::vector<std::size_t> rank;
 };
 
+bool isConstrainedForceMode(const std::string& mode) {
+  return mode == "constrained_force" || mode == "constrained_force_straight";
+}
+
+bool isStraightLineRoutingMode(const std::string& mode) {
+  return mode == "constrained_force_straight";
+}
+
 bool isSupportedMode(const std::string& mode) {
   return mode == "hierarchical"
     || mode == "hierarchical_barycenter"
@@ -212,6 +260,8 @@ bool isSupportedMode(const std::string& mode) {
     || mode == "circular"
     || mode == "linear"
     || mode == "clustered"
+    || mode == "constrained_force"
+    || mode == "constrained_force_straight"
     || mode == "fmmm"
     || mode == "fast_multipole"
     || mode == "fast_multipole_multilevel"
@@ -1190,6 +1240,44 @@ std::vector<std::vector<std::size_t>> collectConnectedComponents(
   return components;
 }
 
+std::vector<std::vector<std::size_t>> buildUndirectedAdjacency(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges) {
+  std::unordered_map<ogdf::node, std::size_t> indicesByNode;
+  indicesByNode.reserve(nodes.size());
+  for (std::size_t index = 0; index < nodes.size(); ++index) {
+    indicesByNode.emplace(nodes[index].handle, index);
+  }
+
+  std::vector<std::vector<std::size_t>> adjacency(nodes.size());
+  for (const EdgeRecord& edge : edges) {
+    const auto source = indicesByNode.find(edge.sourceHandle);
+    const auto target = indicesByNode.find(edge.targetHandle);
+    if (
+      source == indicesByNode.end()
+      || target == indicesByNode.end()
+      || source->second == target->second) {
+      continue;
+    }
+
+    auto& sourceNeighbors = adjacency[source->second];
+    if (
+      std::find(sourceNeighbors.begin(), sourceNeighbors.end(), target->second)
+      == sourceNeighbors.end()) {
+      sourceNeighbors.push_back(target->second);
+    }
+
+    auto& targetNeighbors = adjacency[target->second];
+    if (
+      std::find(targetNeighbors.begin(), targetNeighbors.end(), source->second)
+      == targetNeighbors.end()) {
+      targetNeighbors.push_back(source->second);
+    }
+  }
+
+  return adjacency;
+}
+
 Rect componentRect(
   const std::vector<NodeRecord>& nodes,
   const std::vector<std::size_t>& component,
@@ -1672,7 +1760,10 @@ bool compactExcessiveLayoutFootprint(
   const double centerY = rectCenterY(bounds);
   const double nodeFactor = std::sqrt(static_cast<double>(nodes.size()));
 
-  if (mode == "fast_multipole" || mode == "fast_multipole_multilevel") {
+  if (
+    mode == "fast_multipole"
+    || mode == "fast_multipole_multilevel"
+    || isConstrainedForceMode(mode)) {
     const double targetMaxDimension = std::max(24000.0, nodeFactor * 680.0);
     const double maxDimension = std::max(width, height);
     if (maxDimension <= targetMaxDimension) {
@@ -1772,7 +1863,195 @@ bool segmentIntersectsRect(const RoutePoint& start, const RoutePoint& end, const
       && minX < rect.right;
   }
 
-  return false;
+  double minT = 0.0;
+  double maxT = 1.0;
+  const double dx = end.x - start.x;
+  const double dy = end.y - start.y;
+  const auto clip = [&](double edge, double distance) {
+    if (std::abs(edge) < 0.01) {
+      return distance >= 0.0;
+    }
+
+    const double t = distance / edge;
+    if (edge < 0.0) {
+      if (t > maxT) {
+        return false;
+      }
+      minT = std::max(minT, t);
+    } else {
+      if (t < minT) {
+        return false;
+      }
+      maxT = std::min(maxT, t);
+    }
+    return true;
+  };
+
+  if (!clip(-dx, start.x - rect.left)) {
+    return false;
+  }
+  if (!clip(dx, rect.right - start.x)) {
+    return false;
+  }
+  if (!clip(-dy, start.y - rect.top)) {
+    return false;
+  }
+  if (!clip(dy, rect.bottom - start.y)) {
+    return false;
+  }
+
+  return maxT - minT > 0.001;
+}
+
+long long metricLaneKey(double value) {
+  return static_cast<long long>(std::llround(value * kMetricCoordinateScale));
+}
+
+bool intervalsOverlap(double leftStart, double leftEnd, double rightStart, double rightEnd) {
+  return std::min(leftEnd, rightEnd) - std::max(leftStart, rightStart) > 1.0;
+}
+
+double distributedLaneOffset(std::size_t lineIndex) {
+  constexpr std::size_t laneCount = 73;
+  constexpr double laneStep = 8.0;
+  const std::size_t lane = (lineIndex * 37) % laneCount;
+  const double center = static_cast<double>(laneCount - 1) / 2.0;
+  return (static_cast<double>(lane) - center) * laneStep;
+}
+
+LineIntent makeLineIntent(
+  const EdgeRecord& edge,
+  std::size_t lineIndex,
+  ogdf::GraphAttributes& attributes) {
+  const Rect sourceRect = handleRect(edge.sourceHandle, attributes);
+  const Rect targetRect = handleRect(edge.targetHandle, attributes);
+  return {
+    lineIndex,
+    edge.edgeId,
+    distributedLaneOffset(lineIndex),
+    std::abs(rectCenterX(targetRect) - rectCenterX(sourceRect))
+      >= std::abs(rectCenterY(targetRect) - rectCenterY(sourceRect)),
+    edge.sourceHandle,
+    edge.sourceModelId,
+    sourceRect,
+    edge.targetHandle,
+    edge.targetModelId,
+    targetRect,
+  };
+}
+
+std::vector<NodeObstacle> makeNodeObstacles(
+  const std::vector<NodeRecord>& nodes,
+  ogdf::GraphAttributes& attributes,
+  double margin,
+  ogdf::node sourceHandle,
+  ogdf::node targetHandle) {
+  std::vector<NodeObstacle> obstacles;
+  obstacles.reserve(nodes.size());
+  for (const NodeRecord& node : nodes) {
+    if (node.handle == sourceHandle || node.handle == targetHandle) {
+      continue;
+    }
+
+    obstacles.push_back({ node.handle, node.modelId, nodeRect(node, attributes, margin) });
+  }
+  return obstacles;
+}
+
+std::vector<Rect> collectObstacleRects(const std::vector<NodeObstacle>& obstacles) {
+  std::vector<Rect> rects;
+  rects.reserve(obstacles.size());
+  for (const NodeObstacle& obstacle : obstacles) {
+    rects.push_back(obstacle.rect);
+  }
+  return rects;
+}
+
+bool makeLineSegment(
+  const std::string& lineId,
+  std::size_t lineIndex,
+  const RoutePoint& start,
+  const RoutePoint& end,
+  LineSegment& segment) {
+  const bool horizontal = std::abs(start.y - end.y) < 0.01;
+  const bool vertical = std::abs(start.x - end.x) < 0.01;
+  const double axisStart = horizontal ? start.x : (vertical ? start.y : 0.0);
+  const double axisEnd = horizontal
+    ? end.x
+    : (vertical ? end.y : std::hypot(end.x - start.x, end.y - start.y));
+  const double minAxis = std::min(axisStart, axisEnd);
+  const double maxAxis = std::max(axisStart, axisEnd);
+  if (maxAxis - minAxis <= 1.0) {
+    return false;
+  }
+
+  segment = {
+    maxAxis,
+    minAxis,
+    horizontal,
+    horizontal || vertical ? metricLaneKey(horizontal ? start.y : start.x) : 0,
+    lineIndex,
+    lineId,
+    end,
+    start,
+    vertical,
+  };
+  return true;
+}
+
+std::vector<LineSegment> buildLineSegments(
+  const std::vector<RoutePoint>& points,
+  std::size_t lineIndex,
+  const std::string& lineId) {
+  std::vector<LineSegment> segments;
+  if (points.size() < 2) {
+    return segments;
+  }
+
+  segments.reserve(points.size() - 1);
+  for (std::size_t index = 1; index < points.size(); ++index) {
+    LineSegment segment;
+    if (makeLineSegment(lineId, lineIndex, points[index - 1], points[index], segment)) {
+      segments.push_back(segment);
+    }
+  }
+
+  return segments;
+}
+
+double occupancyCostForAxisSegment(
+  const RouteOccupancy* occupancy,
+  bool horizontal,
+  long long laneKey,
+  double start,
+  double end) {
+  if (occupancy == nullptr) {
+    return 0.0;
+  }
+
+  const double minAxis = std::min(start, end);
+  const double maxAxis = std::max(start, end);
+  if (maxAxis - minAxis <= 1.0) {
+    return 0.0;
+  }
+
+  const auto& groups = horizontal
+    ? occupancy->horizontalSegmentsByLane
+    : occupancy->verticalSegmentsByLane;
+  const auto found = groups.find(laneKey);
+  if (found == groups.end()) {
+    return 0.0;
+  }
+
+  double penalty = 0.0;
+  for (const LineSegment& used : found->second) {
+    if (!intervalsOverlap(minAxis, maxAxis, used.axisStart, used.axisEnd)) {
+      continue;
+    }
+    const double overlap = std::min(maxAxis, used.axisEnd) - std::max(minAxis, used.axisStart);
+    penalty += 1'200'000.0 + overlap * 900.0;
+  }
+  return penalty;
 }
 
 double routeLength(const std::vector<RoutePoint>& points) {
@@ -1784,13 +2063,43 @@ double routeLength(const std::vector<RoutePoint>& points) {
   return length;
 }
 
+double routeOccupancyPenalty(
+  const std::vector<RoutePoint>& points,
+  const RouteOccupancy* occupancy) {
+  if (occupancy == nullptr) {
+    return 0.0;
+  }
+
+  double penalty = 0.0;
+  for (const LineSegment& segment : buildLineSegments(
+      points,
+      std::numeric_limits<std::size_t>::max(),
+      "")) {
+    if (!segment.horizontal && !segment.vertical) {
+      continue;
+    }
+    penalty += occupancyCostForAxisSegment(
+      occupancy,
+      segment.horizontal,
+      segment.laneKey,
+      segment.axisStart,
+      segment.axisEnd);
+  }
+
+  return penalty;
+}
+
 double routeScore(
   const std::vector<RoutePoint>& points,
-  const std::vector<Rect>& obstacles) {
+  const std::vector<NodeObstacle>& obstacles,
+  const RouteOccupancy* occupancy = nullptr) {
   double intersections = 0.0;
-  for (std::size_t index = 1; index < points.size(); ++index) {
-    for (const Rect& obstacle : obstacles) {
-      if (segmentIntersectsRect(points[index - 1], points[index], obstacle)) {
+  for (const LineSegment& segment : buildLineSegments(
+      points,
+      std::numeric_limits<std::size_t>::max(),
+      "")) {
+    for (const NodeObstacle& obstacle : obstacles) {
+      if (segmentIntersectsRect(segment.start, segment.end, obstacle.rect)) {
         intersections += 1.0;
       }
     }
@@ -1798,66 +2107,57 @@ double routeScore(
 
   return intersections * 1'000'000.0
     + routeLength(points)
-    + static_cast<double>(points.size()) * 20.0;
+    + static_cast<double>(points.size()) * 20.0
+    + routeOccupancyPenalty(points, occupancy);
 }
 
-long long metricLaneKey(double value) {
-  return static_cast<long long>(std::llround(value * kMetricCoordinateScale));
-}
-
-bool intervalsOverlap(double leftStart, double leftEnd, double rightStart, double rightEnd) {
-  return std::min(leftEnd, rightEnd) - std::max(leftStart, rightStart) > 1.0;
-}
-
-void addAxisRouteSegment(
-  std::unordered_map<long long, std::vector<AxisRouteSegment>>& groups,
-  long long laneKey,
-  std::size_t edgeIndex,
-  double start,
-  double end) {
-  const double minAxis = std::min(start, end);
-  const double maxAxis = std::max(start, end);
-  if (maxAxis - minAxis <= 1.0) {
-    return;
+void recordRouteOccupancy(
+  const std::vector<RoutePoint>& points,
+  const LineIntent& line,
+  RouteOccupancy& occupancy) {
+  for (const LineSegment& segment : buildLineSegments(points, line.lineIndex, line.lineId)) {
+    if (segment.horizontal) {
+      occupancy.horizontalSegmentsByLane[segment.laneKey].push_back(segment);
+    } else if (segment.vertical) {
+      occupancy.verticalSegmentsByLane[segment.laneKey].push_back(segment);
+    }
   }
-
-  groups[laneKey].push_back({ edgeIndex, maxAxis, minAxis });
 }
 
 std::size_t countAxisSegmentOverlaps(
-  std::vector<AxisRouteSegment>& segments,
+  std::vector<LineSegment>& segments,
   std::vector<bool>& overlappingEdgeFlags) {
   std::sort(
     segments.begin(),
     segments.end(),
-    [](const AxisRouteSegment& left, const AxisRouteSegment& right) {
-      if (std::abs(left.start - right.start) > 0.01) {
-        return left.start < right.start;
+    [](const LineSegment& left, const LineSegment& right) {
+      if (std::abs(left.axisStart - right.axisStart) > 0.01) {
+        return left.axisStart < right.axisStart;
       }
-      return left.end < right.end;
+      return left.axisEnd < right.axisEnd;
     });
 
   std::size_t overlaps = 0;
   for (std::size_t leftIndex = 0; leftIndex < segments.size(); ++leftIndex) {
-    const AxisRouteSegment& left = segments[leftIndex];
+    const LineSegment& left = segments[leftIndex];
     for (std::size_t rightIndex = leftIndex + 1; rightIndex < segments.size(); ++rightIndex) {
-      const AxisRouteSegment& right = segments[rightIndex];
-      if (right.start >= left.end - 1.0) {
+      const LineSegment& right = segments[rightIndex];
+      if (right.axisStart >= left.axisEnd - 1.0) {
         break;
       }
-      if (left.edgeIndex == right.edgeIndex) {
+      if (left.lineIndex == right.lineIndex) {
         continue;
       }
-      if (!intervalsOverlap(left.start, left.end, right.start, right.end)) {
+      if (!intervalsOverlap(left.axisStart, left.axisEnd, right.axisStart, right.axisEnd)) {
         continue;
       }
 
       overlaps += 1;
-      if (left.edgeIndex < overlappingEdgeFlags.size()) {
-        overlappingEdgeFlags[left.edgeIndex] = true;
+      if (left.lineIndex < overlappingEdgeFlags.size()) {
+        overlappingEdgeFlags[left.lineIndex] = true;
       }
-      if (right.edgeIndex < overlappingEdgeFlags.size()) {
-        overlappingEdgeFlags[right.edgeIndex] = true;
+      if (right.lineIndex < overlappingEdgeFlags.size()) {
+        overlappingEdgeFlags[right.lineIndex] = true;
       }
     }
   }
@@ -1915,8 +2215,7 @@ LayoutQualityMetrics measureLayoutQuality(
   metrics.nodeOverlaps = countNodeRectOverlaps(nodes, attributes, false);
   metrics.nodeSpacingOverlaps = countNodeRectOverlaps(nodes, attributes, true);
 
-  std::unordered_map<long long, std::vector<AxisRouteSegment>> horizontalSegmentsByLane;
-  std::unordered_map<long long, std::vector<AxisRouteSegment>> verticalSegmentsByLane;
+  RouteOccupancy occupancy;
 
   for (std::size_t edgeIndex = 0; edgeIndex < routes.size() && edgeIndex < edges.size(); ++edgeIndex) {
     const std::vector<RoutePoint>& route = routes[edgeIndex];
@@ -1924,50 +2223,49 @@ LayoutQualityMetrics measureLayoutQuality(
       continue;
     }
 
-    const EdgeRecord& edge = edges[edgeIndex];
-    for (std::size_t pointIndex = 1; pointIndex < route.size(); ++pointIndex) {
-      const RoutePoint& start = route[pointIndex - 1];
-      const RoutePoint& end = route[pointIndex];
+    const LineIntent line = makeLineIntent(edges[edgeIndex], edgeIndex, attributes);
+    const std::vector<NodeObstacle> obstacles =
+      makeNodeObstacles(nodes, attributes, 0.0, line.sourceHandle, line.targetHandle);
+    const std::vector<LineSegment> segments = buildLineSegments(route, line.lineIndex, line.lineId);
+
+    for (const LineSegment& segment : segments) {
       metrics.routeSegments += 1;
 
-      for (const NodeRecord& node : nodes) {
-        if (node.handle == edge.sourceHandle || node.handle == edge.targetHandle) {
-          continue;
-        }
-        if (segmentIntersectsRect(start, end, nodeRect(node, attributes))) {
+      for (const NodeObstacle& obstacle : obstacles) {
+        if (segmentIntersectsRect(segment.start, segment.end, obstacle.rect)) {
           metrics.edgeNodeIntersections += 1;
         }
       }
-
-      if (std::abs(start.y - end.y) < 0.01) {
-        addAxisRouteSegment(
-          horizontalSegmentsByLane,
-          metricLaneKey(start.y),
-          edgeIndex,
-          start.x,
-          end.x);
-      } else if (std::abs(start.x - end.x) < 0.01) {
-        addAxisRouteSegment(
-          verticalSegmentsByLane,
-          metricLaneKey(start.x),
-          edgeIndex,
-          start.y,
-          end.y);
-      }
     }
+
+    recordRouteOccupancy(route, line, occupancy);
   }
 
   std::vector<bool> overlappingEdgeFlags(edges.size(), false);
-  for (auto& entry : horizontalSegmentsByLane) {
+  for (auto& entry : occupancy.horizontalSegmentsByLane) {
     metrics.edgeSegmentOverlaps += countAxisSegmentOverlaps(entry.second, overlappingEdgeFlags);
   }
-  for (auto& entry : verticalSegmentsByLane) {
+  for (auto& entry : occupancy.verticalSegmentsByLane) {
     metrics.edgeSegmentOverlaps += countAxisSegmentOverlaps(entry.second, overlappingEdgeFlags);
   }
 
   metrics.overlappingEdges = static_cast<std::size_t>(
     std::count(overlappingEdgeFlags.begin(), overlappingEdgeFlags.end(), true));
   return metrics;
+}
+
+void enforceNodeSeparationStrong(
+  const std::vector<NodeRecord>& nodes,
+  ogdf::GraphAttributes& attributes) {
+  for (int attempt = 0; attempt < 4; ++attempt) {
+    enforceNodeSeparation(nodes, attributes);
+    if (
+      countNodeRectOverlaps(nodes, attributes, false) == 0
+      && countNodeRectOverlaps(nodes, attributes, true) == 0) {
+      return;
+    }
+    placeNodesWithoutOverlaps(nodes, attributes);
+  }
 }
 
 void addLaneValue(std::vector<double>& lanes, double value) {
@@ -2350,8 +2648,9 @@ VisibilityRoute routeVisibilityGridWithPorts(
   const std::vector<VisibilityPort>& targetPorts,
   const Rect& graphBounds,
   const std::vector<Rect>& obstacles,
-  double laneOffset) {
-  constexpr std::size_t maxVisibilityLanes = 72;
+  double laneOffset,
+  const RouteOccupancy* occupancy = nullptr) {
+  constexpr std::size_t maxVisibilityLanes = 96;
   constexpr double outerGap = 220.0;
 
   if (sourcePorts.empty() || targetPorts.empty()) {
@@ -2483,7 +2782,20 @@ VisibilityRoute routeVisibilityGridWithPorts(
       const double stepCost = horizontal
         ? std::abs(xLanes[x] - xLanes[nextX])
         : std::abs(yLanes[y] - yLanes[nextY]);
-      const double nextCost = cost + stepCost;
+      const double occupancyCost = horizontal
+        ? occupancyCostForAxisSegment(
+            occupancy,
+            true,
+            metricLaneKey(yLanes[y]),
+            xLanes[x],
+            xLanes[nextX])
+        : occupancyCostForAxisSegment(
+            occupancy,
+            false,
+            metricLaneKey(xLanes[x]),
+            yLanes[y],
+            yLanes[nextY]);
+      const double nextCost = cost + stepCost + occupancyCost;
       if (nextCost + 0.01 >= distance[next]) {
         return;
       }
@@ -2567,21 +2879,18 @@ std::vector<VisibilityPort> makeVisibilityPorts(
   };
 }
 
-std::vector<RoutePoint> routeObstacleAwareEdge(
-  const EdgeRecord& edge,
-  std::size_t edgeIndex,
-  const std::vector<NodeRecord>& nodes,
-  ogdf::GraphAttributes& attributes) {
-  const Rect graphBounds = graphNodeBounds(nodes, attributes);
-  const Rect source = handleRect(edge.sourceHandle, attributes);
-  const Rect target = handleRect(edge.targetHandle, attributes);
-  const bool horizontal = std::abs(rectCenterX(target) - rectCenterX(source))
-    >= std::abs(rectCenterY(target) - rectCenterY(source));
-  const double laneOffset = (static_cast<double>(edgeIndex % 9) - 4.0) * 26.0;
+std::vector<RoutePoint> routeObstacleAwareLine(
+  const LineIntent& line,
+  const Rect& graphBounds,
+  const std::vector<NodeObstacle>& obstacles,
+  const RouteOccupancy* occupancy = nullptr) {
+  const Rect source = line.sourceRect;
+  const Rect target = line.targetRect;
+  const bool horizontal = line.prefersHorizontal;
+  const double laneOffset = line.laneOffset;
   constexpr double portInset = 18.0;
   constexpr double stub = 52.0;
   constexpr double outerGap = 170.0;
-  constexpr double obstacleMargin = 6.0;
   constexpr double laneGap = kVisibilityLaneClearance;
 
   RoutePoint start;
@@ -2589,14 +2898,7 @@ std::vector<RoutePoint> routeObstacleAwareEdge(
   RoutePoint startStub;
   RoutePoint endStub;
   std::vector<std::vector<RoutePoint>> candidates;
-  std::vector<Rect> obstacles;
-  obstacles.reserve(nodes.size());
-  for (const NodeRecord& node : nodes) {
-    if (node.handle == edge.sourceHandle || node.handle == edge.targetHandle) {
-      continue;
-    }
-    obstacles.push_back(nodeRect(node, attributes, obstacleMargin));
-  }
+  const std::vector<Rect> obstacleRects = collectObstacleRects(obstacles);
 
   if (horizontal) {
     const bool leftToRight = rectCenterX(target) >= rectCenterX(source);
@@ -2621,14 +2923,14 @@ std::vector<RoutePoint> routeObstacleAwareEdge(
     const double maxX = std::max(startStub.x, endStub.x);
     const double minY = std::min(startStub.y, endStub.y);
     const double maxY = std::max(startStub.y, endStub.y);
-    for (const Rect& obstacle : obstacles) {
-      if (obstacle.bottom >= minY - laneGap && obstacle.top <= maxY + laneGap) {
-        addLaneValue(verticalLanes, obstacle.left - laneGap);
-        addLaneValue(verticalLanes, obstacle.right + laneGap);
+    for (const NodeObstacle& obstacle : obstacles) {
+      if (obstacle.rect.bottom >= minY - laneGap && obstacle.rect.top <= maxY + laneGap) {
+        addLaneValue(verticalLanes, obstacle.rect.left - laneGap);
+        addLaneValue(verticalLanes, obstacle.rect.right + laneGap);
       }
-      if (obstacle.right >= minX - laneGap && obstacle.left <= maxX + laneGap) {
-        addLaneValue(horizontalLanes, obstacle.top - laneGap);
-        addLaneValue(horizontalLanes, obstacle.bottom + laneGap);
+      if (obstacle.rect.right >= minX - laneGap && obstacle.rect.left <= maxX + laneGap) {
+        addLaneValue(horizontalLanes, obstacle.rect.top - laneGap);
+        addLaneValue(horizontalLanes, obstacle.rect.bottom + laneGap);
       }
     }
 
@@ -2691,14 +2993,14 @@ std::vector<RoutePoint> routeObstacleAwareEdge(
     const double maxX = std::max(startStub.x, endStub.x);
     const double minY = std::min(startStub.y, endStub.y);
     const double maxY = std::max(startStub.y, endStub.y);
-    for (const Rect& obstacle : obstacles) {
-      if (obstacle.bottom >= minY - laneGap && obstacle.top <= maxY + laneGap) {
-        addLaneValue(verticalLanes, obstacle.left - laneGap);
-        addLaneValue(verticalLanes, obstacle.right + laneGap);
+    for (const NodeObstacle& obstacle : obstacles) {
+      if (obstacle.rect.bottom >= minY - laneGap && obstacle.rect.top <= maxY + laneGap) {
+        addLaneValue(verticalLanes, obstacle.rect.left - laneGap);
+        addLaneValue(verticalLanes, obstacle.rect.right + laneGap);
       }
-      if (obstacle.right >= minX - laneGap && obstacle.left <= maxX + laneGap) {
-        addLaneValue(horizontalLanes, obstacle.top - laneGap);
-        addLaneValue(horizontalLanes, obstacle.bottom + laneGap);
+      if (obstacle.rect.right >= minX - laneGap && obstacle.rect.left <= maxX + laneGap) {
+        addLaneValue(horizontalLanes, obstacle.rect.top - laneGap);
+        addLaneValue(horizontalLanes, obstacle.rect.bottom + laneGap);
       }
     }
 
@@ -2745,7 +3047,7 @@ std::vector<RoutePoint> routeObstacleAwareEdge(
   const std::vector<VisibilityPort> targetPorts =
     makeVisibilityPorts(target, -laneOffset, portInset, stub);
   const VisibilityRoute visibilityRoute =
-    routeVisibilityGridWithPorts(sourcePorts, targetPorts, graphBounds, obstacles, laneOffset);
+    routeVisibilityGridWithPorts(sourcePorts, targetPorts, graphBounds, obstacleRects, laneOffset, occupancy);
   if (visibilityRoute.found && visibilityRoute.points.size() >= 2) {
     std::vector<RoutePoint> candidate;
     candidate.reserve(visibilityRoute.points.size() + 2);
@@ -2753,16 +3055,19 @@ std::vector<RoutePoint> routeObstacleAwareEdge(
     candidate.insert(candidate.end(), visibilityRoute.points.begin(), visibilityRoute.points.end());
     candidate.push_back(targetPorts[visibilityRoute.targetPortIndex].point);
     candidate = compressRoutePoints(std::move(candidate));
-    if (routeScore(candidate, obstacles) < 1'000'000.0) {
+    if (
+      routeScore(candidate, obstacles) < 1'000'000.0
+      && routeOccupancyPenalty(candidate, occupancy) < 0.01) {
       return candidate;
     }
     candidates.push_back(std::move(candidate));
   }
 
-  const double outerTop = graphBounds.top - outerGap - std::abs(laneOffset);
-  const double outerBottom = graphBounds.bottom + outerGap + std::abs(laneOffset);
-  const double outerLeft = graphBounds.left - outerGap - std::abs(laneOffset);
-  const double outerRight = graphBounds.right + outerGap + std::abs(laneOffset);
+  const double outerLaneSpread = static_cast<double>((line.lineIndex * 17) % 29) * 18.0;
+  const double outerTop = graphBounds.top - outerGap - std::abs(laneOffset) - outerLaneSpread;
+  const double outerBottom = graphBounds.bottom + outerGap + std::abs(laneOffset) + outerLaneSpread;
+  const double outerLeft = graphBounds.left - outerGap - std::abs(laneOffset) - outerLaneSpread;
+  const double outerRight = graphBounds.right + outerGap + std::abs(laneOffset) + outerLaneSpread;
   for (const VisibilityPort& sourcePort : sourcePorts) {
     for (const VisibilityPort& targetPort : targetPorts) {
       std::vector<std::vector<RoutePoint>> outerCandidates = {
@@ -2802,7 +3107,9 @@ std::vector<RoutePoint> routeObstacleAwareEdge(
 
       for (std::vector<RoutePoint>& candidate : outerCandidates) {
         candidate = compressRoutePoints(std::move(candidate));
-        if (routeScore(candidate, obstacles) < 1'000'000.0) {
+        if (
+          routeScore(candidate, obstacles) < 1'000'000.0
+          && routeOccupancyPenalty(candidate, occupancy) < 0.01) {
           return candidate;
         }
         candidates.push_back(std::move(candidate));
@@ -2814,7 +3121,7 @@ std::vector<RoutePoint> routeObstacleAwareEdge(
   double bestScore = std::numeric_limits<double>::infinity();
   for (std::vector<RoutePoint> candidate : candidates) {
     candidate = compressRoutePoints(std::move(candidate));
-    const double score = routeScore(candidate, obstacles);
+    const double score = routeScore(candidate, obstacles, occupancy);
     if (score < bestScore) {
       bestScore = score;
       best = std::move(candidate);
@@ -2857,6 +3164,12 @@ std::string describeLayoutAlgorithm(const std::string& mode) {
   }
   if (mode == "clustered" || mode == "fmmm") {
     return "FMMMLayout";
+  }
+  if (mode == "constrained_force") {
+    return "ConstrainedForceDirectedLayout";
+  }
+  if (mode == "constrained_force_straight") {
+    return "ConstrainedForceDirectedLayout + StraightLineRouter";
   }
   if (mode == "fast_multipole") {
     return "FastMultipoleEmbedder";
@@ -3050,6 +3363,32 @@ LayoutRunMetadata runLayout(
     layout.call(attributes);
     metadata.actualMode = "fmmm";
     metadata.actualAlgorithm = "FMMMLayout(BeautifulAndFast, unitEdgeLength=140)";
+    return metadata;
+  }
+
+  if (isConstrainedForceMode(mode)) {
+    ogdf::FMMMLayout seedLayout;
+    seedLayout.useHighLevelOptions(true);
+    seedLayout.unitEdgeLength(170.0);
+    seedLayout.newInitialPlacement(true);
+    seedLayout.qualityVersusSpeed(ogdf::FMMMOptions::QualityVsSpeed::BeautifulAndFast);
+    seedLayout.call(attributes);
+
+    ogdf::StressMinimization stressLayout;
+    stressLayout.hasInitialLayout(true);
+    stressLayout.setIterations(90);
+    stressLayout.setEdgeCosts(170.0);
+    stressLayout.layoutComponentsSeparately(true);
+    stressLayout.call(attributes);
+
+    metadata.actualMode = mode;
+    metadata.actualAlgorithm = isStraightLineRoutingMode(mode)
+      ? "ConstrainedForceDirectedLayout(FMMM seed + StressMinimization, degree-hub axis refinement, straight-line routing)"
+      : "ConstrainedForceDirectedLayout(FMMM seed + StressMinimization, constrained post-process)";
+    metadata.strategy = "constrained";
+    metadata.strategyReason = isStraightLineRoutingMode(mode)
+      ? "force-directed layout is refined around high-degree hubs, separated, and rendered with direct straight-line edges"
+      : "force-directed layout is refined with node separation, edge-node clearance, and occupancy-aware visibility routing";
     return metadata;
   }
 
@@ -3419,15 +3758,526 @@ Bounds measureBounds(
 std::vector<std::vector<RoutePoint>> routeAllEdges(
   const std::vector<NodeRecord>& nodes,
   const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes,
+  bool avoidLaneOverlaps = false) {
+  std::vector<std::vector<RoutePoint>> routes;
+  routes.reserve(edges.size());
+  RouteOccupancy occupancy;
+  RouteOccupancy* occupancyPtr = avoidLaneOverlaps ? &occupancy : nullptr;
+  const Rect graphBounds = graphNodeBounds(nodes, attributes);
+  constexpr double obstacleMargin = kRoutingObstacleMargin;
+
+  for (std::size_t edgeIndex = 0; edgeIndex < edges.size(); ++edgeIndex) {
+    const LineIntent line = makeLineIntent(edges[edgeIndex], edgeIndex, attributes);
+    const std::vector<NodeObstacle> obstacles =
+      makeNodeObstacles(nodes, attributes, obstacleMargin, line.sourceHandle, line.targetHandle);
+    routes.push_back(routeObstacleAwareLine(line, graphBounds, obstacles, occupancyPtr));
+    if (occupancyPtr != nullptr) {
+      recordRouteOccupancy(routes.back(), line, *occupancyPtr);
+    }
+  }
+
+  return routes;
+}
+
+RoutePoint straightPortOnRect(const Rect& rect, const Rect& target) {
+  const double centerX = rectCenterX(rect);
+  const double centerY = rectCenterY(rect);
+  double dx = rectCenterX(target) - centerX;
+  double dy = rectCenterY(target) - centerY;
+  if (std::abs(dx) < 0.01 && std::abs(dy) < 0.01) {
+    dx = 1.0;
+    dy = 0.0;
+  }
+
+  const double halfWidth = std::max(1.0, rectWidth(rect) / 2.0);
+  const double halfHeight = std::max(1.0, rectHeight(rect) / 2.0);
+  const double scaleX = std::abs(dx) < 0.01
+    ? std::numeric_limits<double>::infinity()
+    : halfWidth / std::abs(dx);
+  const double scaleY = std::abs(dy) < 0.01
+    ? std::numeric_limits<double>::infinity()
+    : halfHeight / std::abs(dy);
+  const double scale = std::min(scaleX, scaleY);
+  return {
+    std::round((centerX + dx * scale) * 100.0) / 100.0,
+    std::round((centerY + dy * scale) * 100.0) / 100.0,
+  };
+}
+
+std::vector<RoutePoint> routeStraightLine(const LineIntent& line) {
+  return compressRoutePoints({
+    straightPortOnRect(line.sourceRect, line.targetRect),
+    straightPortOnRect(line.targetRect, line.sourceRect),
+  });
+}
+
+std::vector<std::vector<RoutePoint>> routeAllEdgesStraight(
+  const std::vector<EdgeRecord>& edges,
   ogdf::GraphAttributes& attributes) {
   std::vector<std::vector<RoutePoint>> routes;
   routes.reserve(edges.size());
 
   for (std::size_t edgeIndex = 0; edgeIndex < edges.size(); ++edgeIndex) {
-    routes.push_back(routeObstacleAwareEdge(edges[edgeIndex], edgeIndex, nodes, attributes));
+    routes.push_back(routeStraightLine(makeLineIntent(edges[edgeIndex], edgeIndex, attributes)));
   }
 
   return routes;
+}
+
+int axisForNeighbor(double dx, double dy) {
+  if (std::abs(dx) >= std::abs(dy)) {
+    return dx >= 0.0 ? 0 : 1;
+  }
+  return dy >= 0.0 ? 3 : 2;
+}
+
+void placeAxisGroup(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<std::size_t>& group,
+  int axis,
+  double hubX,
+  double hubY,
+  double axisDistance,
+  double slotGapX,
+  double slotGapY,
+  ogdf::GraphAttributes& attributes) {
+  if (group.empty()) {
+    return;
+  }
+
+  const double middle = (static_cast<double>(group.size()) - 1.0) / 2.0;
+  for (std::size_t index = 0; index < group.size(); ++index) {
+    const NodeRecord& node = nodes[group[index]];
+    const double offset = static_cast<double>(index) - middle;
+
+    if (axis == 0) {
+      attributes.x(node.handle) = hubX + axisDistance;
+      attributes.y(node.handle) = hubY + offset * slotGapY;
+    } else if (axis == 1) {
+      attributes.x(node.handle) = hubX - axisDistance;
+      attributes.y(node.handle) = hubY + offset * slotGapY;
+    } else if (axis == 2) {
+      attributes.x(node.handle) = hubX + offset * slotGapX;
+      attributes.y(node.handle) = hubY - axisDistance;
+    } else {
+      attributes.x(node.handle) = hubX + offset * slotGapX;
+      attributes.y(node.handle) = hubY + axisDistance;
+    }
+  }
+}
+
+void refineStraightHubAxisLayout(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes) {
+  if (nodes.size() <= 3 || edges.empty()) {
+    return;
+  }
+
+  const std::vector<std::vector<std::size_t>> adjacency = buildUndirectedAdjacency(nodes, edges);
+  std::vector<std::vector<std::size_t>> components = collectConnectedComponents(nodes, edges);
+
+  for (const std::vector<std::size_t>& component : components) {
+    if (component.size() <= 3) {
+      continue;
+    }
+
+    const std::size_t hubIndex = *std::max_element(
+      component.begin(),
+      component.end(),
+      [&](std::size_t left, std::size_t right) {
+        if (adjacency[left].size() != adjacency[right].size()) {
+          return adjacency[left].size() < adjacency[right].size();
+        }
+        return nodes[left].modelId > nodes[right].modelId;
+      });
+    const std::size_t hubDegree = adjacency[hubIndex].size();
+    const std::size_t degreeThreshold = std::max<std::size_t>(
+      4,
+      static_cast<std::size_t>(std::ceil(std::sqrt(static_cast<double>(component.size())))));
+    if (hubDegree < degreeThreshold) {
+      continue;
+    }
+
+    double centerX = 0.0;
+    double centerY = 0.0;
+    double averageWidth = 0.0;
+    double averageHeight = 0.0;
+    for (std::size_t nodeIndex : component) {
+      centerX += sanitizeNodeCenterX(nodes[nodeIndex], attributes);
+      centerY += sanitizeNodeCenterY(nodes[nodeIndex], attributes);
+      averageWidth += sanitizeNodeWidth(nodes[nodeIndex], attributes);
+      averageHeight += sanitizeNodeHeight(nodes[nodeIndex], attributes);
+    }
+    centerX /= static_cast<double>(component.size());
+    centerY /= static_cast<double>(component.size());
+    averageWidth /= static_cast<double>(component.size());
+    averageHeight /= static_cast<double>(component.size());
+
+    const NodeRecord& hub = nodes[hubIndex];
+    const double hubX = centerX;
+    const double hubY = centerY;
+    attributes.x(hub.handle) = hubX;
+    attributes.y(hub.handle) = hubY;
+
+    std::vector<bool> inComponent(nodes.size(), false);
+    for (std::size_t nodeIndex : component) {
+      inComponent[nodeIndex] = true;
+    }
+
+    std::vector<std::size_t> axisGroups[4];
+    for (std::size_t neighbor : adjacency[hubIndex]) {
+      if (!inComponent[neighbor]) {
+        continue;
+      }
+      const double dx = sanitizeNodeCenterX(nodes[neighbor], attributes)
+        - sanitizeNodeCenterX(hub, attributes);
+      const double dy = sanitizeNodeCenterY(nodes[neighbor], attributes)
+        - sanitizeNodeCenterY(hub, attributes);
+      axisGroups[axisForNeighbor(dx, dy)].push_back(neighbor);
+    }
+
+    for (int axis = 0; axis < 4; ++axis) {
+      std::sort(
+        axisGroups[axis].begin(),
+        axisGroups[axis].end(),
+        [&](std::size_t left, std::size_t right) {
+          const double leftPrimary = axis < 2
+            ? sanitizeNodeCenterY(nodes[left], attributes)
+            : sanitizeNodeCenterX(nodes[left], attributes);
+          const double rightPrimary = axis < 2
+            ? sanitizeNodeCenterY(nodes[right], attributes)
+            : sanitizeNodeCenterX(nodes[right], attributes);
+          if (std::abs(leftPrimary - rightPrimary) > 0.01) {
+            return leftPrimary < rightPrimary;
+          }
+          return adjacency[left].size() > adjacency[right].size();
+        });
+    }
+
+    const double slotGapX = std::max(averageWidth + 96.0, 180.0);
+    const double slotGapY = std::max(averageHeight + 78.0, 150.0);
+    const double axisDistance = std::max(
+      360.0,
+      std::max(sanitizeNodeWidth(hub, attributes), sanitizeNodeHeight(hub, attributes)) + 260.0);
+    for (int axis = 0; axis < 4; ++axis) {
+      placeAxisGroup(
+        nodes,
+        axisGroups[axis],
+        axis,
+        hubX,
+        hubY,
+        axisDistance,
+        slotGapX,
+        slotGapY,
+        attributes);
+    }
+  }
+
+  enforceNodeSeparationStrong(nodes, attributes);
+}
+
+double capShiftVector(double& dx, double& dy, double limit) {
+  const double length = std::hypot(dx, dy);
+  if (length <= limit || length <= 0.01) {
+    return length;
+  }
+
+  const double scale = limit / length;
+  dx *= scale;
+  dy *= scale;
+  return limit;
+}
+
+std::size_t applyNodeShifts(
+  const std::vector<NodeRecord>& nodes,
+  ogdf::GraphAttributes& attributes,
+  std::vector<double>& shiftX,
+  std::vector<double>& shiftY,
+  double limit) {
+  std::size_t moved = 0;
+  for (std::size_t index = 0; index < nodes.size(); ++index) {
+    double dx = shiftX[index];
+    double dy = shiftY[index];
+    const double length = capShiftVector(dx, dy, limit);
+    if (length <= 0.05) {
+      continue;
+    }
+    attributes.x(nodes[index].handle) = sanitizeNodeCenterX(nodes[index], attributes) + dx;
+    attributes.y(nodes[index].handle) = sanitizeNodeCenterY(nodes[index], attributes) + dy;
+    moved += 1;
+  }
+  return moved;
+}
+
+std::size_t repelNodesFromStraightEdgeCorridors(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes) {
+  if (nodes.empty() || edges.empty()) {
+    return 0;
+  }
+
+  std::vector<double> shiftX(nodes.size(), 0.0);
+  std::vector<double> shiftY(nodes.size(), 0.0);
+  constexpr double corridorClearance = 72.0;
+
+  for (const EdgeRecord& edge : edges) {
+    const double sourceX = attributes.x(edge.sourceHandle);
+    const double sourceY = attributes.y(edge.sourceHandle);
+    const double targetX = attributes.x(edge.targetHandle);
+    const double targetY = attributes.y(edge.targetHandle);
+    const double edgeX = targetX - sourceX;
+    const double edgeY = targetY - sourceY;
+    const double lengthSquared = edgeX * edgeX + edgeY * edgeY;
+    if (lengthSquared <= 1.0) {
+      continue;
+    }
+    const double length = std::sqrt(lengthSquared);
+
+    for (std::size_t nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex) {
+      const NodeRecord& node = nodes[nodeIndex];
+      if (node.handle == edge.sourceHandle || node.handle == edge.targetHandle) {
+        continue;
+      }
+
+      const double centerX = sanitizeNodeCenterX(node, attributes);
+      const double centerY = sanitizeNodeCenterY(node, attributes);
+      const double projection = (
+        (centerX - sourceX) * edgeX + (centerY - sourceY) * edgeY) / lengthSquared;
+      if (projection <= 0.02 || projection >= 0.98) {
+        continue;
+      }
+
+      const double closestX = sourceX + edgeX * projection;
+      const double closestY = sourceY + edgeY * projection;
+      double awayX = centerX - closestX;
+      double awayY = centerY - closestY;
+      double distance = std::hypot(awayX, awayY);
+      if (distance <= 0.01) {
+        awayX = -edgeY / length;
+        awayY = edgeX / length;
+        distance = 1.0;
+      } else {
+        awayX /= distance;
+        awayY /= distance;
+      }
+
+      const double nodeRadius =
+        std::hypot(sanitizeNodeWidth(node, attributes), sanitizeNodeHeight(node, attributes)) / 2.0;
+      const double clearance = nodeRadius + corridorClearance;
+      if (distance >= clearance) {
+        continue;
+      }
+
+      const double strength = std::min(84.0, (clearance - distance) * 0.18);
+      shiftX[nodeIndex] += awayX * strength;
+      shiftY[nodeIndex] += awayY * strength;
+    }
+  }
+
+  return applyNodeShifts(nodes, attributes, shiftX, shiftY, 120.0);
+}
+
+std::size_t nudgeNodesFromRouteIntersections(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  const std::vector<std::vector<RoutePoint>>& routes,
+  ogdf::GraphAttributes& attributes) {
+  if (nodes.empty() || edges.empty()) {
+    return 0;
+  }
+
+  std::vector<double> shiftX(nodes.size(), 0.0);
+  std::vector<double> shiftY(nodes.size(), 0.0);
+  constexpr double clearance = 34.0;
+
+  for (std::size_t edgeIndex = 0; edgeIndex < routes.size() && edgeIndex < edges.size(); ++edgeIndex) {
+    const EdgeRecord& edge = edges[edgeIndex];
+    const std::vector<RoutePoint>& route = routes[edgeIndex];
+    for (std::size_t pointIndex = 1; pointIndex < route.size(); ++pointIndex) {
+      const RoutePoint& start = route[pointIndex - 1];
+      const RoutePoint& end = route[pointIndex];
+      const bool vertical = std::abs(start.x - end.x) < 0.01;
+      const bool horizontal = std::abs(start.y - end.y) < 0.01;
+      if (!vertical && !horizontal) {
+        continue;
+      }
+
+      for (std::size_t nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex) {
+        const NodeRecord& node = nodes[nodeIndex];
+        if (node.handle == edge.sourceHandle || node.handle == edge.targetHandle) {
+          continue;
+        }
+
+        if (!segmentIntersectsRect(start, end, nodeRect(node, attributes, clearance))) {
+          continue;
+        }
+
+        if (vertical) {
+          const double centerX = sanitizeNodeCenterX(node, attributes);
+          const double halfWidth = sanitizeNodeWidth(node, attributes) / 2.0;
+          const double direction = centerX >= start.x ? 1.0 : -1.0;
+          const double needed = halfWidth + clearance - std::abs(centerX - start.x);
+          shiftX[nodeIndex] += direction * std::min(96.0, std::max(18.0, needed * 0.65));
+        } else {
+          const double centerY = sanitizeNodeCenterY(node, attributes);
+          const double halfHeight = sanitizeNodeHeight(node, attributes) / 2.0;
+          const double direction = centerY >= start.y ? 1.0 : -1.0;
+          const double needed = halfHeight + clearance - std::abs(centerY - start.y);
+          shiftY[nodeIndex] += direction * std::min(96.0, std::max(18.0, needed * 0.65));
+        }
+      }
+    }
+  }
+
+  return applyNodeShifts(nodes, attributes, shiftX, shiftY, 140.0);
+}
+
+void refineConstrainedForceLayout(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes) {
+  for (int pass = 0; pass < 2; ++pass) {
+    for (int iteration = 0; iteration < 3; ++iteration) {
+      const std::size_t moved = repelNodesFromStraightEdgeCorridors(nodes, edges, attributes);
+      enforceNodeSeparationStrong(nodes, attributes);
+      if (moved == 0) {
+        break;
+      }
+    }
+
+    const std::vector<std::vector<RoutePoint>> routes =
+      routeAllEdges(nodes, edges, attributes, true);
+    const LayoutQualityMetrics quality = measureLayoutQuality(nodes, edges, routes, attributes);
+    if (quality.edgeNodeIntersections == 0) {
+      break;
+    }
+
+    const std::size_t nudged = nudgeNodesFromRouteIntersections(nodes, edges, routes, attributes);
+    enforceNodeSeparationStrong(nodes, attributes);
+    compactDistantConnectedNodes(nodes, edges, attributes);
+    if (nudged == 0) {
+      break;
+    }
+  }
+}
+
+double crossProduct(double ax, double ay, double bx, double by) {
+  return ax * by - ay * bx;
+}
+
+bool sharesEndpoint(const EdgeRecord& left, const EdgeRecord& right) {
+  return left.sourceHandle == right.sourceHandle
+    || left.sourceHandle == right.targetHandle
+    || left.targetHandle == right.sourceHandle
+    || left.targetHandle == right.targetHandle;
+}
+
+bool properSegmentIntersection(
+  const RoutePoint& leftStart,
+  const RoutePoint& leftEnd,
+  const RoutePoint& rightStart,
+  const RoutePoint& rightEnd,
+  RoutePoint& intersection) {
+  const double rx = leftEnd.x - leftStart.x;
+  const double ry = leftEnd.y - leftStart.y;
+  const double sx = rightEnd.x - rightStart.x;
+  const double sy = rightEnd.y - rightStart.y;
+  const double denominator = crossProduct(rx, ry, sx, sy);
+  if (std::abs(denominator) < 0.01) {
+    return false;
+  }
+
+  const double qpx = rightStart.x - leftStart.x;
+  const double qpy = rightStart.y - leftStart.y;
+  const double t = crossProduct(qpx, qpy, sx, sy) / denominator;
+  const double u = crossProduct(qpx, qpy, rx, ry) / denominator;
+  constexpr double endpointEpsilon = 0.001;
+  if (
+    t <= endpointEpsilon
+    || t >= 1.0 - endpointEpsilon
+    || u <= endpointEpsilon
+    || u >= 1.0 - endpointEpsilon) {
+    return false;
+  }
+
+  intersection = {
+    leftStart.x + t * rx,
+    leftStart.y + t * ry,
+  };
+  return true;
+}
+
+std::vector<EdgeCrossingRecord> detectRouteCrossings(
+  const std::vector<EdgeRecord>& edges,
+  const std::vector<std::vector<RoutePoint>>& routes,
+  std::vector<std::vector<std::string>>& crossingIdsByEdge,
+  std::size_t& totalCrossings) {
+  crossingIdsByEdge.assign(edges.size(), {});
+  totalCrossings = 0;
+  std::vector<EdgeCrossingRecord> crossings;
+
+  for (std::size_t leftIndex = 0; leftIndex < edges.size(); ++leftIndex) {
+    if (leftIndex >= routes.size() || routes[leftIndex].size() < 2) {
+      continue;
+    }
+
+    for (std::size_t rightIndex = leftIndex + 1; rightIndex < edges.size(); ++rightIndex) {
+      if (
+        rightIndex >= routes.size()
+        || routes[rightIndex].size() < 2
+        || sharesEndpoint(edges[leftIndex], edges[rightIndex])) {
+        continue;
+      }
+
+      std::size_t pairCrossingIndex = 0;
+      for (std::size_t leftPoint = 1; leftPoint < routes[leftIndex].size(); ++leftPoint) {
+        for (std::size_t rightPoint = 1; rightPoint < routes[rightIndex].size(); ++rightPoint) {
+          RoutePoint intersection;
+          if (!properSegmentIntersection(
+              routes[leftIndex][leftPoint - 1],
+              routes[leftIndex][leftPoint],
+              routes[rightIndex][rightPoint - 1],
+              routes[rightIndex][rightPoint],
+              intersection)) {
+            continue;
+          }
+
+          const std::size_t crossingIndex = pairCrossingIndex++;
+          totalCrossings += 1;
+          if (crossings.size() >= kMaxReportedCrossings) {
+            continue;
+          }
+
+          const std::string crossingId =
+            "cross:" + edges[leftIndex].edgeId + ":" + edges[rightIndex].edgeId + ":"
+            + std::to_string(crossingIndex);
+          crossingIdsByEdge[leftIndex].push_back(crossingId);
+          crossingIdsByEdge[rightIndex].push_back(crossingId);
+          crossings.push_back({
+            crossingId,
+            edges[leftIndex].edgeId,
+            intersection,
+            edges[rightIndex].edgeId,
+          });
+        }
+      }
+    }
+  }
+
+  for (std::vector<std::string>& edgeCrossingIds : crossingIdsByEdge) {
+    std::sort(edgeCrossingIds.begin(), edgeCrossingIds.end());
+  }
+  std::sort(
+    crossings.begin(),
+    crossings.end(),
+    [](const EdgeCrossingRecord& left, const EdgeCrossingRecord& right) {
+      return left.id < right.id;
+    });
+
+  return crossings;
 }
 
 std::string escapeJson(const std::string& value) {
@@ -3475,6 +4325,7 @@ void writeLayoutEngineMetadata(
          << "\",\"strategyReason\":\"" << escapeJson(metadata.strategyReason)
          << "\",\"nodeOverlaps\":" << quality.nodeOverlaps
          << ",\"nodeSpacingOverlaps\":" << quality.nodeSpacingOverlaps
+         << ",\"edgeCrossings\":" << quality.edgeCrossings
          << ",\"edgeNodeIntersections\":" << quality.edgeNodeIntersections
          << ",\"edgeSegmentOverlaps\":" << quality.edgeSegmentOverlaps
          << ",\"overlappingEdges\":" << quality.overlappingEdges
@@ -3490,10 +4341,26 @@ void writeLayoutJson(
   const std::vector<EdgeRecord>& edges,
   ogdf::GraphAttributes& attributes,
   const std::vector<std::vector<RoutePoint>>& routes,
+  const std::vector<EdgeCrossingRecord>& crossings,
+  const std::vector<std::vector<std::string>>& crossingIdsByEdge,
   const LayoutQualityMetrics& quality,
   const Bounds& bounds) {
   stream << std::fixed << std::setprecision(3);
-  stream << "{\"crossings\":[],\"engineMetadata\":";
+  stream << "{\"crossings\":[";
+  for (std::size_t index = 0; index < crossings.size(); ++index) {
+    const EdgeCrossingRecord& crossing = crossings[index];
+    if (index > 0) {
+      stream << ",";
+    }
+    stream << "{\"edgeIds\":[\"" << escapeJson(crossing.leftEdgeId)
+           << "\",\"" << escapeJson(crossing.rightEdgeId)
+           << "\"],\"id\":\"" << escapeJson(crossing.id)
+           << "\",\"markerStyle\":\"bridge\",\"position\":";
+    writePoint(stream, crossing.position.x, crossing.position.y, bounds);
+    stream << "}";
+  }
+
+  stream << "],\"engineMetadata\":";
   writeLayoutEngineMetadata(stream, metadata, quality);
   stream << ",\"mode\":\"" << escapeJson(mode) << "\",\"nodes\":[";
 
@@ -3525,7 +4392,17 @@ void writeLayoutJson(
       stream << ",";
     }
 
-    stream << "{\"crossingIds\":[],\"edgeId\":\"" << escapeJson(edge.edgeId) << "\",\"points\":[";
+    stream << "{\"crossingIds\":[";
+    if (index < crossingIdsByEdge.size()) {
+      const std::vector<std::string>& crossingIds = crossingIdsByEdge[index];
+      for (std::size_t crossingIndex = 0; crossingIndex < crossingIds.size(); ++crossingIndex) {
+        if (crossingIndex > 0) {
+          stream << ",";
+        }
+        stream << "\"" << escapeJson(crossingIds[crossingIndex]) << "\"";
+      }
+    }
+    stream << "],\"edgeId\":\"" << escapeJson(edge.edgeId) << "\",\"points\":[";
     const std::vector<RoutePoint>& route = routes[index];
     for (std::size_t pointIndex = 0; pointIndex < route.size(); ++pointIndex) {
       if (pointIndex > 0) {
@@ -3565,14 +4442,42 @@ int main(int argc, char** argv) {
       metadata.strategyReason += "post-layout footprint compaction capped oversized axes";
     }
     compactDistantConnectedNodes(nodes, edges, attributes);
-    enforceNodeSeparation(nodes, attributes);
+    enforceNodeSeparationStrong(nodes, attributes);
     packDisconnectedComponents(nodes, edges, attributes);
-    enforceNodeSeparation(nodes, attributes);
+    enforceNodeSeparationStrong(nodes, attributes);
+    if (isStraightLineRoutingMode(arguments.mode)) {
+      refineStraightHubAxisLayout(nodes, edges, attributes);
+      packDisconnectedComponents(nodes, edges, attributes);
+      enforceNodeSeparationStrong(nodes, attributes);
+    } else if (isConstrainedForceMode(arguments.mode)) {
+      refineConstrainedForceLayout(nodes, edges, attributes);
+      enforceNodeSeparationStrong(nodes, attributes);
+    }
     sanitizeLayoutGeometry(nodes, edges, attributes);
-    const std::vector<std::vector<RoutePoint>> routes = routeAllEdges(nodes, edges, attributes);
-    const LayoutQualityMetrics quality = measureLayoutQuality(nodes, edges, routes, attributes);
+    const bool straightLineMode = isStraightLineRoutingMode(arguments.mode);
+    const std::vector<std::vector<RoutePoint>> routes = straightLineMode
+      ? routeAllEdgesStraight(edges, attributes)
+      : routeAllEdges(nodes, edges, attributes, true);
+    std::vector<std::vector<std::string>> crossingIdsByEdge(edges.size());
+    std::size_t totalRouteCrossings = 0;
+    const std::vector<EdgeCrossingRecord> crossings = straightLineMode
+      ? detectRouteCrossings(edges, routes, crossingIdsByEdge, totalRouteCrossings)
+      : std::vector<EdgeCrossingRecord>{};
+    LayoutQualityMetrics quality = measureLayoutQuality(nodes, edges, routes, attributes);
+    quality.edgeCrossings = totalRouteCrossings;
     const Bounds bounds = measureBounds(nodes, routes, attributes);
-    writeLayoutJson(std::cout, arguments.mode, metadata, nodes, edges, attributes, routes, quality, bounds);
+    writeLayoutJson(
+      std::cout,
+      arguments.mode,
+      metadata,
+      nodes,
+      edges,
+      attributes,
+      routes,
+      crossings,
+      crossingIdsByEdge,
+      quality,
+      bounds);
     return 0;
   } catch (const std::exception& error) {
     std::cerr << error.what() << std::endl;
