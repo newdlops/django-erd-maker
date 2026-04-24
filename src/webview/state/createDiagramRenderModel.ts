@@ -1,4 +1,9 @@
 import type { ModelId } from "../../shared/domain/modelIdentity";
+import {
+  getOgdfLayoutDefinition,
+  normalizeLayoutMode,
+  type LayoutMode,
+} from "../../shared/graph/layoutContract";
 import type {
   ExtractedModel,
   MethodAssociationConfidence,
@@ -31,6 +36,22 @@ export interface InspectorRenderModel {
   discovery?: DiscoveryRenderModel;
   selectedMethodName?: string;
   selectedModelId?: string;
+}
+
+export interface LayoutExecutionRenderModel {
+  appliedLabel: string;
+  appliedMode: LayoutMode;
+  engine: "analyzer" | "empty" | "ogdf";
+  reason?: string;
+  requestedLabel: string;
+  requestedMode: LayoutMode;
+  status: "applied" | "empty" | "fallback";
+}
+
+export interface LayoutFailureRenderModel {
+  label: string;
+  mode: LayoutMode;
+  reason: string;
 }
 
 export interface MethodOverlayRenderModel {
@@ -82,6 +103,8 @@ export interface DiagramRenderModel {
   crossings: EdgeCrossing[];
   edges: EdgeRenderModel[];
   inspector: InspectorRenderModel;
+  layoutExecution: LayoutExecutionRenderModel;
+  layoutFailures: LayoutFailureRenderModel[];
   layoutMode: DiagramBootstrapPayload["view"]["layoutMode"];
   modelCatalogMode: boolean;
   overlays: MethodOverlayRenderModel[];
@@ -153,6 +176,8 @@ export function createDiagramRenderModel(
       selectedMethodName: payload.view.selectedMethodContext?.methodName,
       selectedModelId: payload.view.selectedModelId,
     },
+    layoutExecution: createLayoutExecution(payload),
+    layoutFailures: createLayoutFailures(payload),
     layoutMode: payload.view.layoutMode,
     modelCatalogMode,
     overlays,
@@ -332,7 +357,20 @@ function centerY(node: DiagramBootstrapPayload["layout"]["nodes"][number]): numb
 }
 
 function createDiagnostics(payload: DiagramBootstrapPayload): InspectorRenderModel["diagnostics"] {
+  const layoutExecution = createLayoutExecution(payload);
   const combined = [
+    ...(layoutExecution.status === "fallback"
+      ? [
+          {
+            code: "layout_fallback",
+            message: [
+              `Requested ${layoutExecution.requestedLabel} but applied ${layoutExecution.appliedLabel}.`,
+              layoutExecution.reason,
+            ].filter(Boolean).join(" "),
+            severity: "warning",
+          },
+        ]
+      : []),
     ...payload.analyzer.diagnostics,
     ...payload.graph.diagnostics,
   ];
@@ -342,6 +380,38 @@ function createDiagnostics(payload: DiagramBootstrapPayload): InspectorRenderMod
     message: diagnostic.message,
     severity: diagnostic.severity,
   }));
+}
+
+function createLayoutExecution(payload: DiagramBootstrapPayload): LayoutExecutionRenderModel {
+  const fallbackRequestedMode = normalizeLayoutMode(payload.view.layoutMode ?? payload.layout.mode);
+  const execution = payload.layoutExecution ?? {
+    appliedMode: payload.layout.mode,
+    engine: payload.layout.nodes.length > 0 ? "analyzer" : "empty",
+    requestedMode: fallbackRequestedMode,
+    status: payload.layout.nodes.length > 0 ? ("applied" as const) : ("empty" as const),
+  };
+
+  return {
+    appliedLabel: getLayoutLabel(execution.appliedMode),
+    appliedMode: execution.appliedMode,
+    engine: execution.engine,
+    reason: execution.reason,
+    requestedLabel: getLayoutLabel(execution.requestedMode),
+    requestedMode: execution.requestedMode,
+    status: execution.status,
+  };
+}
+
+function createLayoutFailures(payload: DiagramBootstrapPayload): LayoutFailureRenderModel[] {
+  return Object.entries(payload.layoutFailures ?? {}).map(([layoutMode, reason]) => ({
+    label: getLayoutLabel(layoutMode as LayoutMode),
+    mode: layoutMode as LayoutMode,
+    reason,
+  }));
+}
+
+function getLayoutLabel(layoutMode: LayoutMode): string {
+  return getOgdfLayoutDefinition(normalizeLayoutMode(layoutMode)).label;
 }
 
 function createDiscoveryRenderModel(

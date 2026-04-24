@@ -67,6 +67,30 @@ test("phase8 document respects method and property visibility state in the inspe
   assert.match(auditHtml, /Properties are hidden by the current table view state\./);
 });
 
+test("phase8 document surfaces layout fallback state and disables failed layout buttons", () => {
+  const html = render((payload) => {
+    payload.layout.mode = "clustered";
+    payload.view.layoutMode = "fmmm";
+    payload.layoutExecution = {
+      appliedMode: "clustered",
+      engine: "analyzer",
+      reason: "native layout timed out after 20000ms",
+      requestedMode: "planarization",
+      status: "fallback",
+    };
+    payload.layoutFailures = {
+      planarization: "native layout timed out after 20000ms",
+    };
+  });
+
+  assert.match(html, /Requested Planarization Layout/);
+  assert.match(html, /Applied FMMM Layout \(FM3\)/);
+  assert.match(html, /Fallback active/);
+  assert.match(html, /Layout Failures/);
+  assert.match(html, /Planarization Layout: native layout timed out after 20000ms/);
+  assert.match(html, /data-layout-mode="planarization"[\s\S]*disabled/);
+});
+
 test("phase8 canvas scene keeps hidden table state in the JSON scene graph without DOM table nodes", () => {
   const html = render((payload) => {
     const taxonomy = payload.view.tableOptions.find(

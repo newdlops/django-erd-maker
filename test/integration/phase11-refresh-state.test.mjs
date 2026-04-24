@@ -111,6 +111,76 @@ test("phase11 full refresh maps the previous viewport center proportionally onto
 
 function createLiveDiagramResult({ mode, nodes }) {
   return {
+    basePayload: {
+      analyzer: {
+        contractVersion: "1.0.0",
+        diagnostics: [],
+        models: [
+          {
+            databaseTableName: "app_post",
+            declaredBaseClasses: [],
+            fields: [],
+            hasExplicitDatabaseTableName: false,
+            identity: {
+              appLabel: "app",
+              id: "app.Post",
+              modelName: "Post",
+            },
+            methods: [
+              {
+                name: "publish",
+                relatedModels: [],
+                visibility: "public",
+              },
+            ],
+            properties: [],
+          },
+          {
+            databaseTableName: "app_author",
+            declaredBaseClasses: [],
+            fields: [],
+            hasExplicitDatabaseTableName: false,
+            identity: {
+              appLabel: "app",
+              id: "app.Author",
+              modelName: "Author",
+            },
+            methods: [],
+            properties: [],
+          },
+        ],
+        summary: {
+          diagnosticCount: 0,
+          discoveredAppCount: 1,
+          discoveredModelCount: 2,
+          workspaceRoot: "/workspace",
+        },
+      },
+      contractVersion: "1.0.0",
+      graph: {
+        diagnostics: [],
+        methodAssociations: [],
+        nodes: [],
+        structuralEdges: [],
+      },
+      layout: {
+        crossings: [],
+        mode,
+        nodes,
+        routedEdges: [],
+      },
+      layoutExecution: {
+        appliedMode: mode,
+        engine: "ogdf",
+        requestedMode: mode,
+        status: "applied",
+      },
+      layoutFailures: {},
+      view: {
+        layoutMode: mode,
+        tableOptions: [],
+      },
+    },
     discovery: {
       apps: [],
       candidateModelFiles: [],
@@ -119,6 +189,7 @@ function createLiveDiagramResult({ mode, nodes }) {
       selectedRoot: "/workspace",
       strategy: "manual",
     },
+    layoutFailures: {},
     payload: {
       analyzer: {
         contractVersion: "1.0.0",
@@ -177,6 +248,13 @@ function createLiveDiagramResult({ mode, nodes }) {
         nodes,
         routedEdges: [],
       },
+      layoutExecution: {
+        appliedMode: mode,
+        engine: "ogdf",
+        requestedMode: mode,
+        status: "applied",
+      },
+      layoutFailures: {},
       view: {
         layoutMode: mode,
         tableOptions: [],

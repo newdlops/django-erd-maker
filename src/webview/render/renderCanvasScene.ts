@@ -3,9 +3,12 @@ import {
   OGDF_LAYOUT_TOOLBAR_DEFINITIONS,
 } from "../../shared/graph/layoutContract";
 import type { DiagramRenderModel } from "../state/createDiagramRenderModel";
-import { serializeJsonForScriptTag } from "./escapeHtml";
+import { escapeHtml, serializeJsonForScriptTag } from "./escapeHtml";
 
 export function renderCanvasScene(viewModel: DiagramRenderModel, appVersion: string): string {
+  const layoutFailureByMode = new Map(
+    viewModel.layoutFailures.map((failure) => [failure.mode, failure.reason] as const),
+  );
   const renderModelJson = serializeJsonForScriptTag({
     appVersion,
     crossings: viewModel.crossings,
@@ -27,7 +30,13 @@ export function renderCanvasScene(viewModel: DiagramRenderModel, appVersion: str
         </div>
         <div class="erd-toolbar-group">
           ${OGDF_LAYOUT_TOOLBAR_DEFINITIONS.map((layout) =>
-            renderLayoutButton(layout.id, layout.shortLabel, layout.label, viewModel.layoutMode),
+            renderLayoutButton(
+              layout.id,
+              layout.shortLabel,
+              layout.label,
+              viewModel.layoutMode,
+              layoutFailureByMode.get(layout.id),
+            ),
           ).join("")}
         </div>
         <div class="erd-toolbar-group">
@@ -75,14 +84,19 @@ function renderLayoutButton(
   shortLabel: string,
   label: string,
   activeMode: DiagramRenderModel["layoutMode"],
+  failureReason?: string,
 ): string {
+  const title = failureReason
+    ? `${label} unavailable: ${failureReason}`
+    : label;
   return `
     <button
       type="button"
       class="erd-tool erd-tool--layout${normalizeLayoutMode(layoutMode) === normalizeLayoutMode(activeMode) ? " is-active" : ""}"
       data-layout-mode="${layoutMode}"
-      title="${label}"
-      aria-label="${label}"
-    >${shortLabel}</button>
+      title="${escapeHtml(title)}"
+      aria-label="${escapeHtml(title)}"
+      ${failureReason ? "disabled" : ""}
+    >${escapeHtml(shortLabel)}</button>
   `;
 }

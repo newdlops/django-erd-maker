@@ -219,10 +219,18 @@ export class ErdPanel {
     this.webviewReady = false;
     this.rejectAllReadyWaiters("Webview was reloaded before becoming ready.");
     const renderStarted = Date.now();
+    const layoutMetadata =
+      liveDiagram.payload.layoutExecution?.engineMetadata
+      ?? liveDiagram.payload.layout.engineMetadata;
     logger.info(
       [
         "Webview document rendering",
-        `layout=${liveDiagram.payload.view.layoutMode}`,
+        `requestedLayout=${liveDiagram.payload.layoutExecution?.requestedMode ?? liveDiagram.payload.view.layoutMode}`,
+        `appliedLayout=${liveDiagram.payload.layoutExecution?.appliedMode ?? liveDiagram.payload.layout.mode}`,
+        `layoutStatus=${liveDiagram.payload.layoutExecution?.status ?? "applied"}`,
+        ...(layoutMetadata?.actualMode ? [`actualLayout=${layoutMetadata.actualMode}`] : []),
+        ...(layoutMetadata?.strategy ? [`layoutStrategy=${layoutMetadata.strategy}`] : []),
+        ...(layoutMetadata?.actualAlgorithm ? [`actualAlgorithm=${layoutMetadata.actualAlgorithm}`] : []),
         `tables=${liveDiagram.payload.layout.nodes.length}`,
         `edges=${liveDiagram.payload.graph.structuralEdges.length}`,
       ].join(" · "),

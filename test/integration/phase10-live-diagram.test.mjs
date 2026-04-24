@@ -178,6 +178,50 @@ test("phase10 live diagram service maps advanced OGDF layouts through analyzer f
   }
 });
 
+test("phase10 live diagram service preserves the applied fallback layout when OGDF fails", async () => {
+  await analyzerBuild;
+  const workspacePath = path.join(
+    repoRoot,
+    "test/fixtures/django/feature_rich_project",
+  );
+  const tempDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "django-erd-ogdf-fallback-"));
+  const hookPath = path.join(tempDirectory, "fake-ogdf-hook.cjs");
+  const previousBinary = process.env.DJANGO_ERD_OGDF_LAYOUT_BIN;
+  const previousNodeOptions = process.env.NODE_OPTIONS;
+
+  await fs.writeFile(
+    hookPath,
+    fakeOgdfHookSource({ failModes: ["stress_minimization"] }),
+    "utf8",
+  );
+  process.env.DJANGO_ERD_OGDF_LAYOUT_BIN = process.execPath;
+  process.env.NODE_OPTIONS = appendNodeRequire(previousNodeOptions, hookPath);
+
+  try {
+    const discovery = await discoverDjangoWorkspace(workspacePath);
+    const result = await loadLiveDiagram(
+      repoRoot,
+      discovery,
+      "stress_minimization",
+      5.5,
+    );
+
+    assert.equal(result.basePayload.layout.mode, "clustered");
+    assert.equal(result.payload.layout.mode, "clustered");
+    assert.equal(result.payload.view.layoutMode, "fmmm");
+    assert.equal(result.payload.layoutExecution.requestedMode, "stress_minimization");
+    assert.equal(result.payload.layoutExecution.appliedMode, "clustered");
+    assert.equal(result.payload.layoutExecution.status, "fallback");
+    assert.equal(result.payload.layoutExecution.engine, "analyzer");
+    assert.match(result.payload.layoutExecution.reason, /exitCode=1/);
+    assert.match(result.layoutFailures.stress_minimization, /exitCode=1/);
+  } finally {
+    restoreEnvValue("DJANGO_ERD_OGDF_LAYOUT_BIN", previousBinary);
+    restoreEnvValue("NODE_OPTIONS", previousNodeOptions);
+    await fs.rm(tempDirectory, { force: true, recursive: true });
+  }
+});
+
 function appendNodeRequire(existingValue, hookPath) {
   const requireOption = `--require=${hookPath}`;
 
@@ -202,9 +246,11 @@ async function pathExists(filePath) {
   }
 }
 
-function fakeOgdfHookSource() {
+function fakeOgdfHookSource(options = {}) {
+  const failModesJson = JSON.stringify(options.failModes ?? []);
   return `
 const fs = require("node:fs");
+const failModes = new Set(${failModesJson});
 
 if (!process.argv.includes("--nodes-file") || !process.argv.includes("--edges-file")) {
   return;
@@ -219,6 +265,11 @@ function argValue(name) {
 }
 
 const mode = argValue("--mode");
+if (failModes.has(mode)) {
+  process.stderr.write("simulated failure for " + mode);
+  process.exit(1);
+}
+
 const nodesFile = argValue("--nodes-file");
 const edgesFile = argValue("--edges-file");
 const nodes = fs.readFileSync(nodesFile, "utf8")

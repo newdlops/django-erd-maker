@@ -8,6 +8,11 @@ export const OGDF_LAYOUT_TOOLBAR_MODES = [
   "hierarchical",
   "hierarchical_barycenter",
   "hierarchical_sifting",
+  "hierarchical_global_sifting",
+  "hierarchical_greedy_insert",
+  "hierarchical_greedy_switch",
+  "hierarchical_grid_sifting",
+  "hierarchical_split",
   "circular",
   "linear",
   "fmmm",
@@ -18,6 +23,17 @@ export const OGDF_LAYOUT_TOOLBAR_MODES = [
   "davidson_harel",
   "planarization",
   "planarization_grid",
+  "ortho",
+  "planar_draw",
+  "planar_straight",
+  "schnyder",
+  "upward_layer_based",
+  "upward_planarization",
+  "visibility",
+  "cluster_planarization",
+  "cluster_ortho",
+  "uml_ortho",
+  "uml_planarization",
   "tree",
   "radial_tree",
 ] as const;
@@ -29,7 +45,17 @@ export const DEFAULT_LAYOUT_MODE: LayoutMode = OGDF_LAYOUT_MODES[0];
 
 export interface OgdfLayoutDefinition {
   analyzerMode: AnalyzerLayoutMode;
-  family: "energy" | "layered" | "legacy" | "linear" | "planar" | "tree";
+  family:
+    | "cluster"
+    | "energy"
+    | "layered"
+    | "legacy"
+    | "linear"
+    | "orthogonal"
+    | "planar"
+    | "tree"
+    | "uml"
+    | "upward";
   id: LayoutMode;
   label: string;
   ogdfClass: string;
@@ -55,6 +81,24 @@ const OGDF_LAYOUT_DEFINITIONS: Record<LayoutMode, OgdfLayoutDefinition> = {
     ogdfClass: "FMMMLayout",
     shortLabel: "Clustered",
     toolbar: false,
+  },
+  cluster_ortho: {
+    analyzerMode: "clustered",
+    family: "cluster",
+    id: "cluster_ortho",
+    label: "Cluster Orthogonal Layout",
+    ogdfClass: "ClusterPlanarizationLayout + ClusterOrthoLayout",
+    shortLabel: "Cluster Ortho",
+    toolbar: true,
+  },
+  cluster_planarization: {
+    analyzerMode: "clustered",
+    family: "cluster",
+    id: "cluster_planarization",
+    label: "Cluster Planarization Layout",
+    ogdfClass: "ClusterPlanarizationLayout",
+    shortLabel: "Cluster Planar",
+    toolbar: true,
   },
   davidson_harel: {
     analyzerMode: "clustered",
@@ -110,6 +154,42 @@ const OGDF_LAYOUT_DEFINITIONS: Record<LayoutMode, OgdfLayoutDefinition> = {
     shortLabel: "Bary",
     toolbar: true,
   },
+  hierarchical_global_sifting: {
+    analyzerMode: "hierarchical",
+    family: "layered",
+    id: "hierarchical_global_sifting",
+    label: "Sugiyama Layout (Global Sifting)",
+    ogdfClass: "SugiyamaLayout + GlobalSifting",
+    shortLabel: "Global Sift",
+    toolbar: true,
+  },
+  hierarchical_greedy_insert: {
+    analyzerMode: "hierarchical",
+    family: "layered",
+    id: "hierarchical_greedy_insert",
+    label: "Sugiyama Layout (Greedy Insert)",
+    ogdfClass: "SugiyamaLayout + GreedyInsertHeuristic",
+    shortLabel: "Greedy Ins",
+    toolbar: true,
+  },
+  hierarchical_greedy_switch: {
+    analyzerMode: "hierarchical",
+    family: "layered",
+    id: "hierarchical_greedy_switch",
+    label: "Sugiyama Layout (Greedy Switch)",
+    ogdfClass: "SugiyamaLayout + GreedySwitchHeuristic",
+    shortLabel: "Greedy Sw",
+    toolbar: true,
+  },
+  hierarchical_grid_sifting: {
+    analyzerMode: "hierarchical",
+    family: "layered",
+    id: "hierarchical_grid_sifting",
+    label: "Sugiyama Layout (Grid Sifting)",
+    ogdfClass: "SugiyamaLayout + GridSifting",
+    shortLabel: "Grid Sift",
+    toolbar: true,
+  },
   hierarchical_sifting: {
     analyzerMode: "hierarchical",
     family: "layered",
@@ -119,6 +199,15 @@ const OGDF_LAYOUT_DEFINITIONS: Record<LayoutMode, OgdfLayoutDefinition> = {
     shortLabel: "Sifting",
     toolbar: true,
   },
+  hierarchical_split: {
+    analyzerMode: "hierarchical",
+    family: "layered",
+    id: "hierarchical_split",
+    label: "Sugiyama Layout (Split)",
+    ogdfClass: "SugiyamaLayout + SplitHeuristic",
+    shortLabel: "Split",
+    toolbar: true,
+  },
   linear: {
     analyzerMode: "hierarchical",
     family: "linear",
@@ -126,6 +215,15 @@ const OGDF_LAYOUT_DEFINITIONS: Record<LayoutMode, OgdfLayoutDefinition> = {
     label: "Linear Layout",
     ogdfClass: "LinearLayout",
     shortLabel: "Linear",
+    toolbar: true,
+  },
+  ortho: {
+    analyzerMode: "hierarchical",
+    family: "orthogonal",
+    id: "ortho",
+    label: "Orthogonal Layout",
+    ogdfClass: "PlanarizationLayout + OrthoLayout",
+    shortLabel: "Ortho",
     toolbar: true,
   },
   pivot_mds: {
@@ -146,6 +244,15 @@ const OGDF_LAYOUT_DEFINITIONS: Record<LayoutMode, OgdfLayoutDefinition> = {
     shortLabel: "Planar",
     toolbar: true,
   },
+  planar_draw: {
+    analyzerMode: "hierarchical",
+    family: "planar",
+    id: "planar_draw",
+    label: "Planar Draw Layout",
+    ogdfClass: "PlanarDrawLayout",
+    shortLabel: "Planar Draw",
+    toolbar: true,
+  },
   planarization_grid: {
     analyzerMode: "hierarchical",
     family: "planar",
@@ -155,6 +262,15 @@ const OGDF_LAYOUT_DEFINITIONS: Record<LayoutMode, OgdfLayoutDefinition> = {
     shortLabel: "Planar Grid",
     toolbar: true,
   },
+  planar_straight: {
+    analyzerMode: "hierarchical",
+    family: "planar",
+    id: "planar_straight",
+    label: "Planar Straight Layout",
+    ogdfClass: "PlanarStraightLayout",
+    shortLabel: "Straight",
+    toolbar: true,
+  },
   radial_tree: {
     analyzerMode: "hierarchical",
     family: "tree",
@@ -162,6 +278,15 @@ const OGDF_LAYOUT_DEFINITIONS: Record<LayoutMode, OgdfLayoutDefinition> = {
     label: "Radial Tree Layout",
     ogdfClass: "RadialTreeLayout",
     shortLabel: "Radial Tree",
+    toolbar: true,
+  },
+  schnyder: {
+    analyzerMode: "hierarchical",
+    family: "planar",
+    id: "schnyder",
+    label: "Schnyder Layout",
+    ogdfClass: "SchnyderLayout",
+    shortLabel: "Schnyder",
     toolbar: true,
   },
   stress_minimization: {
@@ -180,6 +305,51 @@ const OGDF_LAYOUT_DEFINITIONS: Record<LayoutMode, OgdfLayoutDefinition> = {
     label: "Tree Layout",
     ogdfClass: "TreeLayout",
     shortLabel: "Tree",
+    toolbar: true,
+  },
+  uml_ortho: {
+    analyzerMode: "hierarchical",
+    family: "uml",
+    id: "uml_ortho",
+    label: "UML Orthogonal Layout",
+    ogdfClass: "PlanarizationLayoutUML + OrthoLayoutUML",
+    shortLabel: "UML Ortho",
+    toolbar: true,
+  },
+  uml_planarization: {
+    analyzerMode: "hierarchical",
+    family: "uml",
+    id: "uml_planarization",
+    label: "UML Planarization Layout",
+    ogdfClass: "PlanarizationLayoutUML",
+    shortLabel: "UML Planar",
+    toolbar: true,
+  },
+  upward_layer_based: {
+    analyzerMode: "hierarchical",
+    family: "upward",
+    id: "upward_layer_based",
+    label: "Layer-Based Upward Layout",
+    ogdfClass: "UpwardPlanarizationLayout + LayerBasedUPRLayout",
+    shortLabel: "Layer UPR",
+    toolbar: true,
+  },
+  upward_planarization: {
+    analyzerMode: "hierarchical",
+    family: "upward",
+    id: "upward_planarization",
+    label: "Upward Planarization Layout",
+    ogdfClass: "UpwardPlanarizationLayout",
+    shortLabel: "Upward",
+    toolbar: true,
+  },
+  visibility: {
+    analyzerMode: "hierarchical",
+    family: "upward",
+    id: "visibility",
+    label: "Visibility Layout",
+    ogdfClass: "VisibilityLayout",
+    shortLabel: "Visibility",
     toolbar: true,
   },
 };
@@ -229,8 +399,18 @@ export interface EdgeCrossing {
   position: Point;
 }
 
+export interface LayoutEngineMetadata {
+  actualAlgorithm?: string;
+  actualMode?: LayoutMode;
+  requestedAlgorithm?: string;
+  requestedMode?: LayoutMode;
+  strategy?: string;
+  strategyReason?: string;
+}
+
 export interface LayoutSnapshot {
   crossings: EdgeCrossing[];
+  engineMetadata?: LayoutEngineMetadata;
   mode: LayoutMode;
   nodes: NodeLayout[];
   routedEdges: RoutedEdgePath[];

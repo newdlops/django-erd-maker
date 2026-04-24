@@ -6,6 +6,8 @@ import path from "node:path";
 import {
   getOgdfLayoutDefinition,
   normalizeLayoutMode,
+  type LayoutEngineMetadata,
+  type LayoutMode,
   type LayoutSnapshot,
 } from "../../../shared/graph/layoutContract";
 import { decodeLayoutSnapshot } from "../../../shared/protocol/decodeDiagramBootstrap";
@@ -19,23 +21,29 @@ export interface OgdfLayoutResult {
   applied: boolean;
   durationMs: number;
   layout: LayoutSnapshot;
+  engineMetadata?: LayoutEngineMetadata;
+  reason?: string;
+  requestedLayoutMode: LayoutMode;
 }
 
 export async function runOgdfLayout(
   extensionRootPath: string,
   payload: DiagramBootstrapPayload,
+  requestedLayoutMode: LayoutMode,
   logger?: Logger,
 ): Promise<OgdfLayoutResult> {
   const started = Date.now();
   const binaryPath = await resolveOgdfLayoutBinaryPath(extensionRootPath);
-  const requestedLayoutMode = normalizeLayoutMode(payload.view.layoutMode ?? payload.layout.mode);
-  const layoutDefinition = getOgdfLayoutDefinition(requestedLayoutMode);
+  const normalizedRequestedLayoutMode = normalizeLayoutMode(requestedLayoutMode);
+  const layoutDefinition = getOgdfLayoutDefinition(normalizedRequestedLayoutMode);
 
   if (!binaryPath) {
+    const reason =
+      `no native OGDF binary for ${process.platform}-${process.arch}`;
     logger?.warn(
       [
         "OGDF layout skipped because no native binary was found",
-        `layout=${requestedLayoutMode}`,
+        `layout=${normalizedRequestedLayoutMode}`,
         `label=${layoutDefinition.label}`,
         `ogdfClass=${layoutDefinition.ogdfClass}`,
         `platform=${process.platform}`,
@@ -46,6 +54,8 @@ export async function runOgdfLayout(
       applied: false,
       durationMs: Date.now() - started,
       layout: payload.layout,
+      reason,
+      requestedLayoutMode: normalizedRequestedLayoutMode,
     };
   }
 
@@ -61,7 +71,7 @@ export async function runOgdfLayout(
       [
         "OGDF layout starting",
         `binary=${binaryPath}`,
-        `layout=${requestedLayoutMode}`,
+        `layout=${normalizedRequestedLayoutMode}`,
         `label=${layoutDefinition.label}`,
         `family=${layoutDefinition.family}`,
         `ogdfClass=${layoutDefinition.ogdfClass}`,
@@ -75,7 +85,7 @@ export async function runOgdfLayout(
       [
         "layout",
         "--mode",
-        requestedLayoutMode,
+        normalizedRequestedLayoutMode,
         "--nodes-file",
         nodesPath,
         "--edges-file",
@@ -92,14 +102,26 @@ export async function runOgdfLayout(
       logger?.warn(`OGDF stderr: ${stderr.trim()}`);
     }
 
-    const layout = decodeLayoutSnapshot(JSON.parse(stdout), "ogdfLayout");
+    let layout: LayoutSnapshot;
+    try {
+      layout = decodeLayoutSnapshot(JSON.parse(stdout), "ogdfLayout");
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new Error(`invalid JSON from native layout: ${reason}`);
+    }
+
     const summary = summarizeLayout(layout);
+    const metadata = layout.engineMetadata;
     logger?.info(
       [
         `OGDF layout completed in ${Date.now() - started}ms`,
-        `layout=${layout.mode}`,
-        `label=${getOgdfLayoutDefinition(layout.mode).label}`,
-        `ogdfClass=${getOgdfLayoutDefinition(layout.mode).ogdfClass}`,
+        `requested=${metadata?.requestedMode ?? normalizedRequestedLayoutMode}`,
+        `reported=${layout.mode}`,
+        `actual=${metadata?.actualMode ?? layout.mode}`,
+        `requestedAlgorithm=${metadata?.requestedAlgorithm ?? layoutDefinition.ogdfClass}`,
+        `actualAlgorithm=${metadata?.actualAlgorithm ?? getOgdfLayoutDefinition(layout.mode).ogdfClass}`,
+        `strategy=${metadata?.strategy ?? "exact"}`,
+        ...(metadata?.strategyReason ? [`strategyReason=${metadata.strategyReason}`] : []),
         `nodes=${layout.nodes.length}`,
         `routedEdges=${layout.routedEdges.length}`,
         `crossings=${layout.crossings.length}`,
@@ -111,15 +133,26 @@ export async function runOgdfLayout(
     return {
       applied: true,
       durationMs: Date.now() - started,
+      engineMetadata: metadata,
       layout,
+      requestedLayoutMode: normalizedRequestedLayoutMode,
     };
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    logger?.warn(`OGDF layout failed; falling back to analyzer layout: ${reason}`);
+    const reason = formatOgdfFailureReason(error);
+    logger?.warn(
+      [
+        "OGDF layout failed; falling back to analyzer layout",
+        `requested=${normalizedRequestedLayoutMode}`,
+        `fallback=${payload.layout.mode}`,
+        `reason=${reason}`,
+      ].join(" · "),
+    );
     return {
       applied: false,
       durationMs: Date.now() - started,
       layout: payload.layout,
+      reason,
+      requestedLayoutMode: normalizedRequestedLayoutMode,
     };
   } finally {
     await rm(requestDirectory, { force: true, recursive: true });
@@ -138,14 +171,97 @@ function execFileAsync(
   return new Promise((resolve, reject) => {
     execFile(filePath, args, options, (error, stdout, stderr) => {
       if (error) {
-        const details = [error.message, stderr.trim()].filter(Boolean).join("\n");
-        reject(new Error(details));
+        const signal =
+          "signal" in error && typeof error.signal === "string" ? error.signal : undefined;
+        const killed = "killed" in error ? Boolean(error.killed) : false;
+        reject(
+          new OgdfExecError(
+            buildExecFailureMessage(error, stderr),
+            {
+              code: readExecErrorCode(error),
+              killed,
+              signal,
+              stderr,
+              stdout,
+              timedOut: error.message.includes("timed out") || (killed && signal === "SIGTERM"),
+            },
+          ),
+        );
         return;
       }
 
       resolve({ stderr, stdout });
     });
   });
+}
+
+class OgdfExecError extends Error {
+  constructor(
+    message: string,
+    readonly details: {
+      code?: number | string | null;
+      killed: boolean;
+      signal?: string;
+      stderr: string;
+      stdout: string;
+      timedOut: boolean;
+    },
+  ) {
+    super(message);
+    this.name = "OgdfExecError";
+  }
+}
+
+function buildExecFailureMessage(error: Error, stderr: string): string {
+  const stderrSummary = trimFailureText(stderr);
+  return [error.message, stderrSummary].filter(Boolean).join(" · ");
+}
+
+function formatOgdfFailureReason(error: unknown): string {
+  if (error instanceof OgdfExecError) {
+    if (error.details.timedOut) {
+      return `native layout timed out after ${OGDF_LAYOUT_TIMEOUT_MS}ms`;
+    }
+
+    const fragments = ["native layout process failed"];
+    if (error.details.code !== undefined && error.details.code !== null) {
+      fragments.push(`exitCode=${error.details.code}`);
+    }
+    if (error.details.signal) {
+      fragments.push(`signal=${error.details.signal}`);
+    }
+
+    const stderrSummary = trimFailureText(error.details.stderr);
+    if (stderrSummary) {
+      fragments.push(stderrSummary);
+    }
+
+    return fragments.join(" · ");
+  }
+
+  return error instanceof Error ? error.message : String(error);
+}
+
+function trimFailureText(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  return trimmed.length > 240
+    ? `${trimmed.slice(0, 237)}...`
+    : trimmed;
+}
+
+function readExecErrorCode(error: Error): number | string | null | undefined {
+  if (!("code" in error)) {
+    return undefined;
+  }
+
+  const code = error.code;
+  return typeof code === "number" || typeof code === "string" || code === null
+    ? code
+    : undefined;
 }
 
 function serializeNodes(payload: DiagramBootstrapPayload): string {

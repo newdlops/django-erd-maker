@@ -1,14 +1,19 @@
 import { normalizeLayoutMode, type LayoutMode } from "../../../shared/graph/layoutContract";
 import { mergePipelineTimings } from "../../../shared/protocol/mergePipelineTimings";
-import type { DiagramBootstrapPayload } from "../../../shared/protocol/webviewContract";
+import type {
+  DiagramBootstrapPayload,
+  LayoutExecutionSnapshot,
+} from "../../../shared/protocol/webviewContract";
 import type { DjangoWorkspaceDiscoveryResult } from "../discovery/discoveryTypes";
+import { runAnalyzerBootstrap } from "../analyzer/runAnalyzerBootstrap";
 import { runOgdfLayout } from "../layout/runOgdfLayout";
 import type { Logger } from "../logging/logger";
-import { runAnalyzerBootstrap } from "../analyzer/runAnalyzerBootstrap";
 import { createEmptyDiagramPayload } from "./createEmptyDiagramPayload";
 
 export interface LiveDiagramResult {
+  basePayload: DiagramBootstrapPayload;
   discovery: DjangoWorkspaceDiscoveryResult;
+  layoutFailures: Partial<Record<LayoutMode, string>>;
   payload: DiagramBootstrapPayload;
 }
 
@@ -19,23 +24,18 @@ export async function relayoutLiveDiagram(
   logger?: Logger,
 ): Promise<LiveDiagramResult> {
   const requestedLayoutMode = normalizeLayoutMode(layoutMode);
-  const payload = clonePayload(current.payload);
-  payload.layout.mode = requestedLayoutMode;
-  payload.view.layoutMode = requestedLayoutMode;
-
-  const ogdfResult = await runOgdfLayout(
+  const { layoutFailures, payload } = await applyRequestedLayout(
     extensionRootPath,
-    payload,
+    current.basePayload,
+    requestedLayoutMode,
+    current.layoutFailures,
     logger,
   );
-  payload.layout = ogdfResult.layout;
-  payload.view.layoutMode = normalizeLayoutMode(ogdfResult.layout.mode);
-  payload.timings = mergePipelineTimings(payload.timings, {
-    ...(ogdfResult.applied ? { ogdfLayoutMs: ogdfResult.durationMs } : {}),
-  });
 
   return {
+    basePayload: current.basePayload,
     discovery: current.discovery,
+    layoutFailures,
     payload,
   };
 }
@@ -48,19 +48,35 @@ export async function loadLiveDiagram(
   logger?: Logger,
 ): Promise<LiveDiagramResult> {
   const requestedLayoutMode = normalizeLayoutMode(layoutMode);
-  const payload =
+  const basePayload =
     discovery.candidateModules.length > 0
       ? await loadAnalyzerPayload(extensionRootPath, discovery, requestedLayoutMode, logger)
       : createEmptyDiagramPayload(discovery.selectedRoot, requestedLayoutMode);
+
   if (discovery.candidateModules.length === 0) {
     logger?.warn("Analyzer skipped because discovery returned no candidate modules.");
   }
+
+  basePayload.timings = mergePipelineTimings(basePayload.timings, {
+    discoveryMs,
+  });
+
+  const { layoutFailures, payload } = await applyRequestedLayout(
+    extensionRootPath,
+    basePayload,
+    requestedLayoutMode,
+    {},
+    logger,
+  );
+
   payload.timings = mergePipelineTimings(payload.timings, {
     discoveryMs,
   });
 
   return {
+    basePayload,
     discovery,
+    layoutFailures,
     payload,
   };
 }
@@ -77,20 +93,108 @@ async function loadAnalyzerPayload(
     layoutMode,
     logger,
   );
-  analyzerResult.payload.layout.mode = layoutMode;
-  analyzerResult.payload.view.layoutMode = layoutMode;
+  const payload = clonePayload(analyzerResult.payload);
+  payload.layoutExecution = createLayoutExecution({
+    appliedMode: payload.layout.mode,
+    durationMs: analyzerResult.durationMs,
+    engine: "analyzer",
+    requestedMode: layoutMode,
+    status: "fallback",
+  });
+  payload.layoutFailures = {};
+  payload.timings = mergePipelineTimings(payload.timings, {
+    analyzerBootstrapMs: analyzerResult.durationMs,
+  });
+  payload.view.layoutMode = normalizeLayoutMode(payload.layout.mode);
+  return payload;
+}
+
+async function applyRequestedLayout(
+  extensionRootPath: string,
+  basePayload: DiagramBootstrapPayload,
+  requestedLayoutMode: LayoutMode,
+  previousLayoutFailures: Partial<Record<LayoutMode, string>>,
+  logger?: Logger,
+): Promise<{
+  layoutFailures: Partial<Record<LayoutMode, string>>;
+  payload: DiagramBootstrapPayload;
+}> {
+  const payload = clonePayload(basePayload);
+  const nextLayoutFailures = cloneLayoutFailures(previousLayoutFailures);
+
+  payload.layoutFailures = cloneLayoutFailures(nextLayoutFailures);
+
+  if (payload.layout.nodes.length === 0) {
+    payload.layoutExecution = createLayoutExecution({
+      appliedMode: payload.layout.mode,
+      engine: "empty",
+      requestedMode: requestedLayoutMode,
+      status: "empty",
+    });
+    payload.view.layoutMode = normalizeLayoutMode(payload.layout.mode);
+    return {
+      layoutFailures: nextLayoutFailures,
+      payload,
+    };
+  }
+
   const ogdfResult = await runOgdfLayout(
     extensionRootPath,
-    analyzerResult.payload,
+    payload,
+    requestedLayoutMode,
     logger,
   );
-  analyzerResult.payload.layout = ogdfResult.layout;
-  analyzerResult.payload.view.layoutMode = normalizeLayoutMode(ogdfResult.layout.mode);
-  analyzerResult.payload.timings = mergePipelineTimings(analyzerResult.payload.timings, {
-    analyzerBootstrapMs: analyzerResult.durationMs,
-    ...(ogdfResult.applied ? { ogdfLayoutMs: ogdfResult.durationMs } : {}),
+
+  payload.timings = mergePipelineTimings(payload.timings, {
+    ogdfLayoutMs: ogdfResult.durationMs,
   });
-  return analyzerResult.payload;
+
+  if (ogdfResult.applied) {
+    payload.layout = ogdfResult.layout;
+    payload.layoutExecution = createLayoutExecution({
+      appliedMode: ogdfResult.layout.mode,
+      durationMs: ogdfResult.durationMs,
+      engine: "ogdf",
+      engineMetadata: ogdfResult.engineMetadata,
+      requestedMode: ogdfResult.requestedLayoutMode,
+      status: "applied",
+    });
+    payload.view.layoutMode = normalizeLayoutMode(ogdfResult.layout.mode);
+    delete nextLayoutFailures[ogdfResult.requestedLayoutMode];
+  } else {
+    const reason = ogdfResult.reason ?? "unknown OGDF layout failure";
+    payload.layoutExecution = createLayoutExecution({
+      appliedMode: payload.layout.mode,
+      durationMs: ogdfResult.durationMs,
+      engine: "analyzer",
+      reason,
+      requestedMode: ogdfResult.requestedLayoutMode,
+      status: "fallback",
+    });
+    payload.view.layoutMode = normalizeLayoutMode(payload.layout.mode);
+    nextLayoutFailures[ogdfResult.requestedLayoutMode] = reason;
+  }
+
+  payload.layoutFailures = cloneLayoutFailures(nextLayoutFailures);
+
+  return {
+    layoutFailures: nextLayoutFailures,
+    payload,
+  };
+}
+
+function cloneLayoutFailures(
+  layoutFailures: Partial<Record<LayoutMode, string>>,
+): Partial<Record<LayoutMode, string>> {
+  return { ...layoutFailures };
+}
+
+function createLayoutExecution(
+  execution: LayoutExecutionSnapshot,
+): LayoutExecutionSnapshot {
+  return {
+    ...execution,
+  };
 }
 
 function clonePayload(payload: DiagramBootstrapPayload): DiagramBootstrapPayload {

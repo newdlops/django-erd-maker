@@ -1,6 +1,6 @@
 import type { ModelId } from "../domain/modelIdentity";
 import type { DiagramGraph } from "../graph/diagramGraph";
-import type { LayoutMode, LayoutSnapshot, Point } from "../graph/layoutContract";
+import type { LayoutEngineMetadata, LayoutMode, LayoutSnapshot, Point } from "../graph/layoutContract";
 import type { AnalyzerOutput } from "./analyzerContract";
 import type { ContractVersion } from "./contractVersion";
 import type { PipelineTimings } from "./pipelineTimingContract";
@@ -38,11 +38,23 @@ export interface InitialViewState {
   viewport?: DiagramViewportSnapshot;
 }
 
+export interface LayoutExecutionSnapshot {
+  appliedMode: LayoutMode;
+  durationMs?: number;
+  engine: "analyzer" | "empty" | "ogdf";
+  engineMetadata?: LayoutEngineMetadata;
+  reason?: string;
+  requestedMode: LayoutMode;
+  status: "applied" | "empty" | "fallback";
+}
+
 export interface DiagramBootstrapPayload {
   analyzer: AnalyzerOutput;
   contractVersion: ContractVersion;
   graph: DiagramGraph;
   layout: LayoutSnapshot;
+  layoutExecution?: LayoutExecutionSnapshot;
+  layoutFailures?: Partial<Record<LayoutMode, string>>;
   timings?: PipelineTimings;
   view: InitialViewState;
 }

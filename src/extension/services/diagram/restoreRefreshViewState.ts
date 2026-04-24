@@ -1,5 +1,5 @@
 import type { ModelId } from "../../../shared/domain/modelIdentity";
-import type { LayoutSnapshot } from "../../../shared/graph/layoutContract";
+import { normalizeLayoutMode, type LayoutSnapshot } from "../../../shared/graph/layoutContract";
 import type {
   DiagramViewportSnapshot,
   RefreshViewStateSnapshot,
@@ -23,7 +23,7 @@ export function restoreRefreshViewState(
   const availableModelIds = new Set(
     nextResult.payload.layout.nodes.map((node) => node.modelId),
   );
-  nextResult.payload.view.layoutMode = nextResult.payload.layout.mode;
+  nextResult.payload.view.layoutMode = normalizeLayoutMode(nextResult.payload.layout.mode);
   nextResult.payload.view.selectedModelId = viewState.selectedModelId &&
   availableModelIds.has(viewState.selectedModelId)
     ? viewState.selectedModelId

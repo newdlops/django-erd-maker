@@ -4,6 +4,8 @@ import type { DiagramGraph, GraphNode, MethodAssociation, StructuralGraphEdge } 
 import {
   OGDF_LAYOUT_MODES,
   type EdgeCrossing,
+  type LayoutEngineMetadata,
+  type LayoutMode,
   type LayoutSnapshot,
   type NodeLayout,
   type Point,
@@ -45,6 +47,7 @@ import type {
   DiagramViewportSnapshot,
   DiagramBootstrapPayload,
   InitialViewState,
+  LayoutExecutionSnapshot,
   SelectedMethodContext,
   TableViewOptions,
 } from "./webviewContract";
@@ -59,6 +62,8 @@ export function decodeDiagramBootstrapPayload(
     contractVersion: decodeContractVersion(root, "contractVersion", "diagramBootstrapPayload"),
     graph: decodeGraph(readRecord(root.graph, "diagramBootstrapPayload.graph")),
     layout: decodeLayout(readRecord(root.layout, "diagramBootstrapPayload.layout"), "diagramBootstrapPayload.layout"),
+    layoutExecution: decodeLayoutExecution(root),
+    layoutFailures: decodeLayoutFailures(root),
     timings: decodePipelineTimings(root),
     view: decodeViewState(readRecord(root.view, "diagramBootstrapPayload.view")),
   };
@@ -227,6 +232,7 @@ function decodeLayout(record: JsonRecord, context: string): LayoutSnapshot {
     crossings: readArray(record, "crossings", context).map((item, index) =>
       decodeEdgeCrossing(item, `${context}.crossings[${index}]`),
     ),
+    engineMetadata: decodeLayoutEngineMetadata(record, context),
     mode: readLiteral(record, "mode", OGDF_LAYOUT_MODES, context),
     nodes: readArray(record, "nodes", context).map((item, index) =>
       decodeNodeLayout(item, `${context}.nodes[${index}]`),
@@ -235,6 +241,84 @@ function decodeLayout(record: JsonRecord, context: string): LayoutSnapshot {
       decodeRoutedEdgePath(item, `${context}.routedEdges[${index}]`),
     ),
   };
+}
+
+function decodeLayoutEngineMetadata(
+  record: JsonRecord,
+  context: string,
+): LayoutEngineMetadata | undefined {
+  const metadata = readOptionalObject(record, "engineMetadata", context);
+  if (!metadata) {
+    return undefined;
+  }
+
+  return {
+    actualAlgorithm: readOptionalString(metadata, "actualAlgorithm", `${context}.engineMetadata`),
+    actualMode: readOptionalLayoutMode(metadata, "actualMode", `${context}.engineMetadata`),
+    requestedAlgorithm: readOptionalString(metadata, "requestedAlgorithm", `${context}.engineMetadata`),
+    requestedMode: readOptionalLayoutMode(metadata, "requestedMode", `${context}.engineMetadata`),
+    strategy: readOptionalString(metadata, "strategy", `${context}.engineMetadata`),
+    strategyReason: readOptionalString(metadata, "strategyReason", `${context}.engineMetadata`),
+  };
+}
+
+function readOptionalLayoutMode(
+  record: JsonRecord,
+  key: string,
+  context: string,
+): LayoutMode | undefined {
+  const value = readOptionalString(record, key, context);
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (!OGDF_LAYOUT_MODES.includes(value as LayoutMode)) {
+    throw new Error(`${context}.${key} must be one of: ${OGDF_LAYOUT_MODES.join(", ")}.`);
+  }
+
+  return value as LayoutMode;
+}
+
+function decodeLayoutExecution(record: JsonRecord): LayoutExecutionSnapshot | undefined {
+  const layoutExecution = readOptionalObject(record, "layoutExecution", "diagramBootstrapPayload");
+
+  if (!layoutExecution) {
+    return undefined;
+  }
+
+  return {
+    appliedMode: readLiteral(layoutExecution, "appliedMode", OGDF_LAYOUT_MODES, "diagramBootstrapPayload.layoutExecution"),
+    durationMs: readOptionalNumber(layoutExecution, "durationMs", "diagramBootstrapPayload.layoutExecution"),
+    engine: readLiteral(layoutExecution, "engine", ["analyzer", "empty", "ogdf"], "diagramBootstrapPayload.layoutExecution"),
+    engineMetadata: decodeLayoutEngineMetadata(layoutExecution, "diagramBootstrapPayload.layoutExecution"),
+    reason: readOptionalString(layoutExecution, "reason", "diagramBootstrapPayload.layoutExecution"),
+    requestedMode: readLiteral(layoutExecution, "requestedMode", OGDF_LAYOUT_MODES, "diagramBootstrapPayload.layoutExecution"),
+    status: readLiteral(layoutExecution, "status", ["applied", "empty", "fallback"], "diagramBootstrapPayload.layoutExecution"),
+  };
+}
+
+function decodeLayoutFailures(
+  record: JsonRecord,
+): Partial<Record<LayoutMode, string>> | undefined {
+  const layoutFailures = readOptionalObject(record, "layoutFailures", "diagramBootstrapPayload");
+
+  if (!layoutFailures) {
+    return undefined;
+  }
+
+  const decoded: Partial<Record<LayoutMode, string>> = {};
+  for (const [layoutMode, reason] of Object.entries(layoutFailures)) {
+    if (!OGDF_LAYOUT_MODES.includes(layoutMode as LayoutMode)) {
+      throw new Error(`diagramBootstrapPayload.layoutFailures.${layoutMode} must be a known layout mode.`);
+    }
+    if (typeof reason !== "string") {
+      throw new Error(`diagramBootstrapPayload.layoutFailures.${layoutMode} must be a string.`);
+    }
+
+    decoded[layoutMode as LayoutMode] = reason;
+  }
+
+  return decoded;
 }
 
 function decodeMethodAssociation(value: unknown, context: string): MethodAssociation {

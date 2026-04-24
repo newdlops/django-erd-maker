@@ -13,6 +13,13 @@ export function createEmptyDiagramPayload(
     contractVersion: CONTRACT_VERSION,
     graph: emptyDiagramGraph(),
     layout: emptyLayoutSnapshot(layoutMode),
+    layoutExecution: {
+      appliedMode: layoutMode,
+      engine: "empty",
+      requestedMode: layoutMode,
+      status: "empty",
+    },
+    layoutFailures: {},
     view: {
       layoutMode,
       tableOptions: [],

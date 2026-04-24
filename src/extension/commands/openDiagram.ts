@@ -143,13 +143,24 @@ function logLiveDiagramResult(
   logger: Logger,
 ): void {
   const { payload } = result;
+  const execution = payload.layoutExecution;
+  const metadata = execution?.engineMetadata ?? payload.layout.engineMetadata;
   logger.info(
     [
       `Diagram payload ready`,
       `models=${payload.analyzer.models.length}`,
       `structuralEdges=${payload.graph.structuralEdges.length}`,
       `methodAssociations=${payload.graph.methodAssociations.length}`,
-      `layout=${payload.layout.mode}`,
+      `requestedLayout=${execution?.requestedMode ?? payload.view.layoutMode}`,
+      `appliedLayout=${execution?.appliedMode ?? payload.layout.mode}`,
+      `layoutStatus=${execution?.status ?? "applied"}`,
+      `layoutEngine=${execution?.engine ?? "analyzer"}`,
+      ...(metadata?.actualMode ? [`actualLayout=${metadata.actualMode}`] : []),
+      ...(metadata?.strategy ? [`layoutStrategy=${metadata.strategy}`] : []),
+      ...(metadata?.actualAlgorithm ? [`actualAlgorithm=${metadata.actualAlgorithm}`] : []),
+      ...(metadata?.strategyReason ? [`strategyReason=${metadata.strategyReason}`] : []),
+      ...(execution?.reason ? [`layoutReason=${execution.reason}`] : []),
+      `disabledLayouts=${Object.keys(payload.layoutFailures ?? {}).length}`,
       `analyzerDiagnostics=${payload.analyzer.diagnostics.length}`,
     ].join(" · "),
   );

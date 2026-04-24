@@ -12,6 +12,7 @@ export function renderInspector(
   initialState: DiagramInteractionState,
 ): string {
   const layoutLabel = getOgdfLayoutDefinition(normalizeLayoutMode(viewModel.layoutMode)).label;
+  const layoutExecution = viewModel.layoutExecution;
 
   return `
     <aside class="erd-sidebar">
@@ -24,9 +25,24 @@ export function renderInspector(
           · <span data-hidden-count>${viewModel.tables.filter((table) => table.hidden).length}</span> hidden
           · ${viewModel.crossings.length} crossings
         </p>
+        ${layoutExecution.status === "fallback"
+          ? `
+            <p class="erd-summary__meta">
+              Requested ${escapeHtml(layoutExecution.requestedLabel)}
+              · Applied ${escapeHtml(layoutExecution.appliedLabel)}
+              · Fallback active
+            </p>
+            ${
+              layoutExecution.reason
+                ? `<p class="erd-summary__meta">${escapeHtml(layoutExecution.reason)}</p>`
+                : ""
+            }
+          `
+          : ""}
         ${viewModel.modelCatalogMode ? "<p class=\"erd-summary__meta\">Model catalog mode: model and DB table names only.</p>" : ""}
         ${renderTimingSummary(viewModel)}
       </section>
+      ${renderLayoutFailures(viewModel)}
       ${renderSetupSection(initialState)}
       <section class="erd-inspector" data-model-panel-host>
         ${renderInitialModelPanel(viewModel)}
@@ -86,6 +102,30 @@ function renderTimingSummary(viewModel: DiagramRenderModel): string {
   }
 
   return `<p class="erd-summary__meta">${escapeHtml(timingParts.join(" · "))}</p>`;
+}
+
+function renderLayoutFailures(viewModel: DiagramRenderModel): string {
+  if (viewModel.layoutFailures.length === 0) {
+    return "";
+  }
+
+  return `
+    <section class="erd-sidebar__section">
+      <h2>Layout Failures</h2>
+      <ul class="erd-list">
+        ${viewModel.layoutFailures
+          .map(
+            (failure) => `
+              <li class="erd-list__item">
+                <span class="erd-badge erd-badge--warning">disabled</span>
+                <span>${escapeHtml(failure.label)}: ${escapeHtml(failure.reason)}</span>
+              </li>
+            `,
+          )
+          .join("")}
+      </ul>
+    </section>
+  `;
 }
 
 function renderDiagnostics(viewModel: DiagramRenderModel): string {

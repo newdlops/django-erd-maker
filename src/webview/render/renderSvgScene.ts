@@ -6,6 +6,9 @@ import type { DiagramRenderModel } from "../state/createDiagramRenderModel";
 import { escapeHtml } from "./escapeHtml";
 
 export function renderSvgScene(viewModel: DiagramRenderModel): string {
+  const layoutFailureByMode = new Map(
+    viewModel.layoutFailures.map((failure) => [failure.mode, failure.reason] as const),
+  );
   return `
     <section class="erd-stage">
       <div class="erd-stage__toolbar">
@@ -17,7 +20,13 @@ export function renderSvgScene(viewModel: DiagramRenderModel): string {
         </div>
         <div class="erd-toolbar-group">
           ${OGDF_LAYOUT_TOOLBAR_DEFINITIONS.map((layout) =>
-            renderLayoutButton(layout.id, layout.shortLabel, layout.label, viewModel.layoutMode),
+            renderLayoutButton(
+              layout.id,
+              layout.shortLabel,
+              layout.label,
+              viewModel.layoutMode,
+              layoutFailureByMode.get(layout.id),
+            ),
           ).join("")}
         </div>
         <div class="erd-toolbar-group">
@@ -112,14 +121,19 @@ function renderLayoutButton(
   shortLabel: string,
   label: string,
   activeMode: DiagramRenderModel["layoutMode"],
+  failureReason?: string,
 ): string {
+  const title = failureReason
+    ? `${label} unavailable: ${failureReason}`
+    : label;
   return `
     <button
       type="button"
       class="erd-tool erd-tool--layout${normalizeLayoutMode(layoutMode) === normalizeLayoutMode(activeMode) ? " is-active" : ""}"
       data-layout-mode="${layoutMode}"
-      title="${escapeHtml(label)}"
-      aria-label="${escapeHtml(label)}"
+      title="${escapeHtml(title)}"
+      aria-label="${escapeHtml(title)}"
+      ${failureReason ? "disabled" : ""}
     >${escapeHtml(shortLabel)}</button>
   `;
 }
