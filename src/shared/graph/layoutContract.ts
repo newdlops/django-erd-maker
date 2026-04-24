@@ -5,13 +5,13 @@ export const ANALYZER_LAYOUT_MODES = ["hierarchical", "circular", "clustered"] a
 export type AnalyzerLayoutMode = (typeof ANALYZER_LAYOUT_MODES)[number];
 
 export const OGDF_LAYOUT_TOOLBAR_MODES = [
-  "radial_tree",
-  "tree",
+  "planarization",
+  "planarization_grid",
+  "uml_planarization",
   "hierarchical_barycenter",
-  "hierarchical_grid_sifting",
   "upward_layer_based",
   "circular",
-  "fast_multipole_multilevel",
+  "fast_multipole",
 ] as const;
 export type ToolbarLayoutMode = (typeof OGDF_LAYOUT_TOOLBAR_MODES)[number];
 
@@ -21,7 +21,7 @@ export const OGDF_LAYOUT_MODES = [
   "hierarchical",
 ] as const;
 export type LayoutMode = (typeof OGDF_LAYOUT_MODES)[number];
-export const DEFAULT_LAYOUT_MODE: LayoutMode = "hierarchical_barycenter";
+export const DEFAULT_LAYOUT_MODE: LayoutMode = "planarization";
 
 export interface OgdfLayoutDefinition {
   analyzerMode: AnalyzerLayoutMode;
@@ -57,8 +57,8 @@ const OGDF_LAYOUT_DEFINITIONS: Record<LayoutMode, OgdfLayoutDefinition> = {
     analyzerMode: "clustered",
     family: "legacy",
     id: "clustered",
-    label: "Clustered Layout (legacy alias for Fast Multipole Multilevel)",
-    ogdfClass: "FastMultipoleMultilevelEmbedder",
+    label: "Clustered Layout (legacy alias for Fast Multipole Embedder)",
+    ogdfClass: "FastMultipoleEmbedder",
     shortLabel: "Clustered",
     toolbar: false,
   },
@@ -71,13 +71,13 @@ const OGDF_LAYOUT_DEFINITIONS: Record<LayoutMode, OgdfLayoutDefinition> = {
     shortLabel: "Hierarchical",
     toolbar: false,
   },
-  fast_multipole_multilevel: {
+  fast_multipole: {
     analyzerMode: "clustered",
     family: "energy",
-    id: "fast_multipole_multilevel",
-    label: "Fast Multipole Multilevel Embedder",
-    ogdfClass: "FastMultipoleMultilevelEmbedder",
-    shortLabel: "FM Multi",
+    id: "fast_multipole",
+    label: "Fast Multipole Embedder",
+    ogdfClass: "FastMultipoleEmbedder",
+    shortLabel: "Fast MP",
     toolbar: true,
   },
   hierarchical_barycenter: {
@@ -89,31 +89,31 @@ const OGDF_LAYOUT_DEFINITIONS: Record<LayoutMode, OgdfLayoutDefinition> = {
     shortLabel: "Hier Bary",
     toolbar: true,
   },
-  hierarchical_grid_sifting: {
+  planarization: {
     analyzerMode: "hierarchical",
-    family: "layered",
-    id: "hierarchical_grid_sifting",
-    label: "Sugiyama Layout (Grid Sifting)",
-    ogdfClass: "SugiyamaLayout + GridSifting",
-    shortLabel: "Hier Grid",
+    family: "planar",
+    id: "planarization",
+    label: "Planarization Layout",
+    ogdfClass: "PlanarizationLayout",
+    shortLabel: "Planar",
     toolbar: true,
   },
-  radial_tree: {
+  planarization_grid: {
     analyzerMode: "hierarchical",
-    family: "tree",
-    id: "radial_tree",
-    label: "Radial Tree Layout",
-    ogdfClass: "RadialTreeLayout",
-    shortLabel: "Radial Tree",
+    family: "planar",
+    id: "planarization_grid",
+    label: "Planarization Grid Layout",
+    ogdfClass: "PlanarizationGridLayout",
+    shortLabel: "Planar Grid",
     toolbar: true,
   },
-  tree: {
+  uml_planarization: {
     analyzerMode: "hierarchical",
-    family: "tree",
-    id: "tree",
-    label: "Tree Layout",
-    ogdfClass: "TreeLayout",
-    shortLabel: "Tree",
+    family: "uml",
+    id: "uml_planarization",
+    label: "UML Planarization Layout",
+    ogdfClass: "PlanarizationLayoutUML",
+    shortLabel: "UML Planar",
     toolbar: true,
   },
   upward_layer_based: {
@@ -137,7 +137,7 @@ export function getOgdfLayoutDefinition(layoutMode: LayoutMode): OgdfLayoutDefin
 
 export function normalizeLayoutMode(layoutMode: LayoutMode): ToolbarLayoutMode {
   if (layoutMode === "clustered") {
-    return "fast_multipole_multilevel";
+    return "fast_multipole";
   }
   if (layoutMode === "hierarchical") {
     return "hierarchical_barycenter";
