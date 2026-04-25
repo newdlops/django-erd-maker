@@ -25,7 +25,7 @@ export const DEFAULT_LAYOUT_MODE: LayoutMode = "planarization";
 
 export const EDGE_ROUTING_STYLES = ["orthogonal", "straight"] as const;
 export type EdgeRoutingStyle = (typeof EDGE_ROUTING_STYLES)[number];
-export const DEFAULT_EDGE_ROUTING: EdgeRoutingStyle = "orthogonal";
+export const DEFAULT_EDGE_ROUTING: EdgeRoutingStyle = "straight";
 
 export interface OgdfLayoutDefinition {
   analyzerMode: AnalyzerLayoutMode;
