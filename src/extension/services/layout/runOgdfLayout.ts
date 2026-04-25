@@ -96,6 +96,8 @@ export async function runOgdfLayout(
         `label=${layoutDefinition.label}`,
         `family=${layoutDefinition.family}`,
         `ogdfClass=${layoutDefinition.ogdfClass}`,
+        `edgeRouting=${effectiveEdgeRouting}`,
+        `edgeRoutingSource=${envEdgeRouting === "straight" || envEdgeRouting === "orthogonal" ? "env(DJANGO_ERD_EDGE_ROUTING)" : "default"}`,
         `nodes=${payload.layout.nodes.length}`,
         `edges=${payload.graph.structuralEdges.length}`,
       ].join(" · "),
