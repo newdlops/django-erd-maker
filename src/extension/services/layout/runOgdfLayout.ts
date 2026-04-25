@@ -4,8 +4,10 @@ import os from "node:os";
 import path from "node:path";
 
 import {
+  DEFAULT_EDGE_ROUTING,
   getOgdfLayoutDefinition,
   normalizeLayoutMode,
+  type EdgeRoutingStyle,
   type LayoutEngineMetadata,
   type LayoutMode,
   type LayoutSnapshot,
@@ -32,7 +34,13 @@ export async function runOgdfLayout(
   requestedLayoutMode: LayoutMode,
   logger?: Logger,
   requestId?: number,
+  edgeRouting: EdgeRoutingStyle = DEFAULT_EDGE_ROUTING,
 ): Promise<OgdfLayoutResult> {
+  const envEdgeRouting = process.env.DJANGO_ERD_EDGE_ROUTING;
+  const effectiveEdgeRouting: EdgeRoutingStyle =
+    envEdgeRouting === "straight" || envEdgeRouting === "orthogonal"
+      ? envEdgeRouting
+      : edgeRouting;
   const started = Date.now();
   const binaryPath = await resolveOgdfLayoutBinaryPath(extensionRootPath);
   const normalizedRequestedLayoutMode = normalizeLayoutMode(requestedLayoutMode);
@@ -103,6 +111,8 @@ export async function runOgdfLayout(
         nodesPath,
         "--edges-file",
         edgesPath,
+        "--edge-routing",
+        effectiveEdgeRouting,
       ],
       {
         cwd: extensionRootPath,

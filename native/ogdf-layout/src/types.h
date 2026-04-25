@@ -11,6 +11,7 @@
 namespace djerd {
 
 struct CliArguments {
+  std::string edgeRouting = "orthogonal";
   std::string edgesFile;
   std::string mode;
   std::string nodesFile;

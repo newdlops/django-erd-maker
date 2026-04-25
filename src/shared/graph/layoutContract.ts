@@ -23,6 +23,10 @@ export const OGDF_LAYOUT_MODES = [
 export type LayoutMode = (typeof OGDF_LAYOUT_MODES)[number];
 export const DEFAULT_LAYOUT_MODE: LayoutMode = "planarization";
 
+export const EDGE_ROUTING_STYLES = ["orthogonal", "straight"] as const;
+export type EdgeRoutingStyle = (typeof EDGE_ROUTING_STYLES)[number];
+export const DEFAULT_EDGE_ROUTING: EdgeRoutingStyle = "orthogonal";
+
 export interface OgdfLayoutDefinition {
   analyzerMode: AnalyzerLayoutMode;
   family:

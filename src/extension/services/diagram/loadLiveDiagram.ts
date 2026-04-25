@@ -1,4 +1,9 @@
-import { normalizeLayoutMode, type LayoutMode } from "../../../shared/graph/layoutContract";
+import {
+  DEFAULT_EDGE_ROUTING,
+  normalizeLayoutMode,
+  type EdgeRoutingStyle,
+  type LayoutMode,
+} from "../../../shared/graph/layoutContract";
 import { mergePipelineTimings } from "../../../shared/protocol/mergePipelineTimings";
 import type {
   DiagramBootstrapPayload,
@@ -23,6 +28,7 @@ export async function relayoutLiveDiagram(
   layoutMode: LayoutMode,
   logger?: Logger,
   requestId?: number,
+  edgeRouting: EdgeRoutingStyle = DEFAULT_EDGE_ROUTING,
 ): Promise<LiveDiagramResult> {
   const requestedLayoutMode = normalizeLayoutMode(layoutMode);
   const { layoutFailures, payload } = await applyRequestedLayout(
@@ -32,6 +38,7 @@ export async function relayoutLiveDiagram(
     current.layoutFailures,
     logger,
     requestId,
+    edgeRouting,
   );
 
   return {
@@ -49,6 +56,7 @@ export async function loadLiveDiagram(
   discoveryMs?: number,
   logger?: Logger,
   requestId?: number,
+  edgeRouting: EdgeRoutingStyle = DEFAULT_EDGE_ROUTING,
 ): Promise<LiveDiagramResult> {
   const requestedLayoutMode = normalizeLayoutMode(layoutMode);
   const basePayload =
@@ -71,6 +79,7 @@ export async function loadLiveDiagram(
     {},
     logger,
     requestId,
+    edgeRouting,
   );
 
   payload.timings = mergePipelineTimings(payload.timings, {
@@ -120,6 +129,7 @@ async function applyRequestedLayout(
   previousLayoutFailures: Partial<Record<LayoutMode, string>>,
   logger?: Logger,
   requestId?: number,
+  edgeRouting: EdgeRoutingStyle = DEFAULT_EDGE_ROUTING,
 ): Promise<{
   layoutFailures: Partial<Record<LayoutMode, string>>;
   payload: DiagramBootstrapPayload;
@@ -149,6 +159,7 @@ async function applyRequestedLayout(
     requestedLayoutMode,
     logger,
     requestId,
+    edgeRouting,
   );
 
   payload.timings = mergePipelineTimings(payload.timings, {
