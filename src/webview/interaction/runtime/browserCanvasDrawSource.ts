@@ -1920,13 +1920,51 @@ export function getBrowserCanvasDrawSource(): string {
           return trimmed + "…";
         }
 
+        function hashAppToHue(label) {
+          if (!label) return 158;
+          let hash = 0;
+          for (let i = 0; i < label.length; i++) {
+            hash = (hash * 31 + label.charCodeAt(i)) | 0;
+          }
+          return ((hash % 360) + 360) % 360;
+        }
+
+        function hslToRgb(hue, sat, light) {
+          if (sat === 0) {
+            return [light, light, light];
+          }
+          const q = light < 0.5 ? light * (1 + sat) : light + sat - light * sat;
+          const p = 2 * light - q;
+          const hue2rgb = (t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+          };
+          const h = hue / 360;
+          return [hue2rgb(h + 1/3), hue2rgb(h), hue2rgb(h - 1/3)];
+        }
+
+        function appStrokeColor(label) {
+          const rgb = hslToRgb(hashAppToHue(label), 0.6, 0.62);
+          return [rgb[0], rgb[1], rgb[2], 0.78];
+        }
+
+        function appHeaderColor(label) {
+          const rgb = hslToRgb(hashAppToHue(label), 0.55, 0.42);
+          return [rgb[0], rgb[1], rgb[2], 0.92];
+        }
+
         function tableColors(record) {
           const selected = state.selectedModelId === record.modelId;
           const methodTarget = isMethodTarget(record.modelId);
           const dragging = drag && drag.kind === "table" && drag.modelId === record.modelId;
+          const appLabel = record.meta && record.meta.appLabel;
 
           return {
-            borderWidth: selected || dragging ? 3.2 : 1.4,
+            borderWidth: selected || dragging ? 3.2 : 2.0,
             fill: selected ? [0.15, 0.24, 0.22, 0.98] : [0.06, 0.12, 0.18, 0.96],
             stroke: dragging
               ? [0.66, 0.85, 1.0, 0.9]
@@ -1934,7 +1972,7 @@ export function getBrowserCanvasDrawSource(): string {
                 ? [1.0, 0.75, 0.41, 0.92]
                 : methodTarget
                   ? [0.66, 0.85, 1.0, 0.74]
-                  : [0.48, 0.77, 0.67, 0.28],
+                  : appStrokeColor(appLabel),
           };
         }
 
