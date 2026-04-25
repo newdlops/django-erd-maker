@@ -167,9 +167,9 @@ void runSugiyamaLayout(const std::string& mode, ogdf::GraphAttributes& attribute
     || mode == "hierarchical_grid_sifting"
     || mode == "hierarchical_split";
   layout.setRanking(new ogdf::OptimalRanking());
-  layout.runs(1);
-  layout.fails(expensiveCrossMin ? 1 : 2);
-  layout.transpose(!expensiveCrossMin);
+  layout.runs(expensiveCrossMin ? 1 : 2);
+  layout.fails(expensiveCrossMin ? 1 : 4);
+  layout.transpose(true);
 
   if (mode == "hierarchical_barycenter") {
     layout.setCrossMin(new ogdf::BarycenterHeuristic());
@@ -194,8 +194,8 @@ void runSugiyamaLayout(const std::string& mode, ogdf::GraphAttributes& attribute
   }
 
   auto* hierarchy = new ogdf::OptimalHierarchyLayout();
-  hierarchy->layerDistance(96.0);
-  hierarchy->nodeDistance(44.0);
+  hierarchy->layerDistance(140.0);
+  hierarchy->nodeDistance(64.0);
   hierarchy->weightBalancing(0.72);
   layout.setLayout(hierarchy);
   layout.arrangeCCs(true);
@@ -390,8 +390,8 @@ void runFastMultipoleLayout(
   ogdf::FastMultipoleEmbedder layout;
   layout.setNumIterations(iterations);
   layout.setMultipolePrec(precision);
-  layout.setDefaultEdgeLength(140.0f);
-  layout.setDefaultNodeSize(48.0f);
+  layout.setDefaultEdgeLength(220.0f);
+  layout.setDefaultNodeSize(72.0f);
   layout.setRandomize(randomize);
   layout.setNumberOfThreads(static_cast<uint32_t>(idealThreadCount()));
   layout.call(attributes);
@@ -4029,11 +4029,12 @@ int main(int argc, char** argv) {
     }
     sanitizeLayoutGeometry(nodes, edges, attributes);
     const bool straightLineMode = isStraightLineRoutingMode(arguments.mode)
-      || arguments.edgeRouting == "straight";
+      || arguments.edgeRouting == "straight"
+      || arguments.edgeRouting == "straight_smart";
     const std::vector<std::vector<RoutePoint>> routes = straightLineMode
-      ? (isStraightLineRoutingMode(arguments.mode)
-        ? routeAllEdgesStraight(edges, attributes)
-        : routeAllEdgesStraightSmart(nodes, edges, attributes))
+      ? (arguments.edgeRouting == "straight_smart" && !isStraightLineRoutingMode(arguments.mode)
+        ? routeAllEdgesStraightSmart(nodes, edges, attributes)
+        : routeAllEdgesStraight(edges, attributes))
       : routeAllEdges(nodes, edges, attributes, true);
     std::vector<std::vector<std::string>> crossingIdsByEdge(edges.size());
     std::size_t totalRouteCrossings = 0;

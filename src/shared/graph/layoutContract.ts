@@ -5,12 +5,7 @@ export const ANALYZER_LAYOUT_MODES = ["hierarchical", "circular", "clustered"] a
 export type AnalyzerLayoutMode = (typeof ANALYZER_LAYOUT_MODES)[number];
 
 export const OGDF_LAYOUT_TOOLBAR_MODES = [
-  "planarization",
-  "planarization_grid",
-  "uml_planarization",
   "hierarchical_barycenter",
-  "upward_layer_based",
-  "circular",
   "fast_multipole",
 ] as const;
 export type ToolbarLayoutMode = (typeof OGDF_LAYOUT_TOOLBAR_MODES)[number];
@@ -21,9 +16,9 @@ export const OGDF_LAYOUT_MODES = [
   "hierarchical",
 ] as const;
 export type LayoutMode = (typeof OGDF_LAYOUT_MODES)[number];
-export const DEFAULT_LAYOUT_MODE: LayoutMode = "planarization";
+export const DEFAULT_LAYOUT_MODE: LayoutMode = "hierarchical_barycenter";
 
-export const EDGE_ROUTING_STYLES = ["orthogonal", "straight"] as const;
+export const EDGE_ROUTING_STYLES = ["orthogonal", "straight", "straight_smart"] as const;
 export type EdgeRoutingStyle = (typeof EDGE_ROUTING_STYLES)[number];
 export const DEFAULT_EDGE_ROUTING: EdgeRoutingStyle = "straight";
 
@@ -48,15 +43,6 @@ export interface OgdfLayoutDefinition {
 }
 
 const OGDF_LAYOUT_DEFINITIONS: Record<LayoutMode, OgdfLayoutDefinition> = {
-  circular: {
-    analyzerMode: "circular",
-    family: "layered",
-    id: "circular",
-    label: "Circular Layout",
-    ogdfClass: "CircularLayout",
-    shortLabel: "Circular",
-    toolbar: true,
-  },
   clustered: {
     analyzerMode: "clustered",
     family: "legacy",
@@ -80,7 +66,7 @@ const OGDF_LAYOUT_DEFINITIONS: Record<LayoutMode, OgdfLayoutDefinition> = {
     family: "energy",
     id: "fast_multipole",
     label: "Fast Multipole Embedder",
-    ogdfClass: "FastMultipoleEmbedder",
+    ogdfClass: "FastMultipoleEmbedder + StressMinimization",
     shortLabel: "Fast MP",
     toolbar: true,
   },
@@ -91,42 +77,6 @@ const OGDF_LAYOUT_DEFINITIONS: Record<LayoutMode, OgdfLayoutDefinition> = {
     label: "Sugiyama Layout (Barycenter)",
     ogdfClass: "SugiyamaLayout + BarycenterHeuristic",
     shortLabel: "Hier Bary",
-    toolbar: true,
-  },
-  planarization: {
-    analyzerMode: "hierarchical",
-    family: "planar",
-    id: "planarization",
-    label: "Planarization Layout",
-    ogdfClass: "PlanarizationLayout",
-    shortLabel: "Planar",
-    toolbar: true,
-  },
-  planarization_grid: {
-    analyzerMode: "hierarchical",
-    family: "planar",
-    id: "planarization_grid",
-    label: "Planarization Grid Layout",
-    ogdfClass: "PlanarizationGridLayout",
-    shortLabel: "Planar Grid",
-    toolbar: true,
-  },
-  uml_planarization: {
-    analyzerMode: "hierarchical",
-    family: "uml",
-    id: "uml_planarization",
-    label: "UML Planarization Layout",
-    ogdfClass: "PlanarizationLayoutUML",
-    shortLabel: "UML Planar",
-    toolbar: true,
-  },
-  upward_layer_based: {
-    analyzerMode: "hierarchical",
-    family: "upward",
-    id: "upward_layer_based",
-    label: "Layer-Based Upward Layout",
-    ogdfClass: "UpwardPlanarizationLayout + LayerBasedUPRLayout",
-    shortLabel: "Upward",
     toolbar: true,
   },
 };

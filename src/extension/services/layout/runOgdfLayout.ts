@@ -37,10 +37,13 @@ export async function runOgdfLayout(
   edgeRouting: EdgeRoutingStyle = DEFAULT_EDGE_ROUTING,
 ): Promise<OgdfLayoutResult> {
   const envEdgeRouting = process.env.DJANGO_ERD_EDGE_ROUTING;
-  const effectiveEdgeRouting: EdgeRoutingStyle =
-    envEdgeRouting === "straight" || envEdgeRouting === "orthogonal"
-      ? envEdgeRouting
-      : edgeRouting;
+  const envEdgeRoutingValid =
+    envEdgeRouting === "straight"
+    || envEdgeRouting === "straight_smart"
+    || envEdgeRouting === "orthogonal";
+  const effectiveEdgeRouting: EdgeRoutingStyle = envEdgeRoutingValid
+    ? (envEdgeRouting as EdgeRoutingStyle)
+    : edgeRouting;
   const started = Date.now();
   const binaryPath = await resolveOgdfLayoutBinaryPath(extensionRootPath);
   const normalizedRequestedLayoutMode = normalizeLayoutMode(requestedLayoutMode);
@@ -97,7 +100,7 @@ export async function runOgdfLayout(
         `family=${layoutDefinition.family}`,
         `ogdfClass=${layoutDefinition.ogdfClass}`,
         `edgeRouting=${effectiveEdgeRouting}`,
-        `edgeRoutingSource=${envEdgeRouting === "straight" || envEdgeRouting === "orthogonal" ? "env(DJANGO_ERD_EDGE_ROUTING)" : "default"}`,
+        `edgeRoutingSource=${envEdgeRoutingValid ? "env(DJANGO_ERD_EDGE_ROUTING)" : "default"}`,
         `nodes=${payload.layout.nodes.length}`,
         `edges=${payload.graph.structuralEdges.length}`,
       ].join(" · "),

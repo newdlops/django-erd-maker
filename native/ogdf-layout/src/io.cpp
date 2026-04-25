@@ -124,8 +124,8 @@ CliArguments parseArguments(int argc, char** argv) {
     } else if (flag == "--edges-file") {
       arguments.edgesFile = value;
     } else if (flag == "--edge-routing") {
-      if (value != "straight" && value != "orthogonal") {
-        throw std::runtime_error("--edge-routing must be 'straight' or 'orthogonal'");
+      if (value != "straight" && value != "straight_smart" && value != "orthogonal") {
+        throw std::runtime_error("--edge-routing must be 'straight', 'straight_smart', or 'orthogonal'");
       }
       arguments.edgeRouting = value;
     } else {
