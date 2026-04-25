@@ -66,6 +66,17 @@ bool isStraightLineRoutingMode(const std::string& mode) {
   return mode == "constrained_force_straight";
 }
 
+bool usesOgdfNativeBends(const std::string& mode) {
+  return mode == "planarization"
+    || mode == "planarization_grid"
+    || mode == "ortho"
+    || mode == "planar_draw"
+    || mode == "planar_straight"
+    || mode == "schnyder"
+    || mode == "uml_ortho"
+    || mode == "uml_planarization";
+}
+
 bool isSupportedMode(const std::string& mode) {
   return mode == "hierarchical"
     || mode == "hierarchical_barycenter"
@@ -3445,6 +3456,52 @@ std::vector<std::vector<RoutePoint>> routeAllEdgesStraight(
   return routes;
 }
 
+std::vector<std::vector<RoutePoint>> routeFromOgdfBends(
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes) {
+  std::vector<std::vector<RoutePoint>> routes;
+  routes.reserve(edges.size());
+
+  for (const EdgeRecord& edge : edges) {
+    std::vector<RoutePoint> points;
+
+    if (edge.sourceHandle != nullptr) {
+      const double sx = attributes.x(edge.sourceHandle);
+      const double sy = attributes.y(edge.sourceHandle);
+      if (isFiniteCoordinate(sx) && isFiniteCoordinate(sy)) {
+        points.push_back({sx, sy});
+      }
+    }
+
+    if (edge.handle != nullptr) {
+      for (const ogdf::DPoint& bend : attributes.bends(edge.handle)) {
+        if (!isFiniteCoordinate(bend.m_x) || !isFiniteCoordinate(bend.m_y)) {
+          continue;
+        }
+        points.push_back({bend.m_x, bend.m_y});
+      }
+    }
+
+    if (edge.targetHandle != nullptr) {
+      const double tx = attributes.x(edge.targetHandle);
+      const double ty = attributes.y(edge.targetHandle);
+      if (isFiniteCoordinate(tx) && isFiniteCoordinate(ty)) {
+        points.push_back({tx, ty});
+      }
+    }
+
+    if (points.size() < 2) {
+      points.clear();
+    } else {
+      points = compressRoutePoints(std::move(points));
+    }
+
+    routes.push_back(std::move(points));
+  }
+
+  return routes;
+}
+
 int axisForNeighbor(double dx, double dy) {
   if (std::abs(dx) >= std::abs(dy)) {
     return dx >= 0.0 ? 0 : 1;
@@ -3943,9 +4000,12 @@ int main(int argc, char** argv) {
     }
     sanitizeLayoutGeometry(nodes, edges, attributes);
     const bool straightLineMode = isStraightLineRoutingMode(arguments.mode);
+    const bool ogdfNativeBendsMode = usesOgdfNativeBends(arguments.mode);
     const std::vector<std::vector<RoutePoint>> routes = straightLineMode
       ? routeAllEdgesStraight(edges, attributes)
-      : routeAllEdges(nodes, edges, attributes, true);
+      : ogdfNativeBendsMode
+        ? routeFromOgdfBends(edges, attributes)
+        : routeAllEdges(nodes, edges, attributes, true);
     std::vector<std::vector<std::string>> crossingIdsByEdge(edges.size());
     std::size_t totalRouteCrossings = 0;
     const std::vector<EdgeCrossingRecord> crossings =
