@@ -1337,7 +1337,7 @@ export function getBrowserCanvasDrawSource(): string {
             : visibleEdgeEntries.map((entry) => ({
                 edgeId: entry.meta.edgeId,
                 meta: entry.meta,
-                points: buildOrthogonalPath(
+                points: buildStraightPath(
                   entry.sourcePosition,
                   entry.sourceTable,
                   entry.targetPosition,

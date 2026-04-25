@@ -336,6 +336,32 @@ export function getBrowserLayoutSource(): string {
           });
         }
 
+        function buildStraightPath(sourcePosition, sourceTable, targetPosition, targetTable) {
+          const sourceCenter = getCenter(sourcePosition, sourceTable);
+          const targetCenter = getCenter(targetPosition, targetTable);
+          const sourcePort = computeBoundaryPort(sourcePosition, sourceTable, targetCenter);
+          const targetPort = computeBoundaryPort(targetPosition, targetTable, sourceCenter);
+          return normalizePoints([sourcePort, targetPort]);
+        }
+
+        function computeBoundaryPort(rectPosition, rect, towardCenter) {
+          const center = getCenter(rectPosition, rect);
+          let dx = towardCenter.x - center.x;
+          let dy = towardCenter.y - center.y;
+          if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) {
+            dx = 1; dy = 0;
+          }
+          const halfW = Math.max(1, rect.width / 2);
+          const halfH = Math.max(1, rect.height / 2);
+          const scaleX = Math.abs(dx) < 0.01 ? Infinity : halfW / Math.abs(dx);
+          const scaleY = Math.abs(dy) < 0.01 ? Infinity : halfH / Math.abs(dy);
+          const scale = Math.min(scaleX, scaleY);
+          return {
+            x: round2(center.x + dx * scale),
+            y: round2(center.y + dy * scale),
+          };
+        }
+
         function buildOrthogonalPath(sourcePosition, sourceTable, targetPosition, targetTable) {
           const sourceCenter = getCenter(sourcePosition, sourceTable);
           const targetCenter = getCenter(targetPosition, targetTable);
@@ -397,7 +423,7 @@ export function getBrowserLayoutSource(): string {
             return staticPoints;
           }
 
-          return buildOrthogonalPath(
+          return buildStraightPath(
             entry.sourcePosition,
             entry.sourceTable,
             entry.targetPosition,
