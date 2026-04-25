@@ -3445,6 +3445,92 @@ std::vector<std::vector<RoutePoint>> routeAllEdgesStraight(
   return routes;
 }
 
+std::vector<RoutePoint> routeStraightWithDetour(
+  const LineIntent& line,
+  const std::vector<NodeObstacle>& obstacles,
+  int maxDetours) {
+  constexpr double kDetourMargin = 24.0;
+  const RoutePoint sourcePort = straightPortOnRect(line.sourceRect, line.targetRect);
+  const RoutePoint targetPort = straightPortOnRect(line.targetRect, line.sourceRect);
+  std::vector<RoutePoint> path = {sourcePort, targetPort};
+
+  for (int iter = 0; iter < maxDetours; ++iter) {
+    std::size_t blockedIndex = path.size();
+    const NodeObstacle* blocker = nullptr;
+
+    for (std::size_t segIndex = 0; segIndex + 1 < path.size(); ++segIndex) {
+      for (const NodeObstacle& obstacle : obstacles) {
+        if (segmentIntersectsRect(path[segIndex], path[segIndex + 1], obstacle.rect)) {
+          blockedIndex = segIndex;
+          blocker = &obstacle;
+          break;
+        }
+      }
+      if (blocker != nullptr) {
+        break;
+      }
+    }
+
+    if (blocker == nullptr) {
+      break;
+    }
+
+    const RoutePoint segStart = path[blockedIndex];
+    const RoutePoint segEnd = path[blockedIndex + 1];
+    const Rect& rect = blocker->rect;
+    const double dx = segEnd.x - segStart.x;
+    const double dy = segEnd.y - segStart.y;
+    const bool horizontal = std::abs(dx) >= std::abs(dy);
+
+    RoutePoint optA;
+    RoutePoint optB;
+    if (horizontal) {
+      const double midX = std::clamp(
+        rectCenterX(rect),
+        std::min(segStart.x, segEnd.x),
+        std::max(segStart.x, segEnd.x));
+      optA = {midX, rect.top - kDetourMargin};
+      optB = {midX, rect.bottom + kDetourMargin};
+    } else {
+      const double midY = std::clamp(
+        rectCenterY(rect),
+        std::min(segStart.y, segEnd.y),
+        std::max(segStart.y, segEnd.y));
+      optA = {rect.left - kDetourMargin, midY};
+      optB = {rect.right + kDetourMargin, midY};
+    }
+
+    const double costA = std::hypot(optA.x - segStart.x, optA.y - segStart.y)
+      + std::hypot(segEnd.x - optA.x, segEnd.y - optA.y);
+    const double costB = std::hypot(optB.x - segStart.x, optB.y - segStart.y)
+      + std::hypot(segEnd.x - optB.x, segEnd.y - optB.y);
+    const RoutePoint chosen = (costA <= costB) ? optA : optB;
+    path.insert(path.begin() + static_cast<long>(blockedIndex + 1), chosen);
+  }
+
+  return compressRoutePoints(std::move(path));
+}
+
+std::vector<std::vector<RoutePoint>> routeAllEdgesStraightSmart(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes) {
+  std::vector<std::vector<RoutePoint>> routes;
+  routes.reserve(edges.size());
+
+  constexpr int kMaxDetoursPerEdge = 24;
+
+  for (std::size_t edgeIndex = 0; edgeIndex < edges.size(); ++edgeIndex) {
+    const EdgeRecord& edge = edges[edgeIndex];
+    const LineIntent line = makeLineIntent(edge, edgeIndex, attributes);
+    const std::vector<NodeObstacle> obstacles = makeNodeObstacles(
+      nodes, attributes, 0.0, edge.sourceHandle, edge.targetHandle);
+    routes.push_back(routeStraightWithDetour(line, obstacles, kMaxDetoursPerEdge));
+  }
+
+  return routes;
+}
+
 int axisForNeighbor(double dx, double dy) {
   if (std::abs(dx) >= std::abs(dy)) {
     return dx >= 0.0 ? 0 : 1;
@@ -3945,7 +4031,9 @@ int main(int argc, char** argv) {
     const bool straightLineMode = isStraightLineRoutingMode(arguments.mode)
       || arguments.edgeRouting == "straight";
     const std::vector<std::vector<RoutePoint>> routes = straightLineMode
-      ? routeAllEdgesStraight(edges, attributes)
+      ? (isStraightLineRoutingMode(arguments.mode)
+        ? routeAllEdgesStraight(edges, attributes)
+        : routeAllEdgesStraightSmart(nodes, edges, attributes))
       : routeAllEdges(nodes, edges, attributes, true);
     std::vector<std::vector<std::string>> crossingIdsByEdge(edges.size());
     std::size_t totalRouteCrossings = 0;
