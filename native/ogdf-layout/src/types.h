@@ -19,6 +19,7 @@ struct CliArguments {
 
 struct NodeRecord {
   std::string modelId;
+  std::string appLabel;
   double height = 0.0;
   ogdf::node handle = nullptr;
   double width = 0.0;

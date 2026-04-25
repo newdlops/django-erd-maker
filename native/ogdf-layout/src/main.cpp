@@ -52,6 +52,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <map>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -395,6 +396,350 @@ void runFastMultipoleLayout(
   layout.setRandomize(randomize);
   layout.setNumberOfThreads(static_cast<uint32_t>(idealThreadCount()));
   layout.call(attributes);
+}
+
+struct ClusterRunOptions {
+  std::string innerMode;
+  std::string metaMode = "fmmm";
+  double innerLayerDistance = 140.0;
+  double innerNodeDistance = 64.0;
+  double innerFmmEdgeLength = 220.0;
+  double innerFmmNodeSize = 72.0;
+  uint32_t innerFmmIterations = 300;
+  double interClusterPadding = 240.0;
+  double metaUnitEdgeLength = 1200.0;
+  double metaLayerDistance = 320.0;
+  double metaNodeDistance = 200.0;
+};
+
+bool hasMeaningfulClusters(const std::vector<NodeRecord>& nodes) {
+  std::unordered_map<std::string, std::size_t> counts;
+  for (const NodeRecord& node : nodes) {
+    counts[node.appLabel]++;
+  }
+  if (counts.empty() || nodes.size() < 8) {
+    return false;
+  }
+  std::size_t nonEmptyClusters = 0;
+  std::size_t largestCluster = 0;
+  for (const auto& [label, count] : counts) {
+    if (label.empty() || count == 0) {
+      continue;
+    }
+    nonEmptyClusters++;
+    largestCluster = std::max(largestCluster, count);
+  }
+  if (nonEmptyClusters < 2) {
+    return false;
+  }
+  const double dominanceRatio =
+    static_cast<double>(largestCluster) / static_cast<double>(nodes.size());
+  return dominanceRatio < 0.85;
+}
+
+std::vector<std::string> assignStructuralClusterLabels(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  std::size_t targetClusterCount) {
+  const std::size_t n = nodes.size();
+  std::vector<std::string> assigned(n);
+  if (n == 0) {
+    return assigned;
+  }
+
+  std::unordered_map<std::string, std::size_t> idToIdx;
+  idToIdx.reserve(n);
+  for (std::size_t i = 0; i < n; ++i) {
+    idToIdx[nodes[i].modelId] = i;
+  }
+
+  std::vector<std::vector<std::size_t>> adj(n);
+  for (const EdgeRecord& edge : edges) {
+    auto srcIt = idToIdx.find(edge.sourceModelId);
+    auto tgtIt = idToIdx.find(edge.targetModelId);
+    if (srcIt == idToIdx.end() || tgtIt == idToIdx.end() || srcIt->second == tgtIt->second) {
+      continue;
+    }
+    adj[srcIt->second].push_back(tgtIt->second);
+    adj[tgtIt->second].push_back(srcIt->second);
+  }
+
+  std::vector<std::pair<std::size_t, std::size_t>> degreeOrder;
+  degreeOrder.reserve(n);
+  for (std::size_t i = 0; i < n; ++i) {
+    degreeOrder.emplace_back(adj[i].size(), i);
+  }
+  std::sort(degreeOrder.begin(), degreeOrder.end(),
+    [](const auto& a, const auto& b) { return a.first > b.first; });
+
+  const std::size_t hubCount = std::min(targetClusterCount, n);
+  std::vector<std::size_t> hubs;
+  hubs.reserve(hubCount);
+  for (std::size_t k = 0; k < hubCount; ++k) {
+    hubs.push_back(degreeOrder[k].second);
+  }
+
+  std::vector<int> clusterOf(n, -1);
+  std::queue<std::pair<std::size_t, std::size_t>> bfsQueue;
+  for (std::size_t k = 0; k < hubs.size(); ++k) {
+    clusterOf[hubs[k]] = static_cast<int>(k);
+    bfsQueue.emplace(hubs[k], k);
+  }
+  while (!bfsQueue.empty()) {
+    const auto [nodeIdx, clusterIdx] = bfsQueue.front();
+    bfsQueue.pop();
+    for (std::size_t neighbor : adj[nodeIdx]) {
+      if (clusterOf[neighbor] != -1) {
+        continue;
+      }
+      clusterOf[neighbor] = static_cast<int>(clusterIdx);
+      bfsQueue.emplace(neighbor, clusterIdx);
+    }
+  }
+
+  std::size_t isolatedSink = hubs.size();
+  for (std::size_t i = 0; i < n; ++i) {
+    if (clusterOf[i] == -1) {
+      clusterOf[i] = static_cast<int>(isolatedSink);
+    }
+  }
+
+  for (std::size_t i = 0; i < n; ++i) {
+    assigned[i] = "_struct_" + std::to_string(clusterOf[i]);
+  }
+  return assigned;
+}
+
+void runClusteredByAppLayout(
+  const ClusterRunOptions& options,
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes,
+  std::size_t& outClusterCount,
+  std::size_t& outInterClusterEdges) {
+  std::unordered_map<std::string, std::vector<std::size_t>> clusterMembers;
+  std::vector<std::string> clusterOrder;
+  for (std::size_t index = 0; index < nodes.size(); ++index) {
+    const std::string& key = nodes[index].appLabel.empty() ? std::string("_default") : nodes[index].appLabel;
+    auto it = clusterMembers.find(key);
+    if (it == clusterMembers.end()) {
+      clusterOrder.push_back(key);
+      clusterMembers[key] = {};
+      it = clusterMembers.find(key);
+    }
+    it->second.push_back(index);
+  }
+
+  std::unordered_map<std::string, std::string> nodeIdToCluster;
+  nodeIdToCluster.reserve(nodes.size());
+  for (const NodeRecord& node : nodes) {
+    nodeIdToCluster[node.modelId] = node.appLabel.empty() ? std::string("_default") : node.appLabel;
+  }
+
+  std::unordered_map<std::string, std::pair<double, double>> clusterLocalSize;
+  std::unordered_map<std::string, std::pair<double, double>> clusterLocalMin;
+
+  for (const std::string& clusterKey : clusterOrder) {
+    const std::vector<std::size_t>& members = clusterMembers[clusterKey];
+    if (members.empty()) {
+      continue;
+    }
+
+    if (members.size() == 1) {
+      const NodeRecord& only = nodes[members[0]];
+      attributes.x(only.handle) = only.width / 2.0;
+      attributes.y(only.handle) = only.height / 2.0;
+      clusterLocalSize[clusterKey] = {only.width, only.height};
+      clusterLocalMin[clusterKey] = {0.0, 0.0};
+      continue;
+    }
+
+    ogdf::Graph subGraph;
+    ogdf::GraphAttributes subAttr(
+      subGraph,
+      ogdf::GraphAttributes::nodeGraphics | ogdf::GraphAttributes::edgeGraphics);
+    std::vector<ogdf::node> subNodes(members.size());
+    std::unordered_map<std::string, std::size_t> idToSubIdx;
+    idToSubIdx.reserve(members.size());
+
+    for (std::size_t k = 0; k < members.size(); ++k) {
+      const NodeRecord& node = nodes[members[k]];
+      subNodes[k] = subGraph.newNode();
+      subAttr.width(subNodes[k]) = std::max(1.0, node.width);
+      subAttr.height(subNodes[k]) = std::max(1.0, node.height);
+      idToSubIdx[node.modelId] = k;
+    }
+
+    for (const EdgeRecord& edge : edges) {
+      const auto srcIt = idToSubIdx.find(edge.sourceModelId);
+      const auto tgtIt = idToSubIdx.find(edge.targetModelId);
+      if (srcIt != idToSubIdx.end() && tgtIt != idToSubIdx.end() && srcIt->second != tgtIt->second) {
+        subGraph.newEdge(subNodes[srcIt->second], subNodes[tgtIt->second]);
+      }
+    }
+
+    if (options.innerMode == "fmm") {
+      ogdf::FastMultipoleEmbedder fmm;
+      fmm.setNumIterations(options.innerFmmIterations);
+      fmm.setMultipolePrec(6);
+      fmm.setDefaultEdgeLength(static_cast<float>(options.innerFmmEdgeLength));
+      fmm.setDefaultNodeSize(static_cast<float>(options.innerFmmNodeSize));
+      fmm.setRandomize(true);
+      fmm.setNumberOfThreads(static_cast<uint32_t>(idealThreadCount()));
+      fmm.call(subAttr);
+    } else {
+      ogdf::SugiyamaLayout sugi;
+      sugi.setRanking(new ogdf::OptimalRanking());
+      sugi.setCrossMin(new ogdf::BarycenterHeuristic());
+      sugi.runs(2);
+      sugi.fails(4);
+      sugi.transpose(true);
+      auto* hier = new ogdf::OptimalHierarchyLayout();
+      hier->layerDistance(options.innerLayerDistance);
+      hier->nodeDistance(options.innerNodeDistance);
+      hier->weightBalancing(0.72);
+      sugi.setLayout(hier);
+      sugi.arrangeCCs(true);
+      sugi.call(subAttr);
+    }
+
+    double minX = std::numeric_limits<double>::infinity();
+    double minY = std::numeric_limits<double>::infinity();
+    double maxX = -std::numeric_limits<double>::infinity();
+    double maxY = -std::numeric_limits<double>::infinity();
+
+    for (std::size_t k = 0; k < members.size(); ++k) {
+      const NodeRecord& node = nodes[members[k]];
+      const double cx = subAttr.x(subNodes[k]);
+      const double cy = subAttr.y(subNodes[k]);
+      minX = std::min(minX, cx - node.width / 2.0);
+      minY = std::min(minY, cy - node.height / 2.0);
+      maxX = std::max(maxX, cx + node.width / 2.0);
+      maxY = std::max(maxY, cy + node.height / 2.0);
+    }
+
+    for (std::size_t k = 0; k < members.size(); ++k) {
+      const NodeRecord& node = nodes[members[k]];
+      attributes.x(node.handle) = subAttr.x(subNodes[k]) - minX;
+      attributes.y(node.handle) = subAttr.y(subNodes[k]) - minY;
+    }
+
+    clusterLocalSize[clusterKey] = {maxX - minX, maxY - minY};
+    clusterLocalMin[clusterKey] = {0.0, 0.0};
+  }
+
+  ogdf::Graph metaGraph;
+  ogdf::GraphAttributes metaAttr(
+    metaGraph,
+    ogdf::GraphAttributes::nodeGraphics | ogdf::GraphAttributes::edgeGraphics);
+  std::unordered_map<std::string, ogdf::node> clusterToMeta;
+  for (const std::string& clusterKey : clusterOrder) {
+    auto sizeIt = clusterLocalSize.find(clusterKey);
+    if (sizeIt == clusterLocalSize.end()) {
+      continue;
+    }
+    ogdf::node meta = metaGraph.newNode();
+    metaAttr.width(meta) = std::max(120.0, sizeIt->second.first + options.interClusterPadding);
+    metaAttr.height(meta) = std::max(120.0, sizeIt->second.second + options.interClusterPadding);
+    clusterToMeta[clusterKey] = meta;
+  }
+
+  std::map<std::pair<std::string, std::string>, std::size_t> interClusterEdgeCount;
+  for (const EdgeRecord& edge : edges) {
+    auto srcIt = nodeIdToCluster.find(edge.sourceModelId);
+    auto tgtIt = nodeIdToCluster.find(edge.targetModelId);
+    if (srcIt == nodeIdToCluster.end() || tgtIt == nodeIdToCluster.end()) {
+      continue;
+    }
+    if (srcIt->second == tgtIt->second) {
+      continue;
+    }
+    auto pair = srcIt->second < tgtIt->second
+      ? std::make_pair(srcIt->second, tgtIt->second)
+      : std::make_pair(tgtIt->second, srcIt->second);
+    interClusterEdgeCount[pair]++;
+  }
+
+  for (const auto& [pair, count] : interClusterEdgeCount) {
+    auto srcIt = clusterToMeta.find(pair.first);
+    auto tgtIt = clusterToMeta.find(pair.second);
+    if (srcIt == clusterToMeta.end() || tgtIt == clusterToMeta.end()) {
+      continue;
+    }
+    metaGraph.newEdge(srcIt->second, tgtIt->second);
+  }
+
+  if (clusterToMeta.size() >= 2) {
+    if (options.metaMode == "sugiyama") {
+      ogdf::SugiyamaLayout metaSugi;
+      metaSugi.setRanking(new ogdf::OptimalRanking());
+      metaSugi.setCrossMin(new ogdf::BarycenterHeuristic());
+      metaSugi.runs(2);
+      metaSugi.fails(4);
+      metaSugi.transpose(true);
+      auto* metaHier = new ogdf::OptimalHierarchyLayout();
+      metaHier->layerDistance(options.metaLayerDistance);
+      metaHier->nodeDistance(options.metaNodeDistance);
+      metaHier->weightBalancing(0.72);
+      metaSugi.setLayout(metaHier);
+      metaSugi.arrangeCCs(true);
+      metaSugi.call(metaAttr);
+    } else if (options.metaMode == "grid") {
+      const std::size_t count = clusterToMeta.size();
+      const std::size_t cols = static_cast<std::size_t>(std::ceil(std::sqrt(static_cast<double>(count))));
+      double cellWidth = 0.0;
+      double cellHeight = 0.0;
+      for (const auto& [_, meta] : clusterToMeta) {
+        cellWidth = std::max(cellWidth, metaAttr.width(meta));
+        cellHeight = std::max(cellHeight, metaAttr.height(meta));
+      }
+      cellWidth += options.interClusterPadding;
+      cellHeight += options.interClusterPadding;
+      std::size_t cellIndex = 0;
+      for (const std::string& clusterKey : clusterOrder) {
+        auto it = clusterToMeta.find(clusterKey);
+        if (it == clusterToMeta.end()) {
+          continue;
+        }
+        const std::size_t row = cellIndex / cols;
+        const std::size_t col = cellIndex % cols;
+        metaAttr.x(it->second) = static_cast<double>(col) * cellWidth + cellWidth / 2.0;
+        metaAttr.y(it->second) = static_cast<double>(row) * cellHeight + cellHeight / 2.0;
+        cellIndex++;
+      }
+    } else {
+      ogdf::FMMMLayout metaLayout;
+      metaLayout.useHighLevelOptions(true);
+      metaLayout.unitEdgeLength(options.metaUnitEdgeLength);
+      metaLayout.newInitialPlacement(true);
+      metaLayout.qualityVersusSpeed(ogdf::FMMMOptions::QualityVsSpeed::BeautifulAndFast);
+      metaLayout.call(metaAttr);
+    }
+  }
+
+  for (const std::string& clusterKey : clusterOrder) {
+    auto metaIt = clusterToMeta.find(clusterKey);
+    auto sizeIt = clusterLocalSize.find(clusterKey);
+    if (metaIt == clusterToMeta.end() || sizeIt == clusterLocalSize.end()) {
+      continue;
+    }
+    const double cx = metaAttr.x(metaIt->second);
+    const double cy = metaAttr.y(metaIt->second);
+    const double offsetX = cx - sizeIt->second.first / 2.0;
+    const double offsetY = cy - sizeIt->second.second / 2.0;
+
+    for (std::size_t memberIdx : clusterMembers[clusterKey]) {
+      const NodeRecord& node = nodes[memberIdx];
+      attributes.x(node.handle) += offsetX;
+      attributes.y(node.handle) += offsetY;
+    }
+  }
+
+  outClusterCount = clusterToMeta.size();
+  outInterClusterEdges = 0;
+  for (const auto& [_, count] : interClusterEdgeCount) {
+    outInterClusterEdges += count;
+  }
 }
 
 template <typename Transform>
@@ -2939,6 +3284,44 @@ LayoutRunMetadata runLayout(
       metadata.strategyReason = "Sugiyama runs/fails are capped for interactive layout";
     }
 
+    if (!useSurrogate && mode == "hierarchical_barycenter") {
+      const bool useAppClusters = hasMeaningfulClusters(nodes);
+      const bool useStructuralFallback = !useAppClusters && nodes.size() >= 80;
+      if (useAppClusters || useStructuralFallback) {
+        std::vector<NodeRecord> clusteredNodes = nodes;
+        if (useStructuralFallback) {
+          const std::size_t targetClusters =
+            std::max<std::size_t>(8, std::min<std::size_t>(32, nodes.size() / 50));
+          std::vector<std::string> labels =
+            assignStructuralClusterLabels(nodes, edges, targetClusters);
+          for (std::size_t i = 0; i < clusteredNodes.size(); ++i) {
+            clusteredNodes[i].appLabel = labels[i];
+          }
+        }
+        ClusterRunOptions opts;
+        opts.innerMode = "sugiyama";
+        opts.innerLayerDistance = 96.0;
+        opts.innerNodeDistance = 44.0;
+        opts.metaMode = "sugiyama";
+        opts.metaLayerDistance = 240.0;
+        opts.metaNodeDistance = 140.0;
+        opts.interClusterPadding = 180.0;
+        std::size_t clusterCount = 0;
+        std::size_t interEdges = 0;
+        runClusteredByAppLayout(opts, clusteredNodes, edges, attributes, clusterCount, interEdges);
+        const std::string clusterSource = useAppClusters ? "appLabel" : "graphStructure";
+        metadata.actualAlgorithm =
+          "ClusteredLayout(source=" + clusterSource
+          + ", inner=SugiyamaLayout + BarycenterHeuristic, meta=Sugiyama, clusters="
+          + std::to_string(clusterCount) + ", interClusterEdges=" + std::to_string(interEdges) + ")";
+        metadata.strategy = "clustered";
+        metadata.strategyReason = useAppClusters
+          ? "nodes grouped by appLabel; per-app Sugiyama with Sugiyama meta-layout reduces inter-cluster crossings"
+          : "no useful appLabel split; high-degree-hub BFS chunking groups the graph into structural clusters with Sugiyama meta-layout";
+        return metadata;
+      }
+    }
+
     runSugiyamaLayout(actualRunMode, attributes);
     if (useSurrogate) {
       if (mode == "hierarchical_sifting") {
@@ -3013,6 +3396,40 @@ LayoutRunMetadata runLayout(
   }
 
   if (mode == "fast_multipole") {
+    const bool useAppClusters = hasMeaningfulClusters(nodes);
+    const bool useStructuralFallback = false;
+    if (useAppClusters || useStructuralFallback) {
+      std::vector<NodeRecord> clusteredNodes = nodes;
+      if (useStructuralFallback) {
+        const std::size_t targetClusters =
+          std::max<std::size_t>(8, std::min<std::size_t>(32, nodes.size() / 50));
+        std::vector<std::string> labels =
+          assignStructuralClusterLabels(nodes, edges, targetClusters);
+        for (std::size_t i = 0; i < clusteredNodes.size(); ++i) {
+          clusteredNodes[i].appLabel = labels[i];
+        }
+      }
+      ClusterRunOptions opts;
+      opts.innerMode = "fmm";
+      opts.innerFmmEdgeLength = 220.0;
+      opts.innerFmmNodeSize = 72.0;
+      opts.innerFmmIterations = 300;
+      opts.metaUnitEdgeLength = 1500.0;
+      opts.interClusterPadding = 320.0;
+      std::size_t clusterCount = 0;
+      std::size_t interEdges = 0;
+      runClusteredByAppLayout(opts, clusteredNodes, edges, attributes, clusterCount, interEdges);
+      const std::string clusterSource = useAppClusters ? "appLabel" : "graphStructure";
+      metadata.actualAlgorithm =
+        "ClusteredLayout(source=" + clusterSource
+        + ", inner=FastMultipoleEmbedder, meta=FMMM, clusters="
+        + std::to_string(clusterCount) + ", interClusterEdges=" + std::to_string(interEdges) + ")";
+      metadata.strategy = "clustered";
+      metadata.strategyReason = useAppClusters
+        ? "nodes grouped by appLabel; per-app FMM keeps intra-app edges short while FMMM meta-layout separates app clusters"
+        : "no useful appLabel split; high-degree-hub BFS chunking groups the graph into structural clusters with FMMM meta-layout";
+      return metadata;
+    }
     runFastMultipoleLayout(attributes, 300, 6, true);
     metadata.actualAlgorithm = "FastMultipoleEmbedder(iterations=300, multipolePrecision=6)";
     metadata.strategy = "bounded";

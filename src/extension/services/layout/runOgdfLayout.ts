@@ -382,6 +382,9 @@ function readExecErrorCode(error: Error): number | string | null | undefined {
 }
 
 function serializeNodes(payload: DiagramBootstrapPayload): string {
+  const appLabelByModelId = new Map(
+    payload.graph.nodes.map((node) => [node.modelId, node.appLabel]),
+  );
   return payload.layout.nodes
     .map((node) =>
       [
@@ -390,6 +393,7 @@ function serializeNodes(payload: DiagramBootstrapPayload): string {
         numberCell(node.size.height),
         numberCell(node.position.x),
         numberCell(node.position.y),
+        tsvCell(appLabelByModelId.get(node.modelId) ?? ""),
       ].join("\t"),
     )
     .join("\n");

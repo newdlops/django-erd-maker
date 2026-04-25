@@ -170,6 +170,9 @@ std::vector<NodeRecord> readNodes(
     record.height = parseNumber(fields[2], "nodes.tsv height");
     record.x = parseNumber(fields[3], "nodes.tsv x");
     record.y = parseNumber(fields[4], "nodes.tsv y");
+    if (fields.size() >= 6) {
+      record.appLabel = fields[5];
+    }
     record.handle = graph.newNode();
 
     attributes.width(record.handle) = std::max(1.0, record.width);
