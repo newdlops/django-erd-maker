@@ -417,7 +417,11 @@ function decodeModelIdentity(record: JsonRecord, context: string): ModelIdentity
 function decodeNodeLayout(value: unknown, context: string): NodeLayout {
   const record = readRecord(value, context);
 
+  const clusterId = typeof record.clusterId === "string" && record.clusterId.length > 0
+    ? record.clusterId
+    : undefined;
   return {
+    clusterId,
     modelId: readModelId(record, "modelId", context),
     position: decodePoint(readRecord(record.position, `${context}.position`), `${context}.position`),
     size: decodeSize(readRecord(record.size, `${context}.size`), `${context}.size`),
@@ -565,6 +569,8 @@ function decodeViewState(record: JsonRecord): InitialViewState {
   );
 
   return {
+    collapseClusters: record.collapseClusters === true,
+    edgeBundling: record.edgeBundling === true,
     layoutMode: readLiteral(record, "layoutMode", OGDF_LAYOUT_MODES, "diagramBootstrapPayload.view"),
     selectedMethodContext: selectedMethodContext
       ? decodeSelectedMethodContext(

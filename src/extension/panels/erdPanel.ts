@@ -403,6 +403,8 @@ function cloneRefreshViewState(
   state: RefreshViewStateSnapshot,
 ): RefreshViewStateSnapshot {
   return {
+    collapseClusters: state.collapseClusters,
+    edgeBundling: state.edgeBundling,
     layoutMode: state.layoutMode,
     selectedMethodContext: state.selectedMethodContext
       ? { ...state.selectedMethodContext }

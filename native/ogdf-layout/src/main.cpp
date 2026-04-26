@@ -3,6 +3,7 @@
 #include "io.h"
 
 #include <ogdf/basic/Graph.h>
+#include <ogdf/basic/basic.h>
 #include <ogdf/basic/GraphAttributes.h>
 #include <ogdf/energybased/DavidsonHarelLayout.h>
 #include <ogdf/energybased/FMMMLayout.h>
@@ -109,6 +110,50 @@ std::size_t idealThreadCount() {
   return std::max<std::size_t>(1, std::min<std::size_t>(8, detected == 0 ? 1 : detected));
 }
 
+std::vector<std::vector<RoutePoint>> routeAllEdgesStraight(
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes);
+
+std::vector<EdgeCrossingRecord> detectRouteCrossings(
+  const std::vector<EdgeRecord>& edges,
+  const std::vector<std::vector<RoutePoint>>& routes,
+  std::vector<std::vector<std::string>>& crossingIdsByEdge,
+  std::size_t& totalCrossings);
+
+void packDisconnectedComponents(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes);
+
+void enforceNodeSeparationStrong(
+  const std::vector<NodeRecord>& nodes,
+  ogdf::GraphAttributes& attributes);
+
+void pullLowDegreeNodesInward(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes,
+  int maxIterations = 24,
+  std::size_t degreeThreshold = 2,
+  double damping = 0.35);
+
+void compactClusterOutliers(
+  const std::vector<NodeRecord>& nodes,
+  const std::unordered_map<std::string, std::string>& clusterByModelId,
+  ogdf::GraphAttributes& attributes,
+  double outlierMedianMultiplier = 1.8);
+
+void compactDistantConnectedNodes(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes);
+
+bool compactExcessiveLayoutFootprint(
+  const std::string& mode,
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes);
+
 ogdf::SubgraphPlanarizer* createBoundedSubgraphPlanarizer() {
   auto* planarizer = new ogdf::SubgraphPlanarizer();
   auto* subgraph = new ogdf::PlanarSubgraphFast<int>();
@@ -120,6 +165,21 @@ ogdf::SubgraphPlanarizer* createBoundedSubgraphPlanarizer() {
   planarizer->setInserter(inserter);
   planarizer->permutations(1);
   planarizer->maxThreads(1);
+  return planarizer;
+}
+
+ogdf::SubgraphPlanarizer* createHighQualityPlanarizer() {
+  auto* planarizer = new ogdf::SubgraphPlanarizer();
+  auto* subgraph = new ogdf::PlanarSubgraphFast<int>();
+  auto* inserter = new ogdf::VariableEmbeddingInserter();
+  const unsigned threads = static_cast<unsigned>(std::max<std::size_t>(1, idealThreadCount()));
+  subgraph->runs(32);
+  subgraph->maxThreads(threads);
+  inserter->removeReinsert(ogdf::RemoveReinsertType::IncInserted);
+  planarizer->setSubgraph(subgraph);
+  planarizer->setInserter(inserter);
+  planarizer->permutations(16);
+  planarizer->maxThreads(threads);
   return planarizer;
 }
 
@@ -587,6 +647,26 @@ void runClusteredByAppLayout(
       fmm.setRandomize(true);
       fmm.setNumberOfThreads(static_cast<uint32_t>(idealThreadCount()));
       fmm.call(subAttr);
+    } else if (options.innerMode == "planarization") {
+      ogdf::PlanarizationLayout pl;
+      pl.setCrossMin(createBoundedSubgraphPlanarizer());
+      pl.pageRatio(kPlanarizationPageRatio);
+      pl.call(subAttr);
+    } else if (options.innerMode == "planarization_grid") {
+      ogdf::PlanarizationLayout pl;
+      pl.setCrossMin(createBoundedSubgraphPlanarizer());
+      pl.pageRatio(kPlanarizationPageRatio);
+      pl.call(subAttr);
+    } else if (options.innerMode == "uml_planarization") {
+      ogdf::PlanarizationLayoutUML pl;
+      pl.call(subAttr);
+    } else if (options.innerMode == "circular") {
+      ogdf::CircularLayout cl;
+      cl.minDistCircle(96.0);
+      cl.minDistCC(96.0);
+      cl.minDistLevel(96.0);
+      cl.minDistSibling(48.0);
+      cl.call(subAttr);
     } else {
       ogdf::SugiyamaLayout sugi;
       sugi.setRanking(new ogdf::OptimalRanking());
@@ -666,7 +746,10 @@ void runClusteredByAppLayout(
     if (srcIt == clusterToMeta.end() || tgtIt == clusterToMeta.end()) {
       continue;
     }
-    metaGraph.newEdge(srcIt->second, tgtIt->second);
+    const std::size_t replicate = std::min<std::size_t>(8, count);
+    for (std::size_t r = 0; r < replicate; ++r) {
+      metaGraph.newEdge(srcIt->second, tgtIt->second);
+    }
   }
 
   if (clusterToMeta.size() >= 2) {
@@ -715,6 +798,96 @@ void runClusteredByAppLayout(
       metaLayout.qualityVersusSpeed(ogdf::FMMMOptions::QualityVsSpeed::BeautifulAndFast);
       metaLayout.call(metaAttr);
     }
+
+    if (clusterToMeta.size() >= 4) {
+      std::vector<std::string> swapKeys;
+      swapKeys.reserve(clusterToMeta.size());
+      for (const std::string& key : clusterOrder) {
+        if (clusterToMeta.find(key) != clusterToMeta.end()) {
+          swapKeys.push_back(key);
+        }
+      }
+
+      std::vector<std::pair<std::string, std::string>> interPairs;
+      interPairs.reserve(interClusterEdgeCount.size());
+      std::vector<std::size_t> interWeights;
+      interWeights.reserve(interClusterEdgeCount.size());
+      for (const auto& [pair, count] : interClusterEdgeCount) {
+        if (clusterToMeta.find(pair.first) == clusterToMeta.end() ||
+            clusterToMeta.find(pair.second) == clusterToMeta.end()) {
+          continue;
+        }
+        interPairs.push_back(pair);
+        interWeights.push_back(count);
+      }
+
+
+      auto segmentsCross = [](double ax, double ay, double bx, double by,
+                              double cx, double cy, double dx, double dy) -> bool {
+        const double d1x = bx - ax;
+        const double d1y = by - ay;
+        const double d2x = dx - cx;
+        const double d2y = dy - cy;
+        const double denom = d1x * d2y - d1y * d2x;
+        if (std::abs(denom) < 1e-9) {
+          return false;
+        }
+        const double t = ((cx - ax) * d2y - (cy - ay) * d2x) / denom;
+        const double s = ((cx - ax) * d1y - (cy - ay) * d1x) / denom;
+        return t > 1e-6 && t < 1.0 - 1e-6 && s > 1e-6 && s < 1.0 - 1e-6;
+      };
+
+      auto countWeightedCrossings = [&]() -> std::size_t {
+        std::size_t total = 0;
+        for (std::size_t i = 0; i + 1 < interPairs.size(); ++i) {
+          const ogdf::node ai = clusterToMeta[interPairs[i].first];
+          const ogdf::node bi = clusterToMeta[interPairs[i].second];
+          const double aix = metaAttr.x(ai), aiy = metaAttr.y(ai);
+          const double bix = metaAttr.x(bi), biy = metaAttr.y(bi);
+          for (std::size_t j = i + 1; j < interPairs.size(); ++j) {
+            if (interPairs[i].first == interPairs[j].first ||
+                interPairs[i].first == interPairs[j].second ||
+                interPairs[i].second == interPairs[j].first ||
+                interPairs[i].second == interPairs[j].second) {
+              continue;
+            }
+            const ogdf::node aj = clusterToMeta[interPairs[j].first];
+            const ogdf::node bj = clusterToMeta[interPairs[j].second];
+            if (segmentsCross(
+                  aix, aiy, bix, biy,
+                  metaAttr.x(aj), metaAttr.y(aj), metaAttr.x(bj), metaAttr.y(bj))) {
+              total += interWeights[i] * interWeights[j];
+            }
+          }
+        }
+        return total;
+      };
+
+      std::size_t bestCrossings = countWeightedCrossings();
+      bool improved = true;
+      const std::size_t maxIterations = 16;
+      for (std::size_t iter = 0; iter < maxIterations && improved; ++iter) {
+        improved = false;
+        for (std::size_t i = 0; i + 1 < swapKeys.size(); ++i) {
+          for (std::size_t j = i + 1; j < swapKeys.size(); ++j) {
+            const ogdf::node a = clusterToMeta[swapKeys[i]];
+            const ogdf::node b = clusterToMeta[swapKeys[j]];
+            const double ax = metaAttr.x(a), ay = metaAttr.y(a);
+            const double bx = metaAttr.x(b), by = metaAttr.y(b);
+            metaAttr.x(a) = bx; metaAttr.y(a) = by;
+            metaAttr.x(b) = ax; metaAttr.y(b) = ay;
+            const std::size_t newCrossings = countWeightedCrossings();
+            if (newCrossings < bestCrossings) {
+              bestCrossings = newCrossings;
+              improved = true;
+            } else {
+              metaAttr.x(a) = ax; metaAttr.y(a) = ay;
+              metaAttr.x(b) = bx; metaAttr.y(b) = by;
+            }
+          }
+        }
+      }
+    }
   }
 
   for (const std::string& clusterKey : clusterOrder) {
@@ -740,6 +913,79 @@ void runClusteredByAppLayout(
   for (const auto& [_, count] : interClusterEdgeCount) {
     outInterClusterEdges += count;
   }
+}
+
+void compactWhitespaceAxis(
+  const std::vector<NodeRecord>& nodes,
+  ogdf::GraphAttributes& attributes,
+  bool horizontal,
+  double gap) {
+  const std::size_t n = nodes.size();
+  if (n == 0) {
+    return;
+  }
+  std::vector<std::size_t> order(n);
+  for (std::size_t i = 0; i < n; ++i) {
+    order[i] = i;
+  }
+  std::sort(order.begin(), order.end(),
+    [&](std::size_t a, std::size_t b) {
+      const double aPos = horizontal ? attributes.x(nodes[a].handle) : attributes.y(nodes[a].handle);
+      const double bPos = horizontal ? attributes.x(nodes[b].handle) : attributes.y(nodes[b].handle);
+      return aPos < bPos;
+    });
+
+  std::vector<double> newPos(n, 0.0);
+  std::vector<bool> placed(n, false);
+
+  for (std::size_t k = 0; k < order.size(); ++k) {
+    const std::size_t idx = order[k];
+    const NodeRecord& node = nodes[idx];
+    const double w = std::max(1.0, node.width);
+    const double h = std::max(1.0, node.height);
+    const double halfMain = horizontal ? w / 2.0 : h / 2.0;
+    const double crossPos = horizontal ? attributes.y(node.handle) : attributes.x(node.handle);
+    const double crossHalf = horizontal ? h / 2.0 : w / 2.0;
+    const double thisLow = crossPos - crossHalf;
+    const double thisHigh = crossPos + crossHalf;
+
+    double earliestEdge = halfMain;
+    for (std::size_t j = 0; j < k; ++j) {
+      const std::size_t other = order[j];
+      const NodeRecord& otherNode = nodes[other];
+      const double otherW = std::max(1.0, otherNode.width);
+      const double otherH = std::max(1.0, otherNode.height);
+      const double otherCrossPos = horizontal ? attributes.y(otherNode.handle) : attributes.x(otherNode.handle);
+      const double otherCrossHalf = horizontal ? otherH / 2.0 : otherW / 2.0;
+      const double otherLow = otherCrossPos - otherCrossHalf;
+      const double otherHigh = otherCrossPos + otherCrossHalf;
+      if (otherHigh < thisLow || otherLow > thisHigh) {
+        continue;
+      }
+      const double otherMainHalf = horizontal ? otherW / 2.0 : otherH / 2.0;
+      const double otherEdge = newPos[other] + otherMainHalf + gap + halfMain;
+      earliestEdge = std::max(earliestEdge, otherEdge);
+    }
+    newPos[idx] = earliestEdge;
+    placed[idx] = true;
+  }
+
+  for (std::size_t i = 0; i < n; ++i) {
+    if (horizontal) {
+      attributes.x(nodes[i].handle) = newPos[i];
+    } else {
+      attributes.y(nodes[i].handle) = newPos[i];
+    }
+  }
+}
+
+void compactGlobalLayout(
+  const std::vector<NodeRecord>& nodes,
+  ogdf::GraphAttributes& attributes,
+  double gap) {
+  compactWhitespaceAxis(nodes, attributes, true, gap);
+  compactWhitespaceAxis(nodes, attributes, false, gap);
+  compactWhitespaceAxis(nodes, attributes, true, gap);
 }
 
 template <typename Transform>
@@ -1223,6 +1469,169 @@ void translateComponent(
     const NodeRecord& node = nodes[nodeIndex];
     attributes.x(node.handle) = sanitizeNodeCenterX(node, attributes) + dx;
     attributes.y(node.handle) = sanitizeNodeCenterY(node, attributes) + dy;
+  }
+}
+
+void pullLowDegreeNodesInward(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes,
+  int maxIterations,
+  std::size_t degreeThreshold,
+  double damping) {
+  if (nodes.empty()) {
+    return;
+  }
+  std::unordered_map<std::string, std::size_t> indexById;
+  indexById.reserve(nodes.size());
+  for (std::size_t i = 0; i < nodes.size(); ++i) {
+    indexById[nodes[i].modelId] = i;
+  }
+  std::vector<std::vector<std::size_t>> neighbors(nodes.size());
+  for (const EdgeRecord& edge : edges) {
+    const auto srcIt = indexById.find(edge.sourceModelId);
+    const auto tgtIt = indexById.find(edge.targetModelId);
+    if (srcIt == indexById.end() || tgtIt == indexById.end() || srcIt->second == tgtIt->second) {
+      continue;
+    }
+    neighbors[srcIt->second].push_back(tgtIt->second);
+    neighbors[tgtIt->second].push_back(srcIt->second);
+  }
+  for (auto& list : neighbors) {
+    std::sort(list.begin(), list.end());
+    list.erase(std::unique(list.begin(), list.end()), list.end());
+  }
+
+  // Compute mean inter-node spacing across the graph as a target distance budget.
+  double sumX = 0.0;
+  double sumY = 0.0;
+  double sumW = 0.0;
+  double sumH = 0.0;
+  for (const NodeRecord& node : nodes) {
+    sumW += std::max(1.0, node.width);
+    sumH += std::max(1.0, node.height);
+    sumX += attributes.x(node.handle);
+    sumY += attributes.y(node.handle);
+  }
+  const double avgW = sumW / static_cast<double>(nodes.size());
+  const double avgH = sumH / static_cast<double>(nodes.size());
+  const double targetMinDistance = std::max(avgW, avgH) * 1.2;
+
+  auto findOverlap = [&](std::size_t i, double newX, double newY) -> bool {
+    const double width = std::max(1.0, nodes[i].width);
+    const double height = std::max(1.0, nodes[i].height);
+    for (std::size_t k = 0; k < nodes.size(); ++k) {
+      if (k == i) continue;
+      const double otherX = attributes.x(nodes[k].handle);
+      const double otherY = attributes.y(nodes[k].handle);
+      const double otherW = std::max(1.0, nodes[k].width);
+      const double otherH = std::max(1.0, nodes[k].height);
+      const double dx = std::abs(newX - otherX);
+      const double dy = std::abs(newY - otherY);
+      if (dx < (width + otherW) / 2.0 + 4.0 && dy < (height + otherH) / 2.0 + 4.0) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  for (int iter = 0; iter < maxIterations; ++iter) {
+    bool moved = false;
+    for (std::size_t i = 0; i < nodes.size(); ++i) {
+      const std::vector<std::size_t>& adj = neighbors[i];
+      if (adj.empty() || adj.size() > degreeThreshold) {
+        continue;
+      }
+      double neighSumX = 0.0;
+      double neighSumY = 0.0;
+      for (std::size_t j : adj) {
+        neighSumX += attributes.x(nodes[j].handle);
+        neighSumY += attributes.y(nodes[j].handle);
+      }
+      const double targetX = neighSumX / static_cast<double>(adj.size());
+      const double targetY = neighSumY / static_cast<double>(adj.size());
+      const double currentX = attributes.x(nodes[i].handle);
+      const double currentY = attributes.y(nodes[i].handle);
+      const double distFromTarget = std::hypot(currentX - targetX, currentY - targetY);
+      if (distFromTarget <= targetMinDistance * 4.0) {
+        continue;
+      }
+
+      const double newX = currentX * (1.0 - damping) + targetX * damping;
+      const double newY = currentY * (1.0 - damping) + targetY * damping;
+      if (findOverlap(i, newX, newY)) {
+        continue;
+      }
+      attributes.x(nodes[i].handle) = newX;
+      attributes.y(nodes[i].handle) = newY;
+      moved = true;
+    }
+    if (!moved) {
+      break;
+    }
+  }
+}
+
+void compactClusterOutliers(
+  const std::vector<NodeRecord>& nodes,
+  const std::unordered_map<std::string, std::string>& clusterByModelId,
+  ogdf::GraphAttributes& attributes,
+  double outlierMedianMultiplier) {
+  if (clusterByModelId.empty() || nodes.empty()) {
+    return;
+  }
+  std::unordered_map<std::string, std::vector<std::size_t>> membersByCluster;
+  for (std::size_t i = 0; i < nodes.size(); ++i) {
+    auto it = clusterByModelId.find(nodes[i].modelId);
+    if (it == clusterByModelId.end()) {
+      continue;
+    }
+    membersByCluster[it->second].push_back(i);
+  }
+  for (int iteration = 0; iteration < 2; ++iteration) {
+    bool moved = false;
+    for (const auto& [clusterKey, members] : membersByCluster) {
+      if (members.size() < 4) {
+        continue;
+      }
+      double sumX = 0.0;
+      double sumY = 0.0;
+      for (std::size_t idx : members) {
+        sumX += attributes.x(nodes[idx].handle);
+        sumY += attributes.y(nodes[idx].handle);
+      }
+      const double cx = sumX / static_cast<double>(members.size());
+      const double cy = sumY / static_cast<double>(members.size());
+      std::vector<double> distances;
+      distances.reserve(members.size());
+      for (std::size_t idx : members) {
+        distances.push_back(std::hypot(
+          attributes.x(nodes[idx].handle) - cx,
+          attributes.y(nodes[idx].handle) - cy));
+      }
+      std::vector<double> sortedDist = distances;
+      std::sort(sortedDist.begin(), sortedDist.end());
+      const double median = sortedDist[sortedDist.size() / 2];
+      const double percentile75 = sortedDist[(sortedDist.size() * 3) / 4];
+      const double outlierCutoff = std::max(
+        std::min(median * outlierMedianMultiplier, percentile75 * 1.2),
+        1.0);
+      for (std::size_t k = 0; k < members.size(); ++k) {
+        if (distances[k] <= outlierCutoff) {
+          continue;
+        }
+        const std::size_t idx = members[k];
+        const double currentX = attributes.x(nodes[idx].handle);
+        const double currentY = attributes.y(nodes[idx].handle);
+        const double scale = outlierCutoff / distances[k];
+        attributes.x(nodes[idx].handle) = cx + (currentX - cx) * scale;
+        attributes.y(nodes[idx].handle) = cy + (currentY - cy) * scale;
+        moved = true;
+      }
+    }
+    if (!moved) {
+      break;
+    }
   }
 }
 
@@ -3300,24 +3709,23 @@ LayoutRunMetadata runLayout(
         }
         ClusterRunOptions opts;
         opts.innerMode = "sugiyama";
-        opts.innerLayerDistance = 96.0;
-        opts.innerNodeDistance = 44.0;
-        opts.metaMode = "sugiyama";
-        opts.metaLayerDistance = 240.0;
-        opts.metaNodeDistance = 140.0;
-        opts.interClusterPadding = 180.0;
+        opts.innerLayerDistance = 60.0;
+        opts.innerNodeDistance = 28.0;
+        opts.metaMode = "fmmm";
+        opts.metaUnitEdgeLength = 100.0;
+        opts.interClusterPadding = 20.0;
         std::size_t clusterCount = 0;
         std::size_t interEdges = 0;
-        runClusteredByAppLayout(opts, clusteredNodes, edges, attributes, clusterCount, interEdges);
+        runClusteredByAppLayout(opts, clusteredNodes, edges, attributes, clusterCount, interEdges); for (const auto& cn : clusteredNodes) metadata.clusterByModelId[cn.modelId] = cn.appLabel;
         const std::string clusterSource = useAppClusters ? "appLabel" : "graphStructure";
         metadata.actualAlgorithm =
           "ClusteredLayout(source=" + clusterSource
-          + ", inner=SugiyamaLayout + BarycenterHeuristic, meta=Sugiyama, clusters="
+          + ", inner=SugiyamaLayout + BarycenterHeuristic, meta=FMMM(weighted), clusters="
           + std::to_string(clusterCount) + ", interClusterEdges=" + std::to_string(interEdges) + ")";
         metadata.strategy = "clustered";
         metadata.strategyReason = useAppClusters
-          ? "nodes grouped by appLabel; per-app Sugiyama with Sugiyama meta-layout reduces inter-cluster crossings"
-          : "no useful appLabel split; high-degree-hub BFS chunking groups the graph into structural clusters with Sugiyama meta-layout";
+          ? "nodes grouped by appLabel; per-app Sugiyama with FMMM weighted meta-layout"
+          : "high-degree-hub BFS chunking groups the graph into structural clusters; FMMM weighted meta-layout";
         return metadata;
       }
     }
@@ -3342,6 +3750,40 @@ LayoutRunMetadata runLayout(
   }
 
   if (mode == "circular") {
+    {
+      const bool useAppClusters = hasMeaningfulClusters(nodes);
+      const bool useStructuralFallback = !useAppClusters && nodes.size() >= 80;
+      if (useAppClusters || useStructuralFallback) {
+        std::vector<NodeRecord> clusteredNodes = nodes;
+        if (useStructuralFallback) {
+          const std::size_t targetClusters =
+            std::max<std::size_t>(8, std::min<std::size_t>(32, nodes.size() / 50));
+          std::vector<std::string> labels =
+            assignStructuralClusterLabels(nodes, edges, targetClusters);
+          for (std::size_t i = 0; i < clusteredNodes.size(); ++i) {
+            clusteredNodes[i].appLabel = labels[i];
+          }
+        }
+        ClusterRunOptions opts;
+        opts.innerMode = "circular";
+        opts.metaMode = "fmmm";
+        opts.metaUnitEdgeLength = 100.0;
+        opts.interClusterPadding = 20.0;
+        std::size_t clusterCount = 0;
+        std::size_t interEdges = 0;
+        runClusteredByAppLayout(opts, clusteredNodes, edges, attributes, clusterCount, interEdges); for (const auto& cn : clusteredNodes) metadata.clusterByModelId[cn.modelId] = cn.appLabel;
+        const std::string clusterSource = useAppClusters ? "appLabel" : "graphStructure";
+        metadata.actualAlgorithm =
+          "ClusteredLayout(source=" + clusterSource
+          + ", inner=CircularLayout, meta=FMMM, clusters="
+          + std::to_string(clusterCount) + ", interClusterEdges=" + std::to_string(interEdges) + ")";
+        metadata.strategy = "clustered";
+        metadata.strategyReason =
+          "per-cluster CircularLayout produces ring-shaped clusters; FMMM meta-layout separates them by structural attraction";
+        return metadata;
+      }
+    }
+
     ogdf::CircularLayout layout;
     layout.minDistCircle(96.0);
     layout.minDistCC(96.0);
@@ -3418,7 +3860,7 @@ LayoutRunMetadata runLayout(
       opts.interClusterPadding = 320.0;
       std::size_t clusterCount = 0;
       std::size_t interEdges = 0;
-      runClusteredByAppLayout(opts, clusteredNodes, edges, attributes, clusterCount, interEdges);
+      runClusteredByAppLayout(opts, clusteredNodes, edges, attributes, clusterCount, interEdges); for (const auto& cn : clusteredNodes) metadata.clusterByModelId[cn.modelId] = cn.appLabel;
       const std::string clusterSource = useAppClusters ? "appLabel" : "graphStructure";
       metadata.actualAlgorithm =
         "ClusteredLayout(source=" + clusterSource
@@ -3533,7 +3975,7 @@ LayoutRunMetadata runLayout(
     layout.pageRatio(kPlanarizationPageRatio);
     layout.call(attributes);
     metadata.actualAlgorithm =
-      "PlanarizationLayout(boundedCrossMin=PlanarSubgraphFast(runs=1)+VariableEmbeddingInserter(removeReinsert=None),pageRatio=1.25)";
+      "PlanarizationLayout(boundedCrossMin=PlanarSubgraphFast(runs=1)+VariableEmbeddingInserter(removeReinsert=None),pageRatio=1.0)";
     metadata.strategy = "bounded";
     metadata.strategyReason =
       "crossing minimization uses one planar subgraph run and fixed embedding insertion for 60s layout";
@@ -3606,7 +4048,7 @@ LayoutRunMetadata runLayout(
     layout.pageRatio(kPlanarizationPageRatio);
     layout.call(attributes);
     metadata.actualAlgorithm =
-      "PlanarizationLayout + OrthoLayout(boundedCrossMin=PlanarSubgraphFast(runs=1)+VariableEmbeddingInserter(removeReinsert=None),pageRatio=1.25)";
+      "PlanarizationLayout + OrthoLayout(boundedCrossMin=PlanarSubgraphFast(runs=1)+VariableEmbeddingInserter(removeReinsert=None),pageRatio=1.0)";
     metadata.strategy = "bounded";
     metadata.strategyReason =
       "orthogonal planarization uses bounded crossing minimization for 60s layout";
@@ -3655,6 +4097,44 @@ LayoutRunMetadata runLayout(
   }
 
   if (mode == "upward_layer_based" || mode == "upward_planarization") {
+    {
+      const bool useAppClusters = hasMeaningfulClusters(nodes);
+      const bool useStructuralFallback = !useAppClusters && nodes.size() >= 80;
+      if (useAppClusters || useStructuralFallback) {
+        std::vector<NodeRecord> clusteredNodes = nodes;
+        if (useStructuralFallback) {
+          const std::size_t targetClusters =
+            std::max<std::size_t>(8, std::min<std::size_t>(32, nodes.size() / 50));
+          std::vector<std::string> labels =
+            assignStructuralClusterLabels(nodes, edges, targetClusters);
+          for (std::size_t i = 0; i < clusteredNodes.size(); ++i) {
+            clusteredNodes[i].appLabel = labels[i];
+          }
+        }
+        ClusterRunOptions opts;
+        opts.innerMode = "sugiyama";
+        opts.innerLayerDistance = 60.0;
+        opts.innerNodeDistance = 28.0;
+        opts.metaMode = "fmmm";
+        opts.metaUnitEdgeLength = 100.0;
+        opts.interClusterPadding = 20.0;
+        std::size_t clusterCount = 0;
+        std::size_t interEdges = 0;
+        runClusteredByAppLayout(opts, clusteredNodes, edges, attributes, clusterCount, interEdges); for (const auto& cn : clusteredNodes) metadata.clusterByModelId[cn.modelId] = cn.appLabel;
+        applyUpwardSurrogateGeometry(nodes, edges, attributes, mode == "upward_layer_based");
+        const std::string clusterSource = useAppClusters ? "appLabel" : "graphStructure";
+        metadata.actualMode = mode;
+        metadata.actualAlgorithm =
+          "ClusteredLayout(source=" + clusterSource
+          + ", inner=SugiyamaLayout + BarycenterHeuristic, meta=FMMM(weighted), upwardProjection, clusters="
+          + std::to_string(clusterCount) + ", interClusterEdges=" + std::to_string(interEdges) + ")";
+        metadata.strategy = "clustered";
+        metadata.strategyReason =
+          "per-cluster Sugiyama with upward projection; FMMM weighted meta-layout pulls coupled clusters tight";
+        return metadata;
+      }
+    }
+
     runSugiyamaLayout("hierarchical_barycenter", attributes);
     applyUpwardSurrogateGeometry(nodes, edges, attributes, mode == "upward_layer_based");
     metadata.actualMode = mode;
@@ -4436,6 +4916,7 @@ int main(int argc, char** argv) {
     enforceNodeSeparationStrong(nodes, attributes);
     packDisconnectedComponents(nodes, edges, attributes);
     enforceNodeSeparationStrong(nodes, attributes);
+    enforceNodeSeparationStrong(nodes, attributes);
     if (isStraightLineRoutingMode(arguments.mode)) {
       refineStraightHubAxisLayout(nodes, edges, attributes);
       packDisconnectedComponents(nodes, edges, attributes);
@@ -4444,6 +4925,9 @@ int main(int argc, char** argv) {
       refineConstrainedForceLayout(nodes, edges, attributes);
       enforceNodeSeparationStrong(nodes, attributes);
     }
+    sanitizeLayoutGeometry(nodes, edges, attributes);
+    compactClusterOutliers(nodes, metadata.clusterByModelId, attributes, 1.8);
+    enforceNodeSeparationStrong(nodes, attributes);
     sanitizeLayoutGeometry(nodes, edges, attributes);
     const bool straightLineMode = isStraightLineRoutingMode(arguments.mode)
       || arguments.edgeRouting == "straight"

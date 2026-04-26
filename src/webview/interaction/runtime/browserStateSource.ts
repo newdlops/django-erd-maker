@@ -111,6 +111,8 @@ export function getBrowserStateSource(): string {
           });
 
           return {
+            collapseClusters: Boolean(value.collapseClusters),
+            edgeBundling: Boolean(value.edgeBundling),
             layoutMode: value.layoutMode || "hierarchical",
             settings: normalizeInteractionSettings(value.settings),
             selectedMethodContext: value.selectedMethodContext,
@@ -311,6 +313,8 @@ export function getBrowserStateSource(): string {
           const viewportRect = getViewportScreenRect();
 
           return {
+            collapseClusters: Boolean(currentState.collapseClusters),
+            edgeBundling: Boolean(currentState.edgeBundling),
             layoutMode: currentState.layoutMode,
             selectedMethodContext: currentState.selectedMethodContext
               ? {
@@ -484,6 +488,8 @@ export function getBrowserStateSource(): string {
                 viewport: {
                   ...currentState.viewport,
                   zoom: clampZoom(action.zoom),
+                  panX: typeof action.panX === "number" ? action.panX : currentState.viewport.panX,
+                  panY: typeof action.panY === "number" ? action.panY : currentState.viewport.panY,
                 },
               };
             case "fit-viewport":

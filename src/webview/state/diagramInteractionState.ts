@@ -35,7 +35,7 @@ export type DiagramInteractionAction =
   | { modelId: ModelId; showProperties: boolean; type: "set-table-show-properties" }
   | { key: DiagramInteractionSettingKey; type: "set-interaction-setting"; value: number }
   | { panX: number; panY: number; type: "set-viewport-pan" }
-  | { type: "set-viewport-zoom"; zoom: number }
+  | { type: "set-viewport-zoom"; zoom: number; panX?: number; panY?: number }
   | { initialState: DiagramInteractionState; type: "reset-view" };
 
 export const DEFAULT_VIEWPORT: DiagramViewportState = {
@@ -49,6 +49,8 @@ export function createDiagramInteractionState(
   settingsOverride?: Partial<DiagramInteractionSettings>,
 ): DiagramInteractionState {
   return {
+    collapseClusters: Boolean(view.collapseClusters),
+    edgeBundling: Boolean(view.edgeBundling),
     layoutMode: view.layoutMode,
     settings: normalizeInteractionSettings(settingsOverride ?? DEFAULT_INTERACTION_SETTINGS),
     selectedMethodContext: cloneSelectedMethodContext(view.selectedMethodContext),
@@ -146,6 +148,8 @@ export function reduceDiagramInteractionState(
         viewport: {
           ...state.viewport,
           zoom: clampZoom(action.zoom),
+          panX: typeof action.panX === "number" ? action.panX : state.viewport.panX,
+          panY: typeof action.panY === "number" ? action.panY : state.viewport.panY,
         },
       };
   }
@@ -155,6 +159,8 @@ export function cloneDiagramInteractionState(
   state: DiagramInteractionState,
 ): DiagramInteractionState {
   return {
+    collapseClusters: Boolean(state.collapseClusters),
+    edgeBundling: Boolean(state.edgeBundling),
     layoutMode: state.layoutMode,
     settings: { ...state.settings },
     selectedMethodContext: cloneSelectedMethodContext(state.selectedMethodContext),

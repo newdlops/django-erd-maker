@@ -40,6 +40,8 @@ export function renderCanvasScene(viewModel: DiagramRenderModel, appVersion: str
           ).join("")}
         </div>
         <div class="erd-toolbar-group">
+          <button type="button" class="erd-tool" data-edge-bundle-toggle title="Bundle edges between distinct table groups (curved Bezier paths)">Bundle</button>
+          <button type="button" class="erd-tool" data-cluster-collapse-toggle title="Collapse clusters into super-nodes; aggregate edges between clusters">Collapse</button>
           <button type="button" class="erd-tool" data-panel-refresh>Refresh</button>
           <button type="button" class="erd-tool" data-reset-view>Reset View</button>
         </div>

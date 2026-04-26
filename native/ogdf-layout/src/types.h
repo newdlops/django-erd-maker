@@ -112,6 +112,7 @@ struct LayoutRunMetadata {
   std::string actualAlgorithm;
   std::string strategy;
   std::string strategyReason;
+  std::unordered_map<std::string, std::string> clusterByModelId;
 };
 
 struct LayoutQualityMetrics {
@@ -140,7 +141,7 @@ constexpr std::size_t kPlanarizationGridSurrogateNodeThreshold = 10000;
 constexpr std::size_t kPlanarizationGridProjectionNodeThreshold = 1000;
 constexpr std::size_t kDavidsonHarelReducedNodeThreshold = 10000;
 constexpr int kFastMultipoleMultilevelCoarseNodeBound = 1024;
-constexpr double kPlanarizationPageRatio = 1.25;
+constexpr double kPlanarizationPageRatio = 1.0;
 constexpr double kPlanarizationGridSeparation = 96.0;
 constexpr double kTreeLevelDistance = 320.0;
 constexpr double kTreeNodeDistance = 96.0;

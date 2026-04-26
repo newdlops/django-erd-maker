@@ -92,6 +92,38 @@ export function getBrowserEventSource(): string {
           });
         }
 
+        for (const button of document.querySelectorAll("[data-edge-bundle-toggle]")) {
+          if (state.edgeBundling) {
+            button.classList.add("is-active");
+          }
+          button.addEventListener("click", () => {
+            state.edgeBundling = !state.edgeBundling;
+            button.classList.toggle("is-active", state.edgeBundling);
+            logErd("info", "event.edge.bundle.toggle", {
+              enabled: state.edgeBundling,
+              renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
+            });
+            invalidateSceneGraph();
+            applyState();
+          });
+        }
+
+        for (const button of document.querySelectorAll("[data-cluster-collapse-toggle]")) {
+          if (state.collapseClusters) {
+            button.classList.add("is-active");
+          }
+          button.addEventListener("click", () => {
+            state.collapseClusters = !state.collapseClusters;
+            button.classList.toggle("is-active", state.collapseClusters);
+            logErd("info", "event.cluster.collapse.toggle", {
+              enabled: state.collapseClusters,
+              renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
+            });
+            invalidateSceneGraph();
+            applyState();
+          });
+        }
+
         root.addEventListener("click", (event) => {
           const target = event.target;
           if (!(target instanceof Element)) {
@@ -219,25 +251,41 @@ export function getBrowserEventSource(): string {
 
         for (const button of zoomButtons) {
           button.addEventListener("click", () => {
-            const zoomDelta = 0.12 * getInteractionSetting(state, "zoomSpeed");
+            const zoomFactor = 1 + 0.18 * getInteractionSetting(state, "zoomSpeed");
             logErd("info", "event.zoom.click", {
               action: button.dataset.zoomAction,
               zoom: state.viewport.zoom,
             });
 
+            const drawingRect = drawingCanvas.getBoundingClientRect();
+            const anchorX = drawingRect.width / 2;
+            const anchorY = drawingRect.height / 2;
+            const oldZoom = state.viewport.zoom;
             switch (button.dataset.zoomAction) {
-              case "in":
+              case "in": {
+                const newZoom = clampZoom(oldZoom * zoomFactor);
+                if (newZoom === oldZoom) break;
+                const ratio = newZoom / oldZoom;
                 dispatch({
                   type: "set-viewport-zoom",
-                  zoom: state.viewport.zoom + zoomDelta,
+                  zoom: newZoom,
+                  panX: anchorX - (anchorX - state.viewport.panX) * ratio,
+                  panY: anchorY - (anchorY - state.viewport.panY) * ratio,
                 });
                 break;
-              case "out":
+              }
+              case "out": {
+                const newZoom = clampZoom(oldZoom / zoomFactor);
+                if (newZoom === oldZoom) break;
+                const ratio = newZoom / oldZoom;
                 dispatch({
                   type: "set-viewport-zoom",
-                  zoom: state.viewport.zoom - zoomDelta,
+                  zoom: newZoom,
+                  panX: anchorX - (anchorX - state.viewport.panX) * ratio,
+                  panY: anchorY - (anchorY - state.viewport.panY) * ratio,
                 });
                 break;
+              }
               case "fit":
                 dispatch({
                   type: "fit-viewport",
@@ -429,10 +477,28 @@ export function getBrowserEventSource(): string {
 
         canvas.addEventListener("wheel", (event) => {
           event.preventDefault();
-          const zoomDelta = 0.08 * getInteractionSetting(state, "zoomSpeed");
+          const speed = getInteractionSetting(state, "zoomSpeed");
+          const sensitivity = 0.0015 * speed;
+          const rawDelta = event.deltaY;
+          const clampedDelta = Math.max(-100, Math.min(100, rawDelta));
+          const factor = Math.exp(-clampedDelta * sensitivity);
+          const oldZoom = state.viewport.zoom;
+          const requestedZoom = oldZoom * factor;
+          const newZoom = clampZoom(requestedZoom);
+          if (newZoom === oldZoom) {
+            return;
+          }
+          const drawingRect = drawingCanvas.getBoundingClientRect();
+          const anchorX = drawingRect.width / 2;
+          const anchorY = drawingRect.height / 2;
+          const ratio = newZoom / oldZoom;
+          const newPanX = anchorX - (anchorX - state.viewport.panX) * ratio;
+          const newPanY = anchorY - (anchorY - state.viewport.panY) * ratio;
           dispatch({
             type: "set-viewport-zoom",
-            zoom: state.viewport.zoom + (event.deltaY < 0 ? zoomDelta : -zoomDelta),
+            zoom: newZoom,
+            panX: newPanX,
+            panY: newPanY,
           });
         }, { passive: false });
   `;

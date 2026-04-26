@@ -69,6 +69,7 @@ export interface MethodOverlayRenderModel {
 export interface TableRenderModel {
   activeMethodName?: string;
   appLabel: string;
+  clusterId?: string;
   databaseTableName: string;
   fieldRows: Array<{ key: string; text: string; tone: "enum-option" | "field" }>;
   hasExplicitDatabaseTableName: boolean;
@@ -263,6 +264,7 @@ function createTableRenderModel(
         ? payload.view.selectedMethodContext.methodName
         : undefined,
     appLabel: model.identity.appLabel,
+    clusterId: layoutNode.clusterId,
     databaseTableName: databaseTableName(model),
     fieldRows: createFieldRows(model),
     hasExplicitDatabaseTableName: Boolean(model.hasExplicitDatabaseTableName),

@@ -296,7 +296,12 @@ void writeLayoutJson(
       centerY - height / 2.0,
       bounds);
     stream << ",\"size\":{\"width\":" << width
-           << ",\"height\":" << height << "}}";
+           << ",\"height\":" << height << "}";
+    auto clusterIt = metadata.clusterByModelId.find(node.modelId);
+    if (clusterIt != metadata.clusterByModelId.end() && !clusterIt->second.empty()) {
+      stream << ",\"clusterId\":\"" << escapeJson(clusterIt->second) << "\"";
+    }
+    stream << "}";
   }
 
   stream << "],\"routedEdges\":[";

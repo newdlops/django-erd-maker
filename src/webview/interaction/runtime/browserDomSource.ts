@@ -25,6 +25,7 @@ export function getBrowserDomSource(): string {
         function readTableMeta(table) {
           return {
             appLabel: table.appLabel || "",
+            clusterId: table.clusterId || "",
             basePosition: {
               x: Number(table.position?.x || 0),
               y: Number(table.position?.y || 0),

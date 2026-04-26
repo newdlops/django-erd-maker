@@ -645,13 +645,88 @@ export function getBrowserCanvasDrawSource(): string {
             });
           }
 
-          renderedEdges = renderModel.modelCatalogMode
-            ? getStaticOrCatalogEdgePaths(visibleEdgeEntries)
-            : visibleEdgeEntries.map((entry) => ({
-                edgeId: entry.meta.edgeId,
-                meta: entry.meta,
-                points: getStaticOrLiveEdgePath(entry),
-              }));
+          const collapseEnabled = Boolean(state.collapseClusters) && !renderModel.modelCatalogMode;
+          let collapsedAggregates = null;
+          let collapsedClusterKeyByModelId = null;
+          if (collapseEnabled) {
+            const result = applyClusterCollapse(nextScene, visibleEdgeEntries);
+            if (result) {
+              collapsedAggregates = result.aggregates;
+              collapsedClusterKeyByModelId = result.clusterKeyByModelId;
+            }
+          }
+
+          const bundlingEnabled = Boolean(state.edgeBundling) && !renderModel.modelCatalogMode && !collapseEnabled;
+          let bundleAppCenters = null;
+          let bundleSpatial = null;
+          if (bundlingEnabled) {
+            bundleAppCenters = computeAppClusterCenters(visibleEdgeEntries);
+            const distinctApps = new Set();
+            for (const entry of visibleEdgeEntries) {
+              if (entry.sourceTable && entry.sourceTable.appLabel) {
+                distinctApps.add(entry.sourceTable.appLabel);
+              }
+            }
+            if (distinctApps.size < 3) {
+              bundleSpatial = computeSpatialClusterContext(visibleEdgeEntries);
+            }
+          }
+
+          function buildEdgePathWithBundle(entry) {
+            const fallbackPath = getStaticOrLiveEdgePath(entry);
+            if (!bundlingEnabled || !entry.sourceTable || !entry.targetTable) {
+              return fallbackPath;
+            }
+            const sourceLabel = entry.sourceTable.appLabel || "";
+            const targetLabel = entry.targetTable.appLabel || "";
+            if (bundleAppCenters && sourceLabel && targetLabel && sourceLabel !== targetLabel) {
+              const sourceCluster = bundleAppCenters.get(sourceLabel);
+              const targetCluster = bundleAppCenters.get(targetLabel);
+              if (sourceCluster && targetCluster) {
+                return buildBundledPath(
+                  entry.sourcePosition,
+                  entry.sourceTable,
+                  entry.targetPosition,
+                  entry.targetTable,
+                  sourceCluster,
+                  targetCluster,
+                  0.85,
+                );
+              }
+            }
+            if (bundleSpatial) {
+              const sourceCellKey = bundleSpatial.cellKey(entry.sourcePosition, entry.sourceTable);
+              const targetCellKey = bundleSpatial.cellKey(entry.targetPosition, entry.targetTable);
+              if (sourceCellKey !== targetCellKey) {
+                return buildBundledPath(
+                  entry.sourcePosition,
+                  entry.sourceTable,
+                  entry.targetPosition,
+                  entry.targetTable,
+                  bundleSpatial.cellCenter(sourceCellKey),
+                  bundleSpatial.cellCenter(targetCellKey),
+                  0.7,
+                );
+              }
+            }
+            return fallbackPath;
+          }
+
+          if (collapseEnabled && collapsedAggregates) {
+            renderedEdges = collapsedAggregates.superEdges.map((edge) => ({
+              edgeId: edge.edgeId,
+              meta: edge.meta,
+              points: edge.points,
+            }));
+          } else {
+            renderedEdges = renderModel.modelCatalogMode
+              ? getStaticOrCatalogEdgePaths(visibleEdgeEntries)
+              : visibleEdgeEntries.map((entry) => ({
+                  edgeId: entry.meta.edgeId,
+                  meta: entry.meta,
+                  points: buildEdgePathWithBundle(entry),
+                }));
+          }
 
           for (const edge of renderedEdges) {
             for (const segment of findSegments(edge.points)) {
@@ -1328,6 +1403,65 @@ export function getBrowserCanvasDrawSource(): string {
           }
           latestLiveDragEdgeCount = visibleEdgeEntries.length;
 
+          const liveBundlingEnabled = Boolean(state.edgeBundling) && !renderModel.modelCatalogMode;
+          let liveBundleAppCenters = null;
+          let liveBundleSpatial = null;
+          if (liveBundlingEnabled) {
+            liveBundleAppCenters = computeAppClusterCenters(visibleEdgeEntries);
+            const distinctApps = new Set();
+            for (const entry of visibleEdgeEntries) {
+              if (entry.sourceTable && entry.sourceTable.appLabel) {
+                distinctApps.add(entry.sourceTable.appLabel);
+              }
+            }
+            if (distinctApps.size < 3) {
+              liveBundleSpatial = computeSpatialClusterContext(visibleEdgeEntries);
+            }
+          }
+
+          function buildLiveEdgePath(entry) {
+            if (liveBundlingEnabled && entry.sourceTable && entry.targetTable) {
+              const sourceLabel = entry.sourceTable.appLabel || "";
+              const targetLabel = entry.targetTable.appLabel || "";
+              if (liveBundleAppCenters && sourceLabel && targetLabel && sourceLabel !== targetLabel) {
+                const sourceCluster = liveBundleAppCenters.get(sourceLabel);
+                const targetCluster = liveBundleAppCenters.get(targetLabel);
+                if (sourceCluster && targetCluster) {
+                  return buildBundledPath(
+                    entry.sourcePosition,
+                    entry.sourceTable,
+                    entry.targetPosition,
+                    entry.targetTable,
+                    sourceCluster,
+                    targetCluster,
+                    0.85,
+                  );
+                }
+              }
+              if (liveBundleSpatial) {
+                const srcKey = liveBundleSpatial.cellKey(entry.sourcePosition, entry.sourceTable);
+                const tgtKey = liveBundleSpatial.cellKey(entry.targetPosition, entry.targetTable);
+                if (srcKey !== tgtKey) {
+                  return buildBundledPath(
+                    entry.sourcePosition,
+                    entry.sourceTable,
+                    entry.targetPosition,
+                    entry.targetTable,
+                    liveBundleSpatial.cellCenter(srcKey),
+                    liveBundleSpatial.cellCenter(tgtKey),
+                    0.7,
+                  );
+                }
+              }
+            }
+            return buildStraightPath(
+              entry.sourcePosition,
+              entry.sourceTable,
+              entry.targetPosition,
+              entry.targetTable,
+            );
+          }
+
           const routedEdges = renderModel.modelCatalogMode
             ? routeCatalogEdgesWithPorts(visibleEdgeEntries).map((routed) => ({
                 edgeId: routed.entry.meta.edgeId,
@@ -1337,12 +1471,7 @@ export function getBrowserCanvasDrawSource(): string {
             : visibleEdgeEntries.map((entry) => ({
                 edgeId: entry.meta.edgeId,
                 meta: entry.meta,
-                points: buildStraightPath(
-                  entry.sourcePosition,
-                  entry.sourceTable,
-                  entry.targetPosition,
-                  entry.targetTable,
-                ),
+                points: buildLiveEdgePath(entry),
               }));
           const records = [];
 

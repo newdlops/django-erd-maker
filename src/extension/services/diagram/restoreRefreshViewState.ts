@@ -23,6 +23,8 @@ export function restoreRefreshViewState(
   const availableModelIds = new Set(
     nextResult.payload.layout.nodes.map((node) => node.modelId),
   );
+  nextResult.payload.view.collapseClusters = Boolean(viewState.collapseClusters);
+  nextResult.payload.view.edgeBundling = Boolean(viewState.edgeBundling);
   nextResult.payload.view.layoutMode = normalizeLayoutMode(nextResult.payload.layout.mode);
   nextResult.payload.view.selectedModelId = viewState.selectedModelId &&
   availableModelIds.has(viewState.selectedModelId)

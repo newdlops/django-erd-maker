@@ -344,6 +344,380 @@ export function getBrowserLayoutSource(): string {
           return normalizePoints([sourcePort, targetPort]);
         }
 
+        function buildBundledPath(
+          sourcePosition,
+          sourceTable,
+          targetPosition,
+          targetTable,
+          sourceCluster,
+          targetCluster,
+          bundleStrength,
+        ) {
+          const sourceCenter = getCenter(sourcePosition, sourceTable);
+          const targetCenter = getCenter(targetPosition, targetTable);
+          const sourcePort = computeBoundaryPort(sourcePosition, sourceTable, targetCenter);
+          const targetPort = computeBoundaryPort(targetPosition, targetTable, sourceCenter);
+
+          const dx = targetCluster.x - sourceCluster.x;
+          const dy = targetCluster.y - sourceCluster.y;
+          const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+          const ux = dx / dist;
+          const uy = dy / dist;
+          const sourceRadius = (sourceCluster.radius || 0) + 80;
+          const targetRadius = (targetCluster.radius || 0) + 80;
+          const sourceBoundary = {
+            x: sourceCluster.x + ux * Math.min(sourceRadius, dist * 0.45),
+            y: sourceCluster.y + uy * Math.min(sourceRadius, dist * 0.45),
+          };
+          const targetBoundary = {
+            x: targetCluster.x - ux * Math.min(targetRadius, dist * 0.45),
+            y: targetCluster.y - uy * Math.min(targetRadius, dist * 0.45),
+          };
+          const t = Math.max(0, Math.min(1, bundleStrength == null ? 0.85 : bundleStrength));
+          const c1 = {
+            x: sourcePort.x * (1 - t) + sourceBoundary.x * t,
+            y: sourcePort.y * (1 - t) + sourceBoundary.y * t,
+          };
+          const c2 = {
+            x: targetPort.x * (1 - t) + targetBoundary.x * t,
+            y: targetPort.y * (1 - t) + targetBoundary.y * t,
+          };
+          const samples = 14;
+          const points = [];
+          for (let i = 0; i <= samples; i += 1) {
+            const u = i / samples;
+            const v = 1 - u;
+            const x =
+              v * v * v * sourcePort.x +
+              3 * v * v * u * c1.x +
+              3 * v * u * u * c2.x +
+              u * u * u * targetPort.x;
+            const y =
+              v * v * v * sourcePort.y +
+              3 * v * v * u * c1.y +
+              3 * v * u * u * c2.y +
+              u * u * u * targetPort.y;
+            points.push({ x: round2(x), y: round2(y) });
+          }
+          return normalizePoints(points);
+        }
+
+        function computeAppClusterCenters(visibleEdgeEntries) {
+          const accumulators = new Map();
+          function accumulate(table, position) {
+            if (!table || !table.appLabel) {
+              return;
+            }
+            const key = table.appLabel;
+            const center = getCenter(position, table);
+            if (!accumulators.has(key)) {
+              accumulators.set(key, {
+                sumX: 0,
+                sumY: 0,
+                count: 0,
+                positions: [],
+              });
+            }
+            const acc = accumulators.get(key);
+            acc.sumX += center.x;
+            acc.sumY += center.y;
+            acc.count += 1;
+            acc.positions.push(center);
+          }
+          for (const entry of visibleEdgeEntries) {
+            accumulate(entry.sourceTable, entry.sourcePosition);
+            accumulate(entry.targetTable, entry.targetPosition);
+          }
+          const centers = new Map();
+          for (const [key, acc] of accumulators.entries()) {
+            if (acc.count > 0) {
+              const cx = acc.sumX / acc.count;
+              const cy = acc.sumY / acc.count;
+              let radius = 0;
+              for (const p of acc.positions) {
+                const dx = p.x - cx;
+                const dy = p.y - cy;
+                const d = Math.sqrt(dx * dx + dy * dy);
+                if (d > radius) radius = d;
+              }
+              centers.set(key, { x: cx, y: cy, radius });
+            }
+          }
+          return centers;
+        }
+
+        function computeSpatialClusterContext(visibleEdgeEntries) {
+          let minX = Infinity;
+          let minY = Infinity;
+          let maxX = -Infinity;
+          let maxY = -Infinity;
+          let count = 0;
+          for (const entry of visibleEdgeEntries) {
+            for (const pair of [
+              [entry.sourcePosition, entry.sourceTable],
+              [entry.targetPosition, entry.targetTable],
+            ]) {
+              const [pos, tbl] = pair;
+              if (!tbl) continue;
+              const center = getCenter(pos, tbl);
+              if (center.x < minX) minX = center.x;
+              if (center.y < minY) minY = center.y;
+              if (center.x > maxX) maxX = center.x;
+              if (center.y > maxY) maxY = center.y;
+              count += 1;
+            }
+          }
+          if (count === 0 || !Number.isFinite(minX)) {
+            return null;
+          }
+          const grid = Math.max(3, Math.min(8, Math.round(Math.sqrt(count / 12))));
+          const width = Math.max(1, maxX - minX);
+          const height = Math.max(1, maxY - minY);
+          const cellW = width / grid;
+          const cellH = height / grid;
+          function cellKey(position, table) {
+            const center = getCenter(position, table);
+            const col = Math.min(grid - 1, Math.max(0, Math.floor((center.x - minX) / cellW)));
+            const row = Math.min(grid - 1, Math.max(0, Math.floor((center.y - minY) / cellH)));
+            return col + ":" + row;
+          }
+          function cellCenter(key) {
+            const [col, row] = key.split(":").map(Number);
+            return {
+              x: minX + (col + 0.5) * cellW,
+              y: minY + (row + 0.5) * cellH,
+            };
+          }
+          return { cellKey, cellCenter };
+        }
+
+        function applyClusterCollapse(scene, visibleEdgeEntries) {
+          if (!scene.tables.length) {
+            return null;
+          }
+          const groups = new Map();
+          const clusterKeyByModelId = new Map();
+          let usingSpatial = false;
+          let firstClusterIdSeen = null;
+          for (const record of scene.tables) {
+            const explicit = record.meta && record.meta.clusterId;
+            if (explicit) {
+              firstClusterIdSeen = explicit;
+              break;
+            }
+          }
+          if (!firstClusterIdSeen) {
+            usingSpatial = true;
+          }
+
+          let spatial = null;
+          if (usingSpatial) {
+            const tablePseudoEntries = scene.tables.map((record) => ({
+              sourcePosition: { x: record.x, y: record.y },
+              sourceTable: { width: record.width, height: record.height, appLabel: record.meta?.appLabel || "" },
+              targetPosition: { x: record.x, y: record.y },
+              targetTable: { width: record.width, height: record.height, appLabel: record.meta?.appLabel || "" },
+            }));
+            spatial = computeSpatialClusterContext(tablePseudoEntries);
+          }
+
+          for (const record of scene.tables) {
+            let key = record.meta && record.meta.clusterId;
+            if (!key) {
+              if (spatial) {
+                key = spatial.cellKey(
+                  { x: record.x, y: record.y },
+                  { width: record.width, height: record.height },
+                );
+              } else if (record.meta && record.meta.appLabel) {
+                key = record.meta.appLabel;
+              } else {
+                key = "_default";
+              }
+            }
+            clusterKeyByModelId.set(record.modelId, key);
+            if (!groups.has(key)) {
+              groups.set(key, {
+                key,
+                members: [],
+                minX: Infinity,
+                minY: Infinity,
+                maxX: -Infinity,
+                maxY: -Infinity,
+              });
+            }
+            const group = groups.get(key);
+            group.members.push(record);
+            if (record.x < group.minX) group.minX = record.x;
+            if (record.y < group.minY) group.minY = record.y;
+            if (record.maxX > group.maxX) group.maxX = record.maxX;
+            if (record.maxY > group.maxY) group.maxY = record.maxY;
+          }
+
+          if (groups.size < 2) {
+            return null;
+          }
+
+          const groupArray = Array.from(groups.values());
+          for (const group of groupArray) {
+            group.memberCount = group.members.length;
+          }
+          groupArray.sort((a, b) => b.memberCount - a.memberCount);
+
+          const minSuperWidth = 480;
+          const maxSuperWidth = 1200;
+          const minSuperHeight = 200;
+          const maxSuperHeight = 480;
+          const cellGap = 200;
+          const totalMembers = groupArray.reduce((sum, g) => sum + g.memberCount, 0) || 1;
+          for (const group of groupArray) {
+            const ratio = group.memberCount / totalMembers;
+            const scale = Math.sqrt(Math.max(ratio, 0.005));
+            group.superWidth = Math.min(
+              maxSuperWidth,
+              Math.max(minSuperWidth, scale * maxSuperWidth * 6),
+            );
+            group.superHeight = Math.min(
+              maxSuperHeight,
+              Math.max(minSuperHeight, scale * maxSuperHeight * 6),
+            );
+          }
+
+          const cols = Math.max(1, Math.ceil(Math.sqrt(groupArray.length)));
+          const cellW = Math.max(...groupArray.map((g) => g.superWidth)) + cellGap;
+          const cellH = Math.max(...groupArray.map((g) => g.superHeight)) + cellGap;
+
+          const newTables = [];
+          const newTablesById = new Map();
+          const newBuckets = new Map();
+          const superMetaById = new Map();
+          for (let idx = 0; idx < groupArray.length; idx += 1) {
+            const group = groupArray[idx];
+            const row = Math.floor(idx / cols);
+            const col = idx % cols;
+            const cellCenterX = col * cellW + cellW / 2;
+            const cellCenterY = row * cellH + cellH / 2;
+            const width = group.superWidth;
+            const height = group.superHeight;
+            const x = cellCenterX - width / 2;
+            const y = cellCenterY - height / 2;
+            const superId = "_super_" + group.key;
+            const memberCount = group.memberCount;
+            const memberMeta = group.members[0]?.meta;
+            const meta = {
+              appLabel: memberMeta?.appLabel || group.key,
+              clusterId: group.key,
+              fieldRows: [],
+              hasExplicitDatabaseTableName: false,
+              height,
+              methods: [],
+              modelId: superId,
+              modelName: group.key + " (" + memberCount + ")",
+              properties: [],
+              tableName: group.key,
+              width,
+            };
+            const tableSurrogate = {
+              activeMethodName: undefined,
+              appLabel: meta.appLabel,
+              clusterId: group.key,
+              databaseTableName: meta.tableName,
+              fieldRows: [],
+              hasExplicitDatabaseTableName: false,
+              hidden: false,
+              methodAssociations: [],
+              methods: [],
+              modelId: superId,
+              modelName: meta.modelName,
+              position: { x, y },
+              properties: [],
+              selected: false,
+              showMethodHighlights: false,
+              showMethods: false,
+              showProperties: false,
+              size: { width, height },
+            };
+            const record = {
+              clusterId: group.key,
+              clusterMemberCount: memberCount,
+              height,
+              maxX: x + width,
+              maxY: y + height,
+              meta,
+              modelId: superId,
+              options: { hidden: false, manualPosition: undefined, modelId: superId, showMethodHighlights: false, showMethods: false, showProperties: false },
+              table: tableSurrogate,
+              width,
+              x,
+              y,
+            };
+            newTables.push(record);
+            newTablesById.set(superId, record);
+            superMetaById.set(group.key, record);
+          }
+
+          scene.tables = newTables;
+          scene.tablesById = newTablesById;
+          scene.tableBuckets = newBuckets;
+
+          const pairCounts = new Map();
+          for (const entry of visibleEdgeEntries) {
+            const srcKey = clusterKeyByModelId.get(entry.meta.sourceModelId);
+            const tgtKey = clusterKeyByModelId.get(entry.meta.targetModelId);
+            if (!srcKey || !tgtKey || srcKey === tgtKey) {
+              continue;
+            }
+            const ordered = srcKey < tgtKey ? [srcKey, tgtKey] : [tgtKey, srcKey];
+            const pairKey = ordered[0] + "→" + ordered[1];
+            if (!pairCounts.has(pairKey)) {
+              pairCounts.set(pairKey, { source: ordered[0], target: ordered[1], count: 0 });
+            }
+            pairCounts.get(pairKey).count += 1;
+          }
+
+          const superEdges = [];
+          let superIndex = 0;
+          for (const pair of pairCounts.values()) {
+            const src = superMetaById.get(pair.source);
+            const tgt = superMetaById.get(pair.target);
+            if (!src || !tgt) continue;
+            const srcCenter = { x: src.x + src.width / 2, y: src.y + src.height / 2 };
+            const tgtCenter = { x: tgt.x + tgt.width / 2, y: tgt.y + tgt.height / 2 };
+            const sourcePort = computeBoundaryPort(
+              { x: src.x, y: src.y },
+              { width: src.width, height: src.height },
+              tgtCenter,
+            );
+            const targetPort = computeBoundaryPort(
+              { x: tgt.x, y: tgt.y },
+              { width: tgt.width, height: tgt.height },
+              srcCenter,
+            );
+            superIndex += 1;
+            superEdges.push({
+              edgeId: "_super_edge_" + superIndex,
+              meta: {
+                count: pair.count,
+                cssKind: "super",
+                edgeId: "_super_edge_" + superIndex,
+                provenance: "cluster_collapse",
+                sourceModelId: "_super_" + pair.source,
+                targetModelId: "_super_" + pair.target,
+              },
+              points: [sourcePort, targetPort],
+              count: pair.count,
+            });
+          }
+
+          return {
+            aggregates: {
+              superEdges,
+              clusterCount: newTables.length,
+            },
+            clusterKeyByModelId,
+          };
+        }
+
         function computeBoundaryPort(rectPosition, rect, towardCenter) {
           const center = getCenter(rectPosition, rect);
           let dx = towardCenter.x - center.x;
