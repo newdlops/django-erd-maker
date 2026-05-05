@@ -129,6 +129,7 @@ export function getBrowserCanvasDrawSource(): string {
               },
             ],
           });
+          const tablePipeline = createWebGpuTablePipeline(device, format, commonBindGroupLayout);
           const renderer = {
             atlas: createWebGpuLabelAtlas(device),
             backend: "webgpu",
@@ -136,6 +137,18 @@ export function getBrowserCanvasDrawSource(): string {
             context: null,
             device,
             format,
+            leafBundle: {
+              corners: tablePipeline.corners,
+              instanceBuffer: null,
+              instanceBytes: 0,
+              pipeline: tablePipeline.pipeline,
+            },
+            leafTile: {
+              corners: tablePipeline.corners,
+              instanceBuffer: null,
+              instanceBytes: 0,
+              pipeline: tablePipeline.pipeline,
+            },
             segment: createWebGpuSegmentPipeline(device, format, commonBindGroupLayout),
             sprite: createWebGpuSpritePipeline(
               device,
@@ -144,7 +157,7 @@ export function getBrowserCanvasDrawSource(): string {
               spriteBindGroupLayout,
             ),
             spriteBindGroupLayout,
-            table: createWebGpuTablePipeline(device, format, commonBindGroupLayout),
+            table: tablePipeline,
             uniformBuffer: device.createBuffer({
               size: WEBGPU_UNIFORM_BYTES,
               usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
@@ -221,10 +234,25 @@ export function getBrowserCanvasDrawSource(): string {
             return null;
           }
 
+          const tableCorners = createStaticBuffer(gl, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]));
           const renderer = {
             atlas: createLabelAtlas(gl),
             backend: "webgl2",
             gl,
+            leafBundle: {
+              buffers: {
+                corners: tableCorners,
+                instances: gl.createBuffer(),
+              },
+              program: tableProgram,
+            },
+            leafTile: {
+              buffers: {
+                corners: tableCorners,
+                instances: gl.createBuffer(),
+              },
+              program: tableProgram,
+            },
             segment: {
               buffers: {
                 corners: createStaticBuffer(gl, new Float32Array([0, -1, 1, -1, 0, 1, 1, 1])),
@@ -241,7 +269,7 @@ export function getBrowserCanvasDrawSource(): string {
             },
             table: {
               buffers: {
-                corners: createStaticBuffer(gl, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1])),
+                corners: tableCorners,
                 instances: gl.createBuffer(),
               },
               program: tableProgram,
@@ -590,10 +618,53 @@ export function getBrowserCanvasDrawSource(): string {
           const nextScene = {
             edgeBuckets: new Map(),
             edgeSegments: [],
+            leafBundleBuckets: new Map(),
+            leafBundles: [],
+            leafTileBuckets: new Map(),
+            leafTiles: [],
             tableBuckets: new Map(),
             tables: [],
             tablesById: new Map(),
           };
+
+          const leafTilesRaw = (renderModel.bundleLeafTiles || []);
+          for (const tile of leafTilesRaw) {
+            if (!tile || !tile.position || !tile.size) {
+              continue;
+            }
+            if (!isVisibleModel(tile.modelId)) {
+              continue;
+            }
+            const x = Number(tile.position.x || 0);
+            const y = Number(tile.position.y || 0);
+            const width = Number(tile.size.width || 0);
+            const height = Number(tile.size.height || 0);
+            if (width <= 0 || height <= 0) {
+              continue;
+            }
+            const record = {
+              appLabel: tile.appLabel || "",
+              bundleIndex: Number(tile.bundleIndex || 0),
+              height,
+              modelId: tile.modelId,
+              modelName: tile.modelName || "",
+              width,
+              x,
+              y,
+            };
+            const recordIndex = nextScene.leafTiles.length;
+            nextScene.leafTiles.push(record);
+            addToBuckets(
+              nextScene.leafTileBuckets,
+              { bottom: y + height, left: x, right: x + width, top: y },
+              recordIndex,
+            );
+          }
+
+          // Small leafBundle marker (280×88 with "X · N leaves" title) was
+          // a duplicate of the synthetic bundle table from
+          // createDiagramRenderModel.ts. Suppressed — edge routing still
+          // uses renderModel.leafBundles for bundle-aware paths.
 
           for (const [modelId, meta] of tableMetaById.entries()) {
             if (!isVisibleModel(modelId)) {
@@ -728,6 +799,14 @@ export function getBrowserCanvasDrawSource(): string {
                 }));
           }
 
+          if (!state.useEdgeBends) {
+            for (const edge of renderedEdges) {
+              if (edge.points && edge.points.length > 2) {
+                edge.points = [edge.points[0], edge.points[edge.points.length - 1]];
+              }
+            }
+          }
+
           for (const edge of renderedEdges) {
             for (const segment of findSegments(edge.points)) {
               const visibleSegments = clipSegmentAgainstTables(segment, edge.meta, nextScene);
@@ -757,6 +836,8 @@ export function getBrowserCanvasDrawSource(): string {
           sceneGraph = nextScene;
           logErdDuration("info", "scene.graph.built", startedAt, {
             edgeSegments: nextScene.edgeSegments.length,
+            leafBundleRecords: nextScene.leafBundles.length,
+            leafBundlesInPayload: (renderModel.leafBundles || []).length,
             renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
             tables: nextScene.tables.length,
           });
@@ -976,18 +1057,32 @@ export function getBrowserCanvasDrawSource(): string {
           const visibleTables = collectVisibleTables(scene, visibleBounds);
           const visibleSegments = collectVisibleSegments(scene, visibleBounds);
           const visibleOverlays = collectVisibleOverlaySegments(visibleBounds);
+          const visibleLeafBundles = collectVisibleLeafBundles(scene, visibleBounds);
+          const visibleLeafTiles = collectVisibleLeafTiles(scene, visibleBounds);
           const cullMs = performance.now() - cullStartedAt;
           const labelStartedAt = performance.now();
           const labels = collectVisibleLabels(visibleTables);
+          appendLeafBundleLabels(labels, visibleLeafBundles);
+          appendLeafTileLabels(labels, visibleLeafTiles);
           const labelMs = performance.now() - labelStartedAt;
           const drawStartedAt = performance.now();
 
           if (gpuRenderer.backend === "webgpu") {
-            drawWebGpuScene(gpuRenderer, visibleSegments, visibleOverlays, visibleTables, labels);
+            drawWebGpuScene(
+              gpuRenderer,
+              visibleSegments,
+              visibleOverlays,
+              visibleTables,
+              labels,
+              visibleLeafBundles,
+              visibleLeafTiles,
+            );
           } else {
             clearGpuScene(gpuRenderer);
+            drawLeafBundleBatch(gpuRenderer, visibleLeafBundles);
             drawSegmentBatch(gpuRenderer, visibleSegments, false);
             drawSegmentBatch(gpuRenderer, visibleOverlays, true);
+            drawLeafTileBatch(gpuRenderer, visibleLeafTiles);
             drawTableBatch(gpuRenderer, visibleTables);
             drawLabelBatch(gpuRenderer, labels);
           }
@@ -1150,6 +1245,54 @@ export function getBrowserCanvasDrawSource(): string {
             .sort((left, right) => left.y - right.y || left.x - right.x);
 
           return applyLiveDragTableRecord(scene, records, bounds);
+        }
+
+        function collectVisibleLeafTiles(scene, bounds) {
+          if (!scene.leafTiles.length) {
+            return [];
+          }
+          const indices = collectBucketValues(scene.leafTileBuckets, bounds);
+          const records = [];
+          const seen = new Set();
+          for (const recordIndex of indices) {
+            if (seen.has(recordIndex)) {
+              continue;
+            }
+            seen.add(recordIndex);
+            const record = scene.leafTiles[recordIndex];
+            if (!record) {
+              continue;
+            }
+            if (!rectIntersectsBounds(record.x, record.y, record.width, record.height, bounds, 0)) {
+              continue;
+            }
+            records.push(record);
+          }
+          return records;
+        }
+
+        function collectVisibleLeafBundles(scene, bounds) {
+          if (!scene.leafBundles.length) {
+            return [];
+          }
+          const indices = collectBucketValues(scene.leafBundleBuckets, bounds);
+          const records = [];
+          const seen = new Set();
+          for (const recordIndex of indices) {
+            if (seen.has(recordIndex)) {
+              continue;
+            }
+            seen.add(recordIndex);
+            const record = scene.leafBundles[recordIndex];
+            if (!record) {
+              continue;
+            }
+            if (!rectIntersectsBounds(record.x, record.y, record.width, record.height, bounds, 0)) {
+              continue;
+            }
+            records.push(record);
+          }
+          return records;
         }
 
         function collectVisibleSegments(scene, bounds) {
@@ -1322,26 +1465,50 @@ export function getBrowserCanvasDrawSource(): string {
           }
 
           const position = activeDrag.currentPosition;
-          const liveRecord = {
+          const startPos = activeDrag.startPosition;
+          const dx = position.x - (startPos ? startPos.x : baseRecord.x);
+          const dy = position.y - (startPos ? startPos.y : baseRecord.y);
+
+          const overrideById = new Map();
+          overrideById.set(activeDrag.modelId, {
             ...baseRecord,
             maxX: position.x + baseRecord.width,
             maxY: position.y + baseRecord.height,
             options: getTableOptions(state, activeDrag.modelId),
             x: position.x,
             y: position.y,
-          };
-          const nextRecords = records.filter((record) => record.modelId !== activeDrag.modelId);
-          if (
-            rectIntersectsBounds(
-              liveRecord.x,
-              liveRecord.y,
-              liveRecord.width,
-              liveRecord.height,
-              bounds,
-              0,
-            )
-          ) {
-            nextRecords.push(liveRecord);
+          });
+
+          const groupLeaves = (typeof bundleLeavesByFakeIdRaw === "object"
+            && bundleLeavesByFakeIdRaw[activeDrag.modelId]) || [];
+          for (const leafId of groupLeaves) {
+            const leafBase = scene.tablesById.get(leafId);
+            if (!leafBase) continue;
+            const newX = leafBase.x + dx;
+            const newY = leafBase.y + dy;
+            overrideById.set(leafId, {
+              ...leafBase,
+              maxX: newX + leafBase.width,
+              maxY: newY + leafBase.height,
+              x: newX,
+              y: newY,
+            });
+          }
+
+          const nextRecords = records.filter((record) => !overrideById.has(record.modelId));
+          for (const override of overrideById.values()) {
+            if (
+              rectIntersectsBounds(
+                override.x,
+                override.y,
+                override.width,
+                override.height,
+                bounds,
+                0,
+              )
+            ) {
+              nextRecords.push(override);
+            }
           }
 
           return nextRecords.sort((left, right) => left.y - right.y || left.x - right.x);
@@ -1473,6 +1640,13 @@ export function getBrowserCanvasDrawSource(): string {
                 meta: entry.meta,
                 points: buildLiveEdgePath(entry),
               }));
+          if (!state.useEdgeBends) {
+            for (const edge of routedEdges) {
+              if (edge.points && edge.points.length > 2) {
+                edge.points = [edge.points[0], edge.points[edge.points.length - 1]];
+              }
+            }
+          }
           const records = [];
 
           for (const edge of routedEdges) {
@@ -1631,7 +1805,7 @@ export function getBrowserCanvasDrawSource(): string {
           return { color, font, maxWidth, text, x, y };
         }
 
-        function drawWebGpuScene(renderer, segments, overlays, tables, labels) {
+        function drawWebGpuScene(renderer, segments, overlays, tables, labels, leafBundles, leafTiles) {
           const device = renderer.device;
           const validateDraw = (renderer.drawValidationChecks || 0) < 3;
 
@@ -1654,8 +1828,10 @@ export function getBrowserCanvasDrawSource(): string {
               ],
             });
 
+            drawWebGpuLeafBundleBatch(renderer, pass, leafBundles || []);
             drawWebGpuSegmentBatch(renderer, pass, segments, false);
             drawWebGpuSegmentBatch(renderer, pass, overlays, true);
+            drawWebGpuLeafTileBatch(renderer, pass, leafTiles || []);
             drawWebGpuTableBatch(renderer, pass, tables);
             drawWebGpuLabelBatch(renderer, pass, labels);
             pass.end();
@@ -1852,6 +2028,204 @@ export function getBrowserCanvasDrawSource(): string {
           bindInstancedFloat(gl, renderer.segment.program, renderer.segment.buffers.instances, "a_halfWidth", 1, 9, 4);
           bindInstancedFloat(gl, renderer.segment.program, renderer.segment.buffers.instances, "a_color", 4, 9, 5);
           gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, segments.length);
+        }
+
+        function appendLeafTileLabels(labels, tiles) {
+          if (!tiles.length) {
+            return;
+          }
+          const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
+          if (zoom < GPU_TABLE_LABEL_ZOOM) {
+            return;
+          }
+          for (const tile of tiles) {
+            if (!tile.modelName) {
+              continue;
+            }
+            const maxWidth = Math.max(40, tile.width - 20);
+            labels.push(createLabelDescriptor(
+              tile.modelName,
+              "600 13px Georgia, serif",
+              "#f4f7f1",
+              tile.x + 10,
+              tile.y + Math.max(8, (tile.height - 14) / 2),
+              maxWidth,
+            ));
+          }
+        }
+
+        function appendLeafBundleLabels(labels, bundles) {
+          if (!bundles.length) {
+            return;
+          }
+          const zoom = Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM);
+          if (zoom < GPU_TABLE_LABEL_ZOOM) {
+            return;
+          }
+          for (const record of bundles) {
+            const titleSource = record.parentName || record.parentModelId || "";
+            if (!titleSource) {
+              continue;
+            }
+            // Cluster outline records (repurposed leafBundle slot): the
+            // parentName is the Louvain cluster id (starts with _louv_).
+            // Show '{cluster} N members' instead of '{cluster} N leaves'.
+            const isClusterOutline =
+              typeof titleSource === "string"
+              && titleSource.indexOf("_louv_") === 0;
+            const title = isClusterOutline
+              ? titleSource + " · " + record.leafCount + " members"
+              : titleSource + " · " + record.leafCount + " leaves";
+            const titleMaxWidth = Math.max(40, record.width - 28);
+            labels.push(createLabelDescriptor(
+              title,
+              "700 14px Georgia, serif",
+              "#f4f7f1",
+              record.x + 14,
+              record.y + Math.max(12, (record.height - 16) / 2),
+              titleMaxWidth,
+            ));
+          }
+        }
+
+        function leafBundleColors(record) {
+          const stroke = record.appLabel ? appStrokeColor(record.appLabel) : [0.66, 0.85, 1.0, 0.7];
+          return {
+            borderWidth: 2.0,
+            cornerRadius: 16,
+            fill: [0.06, 0.12, 0.18, 0.96],
+            stroke: [stroke[0], stroke[1], stroke[2], 0.85],
+          };
+        }
+
+        function leafTileColors(record) {
+          const stroke = record.appLabel ? appStrokeColor(record.appLabel) : [0.66, 0.85, 1.0, 0.7];
+          return {
+            borderWidth: 1.4,
+            cornerRadius: 12,
+            fill: [0.10, 0.16, 0.22, 0.96],
+            stroke: [stroke[0], stroke[1], stroke[2], 0.85],
+          };
+        }
+
+        function fillLeafTileInstanceData(data, tiles) {
+          for (let index = 0; index < tiles.length; index += 1) {
+            const record = tiles[index];
+            const colors = leafTileColors(record);
+            const offset = index * 14;
+            data[offset + 0] = record.x;
+            data[offset + 1] = record.y;
+            data[offset + 2] = record.width;
+            data[offset + 3] = record.height;
+            data[offset + 4] = colors.fill[0];
+            data[offset + 5] = colors.fill[1];
+            data[offset + 6] = colors.fill[2];
+            data[offset + 7] = colors.fill[3];
+            data[offset + 8] = colors.stroke[0];
+            data[offset + 9] = colors.stroke[1];
+            data[offset + 10] = colors.stroke[2];
+            data[offset + 11] = colors.stroke[3];
+            data[offset + 12] = colors.cornerRadius;
+            data[offset + 13] = colors.borderWidth;
+          }
+        }
+
+        function drawLeafTileBatch(renderer, tiles) {
+          if (!tiles.length) {
+            return;
+          }
+          const gl = renderer.gl;
+          const data = new Float32Array(tiles.length * 14);
+          fillLeafTileInstanceData(data, tiles);
+
+          const target = renderer.leafTile;
+          gl.useProgram(target.program);
+          bindCommonUniforms(gl, target.program);
+          bindBufferData(gl, target.buffers.instances, data);
+          bindCornerAttribute(gl, target.program, target.buffers.corners, "a_corner");
+          bindInstancedFloat(gl, target.program, target.buffers.instances, "a_bounds", 4, 14, 0);
+          bindInstancedFloat(gl, target.program, target.buffers.instances, "a_fill", 4, 14, 4);
+          bindInstancedFloat(gl, target.program, target.buffers.instances, "a_stroke", 4, 14, 8);
+          bindInstancedFloat(gl, target.program, target.buffers.instances, "a_style", 2, 14, 12);
+          gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, tiles.length);
+        }
+
+        function drawWebGpuLeafTileBatch(renderer, pass, tiles) {
+          if (!tiles.length) {
+            return;
+          }
+          const data = new Float32Array(tiles.length * 14);
+          fillLeafTileInstanceData(data, tiles);
+
+          const target = renderer.leafTile;
+          const buffer = ensureWebGpuInstanceBuffer(renderer.device, target, data.byteLength);
+          renderer.device.queue.writeBuffer(buffer, 0, data);
+          pass.setPipeline(target.pipeline);
+          pass.setBindGroup(0, renderer.commonBindGroup);
+          pass.setVertexBuffer(0, target.corners);
+          pass.setVertexBuffer(1, buffer);
+          pass.draw(4, tiles.length);
+        }
+
+        function fillLeafBundleInstanceData(data, bundles) {
+          for (let index = 0; index < bundles.length; index += 1) {
+            const record = bundles[index];
+            const colors = leafBundleColors(record);
+            const offset = index * 14;
+            data[offset + 0] = record.x;
+            data[offset + 1] = record.y;
+            data[offset + 2] = record.width;
+            data[offset + 3] = record.height;
+            data[offset + 4] = colors.fill[0];
+            data[offset + 5] = colors.fill[1];
+            data[offset + 6] = colors.fill[2];
+            data[offset + 7] = colors.fill[3];
+            data[offset + 8] = colors.stroke[0];
+            data[offset + 9] = colors.stroke[1];
+            data[offset + 10] = colors.stroke[2];
+            data[offset + 11] = colors.stroke[3];
+            data[offset + 12] = colors.cornerRadius;
+            data[offset + 13] = colors.borderWidth;
+          }
+        }
+
+        function drawLeafBundleBatch(renderer, bundles) {
+          if (!bundles.length) {
+            return;
+          }
+
+          const gl = renderer.gl;
+          const data = new Float32Array(bundles.length * 14);
+          fillLeafBundleInstanceData(data, bundles);
+
+          const target = renderer.leafBundle;
+          gl.useProgram(target.program);
+          bindCommonUniforms(gl, target.program);
+          bindBufferData(gl, target.buffers.instances, data);
+          bindCornerAttribute(gl, target.program, target.buffers.corners, "a_corner");
+          bindInstancedFloat(gl, target.program, target.buffers.instances, "a_bounds", 4, 14, 0);
+          bindInstancedFloat(gl, target.program, target.buffers.instances, "a_fill", 4, 14, 4);
+          bindInstancedFloat(gl, target.program, target.buffers.instances, "a_stroke", 4, 14, 8);
+          bindInstancedFloat(gl, target.program, target.buffers.instances, "a_style", 2, 14, 12);
+          gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, bundles.length);
+        }
+
+        function drawWebGpuLeafBundleBatch(renderer, pass, bundles) {
+          if (!bundles.length) {
+            return;
+          }
+
+          const data = new Float32Array(bundles.length * 14);
+          fillLeafBundleInstanceData(data, bundles);
+
+          const target = renderer.leafBundle;
+          const buffer = ensureWebGpuInstanceBuffer(renderer.device, target, data.byteLength);
+          renderer.device.queue.writeBuffer(buffer, 0, data);
+          pass.setPipeline(target.pipeline);
+          pass.setBindGroup(0, renderer.commonBindGroup);
+          pass.setVertexBuffer(0, target.corners);
+          pass.setVertexBuffer(1, buffer);
+          pass.draw(4, bundles.length);
         }
 
         function drawTableBatch(renderer, tables) {

@@ -78,7 +78,8 @@ void writePoint(std::ostream& stream, double x, double y, const Bounds& bounds) 
 void writeLayoutEngineMetadata(
   std::ostream& stream,
   const LayoutRunMetadata& metadata,
-  const LayoutQualityMetrics& quality) {
+  const LayoutQualityMetrics& quality,
+  const Bounds& bounds) {
   stream << "{\"requestedMode\":\"" << escapeJson(metadata.requestedMode)
          << "\",\"actualMode\":\"" << escapeJson(metadata.actualMode)
          << "\",\"requestedAlgorithm\":\"" << escapeJson(metadata.requestedAlgorithm)
@@ -91,18 +92,48 @@ void writeLayoutEngineMetadata(
          << ",\"edgeNodeIntersections\":" << quality.edgeNodeIntersections
          << ",\"edgeSegmentOverlaps\":" << quality.edgeSegmentOverlaps
          << ",\"overlappingEdges\":" << quality.overlappingEdges
+         << ",\"bundleEdgeIntersections\":" << quality.bundleEdgeIntersections
+         << ",\"bundleNodeOverlaps\":" << quality.bundleNodeOverlaps
+         << ",\"visualCrossings\":" << quality.visualCrossings
          << ",\"routeSegments\":" << quality.routeSegments
          << ",\"boundingBoxArea\":" << quality.boundingBoxArea
          << ",\"aspectRatio\":" << quality.aspectRatio
          << ",\"meanEdgeLength\":" << quality.meanEdgeLength
          << ",\"edgeLengthStddev\":" << quality.edgeLengthStddev
-         << "}";
+         << ",\"leafBundles\":[";
+  for (std::size_t bi = 0; bi < metadata.leafBundles.size(); ++bi) {
+    const LeafBundleRecord& bundle = metadata.leafBundles[bi];
+    if (bi > 0) {
+      stream << ",";
+    }
+    stream << "{\"parentModelId\":\"" << escapeJson(bundle.parentModelId)
+           << "\",\"leafModelIds\":[";
+    for (std::size_t li = 0; li < bundle.leafModelIds.size(); ++li) {
+      if (li > 0) {
+        stream << ",";
+      }
+      stream << "\"" << escapeJson(bundle.leafModelIds[li]) << "\"";
+    }
+    stream << "],\"sharedRootModelIds\":[";
+    for (std::size_t si = 0; si < bundle.sharedRootModelIds.size(); ++si) {
+      if (si > 0) stream << ",";
+      stream << "\"" << escapeJson(bundle.sharedRootModelIds[si]) << "\"";
+    }
+    stream << "],\"anchor\":";
+    writePoint(stream, bundle.anchorX, bundle.anchorY, bounds);
+    stream << ",\"bbox\":{\"x\":" << (bundle.bboxX - bounds.minX)
+           << ",\"y\":" << (bundle.bboxY - bounds.minY)
+           << ",\"width\":" << bundle.bboxWidth
+           << ",\"height\":" << bundle.bboxHeight
+           << "}}";
+  }
+  stream << "]}";
 }
 
 }  // namespace
 
 CliArguments parseArguments(int argc, char** argv) {
-  if (argc < 8) {
+  if (argc < 2) {
     throw std::runtime_error(
       "usage: django-erd-ogdf-layout layout --mode <mode> --nodes-file <path> --edges-file <path>");
   }
@@ -128,6 +159,12 @@ CliArguments parseArguments(int argc, char** argv) {
         throw std::runtime_error("--edge-routing must be 'straight', 'straight_smart', or 'orthogonal'");
       }
       arguments.edgeRouting = value;
+    } else if (flag == "--cluster-graph") {
+      arguments.clusterGraph = (value == "1" || value == "true");
+    } else if (flag == "--bubble") {
+      arguments.bubble = (value == "1" || value == "true");
+    } else if (flag == "--positions-tsv") {
+      arguments.positionsTsv = value;
     } else {
       throw std::runtime_error("unknown argument: " + flag);
     }
@@ -276,7 +313,7 @@ void writeLayoutJson(
   }
 
   stream << "],\"engineMetadata\":";
-  writeLayoutEngineMetadata(stream, metadata, quality);
+  writeLayoutEngineMetadata(stream, metadata, quality, bounds);
   stream << ",\"mode\":\"" << escapeJson(mode) << "\",\"nodes\":[";
 
   for (std::size_t index = 0; index < nodes.size(); ++index) {
@@ -322,7 +359,10 @@ void writeLayoutJson(
         stream << "\"" << escapeJson(crossingIds[crossingIndex]) << "\"";
       }
     }
-    stream << "],\"edgeId\":\"" << escapeJson(edge.edgeId) << "\",\"points\":[";
+    stream << "],\"edgeId\":\"" << escapeJson(edge.edgeId)
+           << "\",\"sourceModelId\":\"" << escapeJson(edge.sourceModelId)
+           << "\",\"targetModelId\":\"" << escapeJson(edge.targetModelId)
+           << "\",\"points\":[";
     const std::vector<RoutePoint>& route = routes[index];
     for (std::size_t pointIndex = 0; pointIndex < route.size(); ++pointIndex) {
       if (pointIndex > 0) {

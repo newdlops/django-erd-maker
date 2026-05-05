@@ -1,0 +1,76 @@
+[community] algorithm=louvain communities=17 meta=3
+[hub-bias] Super-graph: pushed 2 high-deg cluster roots to 1.4x avgR.
+[cg-time] 1ms post-hub-bias
+[cg-time] 1ms pre-§10-outward-radial
+[cg-time] 1ms pre-§11-compose
+[cg-time] 1ms pre-§12-pruning-reattach
+[cg-time] 1ms pre-§13-cluster-swap
+[cg-time] 1ms pre-§14-chain-straightening
+[cg-time] 1ms pre-§15-pruned-cross-min
+[§15.5] Optimized 6 alone-root+independent nodes (2 moves).
+[cg-time] 1ms pre-bus-bundle
+[xings-hotspot] total=22 xings across 11 offending edges (of 49)
+  edge app0.M0↔app2.M2 xings=5 cluster=(?,?)
+  edge app0.M1↔app0.M5 xings=5 cluster=(_louv_2,_louv_6)
+  edge app0.M1↔app2.M3 xings=5 cluster=(_louv_2,_louv_16)
+  edge app1.M0↔app1.M3 xings=5 cluster=(_louv_7,?)
+  edge app1.M0↔app1.M5 xings=5 cluster=(_louv_7,?)
+  edge app1.M0↔app1.M9 xings=5 cluster=(_louv_7,_louv_13)
+  edge app0.M0↔app0.M3 xings=4 cluster=(?,?)
+  edge app2.M0↔app2.M3 xings=4 cluster=(_louv_10,_louv_16)
+[xings-hotspot] top cluster signatures:
+  {?|_louv_10|_louv_16} xings=2
+  {?|_louv_16|_louv_2} xings=2
+  {?|_louv_16|_louv_2|_louv_7} xings=2
+  {?|_louv_2|_louv_6} xings=2
+  {?|_louv_2|_louv_6|_louv_7} xings=2
+  {?|_louv_6|_louv_7} xings=2
+  {?|_louv_7} xings=2
+  {?|_louv_10} xings=1
+[knot-min] Accepted 14 spatial swaps among 46 candidates.
+[carrier-pre] 49 edges → 25 distinct carriers (cost-side filter).
+[leaf-untangle] candidates=29, with-cross=7, moved=7, crossings-resolved=30.
+[leaf-untangle] candidates=29, with-cross=2, moved=1, crossings-resolved=3.
+[leaf-untangle] candidates=29, with-cross=1, moved=0, crossings-resolved=0.
+[stuck-leaf-diag] 1 candidates with cost>0 (top 15 below):
+  cost=2 deg=3 node=app1.M3 parent=app1.M0 nbrs={app1.M0,app1.M9,app1.Address8}
+[pd-knot] 6 polyline cross pairs, 0 resolved via endpoint swap.
+[xings-detour] iters=1 initial-poly-pairs=6 accepted=0 (multi-seg, density-aware, polyline detect, iterative).
+[visual-knot] 6→6 cross points, 0→0 hot cells (≥3), 0 handled, 0 swap accepted.
+[leaf-untangle] candidates=29, with-cross=1, moved=0, crossings-resolved=0.
+[stuck-leaf-diag] 1 candidates with cost>0 (top 15 below):
+  cost=2 deg=3 node=app1.M3 parent=app1.M0 nbrs={app1.M0,app1.M9,app1.Address8}
+[isolated-stash] Stashed 2 edge-less nodes in 6-column strip at x>=5829.
+[face-raster] grid 1347x1554 (cell 5.0x5.0 units), 42 faces, 2052114 bg cells (98.0% of grid)
+  face #1: 1593957 cells (77.7%), bbox 1347x1554 @ (0,0)
+  face #3: 133433 cells (6.5%), bbox 478x824 @ (190,158)
+  face #35: 99524 cells (4.8%), bbox 556x707 @ (62,786)
+  face #28: 36536 cells (1.8%), bbox 297x434 @ (383,272)
+  face #31: 36470 cells (1.8%), bbox 167x560 @ (506,365)
+  face #33: 33424 cells (1.6%), bbox 177x395 @ (282,576)
+  face #41: 32479 cells (1.6%), bbox 256x496 @ (58,997)
+  face #27: 31146 cells (1.5%), bbox 423x520 @ (249,272)
+[face-cohesion] 11 clusters analysed, 4 low-cohesion (<60% in dominant face)
+  cohesion histogram:
+     30%- 39%: 1 clusters
+     50%- 59%: 3 clusters
+     60%- 69%: 1 clusters
+    100%-100%: 6 clusters
+  top 4 low-cohesion clusters (largest first):
+    _louv_16: 4 members, 2 in dominant face, 3 faces total (50%)
+    _louv_7: 4 members, 2 in dominant face, 2 faces total (50%)
+    _louv_6: 3 members, 1 in dominant face, 3 faces total (33%)
+    _louv_10: 2 members, 1 in dominant face, 2 faces total (50%)
+[face-density] 21 micro-faces (size<50), top 10 hot regions (macro 64x64 cells):
+  region (9,3): 10 micro-faces, world (2734,762)-(3054,1082)
+  region (6,2): 3 micro-faces, world (1774,442)-(2094,762)
+  region (10,3): 3 micro-faces, world (3054,762)-(3374,1082)
+  region (10,4): 2 micro-faces, world (3054,1082)-(3374,1402)
+  region (11,3): 1 micro-faces, world (3374,762)-(3694,1082)
+  region (3,15): 1 micro-faces, world (815,4601)-(1135,4921)
+  region (0,23): 1 micro-faces, world (-145,7160)-(175,7480)
+[face-ppm] Wrote /tmp/face-raster.ppm (1347x1554, downsampled from 1347x1554 by 1)
+[face-untangle] 4 target clusters, 7 strays, 0 moved (poly cross 6 → 6, 0 fewer)
+[stuck-leaf-2d] pass 1: 0 candidates, 0 moved, 0 cost units resolved.
+[stuck-leaf-2d] 0 candidates, 0 moved, 0 cost units resolved (poly cross 6 → 6, 0 fewer)
+[hot-region-sa] 0 hot cells (≥4 cross, 6 cross pts), top 0 processed, 0/0 swap accepted (cross 6 → 6, 0 fewer)

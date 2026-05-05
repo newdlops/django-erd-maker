@@ -25,6 +25,9 @@ export function restoreRefreshViewState(
   );
   nextResult.payload.view.collapseClusters = Boolean(viewState.collapseClusters);
   nextResult.payload.view.edgeBundling = Boolean(viewState.edgeBundling);
+  nextResult.payload.view.useEdgeBends = Boolean(viewState.useEdgeBends);
+  nextResult.payload.view.clusterGraphLayout = Boolean(viewState.clusterGraphLayout);
+  nextResult.payload.view.bubbleLayout = Boolean(viewState.bubbleLayout);
   nextResult.payload.view.layoutMode = normalizeLayoutMode(nextResult.payload.layout.mode);
   nextResult.payload.view.selectedModelId = viewState.selectedModelId &&
   availableModelIds.has(viewState.selectedModelId)

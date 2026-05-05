@@ -1,0 +1,76 @@
+[community] algorithm=louvain communities=20 meta=3
+[hub-bias] Super-graph: pushed 3 high-deg cluster roots to 1.4x avgR.
+[cg-time] 1ms post-hub-bias
+[cg-time] 1ms pre-§10-outward-radial
+[cg-time] 1ms pre-§11-compose
+[cg-time] 1ms pre-§12-pruning-reattach
+[cg-time] 1ms pre-§13-cluster-swap
+[cg-time] 1ms pre-§14-chain-straightening
+[cg-time] 1ms pre-§15-pruned-cross-min
+[§15.5] Optimized 10 alone-root+independent nodes (0 moves).
+[cg-time] 1ms pre-bus-bundle
+[xings-hotspot] total=20 xings across 19 offending edges (of 58)
+  edge app0.M6↔app3.M0 xings=5 cluster=(?,_louv_15)
+  edge app1.M0↔app1.M5 xings=5 cluster=(?,_louv_13)
+  edge app1.M5↔app3.M4 xings=5 cluster=(_louv_13,?)
+  edge core.Hub1↔app3.M0 xings=4 cluster=(_louv_1,_louv_15)
+  edge app0.M0↔app2.M0 xings=3 cluster=(?,?)
+  edge app0.M0↔app0.M2 xings=2 cluster=(?,?)
+  edge app0.M3↔app2.M2 xings=2 cluster=(?,_louv_14)
+  edge app1.M1↔app3.M4 xings=2 cluster=(_louv_9,?)
+[xings-hotspot] top cluster signatures:
+  {?|_louv_13|_louv_14} xings=3
+  {?|_louv_13|_louv_15} xings=3
+  {?|_louv_1|_louv_15} xings=3
+  {?|_louv_9} xings=3
+  {?|_louv_15} xings=2
+  {?|_louv_1|_louv_13|_louv_15} xings=2
+  {?|_louv_13|_louv_5} xings=1
+  {?|_louv_15|_louv_6} xings=1
+[knot-min] Accepted 7 spatial swaps among 51 candidates.
+[carrier-pre] 58 edges → 35 distinct carriers (cost-side filter).
+[leaf-untangle] candidates=33, with-cross=4, moved=4, crossings-resolved=8.
+[leaf-untangle] candidates=33, with-cross=0, moved=0, crossings-resolved=0.
+[stuck-leaf-diag] 0 candidates with cost>0 (top 15 below):
+[pd-knot] 11 polyline cross pairs, 0 resolved via endpoint swap.
+[xings-detour] iters=1 initial-poly-pairs=11 accepted=0 (multi-seg, density-aware, polyline detect, iterative).
+[visual-knot] 11→11 cross points, 1→1 hot cells (≥3), 1 handled, 0 swap accepted.
+[leaf-untangle] candidates=33, with-cross=0, moved=0, crossings-resolved=0.
+[stuck-leaf-diag] 0 candidates with cost>0 (top 15 below):
+[face-raster] grid 1811x1238 (cell 5.0x5.0 units), 107 faces, 2197270 bg cells (98.0% of grid)
+  face #1: 1536796 cells (69.9%), bbox 1811x1238 @ (0,0)
+  face #3: 319935 cells (14.6%), bbox 1001x604 @ (672,44)
+  face #5: 122995 cells (5.6%), bbox 993x558 @ (90,46)
+  face #18: 44580 cells (2.0%), bbox 443x186 @ (823,454)
+  face #71: 26314 cells (1.2%), bbox 494x234 @ (812,597)
+  face #88: 23700 cells (1.1%), bbox 156x353 @ (644,677)
+  face #85: 20994 cells (1.0%), bbox 115x362 @ (553,668)
+  face #12: 17816 cells (0.8%), bbox 122x353 @ (574,278)
+[face-cohesion] 14 clusters analysed, 4 low-cohesion (<60% in dominant face)
+  cohesion histogram:
+     20%- 29%: 1 clusters
+     50%- 59%: 3 clusters
+     60%- 69%: 2 clusters
+     70%- 79%: 1 clusters
+    100%-100%: 7 clusters
+  top 4 low-cohesion clusters (largest first):
+    _louv_13: 4 members, 1 in dominant face, 4 faces total (25%)
+    _louv_14: 2 members, 1 in dominant face, 2 faces total (50%)
+    _louv_5: 2 members, 1 in dominant face, 2 faces total (50%)
+    _louv_16: 2 members, 1 in dominant face, 2 faces total (50%)
+[face-density] 75 micro-faces (size<50), top 10 hot regions (macro 64x64 cells):
+  region (3,8): 27 micro-faces, world (718,2391)-(1038,2711)
+  region (2,8): 9 micro-faces, world (398,2391)-(718,2711)
+  region (1,7): 8 micro-faces, world (78,2072)-(398,2391)
+  region (11,3): 6 micro-faces, world (3278,793)-(3598,1112)
+  region (8,10): 4 micro-faces, world (2318,3031)-(2638,3351)
+  region (9,15): 4 micro-faces, world (2638,4630)-(2958,4949)
+  region (10,15): 4 micro-faces, world (2958,4630)-(3278,4949)
+  region (10,16): 4 micro-faces, world (2958,4949)-(3278,5269)
+  region (16,0): 2 micro-faces, world (4878,-167)-(5198,153)
+  region (15,4): 2 micro-faces, world (4558,1112)-(4878,1432)
+[face-ppm] Wrote /tmp/face-raster.ppm (1811x1238, downsampled from 1811x1238 by 1)
+[face-untangle] 3 target clusters, 3 strays, 0 moved (poly cross 11 → 11, 0 fewer)
+[stuck-leaf-2d] pass 1: 0 candidates, 0 moved, 0 cost units resolved.
+[stuck-leaf-2d] 0 candidates, 0 moved, 0 cost units resolved (poly cross 11 → 11, 0 fewer)
+[hot-region-sa] 0 hot cells (≥4 cross, 11 cross pts), top 0 processed, 0/0 swap accepted (cross 11 → 11, 0 fewer)

@@ -85,9 +85,21 @@ export function getBrowserStateSource(): string {
               ? drawingRect
               : canvas.getBoundingClientRect();
 
+          // Cap by the actually-visible portion of the canvas (clip by the
+          // viewport edges). Otherwise off-screen height/width is reported as
+          // visible, which causes the minimap cursor to claim the user can
+          // see rows they cannot — especially on the y axis when the canvas
+          // bottom is clipped by window height.
+          const winW = typeof window !== "undefined" ? window.innerWidth : rect.width;
+          const winH = typeof window !== "undefined" ? window.innerHeight : rect.height;
+          const visibleRight = Math.min(rect.right, winW);
+          const visibleBottom = Math.min(rect.bottom, winH);
+          const visibleLeft = Math.max(rect.left, 0);
+          const visibleTop = Math.max(rect.top, 0);
+
           return {
-            height: Math.max(1, rect.height),
-            width: Math.max(1, rect.width),
+            height: Math.max(1, visibleBottom - visibleTop),
+            width: Math.max(1, visibleRight - visibleLeft),
           };
         }
 
@@ -113,6 +125,9 @@ export function getBrowserStateSource(): string {
           return {
             collapseClusters: Boolean(value.collapseClusters),
             edgeBundling: Boolean(value.edgeBundling),
+            useEdgeBends: Boolean(value.useEdgeBends),
+            clusterGraphLayout: Boolean(value.clusterGraphLayout),
+            bubbleLayout: Boolean(value.bubbleLayout),
             layoutMode: value.layoutMode || "hierarchical",
             settings: normalizeInteractionSettings(value.settings),
             selectedMethodContext: value.selectedMethodContext,
@@ -216,6 +231,38 @@ export function getBrowserStateSource(): string {
           };
         }
 
+        function computeCenteredViewportOnSelectedNode(layoutMode, tableOptions, selectedModelId, zoom) {
+          if (!selectedModelId) {
+            return null;
+          }
+          const table = tableMetaById.get(selectedModelId);
+          if (!table) {
+            return null;
+          }
+          const optionsByModelId = new Map(
+            (Array.isArray(tableOptions) ? tableOptions : []).map((options) => [options.modelId, options]),
+          );
+          const options = optionsByModelId.get(selectedModelId);
+          if (options && options.hidden) {
+            return null;
+          }
+          const layout = layoutVariants[layoutMode] || layoutVariants.hierarchical || {};
+          const position =
+            (options && options.manualPosition) ||
+            layout[selectedModelId] ||
+            table.basePosition || { x: 0, y: 0 };
+          const centerX = position.x + (table.width || 0) / 2;
+          const centerY = position.y + (table.height || 0) / 2;
+          const viewportRect = getViewportScreenRect();
+          const canvasWidth = viewportRect.width;
+          const canvasHeight = viewportRect.height;
+          return {
+            panX: Math.round((canvasWidth / 2 - centerX * zoom) * 100) / 100,
+            panY: Math.round((canvasHeight / 2 - centerY * zoom) * 100) / 100,
+            zoom,
+          };
+        }
+
         function computeCenteredViewportForLayout(layoutMode, tableOptions, zoom) {
           const bounds = computeLayoutBounds(layoutMode, tableOptions);
           if (!bounds) {
@@ -315,6 +362,9 @@ export function getBrowserStateSource(): string {
           return {
             collapseClusters: Boolean(currentState.collapseClusters),
             edgeBundling: Boolean(currentState.edgeBundling),
+            useEdgeBends: Boolean(currentState.useEdgeBends),
+            clusterGraphLayout: Boolean(currentState.clusterGraphLayout),
+            bubbleLayout: Boolean(currentState.bubbleLayout),
             layoutMode: currentState.layoutMode,
             selectedMethodContext: currentState.selectedMethodContext
               ? {
@@ -501,7 +551,16 @@ export function getBrowserStateSource(): string {
                   { keepCatalogReadable: false },
                 ),
               };
-            case "center-viewport":
+            case "center-viewport": {
+              const selectedViewport = computeCenteredViewportOnSelectedNode(
+                currentState.layoutMode,
+                currentState.tableOptions,
+                currentState.selectedModelId,
+                currentState.viewport.zoom,
+              );
+              if (selectedViewport) {
+                return { ...currentState, viewport: selectedViewport };
+              }
               return {
                 ...currentState,
                 viewport: computeCenteredViewportForLayout(
@@ -510,6 +569,7 @@ export function getBrowserStateSource(): string {
                   currentState.viewport.zoom,
                 ),
               };
+            }
             default:
               return currentState;
           }

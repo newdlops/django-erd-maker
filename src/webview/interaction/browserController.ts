@@ -125,6 +125,14 @@ ${getBrowserLayoutSource()}
         const tableRenderById = new Map(
           (renderModel.tables || []).map((table) => [table.modelId, table]),
         );
+        const bundleLeafToFakeId = {};
+        const bundleLeavesByFakeIdRaw = renderModel.bundleLeavesByFakeId || {};
+        for (const fakeId of Object.keys(bundleLeavesByFakeIdRaw)) {
+          const leaves = bundleLeavesByFakeIdRaw[fakeId] || [];
+          for (const leafId of leaves) {
+            bundleLeafToFakeId[leafId] = fakeId;
+          }
+        }
         const initialStateValue = readEmbeddedJson(initialStateElement);
         const initialState = normalizeInitialState(
           initialStateValue,

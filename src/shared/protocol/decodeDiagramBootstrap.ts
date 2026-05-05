@@ -1,4 +1,4 @@
-import { makeModelId, type ModelIdentity } from "../domain/modelIdentity";
+import { isModelId, makeModelId, type ModelId, type ModelIdentity } from "../domain/modelIdentity";
 import type { AnalyzerDiagnostic, SourceLocation, SourceRange } from "../diagnostics/analyzerDiagnostic";
 import type { DiagramGraph, GraphNode, MethodAssociation, StructuralGraphEdge } from "../graph/diagramGraph";
 import {
@@ -7,6 +7,7 @@ import {
   type LayoutEngineMetadata,
   type LayoutMode,
   type LayoutSnapshot,
+  type LeafBundle,
   type NodeLayout,
   type Point,
   type RoutedEdgePath,
@@ -257,10 +258,13 @@ function decodeLayoutEngineMetadata(
     actualMode: readOptionalLayoutMode(metadata, "actualMode", `${context}.engineMetadata`),
     aspectRatio: readOptionalNumber(metadata, "aspectRatio", `${context}.engineMetadata`),
     boundingBoxArea: readOptionalNumber(metadata, "boundingBoxArea", `${context}.engineMetadata`),
+    bundleEdgeIntersections: readOptionalNumber(metadata, "bundleEdgeIntersections", `${context}.engineMetadata`),
+    bundleNodeOverlaps: readOptionalNumber(metadata, "bundleNodeOverlaps", `${context}.engineMetadata`),
     edgeCrossings: readOptionalNumber(metadata, "edgeCrossings", `${context}.engineMetadata`),
     edgeLengthStddev: readOptionalNumber(metadata, "edgeLengthStddev", `${context}.engineMetadata`),
     edgeNodeIntersections: readOptionalNumber(metadata, "edgeNodeIntersections", `${context}.engineMetadata`),
     edgeSegmentOverlaps: readOptionalNumber(metadata, "edgeSegmentOverlaps", `${context}.engineMetadata`),
+    leafBundles: decodeLeafBundles(metadata, `${context}.engineMetadata`),
     meanEdgeLength: readOptionalNumber(metadata, "meanEdgeLength", `${context}.engineMetadata`),
     nodeOverlaps: readOptionalNumber(metadata, "nodeOverlaps", `${context}.engineMetadata`),
     nodeSpacingOverlaps: readOptionalNumber(metadata, "nodeSpacingOverlaps", `${context}.engineMetadata`),
@@ -270,6 +274,52 @@ function decodeLayoutEngineMetadata(
     routeSegments: readOptionalNumber(metadata, "routeSegments", `${context}.engineMetadata`),
     strategy: readOptionalString(metadata, "strategy", `${context}.engineMetadata`),
     strategyReason: readOptionalString(metadata, "strategyReason", `${context}.engineMetadata`),
+    visualCrossings: readOptionalNumber(metadata, "visualCrossings", `${context}.engineMetadata`),
+  };
+}
+
+function decodeLeafBundles(
+  record: JsonRecord,
+  context: string,
+): LeafBundle[] | undefined {
+  if (record.leafBundles === undefined) {
+    return undefined;
+  }
+  return readArray(record, "leafBundles", context).map((item, index) =>
+    decodeLeafBundle(readRecord(item, `${context}.leafBundles[${index}]`), `${context}.leafBundles[${index}]`),
+  );
+}
+
+function decodeLeafBundle(record: JsonRecord, context: string): LeafBundle {
+  const bbox = readRecord(record.bbox, `${context}.bbox`);
+  const sharedRootRaw = record.sharedRootModelIds;
+  let sharedRootModelIds: ModelId[] | undefined;
+  if (Array.isArray(sharedRootRaw)) {
+    sharedRootModelIds = sharedRootRaw.map((item, index) => {
+      if (typeof item !== "string" || !isModelId(item)) {
+        throw new Error(
+          `${context}.sharedRootModelIds[${index}] must be a canonical model ID.`,
+        );
+      }
+      return item;
+    });
+  }
+  return {
+    anchor: decodePoint(readRecord(record.anchor, `${context}.anchor`), `${context}.anchor`),
+    bbox: {
+      height: readNumber(bbox, "height", `${context}.bbox`),
+      width: readNumber(bbox, "width", `${context}.bbox`),
+      x: readNumber(bbox, "x", `${context}.bbox`),
+      y: readNumber(bbox, "y", `${context}.bbox`),
+    },
+    leafModelIds: readArray(record, "leafModelIds", context).map((item, index) => {
+      if (typeof item !== "string" || !isModelId(item)) {
+        throw new Error(`${context}.leafModelIds[${index}] must be a canonical model ID.`);
+      }
+      return item;
+    }),
+    parentModelId: readModelId(record, "parentModelId", context),
+    sharedRootModelIds,
   };
 }
 
@@ -571,6 +621,9 @@ function decodeViewState(record: JsonRecord): InitialViewState {
   return {
     collapseClusters: record.collapseClusters === true,
     edgeBundling: record.edgeBundling === true,
+    useEdgeBends: record.useEdgeBends === true,
+    clusterGraphLayout: record.clusterGraphLayout === true,
+    bubbleLayout: record.bubbleLayout === true,
     layoutMode: readLiteral(record, "layoutMode", OGDF_LAYOUT_MODES, "diagramBootstrapPayload.view"),
     selectedMethodContext: selectedMethodContext
       ? decodeSelectedMethodContext(

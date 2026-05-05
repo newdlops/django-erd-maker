@@ -5,6 +5,10 @@ declare module "node:fs/promises" {
     path: string,
     options: { withFileTypes: true },
   ): Promise<Dirent[]>;
+  export function readFile(
+    path: string,
+    encoding: "utf8",
+  ): Promise<string>;
   export function rm(
     path: string,
     options?: { force?: boolean; recursive?: boolean },

@@ -51,6 +51,9 @@ export function createDiagramInteractionState(
   return {
     collapseClusters: Boolean(view.collapseClusters),
     edgeBundling: Boolean(view.edgeBundling),
+    useEdgeBends: Boolean(view.useEdgeBends),
+    clusterGraphLayout: Boolean(view.clusterGraphLayout),
+    bubbleLayout: Boolean(view.bubbleLayout),
     layoutMode: view.layoutMode,
     settings: normalizeInteractionSettings(settingsOverride ?? DEFAULT_INTERACTION_SETTINGS),
     selectedMethodContext: cloneSelectedMethodContext(view.selectedMethodContext),
@@ -161,6 +164,9 @@ export function cloneDiagramInteractionState(
   return {
     collapseClusters: Boolean(state.collapseClusters),
     edgeBundling: Boolean(state.edgeBundling),
+    useEdgeBends: Boolean(state.useEdgeBends),
+    clusterGraphLayout: Boolean(state.clusterGraphLayout),
+    bubbleLayout: Boolean(state.bubbleLayout),
     layoutMode: state.layoutMode,
     settings: { ...state.settings },
     selectedMethodContext: cloneSelectedMethodContext(state.selectedMethodContext),

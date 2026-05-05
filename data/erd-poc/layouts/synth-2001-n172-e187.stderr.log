@@ -1,0 +1,105 @@
+[community] algorithm=louvain communities=69 meta=3
+[hub-bias] Super-graph: pushed 6 high-deg cluster roots to 1.4x avgR.
+[cg-time] 9ms post-hub-bias
+[cg-time] 20ms pre-§10-outward-radial
+[cg-time] 20ms pre-§11-compose
+[cg-time] 20ms pre-§12-pruning-reattach
+[cg-time] 20ms pre-§13-cluster-swap
+[cg-time] 67ms pre-§14-chain-straightening
+[cg-time] 67ms pre-§15-pruned-cross-min
+[§15.5] Optimized 29 alone-root+independent nodes (8 moves).
+[cg-time] 71ms pre-bus-bundle
+[bus-bundle] Created 1 bus bundles (2 members, sig ≥ 2 roots).
+[xings-hotspot] total=84 xings across 62 offending edges (of 184)
+  edge app4.M0↔app4.M6 xings=10 cluster=(?,?)
+  edge app5.M0↔app5.M7 xings=7 cluster=(?,?)
+  edge app10.M3↔app10.M7 xings=7 cluster=(_louv_36,?)
+  edge app8.M0↔app8.M1 xings=6 cluster=(_louv_49,_louv_50)
+  edge app5.M2↔app9.M3 xings=6 cluster=(?,_louv_56)
+  edge app10.M5↔app10.M6 xings=5 cluster=(_louv_11,?)
+  edge app7.M4↔app12.M3 xings=5 cluster=(?,?)
+  edge app7.M0↔app7.M4 xings=5 cluster=(_louv_46,?)
+[xings-hotspot] top cluster signatures:
+  {?|_louv_36} xings=5
+  {?|_louv_11|_louv_49} xings=4
+  {?} xings=4
+  {?|_louv_22} xings=4
+  {?|_louv_11} xings=3
+  {?|_louv_56} xings=3
+  {?|_louv_49|_louv_50} xings=3
+  {?|_louv_46|_louv_66} xings=3
+[knot-min] Accepted 26 spatial swaps among 169 candidates.
+[knot-min-2opt] Accepted 3 cross-targeted swaps.
+[carrier-pre] 187 edges → 120 distinct carriers (cost-side filter).
+[leaf-untangle] candidates=107, with-cross=33, moved=29, crossings-resolved=97.
+[leaf-untangle] candidates=107, with-cross=11, moved=3, crossings-resolved=6.
+[leaf-untangle] candidates=107, with-cross=7, moved=0, crossings-resolved=0.
+[stuck-leaf-diag] 9 candidates with cost>0 (top 15 below):
+  cost=9 deg=3 node=app10.M6 parent=app10.M0 nbrs={app10.M0,app10.M5,app10.M3}
+  cost=4 deg=2 node=app7.M5 parent=app7.M0 nbrs={app7.M0,app4.M3}
+  cost=4 deg=1 node=app12.Address41 parent=app12.M2 nbrs={app12.M2}
+  cost=3 deg=2 node=app4.M3 parent=app4.M0 nbrs={app4.M0,app7.M5}
+  cost=1 deg=3 node=app0.M7 parent=app0.M0 nbrs={app0.M0,app0.M8,app6.M1}
+  cost=1 deg=3 node=app5.M4 parent=app5.M0 nbrs={app5.M0,app5.M2,app5.M3}
+  cost=1 deg=2 node=app6.M1 parent=app0.M7 nbrs={app6.Note55,app0.M7}
+  cost=1 deg=2 node=app9.M6 parent=app9.M0 nbrs={app9.M0,app9.Address42}
+  cost=1 deg=1 node=app12.M5 parent=app12.M0 nbrs={app12.M0}
+[pd-knot] 52 polyline cross pairs, 0 resolved via endpoint swap.
+[xings-detour] iters=2 initial-poly-pairs=51 accepted=4 (multi-seg, density-aware, polyline detect, iterative).
+[visual-knot] 44→44 cross points, 0→0 hot cells (≥3), 0 handled, 0 swap accepted.
+[leaf-untangle] candidates=107, with-cross=7, moved=0, crossings-resolved=0.
+[stuck-leaf-diag] 9 candidates with cost>0 (top 15 below):
+  cost=9 deg=3 node=app10.M6 parent=app10.M0 nbrs={app10.M0,app10.M5,app10.M3}
+  cost=4 deg=2 node=app7.M5 parent=app7.M0 nbrs={app7.M0,app4.M3}
+  cost=4 deg=1 node=app12.Address41 parent=app12.M2 nbrs={app12.M2}
+  cost=3 deg=2 node=app4.M3 parent=app4.M0 nbrs={app4.M0,app7.M5}
+  cost=1 deg=3 node=app0.M7 parent=app0.M0 nbrs={app0.M0,app0.M8,app6.M1}
+  cost=1 deg=3 node=app5.M4 parent=app5.M0 nbrs={app5.M0,app5.M2,app5.M3}
+  cost=1 deg=2 node=app6.M1 parent=app0.M7 nbrs={app6.Note55,app0.M7}
+  cost=1 deg=2 node=app9.M6 parent=app9.M0 nbrs={app9.M0,app9.Address42}
+  cost=1 deg=1 node=app12.M5 parent=app12.M0 nbrs={app12.M0}
+[carrier-cross] segment 44 -> carrier-grouped 42 (-5%). Carriers: 120 total (2 bundle + 74 cluster-pair + 44 individual).
+[isolated-stash] Stashed 6 edge-less nodes in 6-column strip at x>=58907.
+[face-raster] grid 10458x9561 (cell 6.0x6.0 units), 346 faces, 99829558 bg cells (99.8% of grid)
+  face #1: 89601488 cells (89.8%), bbox 10458x9561 @ (0,0)
+  face #185: 3595981 cells (3.6%), bbox 3335x2583 @ (231,3166)
+  face #93: 812291 cells (0.8%), bbox 1563x943 @ (1598,2810)
+  face #163: 567036 cells (0.6%), bbox 1439x781 @ (4356,3036)
+  face #12: 474398 cells (0.5%), bbox 889x1043 @ (4070,1541)
+  face #257: 419068 cells (0.4%), bbox 886x979 @ (3303,3331)
+  face #260: 415420 cells (0.4%), bbox 584x1510 @ (3567,4059)
+  face #2: 403191 cells (0.4%), bbox 552x1252 @ (3839,288)
+[face-cohesion] 43 clusters analysed, 9 low-cohesion (<60% in dominant face)
+  cohesion histogram:
+     30%- 39%: 1 clusters
+     50%- 59%: 8 clusters
+     60%- 69%: 5 clusters
+     70%- 79%: 2 clusters
+    100%-100%: 27 clusters
+  top 9 low-cohesion clusters (largest first):
+    _louv_11: 6 members, 3 in dominant face, 4 faces total (50%)
+    _louv_56: 4 members, 2 in dominant face, 3 faces total (50%)
+    _louv_0: 3 members, 1 in dominant face, 3 faces total (33%)
+    _louv_22: 2 members, 1 in dominant face, 2 faces total (50%)
+    _louv_50: 2 members, 1 in dominant face, 2 faces total (50%)
+    _louv_35: 2 members, 1 in dominant face, 2 faces total (50%)
+    _louv_27: 2 members, 1 in dominant face, 2 faces total (50%)
+    _louv_4: 2 members, 1 in dominant face, 2 faces total (50%)
+    _louv_2: 2 members, 1 in dominant face, 2 faces total (50%)
+[face-density] 256 micro-faces (size<50), top 10 hot regions (macro 64x64 cells):
+  region (75,45): 36 micro-faces, world (27667,16198)-(28052,16583)
+  region (89,51): 24 micro-faces, world (33066,18511)-(33452,18897)
+  region (90,51): 23 micro-faces, world (33452,18511)-(33838,18897)
+  region (91,84): 20 micro-faces, world (33838,31237)-(34223,31623)
+  region (91,83): 19 micro-faces, world (33838,30852)-(34223,31237)
+  region (113,100): 17 micro-faces, world (42323,37408)-(42708,37793)
+  region (75,35): 15 micro-faces, world (27667,12341)-(28052,12727)
+  region (87,82): 10 micro-faces, world (32295,30466)-(32681,30852)
+  region (69,51): 9 micro-faces, world (25352,18511)-(25738,18897)
+  region (55,49): 7 micro-faces, world (19953,17740)-(20338,18126)
+[face-ppm] Wrote /tmp/face-raster.ppm (2614x2390, downsampled from 10458x9561 by 4)
+[face-untangle] 10 target clusters, 15 strays, 0 moved (poly cross 44 → 44, 0 fewer)
+[stuck-leaf-2d] pass 1: 2 candidates, 1 moved, 1 cost units resolved.
+[stuck-leaf-2d] pass 2: 1 candidates, 0 moved, 0 cost units resolved.
+[stuck-leaf-2d] 1 candidates, 1 moved → REVERTED (poly cross 44 → 45)
+[hot-region-sa] 0 hot cells (≥4 cross, 49 cross pts), top 0 processed, 0/0 swap accepted (cross 49 → 49, 0 fewer)

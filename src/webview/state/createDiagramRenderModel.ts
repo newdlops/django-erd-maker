@@ -1,4 +1,4 @@
-import type { ModelId } from "../../shared/domain/modelIdentity";
+import { makeModelId, type ModelId } from "../../shared/domain/modelIdentity";
 import {
   getOgdfLayoutDefinition,
   normalizeLayoutMode,
@@ -14,7 +14,7 @@ import type {
   DiagramBootstrapPayload,
   TableViewOptions,
 } from "../../shared/protocol/webviewContract";
-import type { EdgeCrossing, RoutedEdgePath } from "../../shared/graph/layoutContract";
+import type { EdgeCrossing, LeafBundle, RoutedEdgePath } from "../../shared/graph/layoutContract";
 import type { StructuralGraphEdge, MethodAssociation } from "../../shared/graph/diagramGraph";
 
 const MODEL_CATALOG_MODE_THRESHOLD = 500;
@@ -99,14 +99,33 @@ export interface EdgeRenderModel {
   targetModelId: ModelId;
 }
 
+export interface BundleLeafTile {
+  appLabel: string;
+  bundleIndex: number;
+  modelId: ModelId;
+  modelName: string;
+  position: { x: number; y: number };
+  size: { height: number; width: number };
+}
+
+export interface ClusterOutline {
+  bbox: { x: number; y: number; width: number; height: number };
+  clusterId: string;
+  memberCount: number;
+}
+
 export interface DiagramRenderModel {
+  bundleLeafTiles: BundleLeafTile[];
+  bundleLeavesByFakeId: Record<string, ModelId[]>;
   canvas: { height: number; width: number };
+  clusterOutlines: ClusterOutline[];
   crossings: EdgeCrossing[];
   edges: EdgeRenderModel[];
   inspector: InspectorRenderModel;
   layoutExecution: LayoutExecutionRenderModel;
   layoutFailures: LayoutFailureRenderModel[];
   layoutMode: DiagramBootstrapPayload["view"]["layoutMode"];
+  leafBundles: LeafBundle[];
   modelCatalogMode: boolean;
   overlays: MethodOverlayRenderModel[];
   timings: DiagramBootstrapPayload["timings"];
@@ -126,18 +145,125 @@ export function createDiagramRenderModel(
   const tableOptionsById = new Map(
     payload.view.tableOptions.map((options) => [options.modelId, options] as const),
   );
-  const tables = payload.layout.nodes
+  const allTables = payload.layout.nodes
     .map((layoutNode) => createTableRenderModel(layoutNode, payload, modelsById, tableOptionsById))
     .filter(isDefined);
-  const modelCatalogMode = tables.length > MODEL_CATALOG_MODE_THRESHOLD;
+  const modelCatalogMode = allTables.length > MODEL_CATALOG_MODE_THRESHOLD;
+  const rawLeafBundles = payload.layout.engineMetadata?.leafBundles ?? [];
+  const bundleIndexByLeafModelId = new Map<ModelId, number>();
+  rawLeafBundles.forEach((bundle, index) => {
+    for (const leaf of bundle.leafModelIds) {
+      bundleIndexByLeafModelId.set(leaf, index);
+    }
+  });
+  const tableByModelId = new Map(allTables.map((table) => [table.modelId, table] as const));
+  const leafBundles = packLeafBundles(rawLeafBundles, tableByModelId).leafBundles;
+  const bundleLeafTiles: BundleLeafTile[] = [];
+  const bundleFakeIdByIndex = new Map<number, ModelId>();
+  const bundleLeavesByFakeId: Record<string, ModelId[]> = {};
+  const bundleTables: TableRenderModel[] = [];
+  const LEAF_CELL_W = 200;
+  const LEAF_CELL_H = 56;
+  const LEAF_GAP_X = 10;
+  const LEAF_GAP_Y = 8;
+  const BUNDLE_HEADER = 48;
+  const BUNDLE_PAD = 16;
+  const modifiedLeafTables = new Map<ModelId, TableRenderModel>();
+  leafBundles.forEach((bundle, bundleIndex) => {
+    const parentTable = tableByModelId.get(bundle.parentModelId);
+    if (!parentTable) {
+      return;
+    }
+    const safeName = parentTable.modelName.replace(/[^A-Za-z0-9]/g, "_");
+    const fakeId = makeModelId("__leafbundle", `${safeName}_${bundleIndex}`);
+    bundleFakeIdByIndex.set(bundleIndex, fakeId);
+    bundleLeavesByFakeId[fakeId] = [...bundle.leafModelIds];
+
+    const memberLeaves = bundle.leafModelIds
+      .map((id) => tableByModelId.get(id))
+      .filter((table): table is TableRenderModel => Boolean(table));
+    const N = memberLeaves.length;
+    const cols = Math.max(1, Math.ceil(Math.sqrt(N)));
+    const rows = Math.max(1, Math.ceil(N / cols));
+    const innerW = cols * LEAF_CELL_W + (cols - 1) * LEAF_GAP_X;
+    const innerH = rows * LEAF_CELL_H + (rows - 1) * LEAF_GAP_Y;
+    const outerW = innerW + BUNDLE_PAD * 2;
+    const outerH = BUNDLE_HEADER + innerH + BUNDLE_PAD;
+
+    const cx = bundle.bbox.x + bundle.bbox.width / 2;
+    const cy = bundle.bbox.y + bundle.bbox.height / 2;
+    const outerX = round2(cx - outerW / 2);
+    const outerY = round2(cy - outerH / 2);
+
+    bundleTables.push({
+      activeMethodName: undefined,
+      appLabel: parentTable.appLabel,
+      clusterId: parentTable.clusterId,
+      databaseTableName: `${N} leaves`,
+      fieldRows: [],
+      hasExplicitDatabaseTableName: false,
+      hidden: false,
+      methodAssociations: [],
+      methods: [],
+      modelId: fakeId,
+      modelName: `${parentTable.modelName} · leaves`,
+      position: { x: outerX, y: outerY },
+      properties: [],
+      selected: false,
+      showMethodHighlights: false,
+      showMethods: false,
+      showProperties: false,
+      size: { height: outerH, width: outerW },
+    });
+
+    memberLeaves.forEach((leaf, idx) => {
+      const col = idx % cols;
+      const row = Math.floor(idx / cols);
+      const leafX = round2(outerX + BUNDLE_PAD + col * (LEAF_CELL_W + LEAF_GAP_X));
+      const leafY = round2(outerY + BUNDLE_HEADER + row * (LEAF_CELL_H + LEAF_GAP_Y));
+      modifiedLeafTables.set(leaf.modelId, {
+        ...leaf,
+        fieldRows: [],
+        methodAssociations: [],
+        methods: [],
+        position: { x: leafX, y: leafY },
+        properties: [],
+        showMethodHighlights: false,
+        showMethods: false,
+        showProperties: false,
+        size: { height: LEAF_CELL_H, width: LEAF_CELL_W },
+      });
+    });
+  });
+  const tables = [
+    ...allTables.map((t) => modifiedLeafTables.get(t.modelId) ?? t),
+    ...bundleTables,
+  ];
   const catalogDegreeByModel = modelCatalogMode
     ? createCatalogRelationDegreeByModel(payload.graph.structuralEdges, layoutNodesById)
     : new Map<ModelId, number>();
   const renderedTables = modelCatalogMode
-    ? tables.map((table) => toCatalogTable(table, catalogDegreeByModel.get(table.modelId) ?? 0))
+    ? tables.map((table) =>
+        String(table.modelId).startsWith("__leafbundle.")
+        || bundleIndexByLeafModelId.has(table.modelId)
+          ? table
+          : toCatalogTable(table, catalogDegreeByModel.get(table.modelId) ?? 0))
     : tables;
+  // Set of `${bundleIndex}|${rootModelId}` keys: ensures ONE carrier edge
+  // per (bundle, shared-root) pair, so a bus bundle with N shared roots
+  // produces N carrier edges (one per root) instead of one global.
+  const carrierAssignedByBundleRoot = new Set<string>();
   const routedEdges = payload.layout.routedEdges
-    .map((route) => createEdgeRenderModel(route, payload.graph.structuralEdges))
+    .map((route) =>
+      createEdgeRenderModel(
+        route,
+        payload.graph.structuralEdges,
+        leafBundles,
+        bundleIndexByLeafModelId,
+        carrierAssignedByBundleRoot,
+        bundleFakeIdByIndex,
+      ),
+    )
     .filter((edge): edge is EdgeRenderModel => Boolean(edge));
   const catalogEdges = modelCatalogMode
     ? payload.graph.structuralEdges
@@ -172,8 +298,17 @@ export function createDiagramRenderModel(
         })
         .filter(isDefined);
 
+  // Cluster outlines: bbox per Louvain cluster (>=2 members) so the
+  // renderer can draw a faint rectangle around each cluster, restoring
+  // visual cluster grouping after cross-reduction passes (CPT, scaling,
+  // etc.) move clusters as units but visually mix them with neighbors.
+  const clusterOutlines = computeClusterOutlines(renderedTables);
+
   return {
+    bundleLeafTiles,
+    bundleLeavesByFakeId,
     canvas: canvasSize(payload, renderedTables, modelCatalogMode && routedEdges.length === 0),
+    clusterOutlines,
     crossings: modelCatalogMode ? [] : payload.layout.crossings,
     edges: renderedEdges,
     inspector: {
@@ -185,11 +320,52 @@ export function createDiagramRenderModel(
     layoutExecution: createLayoutExecution(payload),
     layoutFailures: createLayoutFailures(payload),
     layoutMode: payload.view.layoutMode,
+    leafBundles,
     modelCatalogMode,
     overlays,
     timings: payload.timings,
     tables: renderedTables,
   };
+}
+
+function computeClusterOutlines(
+  tables: TableRenderModel[],
+): ClusterOutline[] {
+  // Skip synthetic bundle tables (their clusterId mirrors parent's, but
+  // including the bundle frame would double-cover bundle leaves).
+  const membersByCluster = new Map<string, TableRenderModel[]>();
+  for (const t of tables) {
+    if (String(t.modelId).startsWith("__leafbundle.")) continue;
+    if (t.hidden) continue;
+    if (!t.clusterId) continue;
+    const list = membersByCluster.get(t.clusterId) ?? [];
+    list.push(t);
+    membersByCluster.set(t.clusterId, list);
+  }
+  const outlines: ClusterOutline[] = [];
+  const PAD = 24;
+  for (const [clusterId, members] of membersByCluster) {
+    if (members.length < 2) continue;  // singleton clusters: no outline
+    let xMin = Infinity, yMin = Infinity, xMax = -Infinity, yMax = -Infinity;
+    for (const m of members) {
+      xMin = Math.min(xMin, m.position.x);
+      yMin = Math.min(yMin, m.position.y);
+      xMax = Math.max(xMax, m.position.x + m.size.width);
+      yMax = Math.max(yMax, m.position.y + m.size.height);
+    }
+    if (!Number.isFinite(xMin)) continue;
+    outlines.push({
+      bbox: {
+        height: yMax - yMin + 2 * PAD,
+        width: xMax - xMin + 2 * PAD,
+        x: xMin - PAD,
+        y: yMin - PAD,
+      },
+      clusterId,
+      memberCount: members.length,
+    });
+  }
+  return outlines;
 }
 
 function createCatalogRelationDegreeByModel(
@@ -447,6 +623,10 @@ function createDiscoveryRenderModel(
 function createEdgeRenderModel(
   route: RoutedEdgePath,
   structuralEdges: StructuralGraphEdge[],
+  leafBundles: LeafBundle[],
+  bundleIndexByLeafModelId: Map<ModelId, number>,
+  carrierAssignedByBundleRoot: Set<string>,
+  bundleFakeIdByIndex: Map<number, ModelId>,
 ): EdgeRenderModel | undefined {
   const edge = structuralEdges.find((candidate) => candidate.id === route.edgeId);
   if (!edge) {
@@ -454,6 +634,44 @@ function createEdgeRenderModel(
   }
 
   const [markerStartId, markerEndId] = markerIds(edge.kind);
+
+  const match = bundleEdgeMatch(
+    edge.sourceModelId,
+    edge.targetModelId,
+    leafBundles,
+    bundleIndexByLeafModelId,
+  );
+  if (match !== undefined) {
+    // ONE carrier edge per (bundle, sharedRoot) pair. Multiple
+    // underlying edges from the same shared root to bundle leaves all
+    // collapse to a single visual line.
+    const carrierKey = `${match.bundleIndex}|${match.rootModelId}`;
+    if (carrierAssignedByBundleRoot.has(carrierKey)) {
+      return undefined;
+    }
+    const fakeBundleId = bundleFakeIdByIndex.get(match.bundleIndex);
+    if (!fakeBundleId) {
+      return undefined;
+    }
+    carrierAssignedByBundleRoot.add(carrierKey);
+    return {
+      crossingIds: [],
+      cssKind: edge.kind.replaceAll("_", "-"),
+      edgeId: edge.id,
+      markerEndId,
+      markerStartId,
+      points: "",
+      provenance: edge.provenance,
+      sourceModelId: match.leafIsSource ? fakeBundleId : match.rootModelId,
+      targetModelId: match.leafIsSource ? match.rootModelId : fakeBundleId,
+    };
+  }
+  if (
+    bundleIndexByLeafModelId.has(edge.sourceModelId) ||
+    bundleIndexByLeafModelId.has(edge.targetModelId)
+  ) {
+    return undefined;
+  }
 
   return {
     crossingIds: route.crossingIds,
@@ -466,6 +684,74 @@ function createEdgeRenderModel(
     sourceModelId: edge.sourceModelId,
     targetModelId: edge.targetModelId,
   };
+}
+
+const BUNDLE_NODE_WIDTH = 280;
+const BUNDLE_NODE_HEIGHT = 88;
+
+function packLeafBundles(
+  rawBundles: LeafBundle[],
+  tableByModelId: Map<ModelId, TableRenderModel>,
+): { leafBundles: LeafBundle[]; bundleLeafTiles: BundleLeafTile[] } {
+  const packed: LeafBundle[] = [];
+  rawBundles.forEach((bundle) => {
+    const memberCount = bundle.leafModelIds.filter((id) => tableByModelId.has(id)).length;
+    if (memberCount === 0) {
+      packed.push(bundle);
+      return;
+    }
+    const cx = bundle.bbox.x + bundle.bbox.width / 2;
+    const cy = bundle.bbox.y + bundle.bbox.height / 2;
+    packed.push({
+      anchor: bundle.anchor,
+      bbox: {
+        height: BUNDLE_NODE_HEIGHT,
+        width: BUNDLE_NODE_WIDTH,
+        x: round2(cx - BUNDLE_NODE_WIDTH / 2),
+        y: round2(cy - BUNDLE_NODE_HEIGHT / 2),
+      },
+      leafModelIds: bundle.leafModelIds,
+      parentModelId: bundle.parentModelId,
+    });
+  });
+  return { bundleLeafTiles: [], leafBundles: packed };
+}
+
+interface BundleEdgeMatch {
+  bundleIndex: number;
+  rootModelId: ModelId;
+  leafIsSource: boolean;
+}
+
+function bundleEdgeMatch(
+  sourceModelId: ModelId,
+  targetModelId: ModelId,
+  leafBundles: LeafBundle[],
+  bundleIndexByLeafModelId: Map<ModelId, number>,
+): BundleEdgeMatch | undefined {
+  // Edge from bundle leaf → any shared root: leafIsSource=true.
+  const sourceBundle = bundleIndexByLeafModelId.get(sourceModelId);
+  if (sourceBundle !== undefined) {
+    const bundle = leafBundles[sourceBundle];
+    const roots = bundle.sharedRootModelIds && bundle.sharedRootModelIds.length > 0
+      ? bundle.sharedRootModelIds
+      : [bundle.parentModelId];
+    if (roots.includes(targetModelId)) {
+      return { bundleIndex: sourceBundle, rootModelId: targetModelId, leafIsSource: true };
+    }
+  }
+  // Edge from any shared root → bundle leaf: leafIsSource=false.
+  const targetBundle = bundleIndexByLeafModelId.get(targetModelId);
+  if (targetBundle !== undefined) {
+    const bundle = leafBundles[targetBundle];
+    const roots = bundle.sharedRootModelIds && bundle.sharedRootModelIds.length > 0
+      ? bundle.sharedRootModelIds
+      : [bundle.parentModelId];
+    if (roots.includes(sourceModelId)) {
+      return { bundleIndex: targetBundle, rootModelId: sourceModelId, leafIsSource: false };
+    }
+  }
+  return undefined;
 }
 
 function createFieldRows(model: ExtractedModel): TableRenderModel["fieldRows"] {

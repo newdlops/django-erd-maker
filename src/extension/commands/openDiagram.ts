@@ -52,9 +52,12 @@ export async function openDiagram(
         const previousDiagram = cachedDiagram;
         let liveDiagram: LiveDiagramResult;
 
+        const clusterGraphLayout = viewState?.clusterGraphLayout === true;
+        const bubbleLayout = viewState?.bubbleLayout === true;
+
         if (refreshKind === "layout" && previousDiagram) {
           logger.info(
-            `Layout refresh reusing cached analyzer payload · requestId=${refreshRunId} · layout=${layoutMode}`,
+            `Layout refresh reusing cached analyzer payload · requestId=${refreshRunId} · layout=${layoutMode}${clusterGraphLayout ? " · clusterGraph=on" : ""}${bubbleLayout ? " · bubble=on" : ""}`,
           );
           liveDiagram = await relayoutLiveDiagram(
             context.extensionUri.fsPath,
@@ -62,6 +65,9 @@ export async function openDiagram(
             layoutMode,
             logger,
             refreshRunId,
+            undefined,
+            clusterGraphLayout,
+            bubbleLayout,
           );
         } else {
           const timedDiscovery = await timeAsync(() =>
@@ -75,6 +81,9 @@ export async function openDiagram(
             timedDiscovery.durationMs,
             logger,
             refreshRunId,
+            undefined,
+            clusterGraphLayout,
+            bubbleLayout,
           );
         }
 
@@ -184,6 +193,8 @@ function logLiveDiagramResult(
       ...(metadata?.strategy ? [`layoutStrategy=${metadata.strategy}`] : []),
       ...(metadata?.actualAlgorithm ? [`actualAlgorithm=${metadata.actualAlgorithm}`] : []),
       ...(metadata?.strategyReason ? [`strategyReason=${metadata.strategyReason}`] : []),
+      `payloadLeafBundles=${payload.layout.engineMetadata?.leafBundles?.length ?? "absent"}`,
+      `executionLeafBundles=${execution?.engineMetadata?.leafBundles?.length ?? "absent"}`,
       ...(metadata?.nodeOverlaps !== undefined ? [`nodeOverlaps=${metadata.nodeOverlaps}`] : []),
       ...(metadata?.edgeNodeIntersections !== undefined ? [`edgeNodeIntersections=${metadata.edgeNodeIntersections}`] : []),
       ...(metadata?.overlappingEdges !== undefined ? [`overlappingEdges=${metadata.overlappingEdges}`] : []),

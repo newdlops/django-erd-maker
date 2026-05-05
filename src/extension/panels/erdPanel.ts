@@ -405,6 +405,9 @@ function cloneRefreshViewState(
   return {
     collapseClusters: state.collapseClusters,
     edgeBundling: state.edgeBundling,
+    useEdgeBends: state.useEdgeBends,
+    clusterGraphLayout: state.clusterGraphLayout,
+    bubbleLayout: state.bubbleLayout,
     layoutMode: state.layoutMode,
     selectedMethodContext: state.selectedMethodContext
       ? { ...state.selectedMethodContext }

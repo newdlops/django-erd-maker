@@ -1,8 +1,9 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
+import type { StructuralGraphEdge } from "../../../shared/graph/diagramGraph";
 import {
   DEFAULT_EDGE_ROUTING,
   getOgdfLayoutDefinition,
@@ -15,9 +16,10 @@ import {
 import { decodeLayoutSnapshot } from "../../../shared/protocol/decodeDiagramBootstrap";
 import type { DiagramBootstrapPayload } from "../../../shared/protocol/webviewContract";
 import type { Logger } from "../logging/logger";
+import { consolidateEdges } from "./consolidateEdges";
 import { resolveOgdfLayoutBinaryPath } from "./resolveOgdfLayoutBinaryPath";
 
-const OGDF_LAYOUT_TIMEOUT_MS = 60_000;
+const OGDF_LAYOUT_TIMEOUT_MS = 300_000;
 
 export interface OgdfLayoutResult {
   applied: boolean;
@@ -35,6 +37,8 @@ export async function runOgdfLayout(
   logger?: Logger,
   requestId?: number,
   edgeRouting: EdgeRoutingStyle = DEFAULT_EDGE_ROUTING,
+  clusterGraphLayout: boolean = false,
+  bubbleLayout: boolean = false,
 ): Promise<OgdfLayoutResult> {
   const envEdgeRouting = process.env.DJANGO_ERD_EDGE_ROUTING;
   const envEdgeRoutingValid =
@@ -80,9 +84,23 @@ export async function runOgdfLayout(
   const preserveInputs = Boolean(process.env.DJANGO_ERD_PRESERVE_LAYOUT_INPUTS);
   let preserveRequestDirectory = preserveInputs;
 
+  // Edge consolidation (DJERD_CONSOLIDATE_EDGES=1, default off):
+  // group multiple edges between the same (source, target) directional
+  // pair into a single representative edge before sending to the OGDF
+  // binary. The representative carries the first underlying edge's id;
+  // the remaining edges have no route in the layout output (they will
+  // share the representative's visual line in the webview when render-
+  // side badges are added later).
+  const consolidateEnv = process.env.DJERD_CONSOLIDATE_EDGES;
+  const consolidateActive =
+    consolidateEnv !== undefined && consolidateEnv !== "0";
+  const layoutEdges: readonly StructuralGraphEdge[] = consolidateActive
+    ? consolidateEdges(payload.graph.structuralEdges).layoutEdges
+    : payload.graph.structuralEdges;
+
   try {
     await writeFile(nodesPath, serializeNodes(payload), "utf8");
-    await writeFile(edgesPath, serializeEdges(payload), "utf8");
+    await writeFile(edgesPath, serializeEdges(layoutEdges), "utf8");
 
     if (preserveInputs) {
       logger?.info(
@@ -102,29 +120,74 @@ export async function runOgdfLayout(
         `edgeRouting=${effectiveEdgeRouting}`,
         `edgeRoutingSource=${envEdgeRoutingValid ? "env(DJANGO_ERD_EDGE_ROUTING)" : "default"}`,
         `nodes=${payload.layout.nodes.length}`,
-        `edges=${payload.graph.structuralEdges.length}`,
+        `edges=${layoutEdges.length}`
+          + (consolidateActive
+            ? ` (consolidated from ${payload.graph.structuralEdges.length})`
+            : ""),
       ].join(" · "),
     );
 
-    const { stderr, stdout } = await execFileAsync(
-      binaryPath,
-      [
-        "layout",
-        "--mode",
-        normalizedRequestedLayoutMode,
-        "--nodes-file",
-        nodesPath,
-        "--edges-file",
-        edgesPath,
-        "--edge-routing",
-        effectiveEdgeRouting,
-      ],
-      {
-        cwd: extensionRootPath,
-        maxBuffer: 100 * 1024 * 1024,
-        timeout: OGDF_LAYOUT_TIMEOUT_MS,
-      },
-    );
+    // ML polish round-trip:
+    //   DJERD_LAYOUT_FROM_FILE=<path>   load layout JSON from disk, skip
+    //                                   C++. Used to visually verify
+    //                                   ML-polished output. If file
+    //                                   doesn't exist, falls through to
+    //                                   normal C++ run (so first launch
+    //                                   can populate it via
+    //                                   DJERD_LAYOUT_OUTPUT_FILE).
+    //   DJERD_LAYOUT_OUTPUT_FILE=<path> save C++ output JSON to disk
+    //                                   alongside normal pipeline. Used
+    //                                   to capture input for the polish
+    //                                   round-trip.
+    const layoutFromFile = process.env.DJERD_LAYOUT_FROM_FILE;
+    const layoutOutputFile = process.env.DJERD_LAYOUT_OUTPUT_FILE;
+    let stdout = "";
+    let stderr = "";
+    let loadedFromFile = false;
+    if (layoutFromFile) {
+      try {
+        stdout = await readFile(layoutFromFile, "utf8");
+        stderr = "";
+        loadedFromFile = true;
+        logger?.info(`OGDF layout loaded from file: ${layoutFromFile}`);
+      } catch {
+        logger?.warn(
+          `OGDF layout file not found, running C++ binary: ${layoutFromFile}`,
+        );
+      }
+    }
+    if (!loadedFromFile) {
+      ({ stderr, stdout } = await execFileAsync(
+        binaryPath,
+        [
+          "layout",
+          "--mode",
+          normalizedRequestedLayoutMode,
+          "--nodes-file",
+          nodesPath,
+          "--edges-file",
+          edgesPath,
+          "--edge-routing",
+          effectiveEdgeRouting,
+          ...(clusterGraphLayout ? ["--cluster-graph", "1"] : []),
+          ...(bubbleLayout ? ["--bubble", "1"] : []),
+        ],
+        {
+          cwd: extensionRootPath,
+          maxBuffer: 100 * 1024 * 1024,
+          timeout: OGDF_LAYOUT_TIMEOUT_MS,
+        },
+      ));
+      if (layoutOutputFile) {
+        try {
+          await writeFile(layoutOutputFile, stdout, "utf8");
+          logger?.info(`OGDF layout output saved to: ${layoutOutputFile}`);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          logger?.warn(`OGDF layout output save failed: ${msg}`);
+        }
+      }
+    }
 
     if (stderr.trim().length > 0) {
       logger?.warn(`OGDF stderr: ${stderr.trim()}`);
@@ -143,6 +206,7 @@ export async function runOgdfLayout(
     logger?.info(
       [
         `OGDF layout completed in ${Date.now() - started}ms`,
+        `leafBundles=${metadata?.leafBundles?.length ?? "absent"}`,
         ...(requestId !== undefined ? [`requestId=${requestId}`] : []),
         `requested=${metadata?.requestedMode ?? normalizedRequestedLayoutMode}`,
         `reported=${layout.mode}`,
@@ -161,6 +225,9 @@ export async function runOgdfLayout(
         ...(metadata?.edgeNodeIntersections !== undefined ? [`edgeNodeIntersections=${metadata.edgeNodeIntersections}`] : []),
         ...(metadata?.overlappingEdges !== undefined ? [`overlappingEdges=${metadata.overlappingEdges}`] : []),
         ...(metadata?.edgeSegmentOverlaps !== undefined ? [`edgeSegmentOverlaps=${metadata.edgeSegmentOverlaps}`] : []),
+        ...(metadata?.bundleEdgeIntersections !== undefined ? [`bundleEdgeIntersections=${metadata.bundleEdgeIntersections}`] : []),
+        ...(metadata?.bundleNodeOverlaps !== undefined ? [`bundleNodeOverlaps=${metadata.bundleNodeOverlaps}`] : []),
+        ...(metadata?.visualCrossings !== undefined ? [`visualCrossings=${metadata.visualCrossings}`] : []),
         `crossings=${layout.crossings.length}`,
         `nodeBBoxWidth=${summary.nodeBBoxWidth.toFixed(1)}`,
         `nodeBBoxHeight=${summary.nodeBBoxHeight.toFixed(1)}`,
@@ -399,8 +466,8 @@ function serializeNodes(payload: DiagramBootstrapPayload): string {
     .join("\n");
 }
 
-function serializeEdges(payload: DiagramBootstrapPayload): string {
-  return payload.graph.structuralEdges
+function serializeEdges(edges: readonly StructuralGraphEdge[]): string {
+  return edges
     .map((edge) =>
       [
         tsvCell(edge.id),

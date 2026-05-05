@@ -29,8 +29,16 @@ export async function relayoutLiveDiagram(
   logger?: Logger,
   requestId?: number,
   edgeRouting: EdgeRoutingStyle = DEFAULT_EDGE_ROUTING,
+  clusterGraphLayout: boolean = false,
+  bubbleLayout: boolean = false,
 ): Promise<LiveDiagramResult> {
   const requestedLayoutMode = normalizeLayoutMode(layoutMode);
+  // Stash on basePayload.view so applyRequestedLayout → runOgdfLayout sees
+  // the flag (the post-layout restoreRefreshViewState patch arrives too
+  // late to influence the C++ binary call). Set unconditionally so toggling
+  // off (false) actually clears the flag.
+  current.basePayload.view.clusterGraphLayout = clusterGraphLayout;
+  current.basePayload.view.bubbleLayout = bubbleLayout;
   const { layoutFailures, payload } = await applyRequestedLayout(
     extensionRootPath,
     current.basePayload,
@@ -57,6 +65,8 @@ export async function loadLiveDiagram(
   logger?: Logger,
   requestId?: number,
   edgeRouting: EdgeRoutingStyle = DEFAULT_EDGE_ROUTING,
+  clusterGraphLayout: boolean = false,
+  bubbleLayout: boolean = false,
 ): Promise<LiveDiagramResult> {
   const requestedLayoutMode = normalizeLayoutMode(layoutMode);
   const basePayload =
@@ -72,6 +82,8 @@ export async function loadLiveDiagram(
     discoveryMs,
   });
 
+  basePayload.view.clusterGraphLayout = clusterGraphLayout;
+  basePayload.view.bubbleLayout = bubbleLayout;
   const { layoutFailures, payload } = await applyRequestedLayout(
     extensionRootPath,
     basePayload,
@@ -160,6 +172,8 @@ async function applyRequestedLayout(
     logger,
     requestId,
     edgeRouting,
+    payload.view?.clusterGraphLayout === true,
+    payload.view?.bubbleLayout === true,
   );
 
   payload.timings = mergePipelineTimings(payload.timings, {

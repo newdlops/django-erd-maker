@@ -1,6 +1,7 @@
 #include "types.h"
 #include "geometry.h"
 #include "io.h"
+#include "clusterGraph.h"
 
 #include <ogdf/basic/Graph.h>
 #include <ogdf/basic/basic.h>
@@ -42,6 +43,7 @@
 #include <ogdf/upward/VisibilityLayout.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <fstream>
 #include <functional>
@@ -49,12 +51,16 @@
 #include <iostream>
 #include <limits>
 #include <queue>
+#include <random>
+#include <stack>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <thread>
 #include <map>
 #include <unordered_map>
+#include <set>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -111,6 +117,11 @@ std::size_t idealThreadCount() {
 }
 
 std::vector<std::vector<RoutePoint>> routeAllEdgesStraight(
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes);
+
+std::vector<std::vector<RoutePoint>> routeAllEdgesCrossAware(
+  const std::vector<NodeRecord>& nodes,
   const std::vector<EdgeRecord>& edges,
   ogdf::GraphAttributes& attributes);
 
@@ -497,6 +508,672 @@ bool hasMeaningfulClusters(const std::vector<NodeRecord>& nodes) {
   return dominanceRatio < 0.85;
 }
 
+// Forward declaration: defined later in this file. assignHubExcludedBccLabels
+// calls back into the standard BCC pass on a residual subgraph.
+std::vector<std::string> assignBiconnectedClusterLabels(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  std::size_t& outBridgeCount,
+  std::size_t& outBccCount,
+  std::size_t& outLargestClusterSize);
+
+// Identify dominant hubs by degree. Uses largest-gap detection in the top of
+// the degree-sorted list: pick hubs until the next ratio drops below 1.5, cap
+// at 5, and require the top hub to be at least 1.5× the second-ranked node.
+// Returns empty when no clear hub exists (uniform degree distribution).
+std::vector<std::size_t> findDominantHubs(
+  const std::vector<std::vector<std::size_t>>& adj) {
+  const std::size_t n = adj.size();
+  if (n < 8) {
+    return {};
+  }
+  std::vector<std::pair<std::size_t, std::size_t>> degOrder;
+  degOrder.reserve(n);
+  for (std::size_t i = 0; i < n; ++i) {
+    degOrder.emplace_back(adj[i].size(), i);
+  }
+  std::sort(degOrder.begin(), degOrder.end(),
+    [](const auto& a, const auto& b) { return a.first > b.first; });
+
+  if (degOrder[0].first < 8 || degOrder.size() < 2) {
+    return {};
+  }
+  const double topRatio = static_cast<double>(degOrder[0].first)
+    / std::max<std::size_t>(degOrder[1].first, 1);
+  if (topRatio < 1.5) {
+    return {};
+  }
+
+  const std::size_t maxHubs = std::min<std::size_t>(5, n);
+  std::vector<std::size_t> hubs;
+  hubs.push_back(degOrder[0].second);
+  for (std::size_t k = 1; k < maxHubs; ++k) {
+    const std::size_t nextIdx = std::min(k + 1, degOrder.size() - 1);
+    const double ratio = static_cast<double>(degOrder[k].first)
+      / std::max<std::size_t>(degOrder[nextIdx].first, 1);
+    if (ratio < 1.5) {
+      break;
+    }
+    hubs.push_back(degOrder[k].second);
+  }
+  return hubs;
+}
+
+// BCC variant that progressively peels off the highest-degree nodes until the
+// residual graph shows useful structure (bridges appear, or the largest BCC
+// drops below 40% of the residual). Real-world ERDs have a few dominant hub
+// entities; removing them lets BCC see the structural backbone underneath.
+// Hubs become their own singleton clusters; FMMM meta-layout will place them
+// centrally because they share inter-cluster edges with everyone.
+std::vector<std::string> assignHubExcludedBccLabels(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  std::size_t& outHubCount,
+  std::size_t& outResidualBridgeCount,
+  std::size_t& outResidualBccCount) {
+  outHubCount = 0;
+  outResidualBridgeCount = 0;
+  outResidualBccCount = 0;
+  const std::size_t n = nodes.size();
+  std::vector<std::string> assigned(n);
+  if (n == 0) {
+    return assigned;
+  }
+
+  std::unordered_map<std::string, std::size_t> idToIdx;
+  idToIdx.reserve(n);
+  for (std::size_t i = 0; i < n; ++i) {
+    idToIdx[nodes[i].modelId] = i;
+  }
+
+  std::vector<std::vector<std::size_t>> adj(n);
+  for (const EdgeRecord& edge : edges) {
+    auto srcIt = idToIdx.find(edge.sourceModelId);
+    auto tgtIt = idToIdx.find(edge.targetModelId);
+    if (srcIt == idToIdx.end() || tgtIt == idToIdx.end() || srcIt->second == tgtIt->second) {
+      continue;
+    }
+    adj[srcIt->second].push_back(tgtIt->second);
+    adj[tgtIt->second].push_back(srcIt->second);
+  }
+
+  // Degree-sorted indices for hub-peeling.
+  std::vector<std::pair<std::size_t, std::size_t>> degOrder;
+  degOrder.reserve(n);
+  for (std::size_t i = 0; i < n; ++i) {
+    degOrder.emplace_back(adj[i].size(), i);
+  }
+  std::sort(degOrder.begin(), degOrder.end(),
+    [](const auto& a, const auto& b) { return a.first > b.first; });
+
+  // Bail out if no clear hub exists.
+  if (degOrder.empty() || degOrder[0].first < 8) {
+    for (std::size_t i = 0; i < n; ++i) {
+      assigned[i] = "_bcc_0";
+    }
+    return assigned;
+  }
+
+  // Cap hub peeling at 3 — beyond that the residual graph still rarely
+  // breaks up on densely biconnected ERDs, and the resulting cluster count
+  // makes the meta-layout swap pass O(C^2 * M^2) blow up at runtime.
+  const std::size_t maxHubs = std::min<std::size_t>(3, n / 100);
+  std::unordered_set<std::size_t> hubSet;
+  std::vector<std::size_t> hubs;
+  std::vector<std::string> residualLabels;
+  std::vector<NodeRecord> residualNodes;
+  std::size_t resBridges = 0;
+  std::size_t resBcc = 0;
+  std::size_t resLargest = 0;
+
+  for (std::size_t step = 0; step < maxHubs; ++step) {
+    hubSet.insert(degOrder[step].second);
+    hubs.push_back(degOrder[step].second);
+
+    residualNodes.clear();
+    residualNodes.reserve(n - hubs.size());
+    for (std::size_t i = 0; i < n; ++i) {
+      if (hubSet.count(i) == 0) {
+        residualNodes.push_back(nodes[i]);
+      }
+    }
+    std::vector<EdgeRecord> residualEdges;
+    residualEdges.reserve(edges.size());
+    for (const EdgeRecord& edge : edges) {
+      auto srcIt = idToIdx.find(edge.sourceModelId);
+      auto tgtIt = idToIdx.find(edge.targetModelId);
+      if (srcIt == idToIdx.end() || tgtIt == idToIdx.end()) {
+        continue;
+      }
+      if (hubSet.count(srcIt->second) || hubSet.count(tgtIt->second)) {
+        continue;
+      }
+      residualEdges.push_back(edge);
+    }
+
+    residualLabels =
+      assignBiconnectedClusterLabels(residualNodes, residualEdges, resBridges, resBcc, resLargest);
+
+    // Accept once bridges appear in the residual — that's the signal hub
+    // removal actually exposed structural decomposition.
+    if (resBridges > 0) {
+      break;
+    }
+  }
+
+  outHubCount = hubs.size();
+  outResidualBridgeCount = resBridges;
+  outResidualBccCount = resBcc;
+
+  // Splice hub labels and residual labels back into the original-index order.
+  (void)resLargest;
+  std::unordered_map<std::string, std::string> labelByModelId;
+  for (std::size_t i = 0; i < residualNodes.size(); ++i) {
+    labelByModelId[residualNodes[i].modelId] = residualLabels[i];
+  }
+  for (std::size_t k = 0; k < hubs.size(); ++k) {
+    labelByModelId[nodes[hubs[k]].modelId] = "_hub_" + std::to_string(k);
+  }
+  for (std::size_t i = 0; i < n; ++i) {
+    auto it = labelByModelId.find(nodes[i].modelId);
+    assigned[i] = it != labelByModelId.end() ? it->second : "_bcc_0";
+  }
+  return assigned;
+}
+
+// Internal: run one Louvain optimisation phase on a weighted adjacency.
+// Returns compressed community ids in [0..numCommunities). totalWeight2m
+// equals 2m where m is total edge weight.
+std::vector<int> runLouvainPhase(
+  const std::vector<std::vector<std::pair<std::size_t, double>>>& adj,
+  const std::vector<double>& degree,
+  double totalWeight2m,
+  std::size_t maxPasses,
+  std::size_t& outIterations) {
+  outIterations = 0;
+  const std::size_t n = adj.size();
+  std::vector<int> comm(n);
+  if (n == 0) return comm;
+
+  std::vector<double> commTotalDegree(n, 0.0);
+  for (std::size_t i = 0; i < n; ++i) {
+    comm[i] = static_cast<int>(i);
+    commTotalDegree[i] = degree[i];
+  }
+
+  if (totalWeight2m == 0.0) {
+    return comm;
+  }
+
+  for (std::size_t pass = 0; pass < maxPasses; ++pass) {
+    bool improved = false;
+    for (std::size_t i = 0; i < n; ++i) {
+      if (adj[i].empty()) continue;
+
+      std::unordered_map<int, double> weightToComm;
+      for (const auto& [j, w] : adj[i]) {
+        if (j == i) continue;
+        weightToComm[comm[j]] += w;
+      }
+
+      const int curComm = comm[i];
+      commTotalDegree[curComm] -= degree[i];
+      weightToComm.try_emplace(curComm, 0.0);
+
+      int bestComm = curComm;
+      double bestGain = -std::numeric_limits<double>::infinity();
+      for (const auto& [c, kIinC] : weightToComm) {
+        const double gain = kIinC - commTotalDegree[c] * degree[i] / totalWeight2m;
+        if (gain > bestGain || (gain == bestGain && c < bestComm)) {
+          bestGain = gain;
+          bestComm = c;
+        }
+      }
+
+      if (bestComm != curComm) improved = true;
+      comm[i] = bestComm;
+      commTotalDegree[bestComm] += degree[i];
+    }
+    ++outIterations;
+    if (!improved) break;
+  }
+
+  // Compress.
+  std::unordered_map<int, int> remap;
+  int next = 0;
+  for (std::size_t i = 0; i < n; ++i) {
+    auto it = remap.find(comm[i]);
+    if (it == remap.end()) {
+      remap[comm[i]] = next++;
+      it = remap.find(comm[i]);
+    }
+    comm[i] = it->second;
+  }
+  return comm;
+}
+
+// Build a weighted adjacency representation from the edge list.
+struct LouvainGraph {
+  std::vector<std::vector<std::pair<std::size_t, double>>> adj;
+  std::vector<double> degree;
+  double totalWeight2m = 0.0;
+};
+
+LouvainGraph buildLouvainGraph(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges) {
+  LouvainGraph g;
+  const std::size_t n = nodes.size();
+  std::unordered_map<std::string, std::size_t> idToIdx;
+  idToIdx.reserve(n);
+  for (std::size_t i = 0; i < n; ++i) idToIdx[nodes[i].modelId] = i;
+
+  std::map<std::pair<std::size_t, std::size_t>, double> edgeWeight;
+  for (const EdgeRecord& edge : edges) {
+    auto srcIt = idToIdx.find(edge.sourceModelId);
+    auto tgtIt = idToIdx.find(edge.targetModelId);
+    if (srcIt == idToIdx.end() || tgtIt == idToIdx.end() || srcIt->second == tgtIt->second) {
+      continue;
+    }
+    auto pair = srcIt->second < tgtIt->second
+      ? std::make_pair(srcIt->second, tgtIt->second)
+      : std::make_pair(tgtIt->second, srcIt->second);
+    edgeWeight[pair] += 1.0;
+  }
+
+  g.adj.assign(n, {});
+  g.degree.assign(n, 0.0);
+  for (const auto& [p, w] : edgeWeight) {
+    g.adj[p.first].emplace_back(p.second, w);
+    g.adj[p.second].emplace_back(p.first, w);
+    g.degree[p.first] += w;
+    g.degree[p.second] += w;
+    g.totalWeight2m += 2.0 * w;
+  }
+  return g;
+}
+
+// Pull degree-1 nodes (leaves) into their single neighbour's community. Louvain
+// modularity often refuses to merge a leaf into a large community because the
+// (degree(i) * Σ_tot(C)) / 2m penalty exceeds the k_in=1 gain — but visually
+// those orphaned leaves end up far from their parent hub, and their long
+// edges thread across other clusters. Forcing leaves into their neighbour's
+// community concentrates the dominant node's radial edges in a tight cluster
+// and frees angular space for inter-cluster routing.
+//
+// The pass also re-compresses community ids so callers see a contiguous range.
+void attachLeavesAndCompress(
+  std::vector<int>& comm,
+  const std::vector<std::vector<std::pair<std::size_t, double>>>& adj) {
+  const std::size_t n = adj.size();
+  for (std::size_t i = 0; i < n; ++i) {
+    if (adj[i].size() == 1) {
+      const std::size_t j = adj[i][0].first;
+      comm[i] = comm[j];
+    }
+  }
+  std::unordered_map<int, int> remap;
+  int next = 0;
+  for (std::size_t i = 0; i < n; ++i) {
+    auto it = remap.find(comm[i]);
+    if (it == remap.end()) {
+      remap[comm[i]] = next++;
+      it = remap.find(comm[i]);
+    }
+    comm[i] = it->second;
+  }
+}
+
+// Louvain modularity-based community detection. Single-pass.
+std::vector<std::string> assignLouvainClusterLabels(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  std::size_t& outCommunityCount,
+  std::size_t& outIterations,
+  std::size_t maxPasses = 10) {
+  outCommunityCount = 0;
+  outIterations = 0;
+  const std::size_t n = nodes.size();
+  std::vector<std::string> assigned(n);
+  if (n == 0) return assigned;
+
+  LouvainGraph g = buildLouvainGraph(nodes, edges);
+  if (g.totalWeight2m == 0.0) {
+    for (std::size_t i = 0; i < n; ++i) assigned[i] = "_louv_" + std::to_string(i);
+    outCommunityCount = n;
+    return assigned;
+  }
+
+  std::vector<int> comm = runLouvainPhase(g.adj, g.degree, g.totalWeight2m, maxPasses, outIterations);
+  attachLeavesAndCompress(comm, g.adj);
+  int maxId = 0;
+  for (int c : comm) if (c > maxId) maxId = c;
+  outCommunityCount = static_cast<std::size_t>(maxId + 1);
+  for (std::size_t i = 0; i < n; ++i) {
+    assigned[i] = "_louv_" + std::to_string(comm[i]);
+  }
+  return assigned;
+}
+
+// ===== Girvan-Newman edge-betweenness community detection =====
+//
+// Static-betweenness GN: compute edge betweenness ONCE via Brandes', sort
+// edges by score, remove in order until the graph splits into `targetK`
+// components. Full GN (recompute after each cut) costs O(VE^2); the static
+// variant is O(VE + E log E) and ~100× faster. Cluster quality is slightly
+// worse than full GN but adequate when downstream cluster_graph layout
+// merges singletons and re-attaches leaves.
+
+// Brandes' algorithm for unweighted edge betweenness centrality.
+// Returns map from canonical edge (i, j) with i < j to its score.
+std::map<std::pair<std::size_t, std::size_t>, double> computeEdgeBetweenness(
+    const std::vector<std::vector<std::size_t>>& adj) {
+  const std::size_t n = adj.size();
+  std::map<std::pair<std::size_t, std::size_t>, double> bb;
+  if (n == 0) return bb;
+
+  for (std::size_t s = 0; s < n; ++s) {
+    std::vector<std::vector<std::size_t>> P(n);
+    std::vector<long long> dist(n, -1);
+    std::vector<double> sigma(n, 0.0);
+    std::vector<std::size_t> order;
+    order.reserve(n);
+
+    dist[s] = 0;
+    sigma[s] = 1.0;
+    std::queue<std::size_t> Q;
+    Q.push(s);
+    while (!Q.empty()) {
+      const std::size_t v = Q.front();
+      Q.pop();
+      order.push_back(v);
+      for (std::size_t w : adj[v]) {
+        if (dist[w] < 0) {
+          dist[w] = dist[v] + 1;
+          Q.push(w);
+        }
+        if (dist[w] == dist[v] + 1) {
+          sigma[w] += sigma[v];
+          P[w].push_back(v);
+        }
+      }
+    }
+
+    std::vector<double> delta(n, 0.0);
+    for (auto it = order.rbegin(); it != order.rend(); ++it) {
+      const std::size_t w = *it;
+      for (std::size_t v : P[w]) {
+        const double c = (sigma[v] / sigma[w]) * (1.0 + delta[w]);
+        delta[v] += c;
+        const auto key = (v < w) ? std::make_pair(v, w) : std::make_pair(w, v);
+        bb[key] += c;
+      }
+    }
+  }
+
+  // Each undirected edge accumulated from both endpoints as source; halve.
+  for (auto& kv : bb) kv.second *= 0.5;
+  return bb;
+}
+
+// Static-betweenness Girvan-Newman. Cuts highest-betweenness edges until
+// component count reaches targetK. Skips edges with a degree-1 endpoint —
+// leaf edges have ~n betweenness so they would dominate the cut order
+// otherwise, isolating every leaf as a singleton.
+std::vector<std::string> assignGirvanNewmanClusterLabels(
+    const std::vector<NodeRecord>& nodes,
+    const std::vector<EdgeRecord>& edges,
+    std::size_t& outCommunityCount,
+    std::size_t& outRemovedEdges) {
+  outCommunityCount = 0;
+  outRemovedEdges = 0;
+  const std::size_t n = nodes.size();
+  std::vector<std::string> assigned(n);
+  if (n == 0) return assigned;
+
+  std::unordered_map<std::string, std::size_t> idToIdx;
+  idToIdx.reserve(n);
+  for (std::size_t i = 0; i < n; ++i) idToIdx[nodes[i].modelId] = i;
+
+  std::set<std::pair<std::size_t, std::size_t>> uniqueEdges;
+  for (const EdgeRecord& e : edges) {
+    auto sIt = idToIdx.find(e.sourceModelId);
+    auto tIt = idToIdx.find(e.targetModelId);
+    if (sIt == idToIdx.end() || tIt == idToIdx.end()) continue;
+    std::size_t a = sIt->second;
+    std::size_t b = tIt->second;
+    if (a == b) continue;
+    if (a > b) std::swap(a, b);
+    uniqueEdges.emplace(a, b);
+  }
+
+  if (uniqueEdges.empty()) {
+    for (std::size_t i = 0; i < n; ++i) assigned[i] = "_gn_" + std::to_string(i);
+    outCommunityCount = n;
+    return assigned;
+  }
+
+  std::vector<std::vector<std::size_t>> adj(n);
+  for (const auto& [a, b] : uniqueEdges) {
+    adj[a].push_back(b);
+    adj[b].push_back(a);
+  }
+
+  const auto bb = computeEdgeBetweenness(adj);
+
+  std::vector<std::pair<std::pair<std::size_t, std::size_t>, double>> ordered(
+      bb.begin(), bb.end());
+  std::sort(ordered.begin(), ordered.end(),
+            [](const auto& l, const auto& r) { return l.second > r.second; });
+
+  // Conservative default: cut fewer edges, keep larger components. The
+  // downstream cluster_graph layout merges/filters anyway, so producing
+  // 263 fine-grained cuts upfront just inflates super-ring count and
+  // pruned-node moves.
+  const char* targetKEnv = std::getenv("DJERD_GN_TARGET_K");
+  const std::size_t targetK =
+      targetKEnv ? static_cast<std::size_t>(std::max(1, std::atoi(targetKEnv)))
+                 : 100;
+
+  std::vector<std::set<std::size_t>> adjSet(n);
+  for (std::size_t i = 0; i < n; ++i) {
+    for (std::size_t j : adj[i]) adjSet[i].insert(j);
+  }
+
+  std::vector<int> comp(n, -1);
+  auto componentCount = [&]() {
+    std::fill(comp.begin(), comp.end(), -1);
+    int next = 0;
+    for (std::size_t s = 0; s < n; ++s) {
+      if (comp[s] >= 0) continue;
+      std::queue<std::size_t> Q;
+      Q.push(s);
+      comp[s] = next;
+      while (!Q.empty()) {
+        const std::size_t v = Q.front();
+        Q.pop();
+        for (std::size_t w : adjSet[v]) {
+          if (comp[w] >= 0) continue;
+          comp[w] = next;
+          Q.push(w);
+        }
+      }
+      ++next;
+    }
+    return next;
+  };
+
+  int curComponents = componentCount();
+
+  std::size_t removed = 0;
+  for (const auto& [edge, bbScore] : ordered) {
+    if (curComponents >= static_cast<int>(targetK)) break;
+    const std::size_t u = edge.first;
+    const std::size_t v = edge.second;
+    if (adjSet[u].size() <= 1 || adjSet[v].size() <= 1) continue;
+    adjSet[u].erase(v);
+    adjSet[v].erase(u);
+    ++removed;
+    curComponents = componentCount();
+  }
+  outRemovedEdges = removed;
+
+  // Pull leaves into their single neighbour's community (full adjacency).
+  std::unordered_map<int, int> remap;
+  int compIdNext = 0;
+  for (std::size_t i = 0; i < n; ++i) {
+    if (!remap.count(comp[i])) remap[comp[i]] = compIdNext++;
+  }
+  std::vector<int> finalComm(n);
+  for (std::size_t i = 0; i < n; ++i) finalComm[i] = remap[comp[i]];
+  for (std::size_t i = 0; i < n; ++i) {
+    if (adj[i].size() == 1) finalComm[i] = finalComm[adj[i][0]];
+  }
+  // Re-compress after leaf attachment.
+  std::unordered_map<int, int> recompress;
+  int finalNext = 0;
+  for (std::size_t i = 0; i < n; ++i) {
+    if (!recompress.count(finalComm[i])) recompress[finalComm[i]] = finalNext++;
+  }
+  for (std::size_t i = 0; i < n; ++i) {
+    assigned[i] = "_gn_" + std::to_string(recompress[finalComm[i]]);
+  }
+  outCommunityCount = static_cast<std::size_t>(finalNext);
+  return assigned;
+}
+
+// Dispatcher: selects Louvain or Girvan-Newman by DJERD_COMMUNITY env var.
+// Default = "gn".
+std::vector<std::string> assignCommunityClusterLabels(
+    const std::vector<NodeRecord>& nodes,
+    const std::vector<EdgeRecord>& edges,
+    std::size_t& outCommunityCount,
+    std::size_t& outIterationsOrRemovals,
+    std::string& outAlgorithm) {
+  // Default reverted to Louvain after the GN trial: GN cuts collapse the
+  // structure cluster_graph relies on (Apr 30 run produced 49K edgeCrossings
+  // because cluster_graph found no backbone in GN's component layout).
+  // GN is opt-in via DJERD_COMMUNITY=gn.
+  const char* communityEnv = std::getenv("DJERD_COMMUNITY");
+  const std::string mode = communityEnv ? std::string(communityEnv) : "louvain";
+  if (mode == "gn" || mode == "girvan-newman") {
+    outAlgorithm = "girvan-newman";
+    return assignGirvanNewmanClusterLabels(
+        nodes, edges, outCommunityCount, outIterationsOrRemovals);
+  }
+  outAlgorithm = "louvain";
+  return assignLouvainClusterLabels(
+      nodes, edges, outCommunityCount, outIterationsOrRemovals);
+}
+
+// 2-level Louvain. Runs phase 1, aggregates communities into super-nodes,
+// then runs phase 1 on the aggregated graph to find super-communities.
+// Returns hierarchical labels of the form "_louv2_X/_louv1_Y" so the
+// downstream layout can detect "/" and execute hierarchical placement.
+std::vector<std::string> assignTwoLevelLouvainLabels(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  std::size_t& outLevel1CommunityCount,
+  std::size_t& outLevel2CommunityCount,
+  std::size_t& outIterations) {
+  outLevel1CommunityCount = 0;
+  outLevel2CommunityCount = 0;
+  outIterations = 0;
+  const std::size_t n = nodes.size();
+  std::vector<std::string> assigned(n);
+  if (n == 0) return assigned;
+
+  LouvainGraph g = buildLouvainGraph(nodes, edges);
+  if (g.totalWeight2m == 0.0) {
+    for (std::size_t i = 0; i < n; ++i) {
+      assigned[i] = "_louv2_0/_louv1_" + std::to_string(i);
+    }
+    outLevel1CommunityCount = n;
+    outLevel2CommunityCount = 1;
+    return assigned;
+  }
+
+  // Phase 1: cluster the original graph.
+  std::size_t l1Iter = 0;
+  std::vector<int> comm1 = runLouvainPhase(
+    g.adj, g.degree, g.totalWeight2m, /*maxPasses=*/10, l1Iter);
+  outIterations += l1Iter;
+  // Pull leaves into their parent's community before aggregation so the
+  // super-graph reflects the post-attachment structure.
+  attachLeavesAndCompress(comm1, g.adj);
+  int l1Max = 0;
+  for (int c : comm1) if (c > l1Max) l1Max = c;
+  const std::size_t numL1 = static_cast<std::size_t>(l1Max + 1);
+  outLevel1CommunityCount = numL1;
+
+  // Aggregate: build super-graph where each phase-1 community is a node and
+  // super-edges carry the summed weight of inter-community edges (self-loops
+  // = intra-community edge weight, kept for proper modularity).
+  std::map<std::pair<std::size_t, std::size_t>, double> superEdgeWeight;
+  for (std::size_t i = 0; i < n; ++i) {
+    for (const auto& [j, w] : g.adj[i]) {
+      if (j <= i) continue;  // each undirected edge once
+      const std::size_t ci = static_cast<std::size_t>(comm1[i]);
+      const std::size_t cj = static_cast<std::size_t>(comm1[j]);
+      if (ci == cj) continue;  // intra-community: skip (we don't run modularity over self-loops)
+      auto key = ci < cj ? std::make_pair(ci, cj) : std::make_pair(cj, ci);
+      superEdgeWeight[key] += w;
+    }
+  }
+
+  LouvainGraph sg;
+  sg.adj.assign(numL1, {});
+  sg.degree.assign(numL1, 0.0);
+  sg.totalWeight2m = 0.0;
+  for (const auto& [p, w] : superEdgeWeight) {
+    sg.adj[p.first].emplace_back(p.second, w);
+    sg.adj[p.second].emplace_back(p.first, w);
+    sg.degree[p.first] += w;
+    sg.degree[p.second] += w;
+    sg.totalWeight2m += 2.0 * w;
+  }
+
+  // If the aggregated graph has no edges (all phase-1 communities disconnected
+  // from each other), no further grouping is possible — every super-node
+  // becomes its own super-community.
+  std::vector<int> comm2;
+  if (sg.totalWeight2m == 0.0 || numL1 < 4) {
+    comm2.resize(numL1);
+    for (std::size_t i = 0; i < numL1; ++i) comm2[i] = static_cast<int>(i);
+  } else {
+    std::size_t l2Iter = 0;
+    comm2 = runLouvainPhase(sg.adj, sg.degree, sg.totalWeight2m, /*maxPasses=*/10, l2Iter);
+    outIterations += l2Iter;
+  }
+
+  int l2Max = 0;
+  for (int c : comm2) if (c > l2Max) l2Max = c;
+  outLevel2CommunityCount = static_cast<std::size_t>(l2Max + 1);
+
+  // Hierarchical labels (parent/sub) are issued when the phase-2 grouping
+  // averages >= 3 sub-clusters per parent — at that ratio the nested
+  // layout actually has structure to lay out. For weak hierarchies (e.g. 1.9
+  // sub/parent on this user's ERD) the flat phase-1 communities give
+  // tighter bbox and more stable run-to-run results, so we keep the original
+  // flat labels in that case.
+  const bool hierarchyHelps = outLevel2CommunityCount < numL1
+    && outLevel2CommunityCount >= 2;
+  const double subPerParent = numL1 > 0 && outLevel2CommunityCount > 0
+    ? static_cast<double>(numL1) / static_cast<double>(outLevel2CommunityCount)
+    : 0.0;
+  const bool useNestedHierarchy = hierarchyHelps && subPerParent >= 3.0;
+  for (std::size_t i = 0; i < n; ++i) {
+    const int c1 = comm1[i];
+    if (useNestedHierarchy) {
+      const int c2 = comm2[c1];
+      assigned[i] = "_louv2_" + std::to_string(c2) + "/_louv1_" + std::to_string(c1);
+    } else {
+      assigned[i] = "_louv_" + std::to_string(c1);
+    }
+  }
+  return assigned;
+}
+
 std::vector<std::string> assignStructuralClusterLabels(
   const std::vector<NodeRecord>& nodes,
   const std::vector<EdgeRecord>& edges,
@@ -570,6 +1247,274 @@ std::vector<std::string> assignStructuralClusterLabels(
   return assigned;
 }
 
+std::vector<std::string> assignBiconnectedClusterLabels(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  std::size_t& outBridgeCount,
+  std::size_t& outBccCount,
+  std::size_t& outLargestClusterSize) {
+  outBridgeCount = 0;
+  outBccCount = 0;
+  outLargestClusterSize = 0;
+  const std::size_t n = nodes.size();
+  std::vector<std::string> assigned(n);
+  if (n == 0) {
+    return assigned;
+  }
+
+  std::unordered_map<std::string, std::size_t> idToIdx;
+  idToIdx.reserve(n);
+  for (std::size_t i = 0; i < n; ++i) {
+    idToIdx[nodes[i].modelId] = i;
+  }
+
+  // Adjacency with edge index. We deduplicate parallel edges per (u, v) pair so
+  // a single back-edge can only neutralise one tree-edge during the bridge test.
+  struct AdjEntry {
+    std::size_t neighbor;
+    std::size_t edgeIndex;
+  };
+  std::vector<std::vector<AdjEntry>> adj(n);
+  for (std::size_t e = 0; e < edges.size(); ++e) {
+    const EdgeRecord& edge = edges[e];
+    auto srcIt = idToIdx.find(edge.sourceModelId);
+    auto tgtIt = idToIdx.find(edge.targetModelId);
+    if (srcIt == idToIdx.end() || tgtIt == idToIdx.end() || srcIt->second == tgtIt->second) {
+      continue;
+    }
+    adj[srcIt->second].push_back({tgtIt->second, e});
+    adj[tgtIt->second].push_back({srcIt->second, e});
+  }
+
+  // Tarjan bridge detection (iterative — recursion may overflow on dense ERDs).
+  std::vector<int> disc(n, -1);
+  std::vector<int> low(n, -1);
+  std::vector<int> parentEdge(n, -1);
+  std::vector<std::size_t> iterIndex(n, 0);
+  std::vector<bool> isBridge(edges.size(), false);
+  int timer = 0;
+
+  for (std::size_t root = 0; root < n; ++root) {
+    if (disc[root] != -1) {
+      continue;
+    }
+    std::stack<std::size_t> stack;
+    disc[root] = low[root] = timer++;
+    parentEdge[root] = -1;
+    stack.push(root);
+    while (!stack.empty()) {
+      const std::size_t u = stack.top();
+      if (iterIndex[u] < adj[u].size()) {
+        const AdjEntry entry = adj[u][iterIndex[u]++];
+        const std::size_t v = entry.neighbor;
+        const std::size_t eIdx = entry.edgeIndex;
+        if (static_cast<int>(eIdx) == parentEdge[u]) {
+          continue;
+        }
+        if (disc[v] == -1) {
+          disc[v] = low[v] = timer++;
+          parentEdge[v] = static_cast<int>(eIdx);
+          stack.push(v);
+        } else {
+          if (disc[v] < low[u]) {
+            low[u] = disc[v];
+          }
+        }
+      } else {
+        stack.pop();
+        if (!stack.empty()) {
+          const std::size_t parent = stack.top();
+          if (low[u] < low[parent]) {
+            low[parent] = low[u];
+          }
+          if (low[u] > disc[parent]) {
+            isBridge[static_cast<std::size_t>(parentEdge[u])] = true;
+          }
+        }
+      }
+    }
+  }
+
+  for (bool b : isBridge) {
+    if (b) {
+      ++outBridgeCount;
+    }
+  }
+
+  // BCC = connected components of (graph minus bridges) — but isolated vertices
+  // (degree 0 once bridges removed) become singleton BCCs.
+  std::vector<int> bccId(n, -1);
+  int nextBccId = 0;
+  for (std::size_t start = 0; start < n; ++start) {
+    if (bccId[start] != -1) {
+      continue;
+    }
+    std::queue<std::size_t> queue;
+    queue.push(start);
+    bccId[start] = nextBccId;
+    while (!queue.empty()) {
+      const std::size_t u = queue.front();
+      queue.pop();
+      for (const AdjEntry& entry : adj[u]) {
+        if (isBridge[entry.edgeIndex]) {
+          continue;
+        }
+        if (bccId[entry.neighbor] != -1) {
+          continue;
+        }
+        bccId[entry.neighbor] = nextBccId;
+        queue.push(entry.neighbor);
+      }
+    }
+    ++nextBccId;
+  }
+  outBccCount = static_cast<std::size_t>(nextBccId);
+
+  std::vector<std::size_t> bccSize(static_cast<std::size_t>(nextBccId), 0);
+  for (std::size_t i = 0; i < n; ++i) {
+    if (bccId[i] >= 0) {
+      ++bccSize[static_cast<std::size_t>(bccId[i])];
+    }
+  }
+  for (std::size_t s : bccSize) {
+    if (s > outLargestClusterSize) {
+      outLargestClusterSize = s;
+    }
+  }
+
+  for (std::size_t i = 0; i < n; ++i) {
+    assigned[i] = "_bcc_" + std::to_string(bccId[i]);
+  }
+  return assigned;
+}
+
+// Apply BCC inside each level-1 cluster of size >= minRecurseSize and return
+// hierarchical labels of the form "<level1>/<level2>". When level-2 BCC does
+// not split a cluster (no bridges, or below threshold) the level-2 part is
+// "_bcc_0" so all nodes in that cluster share the same combined label and the
+// hierarchical layout pass treats the cluster as a single block.
+std::vector<std::string> appendLevel2BccLabels(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  const std::vector<std::string>& level1Labels,
+  std::size_t& outBridgeCountTotal,
+  std::size_t& outDistinctCombinedClusters,
+  std::size_t& outLargestCombinedClusterSize,
+  std::size_t& outInnerSplitClusters,
+  std::size_t minRecurseSize = 30) {
+  outBridgeCountTotal = 0;
+  outDistinctCombinedClusters = 0;
+  outLargestCombinedClusterSize = 0;
+  outInnerSplitClusters = 0;
+
+  const std::size_t n = nodes.size();
+  if (n == 0) {
+    return {};
+  }
+
+  std::unordered_map<std::string, std::vector<std::size_t>> membersByCluster;
+  for (std::size_t i = 0; i < n; ++i) {
+    membersByCluster[level1Labels[i]].push_back(i);
+  }
+
+  std::vector<std::string> level2(n, std::string("_bcc_0"));
+  for (const auto& [clusterKey, members] : membersByCluster) {
+    if (members.size() < minRecurseSize) {
+      continue;
+    }
+    std::vector<NodeRecord> subNodes;
+    subNodes.reserve(members.size());
+    std::unordered_set<std::string> memberIds;
+    memberIds.reserve(members.size());
+    for (std::size_t idx : members) {
+      memberIds.insert(nodes[idx].modelId);
+      subNodes.push_back(nodes[idx]);
+    }
+    std::vector<EdgeRecord> subEdges;
+    subEdges.reserve(edges.size());
+    for (const EdgeRecord& edge : edges) {
+      if (memberIds.count(edge.sourceModelId) && memberIds.count(edge.targetModelId)) {
+        subEdges.push_back(edge);
+      }
+    }
+    std::size_t subBridges = 0;
+    std::size_t subBcc = 0;
+    std::size_t subLargest = 0;
+    std::vector<std::string> subLabels =
+      assignBiconnectedClusterLabels(subNodes, subEdges, subBridges, subBcc, subLargest);
+    outBridgeCountTotal += subBridges;
+    if (subBcc >= 2) {
+      ++outInnerSplitClusters;
+    }
+    for (std::size_t k = 0; k < members.size(); ++k) {
+      level2[members[k]] = subLabels[k];
+    }
+  }
+
+  std::vector<std::string> combined(n);
+  std::unordered_map<std::string, std::size_t> sizeByCombined;
+  for (std::size_t i = 0; i < n; ++i) {
+    combined[i] = level1Labels[i] + "/" + level2[i];
+    ++sizeByCombined[combined[i]];
+  }
+  outDistinctCombinedClusters = sizeByCombined.size();
+  for (const auto& [_, s] : sizeByCombined) {
+    if (s > outLargestCombinedClusterSize) {
+      outLargestCombinedClusterSize = s;
+    }
+  }
+  return combined;
+}
+
+// Two-level recursive BCC entry point: run BCC at level 1, then BCC at level 2
+// inside each non-trivial level-1 cluster. On graphs without bridges (e.g.
+// dense biconnected ERDs) the level-1 pass returns one BCC = the connected
+// component, so the level-2 pass becomes the only meaningful split. This is
+// the structure step 2 wanted: even if level-1 BCC is degenerate, level-2 still
+// gets a chance to find sub-structure within the giant biconnected blob.
+std::vector<std::string> assignTwoLevelBccLabels(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  std::size_t& outBridgeCountTotal,
+  std::size_t& outBccCountTotal,
+  std::size_t& outLargestClusterSize,
+  std::size_t& outInnerSplitClusters,
+  std::size_t minRecurseSize = 30) {
+  outBridgeCountTotal = 0;
+  outBccCountTotal = 0;
+  outLargestClusterSize = 0;
+  outInnerSplitClusters = 0;
+
+  const std::size_t n = nodes.size();
+  if (n == 0) {
+    return {};
+  }
+
+  std::size_t l1Bridges = 0;
+  std::size_t l1Bcc = 0;
+  std::size_t l1Largest = 0;
+  std::vector<std::string> level1 =
+    assignBiconnectedClusterLabels(nodes, edges, l1Bridges, l1Bcc, l1Largest);
+
+  std::size_t l2Bridges = 0;
+  std::vector<std::string> combined = appendLevel2BccLabels(
+    nodes, edges, level1, l2Bridges,
+    outBccCountTotal, outLargestClusterSize, outInnerSplitClusters,
+    minRecurseSize);
+  outBridgeCountTotal = l1Bridges + l2Bridges;
+  return combined;
+}
+
+// Forward decl: hierarchical wrapper used when appLabel contains "/" (Louvain
+// 2-level output, BCC level1/level2, etc).
+void runHierarchicalClusterLayout(
+  const ClusterRunOptions& options,
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes,
+  std::size_t& outClusterCount,
+  std::size_t& outInterClusterEdges);
+
 void runClusteredByAppLayout(
   const ClusterRunOptions& options,
   const std::vector<NodeRecord>& nodes,
@@ -577,6 +1522,23 @@ void runClusteredByAppLayout(
   ogdf::GraphAttributes& attributes,
   std::size_t& outClusterCount,
   std::size_t& outInterClusterEdges) {
+  // Hierarchical dispatch: any node label containing "/" routes to a 2-level
+  // layout that places sub-clusters within parents and parents in a global
+  // meta-layout. Sub-cluster placement reuses this same function (the flat
+  // path), since sub-labels do not contain "/".
+  bool hierarchical = false;
+  for (const NodeRecord& node : nodes) {
+    if (node.appLabel.find('/') != std::string::npos) {
+      hierarchical = true;
+      break;
+    }
+  }
+  if (hierarchical) {
+    runHierarchicalClusterLayout(options, nodes, edges, attributes,
+                                 outClusterCount, outInterClusterEdges);
+    return;
+  }
+
   std::unordered_map<std::string, std::vector<std::size_t>> clusterMembers;
   std::vector<std::string> clusterOrder;
   for (std::size_t index = 0; index < nodes.size(); ++index) {
@@ -614,6 +1576,45 @@ void runClusteredByAppLayout(
       continue;
     }
 
+    // Trivial geometric placement for tiny clusters: skip the OGDF call.
+    // Pairs go side by side; triples form a small triangle. Anything bigger
+    // falls through to a size-aware OGDF layout below.
+    if (members.size() == 2) {
+      const NodeRecord& a = nodes[members[0]];
+      const NodeRecord& b = nodes[members[1]];
+      const double gap = 24.0;
+      attributes.x(a.handle) = a.width / 2.0;
+      attributes.y(a.handle) = a.height / 2.0;
+      attributes.x(b.handle) = a.width + gap + b.width / 2.0;
+      attributes.y(b.handle) = std::max(a.height, b.height) / 2.0;
+      clusterLocalSize[clusterKey] = {
+        a.width + gap + b.width,
+        std::max(a.height, b.height),
+      };
+      clusterLocalMin[clusterKey] = {0.0, 0.0};
+      continue;
+    }
+    if (members.size() == 3) {
+      const NodeRecord& a = nodes[members[0]];
+      const NodeRecord& b = nodes[members[1]];
+      const NodeRecord& c = nodes[members[2]];
+      const double gap = 24.0;
+      const double row1Width = a.width + gap + b.width;
+      const double topHeight = std::max(a.height, b.height);
+      attributes.x(a.handle) = a.width / 2.0;
+      attributes.y(a.handle) = a.height / 2.0;
+      attributes.x(b.handle) = a.width + gap + b.width / 2.0;
+      attributes.y(b.handle) = b.height / 2.0;
+      attributes.x(c.handle) = row1Width / 2.0;
+      attributes.y(c.handle) = topHeight + gap + c.height / 2.0;
+      clusterLocalSize[clusterKey] = {
+        std::max(row1Width, c.width),
+        topHeight + gap + c.height,
+      };
+      clusterLocalMin[clusterKey] = {0.0, 0.0};
+      continue;
+    }
+
     ogdf::Graph subGraph;
     ogdf::GraphAttributes subAttr(
       subGraph,
@@ -638,6 +1639,23 @@ void runClusteredByAppLayout(
       }
     }
 
+    // Inner layout choice depends on the requested mode AND the cluster size.
+    // For Sugiyama-style modes, small/medium clusters get PlanarizationLayout
+    // (a true crossing-min algorithm; cheap on subgraphs) while large clusters
+    // stick with Sugiyama. Circular mode similarly uses PlanarizationLayout
+    // for tiny clusters where ring shape is degenerate (size <= 6) — only
+    // larger clusters get the actual ring layout. Other modes honour the
+    // user's pick across all sizes.
+    const bool sugiyamaInner =
+      options.innerMode != "fmm"
+      && options.innerMode != "planarization"
+      && options.innerMode != "planarization_grid"
+      && options.innerMode != "uml_planarization"
+      && options.innerMode != "circular";
+    const bool useInnerPlanarization =
+      (sugiyamaInner && members.size() <= 28)
+      || (options.innerMode == "circular" && members.size() <= 6);
+
     if (options.innerMode == "fmm") {
       ogdf::FastMultipoleEmbedder fmm;
       fmm.setNumIterations(options.innerFmmIterations);
@@ -647,12 +1665,9 @@ void runClusteredByAppLayout(
       fmm.setRandomize(true);
       fmm.setNumberOfThreads(static_cast<uint32_t>(idealThreadCount()));
       fmm.call(subAttr);
-    } else if (options.innerMode == "planarization") {
-      ogdf::PlanarizationLayout pl;
-      pl.setCrossMin(createBoundedSubgraphPlanarizer());
-      pl.pageRatio(kPlanarizationPageRatio);
-      pl.call(subAttr);
-    } else if (options.innerMode == "planarization_grid") {
+    } else if (options.innerMode == "planarization"
+               || options.innerMode == "planarization_grid"
+               || useInnerPlanarization) {
       ogdf::PlanarizationLayout pl;
       pl.setCrossMin(createBoundedSubgraphPlanarizer());
       pl.pageRatio(kPlanarizationPageRatio);
@@ -681,6 +1696,112 @@ void runClusteredByAppLayout(
       sugi.setLayout(hier);
       sugi.arrangeCCs(true);
       sugi.call(subAttr);
+    }
+
+    // Hub densification: when the cluster has a clear intra-cluster hub with
+    // 3+ leaves (members whose ONLY graph edge is to the hub), pack those
+    // leaves into a tight ring on the side of the hub facing AWAY from the
+    // cluster's other members. Restricting to global-degree-1 nodes ensures
+    // we never move a node with inter-cluster edges (whose new position
+    // would change inter-cluster routing).
+    if (members.size() >= 6) {
+      // Global degree per modelId (deduped: parallel edges count once).
+      std::unordered_map<std::string, std::set<std::string>> globalNeighbours;
+      for (const EdgeRecord& edge : edges) {
+        if (edge.sourceModelId.empty() || edge.targetModelId.empty()) continue;
+        if (edge.sourceModelId == edge.targetModelId) continue;
+        globalNeighbours[edge.sourceModelId].insert(edge.targetModelId);
+        globalNeighbours[edge.targetModelId].insert(edge.sourceModelId);
+      }
+      auto globalDeg = [&](const std::string& id) -> std::size_t {
+        auto it = globalNeighbours.find(id);
+        return it == globalNeighbours.end() ? 0 : it->second.size();
+      };
+      // Deduplicated intra-cluster adjacency (parallel edges collapse to one).
+      std::vector<std::set<std::size_t>> innerAdjSet(members.size());
+      for (const EdgeRecord& edge : edges) {
+        const auto srcIt = idToSubIdx.find(edge.sourceModelId);
+        const auto tgtIt = idToSubIdx.find(edge.targetModelId);
+        if (srcIt == idToSubIdx.end() || tgtIt == idToSubIdx.end() || srcIt->second == tgtIt->second) continue;
+        innerAdjSet[srcIt->second].insert(tgtIt->second);
+        innerAdjSet[tgtIt->second].insert(srcIt->second);
+      }
+      std::vector<std::vector<std::size_t>> innerAdj(members.size());
+      for (std::size_t k = 0; k < members.size(); ++k) {
+        innerAdj[k].assign(innerAdjSet[k].begin(), innerAdjSet[k].end());
+      }
+
+      std::size_t hubK = 0;
+      for (std::size_t k = 1; k < members.size(); ++k) {
+        if (innerAdj[k].size() > innerAdj[hubK].size()) hubK = k;
+      }
+
+      if (innerAdj[hubK].size() >= 5) {
+        std::vector<std::size_t> leafKs;
+        for (std::size_t k = 0; k < members.size(); ++k) {
+          if (k == hubK) continue;
+          if (innerAdj[k].size() != 1 || innerAdj[k][0] != hubK) continue;
+          if (globalDeg(nodes[members[k]].modelId) != 1) continue;
+          leafKs.push_back(k);
+        }
+
+        if (leafKs.size() >= 3) {
+          const double hubX = subAttr.x(subNodes[hubK]);
+          const double hubY = subAttr.y(subNodes[hubK]);
+          const double hubW = subAttr.width(subNodes[hubK]);
+          const double hubH = subAttr.height(subNodes[hubK]);
+
+          // Compute centroid of NON-leaf, non-hub members so we can place
+          // leaves on the opposite side of the hub.
+          double otherX = 0.0, otherY = 0.0;
+          std::size_t otherCount = 0;
+          std::vector<bool> isLeafIdx(members.size(), false);
+          for (std::size_t lk : leafKs) isLeafIdx[lk] = true;
+          for (std::size_t k = 0; k < members.size(); ++k) {
+            if (k == hubK || isLeafIdx[k]) continue;
+            otherX += subAttr.x(subNodes[k]);
+            otherY += subAttr.y(subNodes[k]);
+            ++otherCount;
+          }
+          double biasX = -1.0, biasY = 0.0;
+          if (otherCount > 0) {
+            otherX /= static_cast<double>(otherCount);
+            otherY /= static_cast<double>(otherCount);
+            biasX = hubX - otherX;
+            biasY = hubY - otherY;
+            const double biasLen = std::sqrt(biasX * biasX + biasY * biasY);
+            if (biasLen < 1e-3) {
+              biasX = -1.0; biasY = 0.0;
+            } else {
+              biasX /= biasLen; biasY /= biasLen;
+            }
+          }
+
+          // Pull each leaf halfway toward the hub along its existing direction.
+          // This preserves Sugiyama's angular distribution (so the cluster's
+          // outer envelope is unchanged and FMMM keeps the inter-cluster
+          // spacing it picked) but visually compacts the radial spread.
+          (void)biasX; (void)biasY;  // bias direction unused in shrink mode
+          constexpr double kRadialShrink = 0.5;
+          double maxLeafW = 0.0, maxLeafH = 0.0;
+          for (std::size_t lk : leafKs) {
+            maxLeafW = std::max(maxLeafW, subAttr.width(subNodes[lk]));
+            maxLeafH = std::max(maxLeafH, subAttr.height(subNodes[lk]));
+          }
+          const double minRadius = std::max(hubW, hubH) / 2.0
+                                   + std::max(maxLeafW, maxLeafH) / 2.0 + 12.0;
+          for (std::size_t lk : leafKs) {
+            const double dxLeaf = subAttr.x(subNodes[lk]) - hubX;
+            const double dyLeaf = subAttr.y(subNodes[lk]) - hubY;
+            const double dist = std::sqrt(dxLeaf * dxLeaf + dyLeaf * dyLeaf);
+            if (dist < 1e-3) continue;
+            const double newDist = std::max(minRadius, dist * kRadialShrink);
+            const double scale = newDist / dist;
+            subAttr.x(subNodes[lk]) = hubX + dxLeaf * scale;
+            subAttr.y(subNodes[lk]) = hubY + dyLeaf * scale;
+          }
+        }
+      }
     }
 
     double minX = std::numeric_limits<double>::infinity();
@@ -799,7 +1920,62 @@ void runClusteredByAppLayout(
       metaLayout.call(metaAttr);
     }
 
-    if (clusterToMeta.size() >= 4) {
+    // Cluster overlap resolution: FMMM doesn't strictly enforce non-overlap
+    // between super-nodes, especially after hub densification shrinks cluster
+    // local sizes. Push apart any pair whose bboxes overlap (or fall within
+    // the configured padding) to avoid the visual "mesh" effect where
+    // adjacent clusters touch.
+    {
+      std::vector<ogdf::node> orderedMetas;
+      orderedMetas.reserve(clusterToMeta.size());
+      for (const std::string& key : clusterOrder) {
+        auto it = clusterToMeta.find(key);
+        if (it != clusterToMeta.end()) orderedMetas.push_back(it->second);
+      }
+      const double minGap = std::max(100.0, options.interClusterPadding);
+      const std::size_t maxSepIter = 32;
+      for (std::size_t iter = 0; iter < maxSepIter; ++iter) {
+        bool moved = false;
+        for (std::size_t i = 0; i < orderedMetas.size(); ++i) {
+          const ogdf::node a = orderedMetas[i];
+          for (std::size_t j = i + 1; j < orderedMetas.size(); ++j) {
+            const ogdf::node b = orderedMetas[j];
+            const double ax = metaAttr.x(a), ay = metaAttr.y(a);
+            const double bx = metaAttr.x(b), by = metaAttr.y(b);
+            const double aw = metaAttr.width(a) / 2.0, ah = metaAttr.height(a) / 2.0;
+            const double bw = metaAttr.width(b) / 2.0, bh = metaAttr.height(b) / 2.0;
+            const double minDx = aw + bw + minGap;
+            const double minDy = ah + bh + minGap;
+            const double dx = bx - ax;
+            const double dy = by - ay;
+            if (std::abs(dx) >= minDx) continue;
+            if (std::abs(dy) >= minDy) continue;
+            // Both axes overlap — push apart along the smaller-overshoot axis.
+            const double overshootX = minDx - std::abs(dx);
+            const double overshootY = minDy - std::abs(dy);
+            if (overshootX < overshootY) {
+              const double push = overshootX / 2.0 + 0.01;
+              const double sign = dx >= 0 ? 1.0 : -1.0;
+              metaAttr.x(a) -= sign * push;
+              metaAttr.x(b) += sign * push;
+            } else {
+              const double push = overshootY / 2.0 + 0.01;
+              const double sign = dy >= 0 ? 1.0 : -1.0;
+              metaAttr.y(a) -= sign * push;
+              metaAttr.y(b) += sign * push;
+            }
+            moved = true;
+          }
+        }
+        if (!moved) break;
+      }
+    }
+
+    // Skip the swap pass entirely above 80 clusters — its inner loop is
+    // O(C^2 * M^2) per iteration and chokes on large cluster counts. The
+    // FMMM meta-layout already produced reasonable positions; the swap pass
+    // is a refinement, not a requirement.
+    if (clusterToMeta.size() >= 4 && clusterToMeta.size() <= 80) {
       std::vector<std::string> swapKeys;
       swapKeys.reserve(clusterToMeta.size());
       for (const std::string& key : clusterOrder) {
@@ -865,7 +2041,10 @@ void runClusteredByAppLayout(
 
       std::size_t bestCrossings = countWeightedCrossings();
       bool improved = true;
-      const std::size_t maxIterations = 16;
+      // Scale iterations inversely with cluster count squared. At C=25 we
+      // get ~16 iterations (the historical default); at C=80 we get ~1.
+      const std::size_t maxIterations =
+        std::max<std::size_t>(1, (16 * 25 * 25) / (swapKeys.size() * swapKeys.size()));
       for (std::size_t iter = 0; iter < maxIterations && improved; ++iter) {
         improved = false;
         for (std::size_t i = 0; i + 1 < swapKeys.size(); ++i) {
@@ -911,6 +2090,251 @@ void runClusteredByAppLayout(
   outClusterCount = clusterToMeta.size();
   outInterClusterEdges = 0;
   for (const auto& [_, count] : interClusterEdgeCount) {
+    outInterClusterEdges += count;
+  }
+}
+
+// Hierarchical layout: each node's appLabel is "<parent>/<sub>". Lays out each
+// parent's sub-cluster graph independently (calls back into the flat path),
+// then places parents in a global meta-layout. Decouples the meta swap pass
+// from O(C²·M²) explosion that flat 459-cluster layout caused.
+void runHierarchicalClusterLayout(
+  const ClusterRunOptions& options,
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes,
+  std::size_t& outClusterCount,
+  std::size_t& outInterClusterEdges) {
+  outClusterCount = 0;
+  outInterClusterEdges = 0;
+
+  // 1. Group node indices by parent prefix (chars before "/"). A label without
+  // "/" is treated as its own parent (degenerate hierarchy).
+  std::unordered_map<std::string, std::vector<std::size_t>> parentMembers;
+  std::vector<std::string> parentOrder;
+  std::unordered_map<std::string, std::string> idToParent;
+  idToParent.reserve(nodes.size());
+  for (std::size_t i = 0; i < nodes.size(); ++i) {
+    const std::string& label = nodes[i].appLabel;
+    auto slash = label.find('/');
+    std::string parent = (slash == std::string::npos)
+      ? (label.empty() ? std::string("_default") : label)
+      : label.substr(0, slash);
+    auto it = parentMembers.find(parent);
+    if (it == parentMembers.end()) {
+      parentOrder.push_back(parent);
+      parentMembers[parent] = {};
+      it = parentMembers.find(parent);
+    }
+    it->second.push_back(i);
+    idToParent[nodes[i].modelId] = parent;
+  }
+
+  // 2. For each parent, lay out its sub-graph using the existing flat code.
+  // After the call, each member's global attributes hold positions in
+  // sub-meta coordinates (relative to a small parent-local origin).
+  std::unordered_map<std::string, std::pair<double, double>> parentSize;
+  for (const std::string& parent : parentOrder) {
+    const std::vector<std::size_t>& members = parentMembers[parent];
+    if (members.empty()) continue;
+
+    std::vector<NodeRecord> subNodes;
+    subNodes.reserve(members.size());
+    std::unordered_set<std::string> memberIds;
+    memberIds.reserve(members.size());
+    for (std::size_t idx : members) {
+      NodeRecord copy = nodes[idx];
+      auto slash = copy.appLabel.find('/');
+      copy.appLabel = (slash == std::string::npos)
+        ? std::string("_sub_0")
+        : copy.appLabel.substr(slash + 1);
+      memberIds.insert(copy.modelId);
+      subNodes.push_back(copy);
+    }
+    std::vector<EdgeRecord> subEdges;
+    subEdges.reserve(edges.size());
+    for (const EdgeRecord& edge : edges) {
+      if (memberIds.count(edge.sourceModelId) && memberIds.count(edge.targetModelId)) {
+        subEdges.push_back(edge);
+      }
+    }
+
+    ClusterRunOptions subOpts = options;
+    subOpts.metaUnitEdgeLength = 50.0;  // sub-cluster placements packed tighter
+    subOpts.interClusterPadding = 14.0;
+
+    std::size_t subClusterCount = 0;
+    std::size_t subInterEdges = 0;
+    runClusteredByAppLayout(subOpts, subNodes, subEdges, attributes,
+                            subClusterCount, subInterEdges);
+
+    // Compute parent bbox from member positions, then translate to (0,0) origin.
+    double minX = std::numeric_limits<double>::infinity();
+    double minY = std::numeric_limits<double>::infinity();
+    double maxX = -std::numeric_limits<double>::infinity();
+    double maxY = -std::numeric_limits<double>::infinity();
+    for (std::size_t idx : members) {
+      const NodeRecord& node = nodes[idx];
+      const double cx = attributes.x(node.handle);
+      const double cy = attributes.y(node.handle);
+      minX = std::min(minX, cx - node.width / 2.0);
+      minY = std::min(minY, cy - node.height / 2.0);
+      maxX = std::max(maxX, cx + node.width / 2.0);
+      maxY = std::max(maxY, cy + node.height / 2.0);
+    }
+    if (!std::isfinite(minX)) {
+      minX = 0.0;
+      minY = 0.0;
+      maxX = 1.0;
+      maxY = 1.0;
+    }
+    for (std::size_t idx : members) {
+      const NodeRecord& node = nodes[idx];
+      attributes.x(node.handle) -= minX;
+      attributes.y(node.handle) -= minY;
+    }
+    parentSize[parent] = {maxX - minX, maxY - minY};
+  }
+
+  // 3. Build parent meta-graph and run FMMM + swap pass at parent level.
+  ogdf::Graph metaGraph;
+  ogdf::GraphAttributes metaAttr(metaGraph,
+    ogdf::GraphAttributes::nodeGraphics | ogdf::GraphAttributes::edgeGraphics);
+  std::unordered_map<std::string, ogdf::node> parentToMeta;
+  for (const std::string& parent : parentOrder) {
+    auto sizeIt = parentSize.find(parent);
+    if (sizeIt == parentSize.end()) continue;
+    ogdf::node m = metaGraph.newNode();
+    metaAttr.width(m) = std::max(120.0, sizeIt->second.first + options.interClusterPadding);
+    metaAttr.height(m) = std::max(120.0, sizeIt->second.second + options.interClusterPadding);
+    parentToMeta[parent] = m;
+  }
+
+  std::map<std::pair<std::string, std::string>, std::size_t> interParentCount;
+  for (const EdgeRecord& edge : edges) {
+    auto a = idToParent.find(edge.sourceModelId);
+    auto b = idToParent.find(edge.targetModelId);
+    if (a == idToParent.end() || b == idToParent.end()) continue;
+    if (a->second == b->second) continue;
+    auto key = a->second < b->second
+      ? std::make_pair(a->second, b->second)
+      : std::make_pair(b->second, a->second);
+    interParentCount[key]++;
+  }
+  std::vector<std::pair<std::string, std::string>> interPairs;
+  std::vector<std::size_t> interWeights;
+  interPairs.reserve(interParentCount.size());
+  interWeights.reserve(interParentCount.size());
+  for (const auto& [pair, count] : interParentCount) {
+    auto si = parentToMeta.find(pair.first);
+    auto ti = parentToMeta.find(pair.second);
+    if (si == parentToMeta.end() || ti == parentToMeta.end()) continue;
+    const std::size_t replicate = std::min<std::size_t>(8, count);
+    for (std::size_t r = 0; r < replicate; ++r) {
+      metaGraph.newEdge(si->second, ti->second);
+    }
+    interPairs.push_back(pair);
+    interWeights.push_back(count);
+  }
+
+  if (parentToMeta.size() >= 2) {
+    ogdf::FMMMLayout metaLayout;
+    metaLayout.useHighLevelOptions(true);
+    metaLayout.unitEdgeLength(options.metaUnitEdgeLength);
+    metaLayout.newInitialPlacement(true);
+    metaLayout.qualityVersusSpeed(ogdf::FMMMOptions::QualityVsSpeed::BeautifulAndFast);
+    metaLayout.call(metaAttr);
+
+    // Swap pass on parent positions (parent count typically small).
+    if (parentToMeta.size() >= 4 && parentToMeta.size() <= 80
+        && !interPairs.empty()) {
+      std::vector<std::string> swapKeys;
+      for (const std::string& key : parentOrder) {
+        if (parentToMeta.count(key)) swapKeys.push_back(key);
+      }
+      auto segmentsCross = [](double ax, double ay, double bx, double by,
+                              double cx, double cy, double dx, double dy) -> bool {
+        const double d1x = bx - ax;
+        const double d1y = by - ay;
+        const double d2x = dx - cx;
+        const double d2y = dy - cy;
+        const double denom = d1x * d2y - d1y * d2x;
+        if (std::abs(denom) < 1e-9) return false;
+        const double t = ((cx - ax) * d2y - (cy - ay) * d2x) / denom;
+        const double s = ((cx - ax) * d1y - (cy - ay) * d1x) / denom;
+        return t > 1e-6 && t < 1.0 - 1e-6 && s > 1e-6 && s < 1.0 - 1e-6;
+      };
+      auto countWeighted = [&]() -> std::size_t {
+        std::size_t total = 0;
+        for (std::size_t i = 0; i + 1 < interPairs.size(); ++i) {
+          const auto ai = parentToMeta[interPairs[i].first];
+          const auto bi = parentToMeta[interPairs[i].second];
+          const double aix = metaAttr.x(ai), aiy = metaAttr.y(ai);
+          const double bix = metaAttr.x(bi), biy = metaAttr.y(bi);
+          for (std::size_t j = i + 1; j < interPairs.size(); ++j) {
+            if (interPairs[i].first == interPairs[j].first
+                || interPairs[i].first == interPairs[j].second
+                || interPairs[i].second == interPairs[j].first
+                || interPairs[i].second == interPairs[j].second) continue;
+            const auto aj = parentToMeta[interPairs[j].first];
+            const auto bj = parentToMeta[interPairs[j].second];
+            if (segmentsCross(aix, aiy, bix, biy,
+                              metaAttr.x(aj), metaAttr.y(aj),
+                              metaAttr.x(bj), metaAttr.y(bj))) {
+              total += interWeights[i] * interWeights[j];
+            }
+          }
+        }
+        return total;
+      };
+      std::size_t bestCrossings = countWeighted();
+      bool improved = true;
+      const std::size_t maxIterations =
+        std::max<std::size_t>(1, (16 * 25 * 25) / (swapKeys.size() * swapKeys.size()));
+      for (std::size_t iter = 0; iter < maxIterations && improved; ++iter) {
+        improved = false;
+        for (std::size_t i = 0; i + 1 < swapKeys.size(); ++i) {
+          for (std::size_t j = i + 1; j < swapKeys.size(); ++j) {
+            const auto a = parentToMeta[swapKeys[i]];
+            const auto b = parentToMeta[swapKeys[j]];
+            const double ax = metaAttr.x(a), ay = metaAttr.y(a);
+            const double bx = metaAttr.x(b), by = metaAttr.y(b);
+            metaAttr.x(a) = bx; metaAttr.y(a) = by;
+            metaAttr.x(b) = ax; metaAttr.y(b) = ay;
+            const std::size_t c = countWeighted();
+            if (c < bestCrossings) {
+              bestCrossings = c;
+              improved = true;
+            } else {
+              metaAttr.x(a) = ax; metaAttr.y(a) = ay;
+              metaAttr.x(b) = bx; metaAttr.y(b) = by;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 4. Apply parent meta-position offset to each node (composes with the
+  // sub-meta positions written during step 2).
+  for (const std::string& parent : parentOrder) {
+    auto metaIt = parentToMeta.find(parent);
+    auto sizeIt = parentSize.find(parent);
+    if (metaIt == parentToMeta.end() || sizeIt == parentSize.end()) continue;
+    const double cx = metaAttr.x(metaIt->second);
+    const double cy = metaAttr.y(metaIt->second);
+    const double offsetX = cx - sizeIt->second.first / 2.0;
+    const double offsetY = cy - sizeIt->second.second / 2.0;
+    for (std::size_t idx : parentMembers[parent]) {
+      const NodeRecord& node = nodes[idx];
+      attributes.x(node.handle) += offsetX;
+      attributes.y(node.handle) += offsetY;
+    }
+  }
+
+  outClusterCount = parentToMeta.size();
+  outInterClusterEdges = 0;
+  for (const auto& [_, count] : interParentCount) {
     outInterClusterEdges += count;
   }
 }
@@ -2530,9 +3954,82 @@ LayoutQualityMetrics measureLayoutQuality(
   const std::vector<NodeRecord>& nodes,
   const std::vector<EdgeRecord>& edges,
   const std::vector<std::vector<RoutePoint>>& routes,
-  ogdf::GraphAttributes& attributes) {
+  ogdf::GraphAttributes& attributes,
+  const std::vector<LeafBundleRecord>* leafBundles) {
   LayoutQualityMetrics metrics;
-  metrics.nodeOverlaps = countNodeRectOverlaps(nodes, attributes, false);
+
+  // Visual margin — node's "personal space" added to its 4-corner rect.
+  // Per user spec: collision is judged on (rect + margin) area, not bare
+  // rect. Edges entering this margin area count as a hit; nodes whose
+  // margin areas overlap count as a node-node collision.
+  constexpr double kVisualMargin = 8.0;
+
+  // Per-bundle exempt set (parent + leaves) and bbox.
+  // Per user spec: bundle internal nodes are excluded from ALL collision
+  // checks; only the bundle's 4-corner bbox (with margin) vs external
+  // entities counts.
+  std::vector<std::unordered_set<std::string>> bundleExempt;
+  std::vector<Rect> bundleRects;
+  // Set of modelIds absorbed by ANY bundle — these nodes are skipped
+  // from edgeNodeIntersections and nodeOverlaps because the bundle as
+  // a whole already represents them.
+  std::unordered_set<std::string> bundleAbsorbed;
+  if (leafBundles != nullptr) {
+    bundleExempt.reserve(leafBundles->size());
+    bundleRects.reserve(leafBundles->size());
+    for (const LeafBundleRecord& bundle : *leafBundles) {
+      std::unordered_set<std::string> exempt;
+      exempt.insert(bundle.parentModelId);
+      bundleAbsorbed.insert(bundle.parentModelId);
+      for (const std::string& leaf : bundle.leafModelIds) {
+        exempt.insert(leaf);
+        bundleAbsorbed.insert(leaf);
+      }
+      bundleExempt.push_back(std::move(exempt));
+      Rect br;
+      br.left = bundle.bboxX - kVisualMargin;
+      br.right = bundle.bboxX + bundle.bboxWidth + kVisualMargin;
+      br.top = bundle.bboxY - kVisualMargin;
+      br.bottom = bundle.bboxY + bundle.bboxHeight + kVisualMargin;
+      bundleRects.push_back(br);
+    }
+    // Bundle-vs-node overlap: count when bundle's margin-expanded bbox
+    // overlaps an external node's margin-expanded rect.
+    for (std::size_t bi = 0; bi < bundleRects.size(); ++bi) {
+      const Rect& br = bundleRects[bi];
+      for (const NodeRecord& nd : nodes) {
+        if (bundleAbsorbed.count(nd.modelId)) continue;
+        const Rect nr = nodeRect(nd, attributes, kVisualMargin);
+        if (rectsOverlap(br, nr)) {
+          metrics.bundleNodeOverlaps += 1;
+        }
+      }
+    }
+  }
+
+  // Node-node rect overlaps — 4-corner rect-rect intersection on the
+  // margin-expanded rectangles. Skip nodes absorbed by a bundle.
+  {
+    std::vector<std::pair<Rect, std::size_t>> rects;
+    rects.reserve(nodes.size());
+    for (std::size_t i = 0; i < nodes.size(); ++i) {
+      if (bundleAbsorbed.count(nodes[i].modelId)) continue;
+      rects.emplace_back(nodeRect(nodes[i], attributes, kVisualMargin), i);
+    }
+    std::sort(rects.begin(), rects.end(),
+      [](const auto& a, const auto& b) { return a.first.left < b.first.left; });
+    for (std::size_t i = 0; i < rects.size(); ++i) {
+      for (std::size_t j = i + 1; j < rects.size(); ++j) {
+        if (rects[j].first.left >= rects[i].first.right) break;
+        if (rectsOverlap(rects[i].first, rects[j].first)) {
+          metrics.nodeOverlaps += 1;
+        }
+      }
+    }
+  }
+  // Node spacing (= rect with spacing buffer) overlap, retained for
+  // diagnostics — excluded from the unified visualCrossings sum since
+  // user-spec collision is strict 4-corner rect-rect only.
   metrics.nodeSpacingOverlaps = countNodeRectOverlaps(nodes, attributes, true);
 
   RouteOccupancy occupancy;
@@ -2544,16 +4041,33 @@ LayoutQualityMetrics measureLayoutQuality(
     }
 
     const LineIntent line = makeLineIntent(edges[edgeIndex], edgeIndex, attributes);
+    // Margin-expanded obstacle rects: edge entering the margin area
+    // counts as a collision.
     const std::vector<NodeObstacle> obstacles =
-      makeNodeObstacles(nodes, attributes, 0.0, line.sourceHandle, line.targetHandle);
+      makeNodeObstacles(nodes, attributes, kVisualMargin, line.sourceHandle, line.targetHandle);
     const std::vector<LineSegment> segments = buildLineSegments(route, line.lineIndex, line.lineId);
+
+    const std::string& srcId = edges[edgeIndex].sourceModelId;
+    const std::string& tgtId = edges[edgeIndex].targetModelId;
 
     for (const LineSegment& segment : segments) {
       metrics.routeSegments += 1;
 
       for (const NodeObstacle& obstacle : obstacles) {
+        // Skip nodes absorbed by a leaf bundle — the bundle's own bbox
+        // is checked separately. Counting absorbed leaves and the
+        // bundle bbox would double-count the same visual block.
+        if (bundleAbsorbed.count(obstacle.nodeId)) continue;
         if (segmentIntersectsRect(segment.start, segment.end, obstacle.rect)) {
           metrics.edgeNodeIntersections += 1;
+        }
+      }
+      // Edge segments that pass through a leaf-bundle bbox (excluding
+      // bundles whose parent OR any leaf the edge connects to).
+      for (std::size_t bi = 0; bi < bundleRects.size(); ++bi) {
+        if (bundleExempt[bi].count(srcId) || bundleExempt[bi].count(tgtId)) continue;
+        if (segmentIntersectsRect(segment.start, segment.end, bundleRects[bi])) {
+          metrics.bundleEdgeIntersections += 1;
         }
       }
     }
@@ -2624,6 +4138,16 @@ LayoutQualityMetrics measureLayoutQuality(
     const double variance = std::max(0.0, (lengthSumSq / count) - mean * mean);
     metrics.edgeLengthStddev = std::sqrt(variance);
   }
+
+  // Unified visual crossing count per user spec: strict 4-corner rect-
+  // segment and rect-rect tests only. nodeSpacingOverlaps and any
+  // padding-based "near miss" detections are NOT included.
+  metrics.visualCrossings =
+    metrics.edgeCrossings
+    + metrics.edgeNodeIntersections
+    + metrics.nodeOverlaps
+    + metrics.bundleEdgeIntersections
+    + metrics.bundleNodeOverlaps;
 
   return metrics;
 }
@@ -3699,10 +5223,48 @@ LayoutRunMetadata runLayout(
       if (useAppClusters || useStructuralFallback) {
         std::vector<NodeRecord> clusteredNodes = nodes;
         if (useStructuralFallback) {
-          const std::size_t targetClusters =
-            std::max<std::size_t>(8, std::min<std::size_t>(32, nodes.size() / 50));
+          std::size_t bccBridgeCount = 0;
+          std::size_t bccComponentCount = 0;
+          std::size_t bccLargestClusterSize = 0;
           std::vector<std::string> labels =
-            assignStructuralClusterLabels(nodes, edges, targetClusters);
+            assignBiconnectedClusterLabels(nodes, edges, bccBridgeCount, bccComponentCount, bccLargestClusterSize);
+          const bool bccDegenerate =
+            bccComponentCount < 2
+            || bccComponentCount > nodes.size() / 2
+            || bccBridgeCount == 0
+            || bccLargestClusterSize * 2 > nodes.size();
+          if (bccDegenerate) {
+            // Hub-excluded BCC: pull dominant hubs out and run BCC on the
+            // residual subgraph. Use this when standard BCC is degenerate
+            // (typically because a giant biconnected blob exists).
+            std::size_t hubCount = 0;
+            std::size_t residualBridges = 0;
+            std::size_t residualBcc = 0;
+            std::vector<std::string> hubLabels = assignHubExcludedBccLabels(
+              nodes, edges, hubCount, residualBridges, residualBcc);
+            const bool hubMethodWorked =
+              hubCount > 0 && residualBridges > 0 && residualBcc >= 4;
+            if (hubMethodWorked) {
+              labels = std::move(hubLabels);
+            } else {
+              std::size_t louvL1Count = 0;
+              std::size_t louvL2Count = 0;
+              std::size_t louvIters = 0;
+              std::vector<std::string> louvLabels =
+                assignTwoLevelLouvainLabels(nodes, edges, louvL1Count, louvL2Count, louvIters);
+              const std::size_t louvCommCount = louvL1Count;
+              const bool louvWorked =
+                louvCommCount >= 4
+                && louvCommCount * 2 < nodes.size();
+              if (louvWorked) {
+                labels = std::move(louvLabels);
+              } else {
+                const std::size_t targetClusters =
+                  std::max<std::size_t>(8, std::min<std::size_t>(32, nodes.size() / 50));
+                labels = assignStructuralClusterLabels(nodes, edges, targetClusters);
+              }
+            }
+          }
           for (std::size_t i = 0; i < clusteredNodes.size(); ++i) {
             clusteredNodes[i].appLabel = labels[i];
           }
@@ -3712,7 +5274,7 @@ LayoutRunMetadata runLayout(
         opts.innerLayerDistance = 60.0;
         opts.innerNodeDistance = 28.0;
         opts.metaMode = "fmmm";
-        opts.metaUnitEdgeLength = 100.0;
+        opts.metaUnitEdgeLength = 80.0;
         opts.interClusterPadding = 20.0;
         std::size_t clusterCount = 0;
         std::size_t interEdges = 0;
@@ -3725,7 +5287,7 @@ LayoutRunMetadata runLayout(
         metadata.strategy = "clustered";
         metadata.strategyReason = useAppClusters
           ? "nodes grouped by appLabel; per-app Sugiyama with FMMM weighted meta-layout"
-          : "high-degree-hub BFS chunking groups the graph into structural clusters; FMMM weighted meta-layout";
+          : "BCC → hub-excluded BCC → Louvain modularity → high-degree-hub BFS fallback chain; FMMM weighted meta-layout";
         return metadata;
       }
     }
@@ -3756,10 +5318,48 @@ LayoutRunMetadata runLayout(
       if (useAppClusters || useStructuralFallback) {
         std::vector<NodeRecord> clusteredNodes = nodes;
         if (useStructuralFallback) {
-          const std::size_t targetClusters =
-            std::max<std::size_t>(8, std::min<std::size_t>(32, nodes.size() / 50));
+          std::size_t bccBridgeCount = 0;
+          std::size_t bccComponentCount = 0;
+          std::size_t bccLargestClusterSize = 0;
           std::vector<std::string> labels =
-            assignStructuralClusterLabels(nodes, edges, targetClusters);
+            assignBiconnectedClusterLabels(nodes, edges, bccBridgeCount, bccComponentCount, bccLargestClusterSize);
+          const bool bccDegenerate =
+            bccComponentCount < 2
+            || bccComponentCount > nodes.size() / 2
+            || bccBridgeCount == 0
+            || bccLargestClusterSize * 2 > nodes.size();
+          if (bccDegenerate) {
+            // Hub-excluded BCC: pull dominant hubs out and run BCC on the
+            // residual subgraph. Use this when standard BCC is degenerate
+            // (typically because a giant biconnected blob exists).
+            std::size_t hubCount = 0;
+            std::size_t residualBridges = 0;
+            std::size_t residualBcc = 0;
+            std::vector<std::string> hubLabels = assignHubExcludedBccLabels(
+              nodes, edges, hubCount, residualBridges, residualBcc);
+            const bool hubMethodWorked =
+              hubCount > 0 && residualBridges > 0 && residualBcc >= 4;
+            if (hubMethodWorked) {
+              labels = std::move(hubLabels);
+            } else {
+              std::size_t louvL1Count = 0;
+              std::size_t louvL2Count = 0;
+              std::size_t louvIters = 0;
+              std::vector<std::string> louvLabels =
+                assignTwoLevelLouvainLabels(nodes, edges, louvL1Count, louvL2Count, louvIters);
+              const std::size_t louvCommCount = louvL1Count;
+              const bool louvWorked =
+                louvCommCount >= 4
+                && louvCommCount * 2 < nodes.size();
+              if (louvWorked) {
+                labels = std::move(louvLabels);
+              } else {
+                const std::size_t targetClusters =
+                  std::max<std::size_t>(8, std::min<std::size_t>(32, nodes.size() / 50));
+                labels = assignStructuralClusterLabels(nodes, edges, targetClusters);
+              }
+            }
+          }
           for (std::size_t i = 0; i < clusteredNodes.size(); ++i) {
             clusteredNodes[i].appLabel = labels[i];
           }
@@ -3767,7 +5367,7 @@ LayoutRunMetadata runLayout(
         ClusterRunOptions opts;
         opts.innerMode = "circular";
         opts.metaMode = "fmmm";
-        opts.metaUnitEdgeLength = 100.0;
+        opts.metaUnitEdgeLength = 80.0;
         opts.interClusterPadding = 20.0;
         std::size_t clusterCount = 0;
         std::size_t interEdges = 0;
@@ -3843,10 +5443,45 @@ LayoutRunMetadata runLayout(
     if (useAppClusters || useStructuralFallback) {
       std::vector<NodeRecord> clusteredNodes = nodes;
       if (useStructuralFallback) {
-        const std::size_t targetClusters =
-          std::max<std::size_t>(8, std::min<std::size_t>(32, nodes.size() / 50));
+        std::size_t bccBridgeCount = 0;
+        std::size_t bccComponentCount = 0;
+        std::size_t bccLargestClusterSize = 0;
         std::vector<std::string> labels =
-          assignStructuralClusterLabels(nodes, edges, targetClusters);
+          assignBiconnectedClusterLabels(nodes, edges, bccBridgeCount, bccComponentCount, bccLargestClusterSize);
+        const bool bccDegenerate =
+          bccComponentCount < 2
+          || bccComponentCount > nodes.size() / 2
+          || bccBridgeCount == 0
+          || bccLargestClusterSize * 2 > nodes.size();
+        if (bccDegenerate) {
+          std::size_t hubCount = 0;
+          std::size_t residualBridges = 0;
+          std::size_t residualBcc = 0;
+          std::vector<std::string> hubLabels = assignHubExcludedBccLabels(
+            nodes, edges, hubCount, residualBridges, residualBcc);
+          const bool hubMethodWorked =
+            hubCount > 0 && residualBridges > 0 && residualBcc >= 4;
+          if (hubMethodWorked) {
+            labels = std::move(hubLabels);
+          } else {
+            std::size_t louvL1Count = 0;
+            std::size_t louvL2Count = 0;
+            std::size_t louvIters = 0;
+            std::vector<std::string> louvLabels =
+              assignTwoLevelLouvainLabels(nodes, edges, louvL1Count, louvL2Count, louvIters);
+            const std::size_t louvCommCount = louvL1Count;
+            const bool louvWorked =
+              louvCommCount >= 4
+              && louvCommCount * 2 < nodes.size();
+            if (louvWorked) {
+              labels = std::move(louvLabels);
+            } else {
+              const std::size_t targetClusters =
+                std::max<std::size_t>(8, std::min<std::size_t>(32, nodes.size() / 50));
+              labels = assignStructuralClusterLabels(nodes, edges, targetClusters);
+            }
+          }
+        }
         for (std::size_t i = 0; i < clusteredNodes.size(); ++i) {
           clusteredNodes[i].appLabel = labels[i];
         }
@@ -3869,7 +5504,7 @@ LayoutRunMetadata runLayout(
       metadata.strategy = "clustered";
       metadata.strategyReason = useAppClusters
         ? "nodes grouped by appLabel; per-app FMM keeps intra-app edges short while FMMM meta-layout separates app clusters"
-        : "no useful appLabel split; high-degree-hub BFS chunking groups the graph into structural clusters with FMMM meta-layout";
+        : "no useful appLabel split; BCC → hub-excluded BCC → Louvain modularity → high-degree-hub BFS fallback chain; FMMM meta-layout";
       return metadata;
     }
     runFastMultipoleLayout(attributes, 300, 6, true);
@@ -4103,10 +5738,48 @@ LayoutRunMetadata runLayout(
       if (useAppClusters || useStructuralFallback) {
         std::vector<NodeRecord> clusteredNodes = nodes;
         if (useStructuralFallback) {
-          const std::size_t targetClusters =
-            std::max<std::size_t>(8, std::min<std::size_t>(32, nodes.size() / 50));
+          std::size_t bccBridgeCount = 0;
+          std::size_t bccComponentCount = 0;
+          std::size_t bccLargestClusterSize = 0;
           std::vector<std::string> labels =
-            assignStructuralClusterLabels(nodes, edges, targetClusters);
+            assignBiconnectedClusterLabels(nodes, edges, bccBridgeCount, bccComponentCount, bccLargestClusterSize);
+          const bool bccDegenerate =
+            bccComponentCount < 2
+            || bccComponentCount > nodes.size() / 2
+            || bccBridgeCount == 0
+            || bccLargestClusterSize * 2 > nodes.size();
+          if (bccDegenerate) {
+            // Hub-excluded BCC: pull dominant hubs out and run BCC on the
+            // residual subgraph. Use this when standard BCC is degenerate
+            // (typically because a giant biconnected blob exists).
+            std::size_t hubCount = 0;
+            std::size_t residualBridges = 0;
+            std::size_t residualBcc = 0;
+            std::vector<std::string> hubLabels = assignHubExcludedBccLabels(
+              nodes, edges, hubCount, residualBridges, residualBcc);
+            const bool hubMethodWorked =
+              hubCount > 0 && residualBridges > 0 && residualBcc >= 4;
+            if (hubMethodWorked) {
+              labels = std::move(hubLabels);
+            } else {
+              std::size_t louvL1Count = 0;
+              std::size_t louvL2Count = 0;
+              std::size_t louvIters = 0;
+              std::vector<std::string> louvLabels =
+                assignTwoLevelLouvainLabels(nodes, edges, louvL1Count, louvL2Count, louvIters);
+              const std::size_t louvCommCount = louvL1Count;
+              const bool louvWorked =
+                louvCommCount >= 4
+                && louvCommCount * 2 < nodes.size();
+              if (louvWorked) {
+                labels = std::move(louvLabels);
+              } else {
+                const std::size_t targetClusters =
+                  std::max<std::size_t>(8, std::min<std::size_t>(32, nodes.size() / 50));
+                labels = assignStructuralClusterLabels(nodes, edges, targetClusters);
+              }
+            }
+          }
           for (std::size_t i = 0; i < clusteredNodes.size(); ++i) {
             clusteredNodes[i].appLabel = labels[i];
           }
@@ -4116,7 +5789,7 @@ LayoutRunMetadata runLayout(
         opts.innerLayerDistance = 60.0;
         opts.innerNodeDistance = 28.0;
         opts.metaMode = "fmmm";
-        opts.metaUnitEdgeLength = 100.0;
+        opts.metaUnitEdgeLength = 80.0;
         opts.interClusterPadding = 20.0;
         std::size_t clusterCount = 0;
         std::size_t interEdges = 0;
@@ -4339,6 +6012,193 @@ std::vector<std::vector<RoutePoint>> routeAllEdgesStraight(
     routes.push_back(routeStraightLine(makeLineIntent(edges[edgeIndex], edgeIndex, attributes)));
   }
 
+  // Apply lane offsets to parallel edges so visually overlapping straight
+  // segments fan out. Edges sharing the same {source, target} pair (regardless
+  // of direction) get evenly spaced perpendicular offsets.
+  std::map<std::pair<std::string, std::string>, std::vector<std::size_t>> byPair;
+  for (std::size_t i = 0; i < edges.size(); ++i) {
+    const std::string& s = edges[i].sourceModelId;
+    const std::string& t = edges[i].targetModelId;
+    if (s.empty() || t.empty() || s == t) continue;
+    auto key = s < t ? std::make_pair(s, t) : std::make_pair(t, s);
+    byPair[key].push_back(i);
+  }
+
+  constexpr double kLaneSpacing = 12.0;
+  for (const auto& [_, indices] : byPair) {
+    if (indices.size() < 2) continue;
+    const double centerOffset = (static_cast<double>(indices.size()) - 1.0) / 2.0;
+    for (std::size_t k = 0; k < indices.size(); ++k) {
+      const std::size_t edgeIdx = indices[k];
+      auto& route = routes[edgeIdx];
+      if (route.size() != 2) continue;
+      const double dx = route[1].x - route[0].x;
+      const double dy = route[1].y - route[0].y;
+      const double len = std::sqrt(dx * dx + dy * dy);
+      if (len < 1e-3) continue;
+      // Perpendicular unit vector (right-hand rule).
+      const double nx = -dy / len;
+      const double ny = dx / len;
+      const double offset = (static_cast<double>(k) - centerOffset) * kLaneSpacing;
+      route[0].x = std::round((route[0].x + nx * offset) * 100.0) / 100.0;
+      route[0].y = std::round((route[0].y + ny * offset) * 100.0) / 100.0;
+      route[1].x = std::round((route[1].x + nx * offset) * 100.0) / 100.0;
+      route[1].y = std::round((route[1].y + ny * offset) * 100.0) / 100.0;
+    }
+  }
+
+  // Obstacle-aware lateral nudge: for any edge whose straight line passes
+  // through a non-endpoint node bbox, try a small perpendicular shift to
+  // clear the obstacle. Keeps edges 2-point straight; cost is a small
+  // endpoint disconnect from the source/target node boundary (typically
+  // <= 18 units, similar to existing lane offset endpoints).
+  struct ObstacleBox {
+    double minX, minY, maxX, maxY;
+    ogdf::node handle;
+  };
+  std::vector<ObstacleBox> obstacles;
+  const ogdf::Graph& G = attributes.constGraph();
+  for (ogdf::node v : G.nodes) {
+    const double cx = attributes.x(v);
+    const double cy = attributes.y(v);
+    const double hw = attributes.width(v) / 2.0;
+    const double hh = attributes.height(v) / 2.0;
+    obstacles.push_back({cx - hw, cy - hh, cx + hw, cy + hh, v});
+  }
+
+  auto segmentsCross = [](double ax, double ay, double bx, double by,
+                          double cx, double cy, double dx2, double dy2) -> bool {
+    const double d1x = bx - ax, d1y = by - ay;
+    const double d2x = dx2 - cx, d2y = dy2 - cy;
+    const double denom = d1x * d2y - d1y * d2x;
+    if (std::abs(denom) < 1e-9) return false;
+    const double t = ((cx - ax) * d2y - (cy - ay) * d2x) / denom;
+    const double s = ((cx - ax) * d1y - (cy - ay) * d1x) / denom;
+    return t > 1e-9 && t < 1.0 - 1e-9 && s > 1e-9 && s < 1.0 - 1e-9;
+  };
+
+  auto lineHitsBox = [&](double sx, double sy, double tx, double ty,
+                          const ObstacleBox& b, double margin) -> bool {
+    const double bx0 = b.minX - margin;
+    const double bx1 = b.maxX + margin;
+    const double by0 = b.minY - margin;
+    const double by1 = b.maxY + margin;
+    if (std::max(sx, tx) < bx0 || std::min(sx, tx) > bx1) return false;
+    if (std::max(sy, ty) < by0 || std::min(sy, ty) > by1) return false;
+    if (sx > bx0 && sx < bx1 && sy > by0 && sy < by1) return true;
+    if (tx > bx0 && tx < bx1 && ty > by0 && ty < by1) return true;
+    return segmentsCross(sx, sy, tx, ty, bx0, by0, bx1, by0)
+        || segmentsCross(sx, sy, tx, ty, bx1, by0, bx1, by1)
+        || segmentsCross(sx, sy, tx, ty, bx1, by1, bx0, by1)
+        || segmentsCross(sx, sy, tx, ty, bx0, by1, bx0, by0);
+  };
+
+  // Identify which side of a rect a port is on, then project a candidate
+  // perpendicular-shifted point back onto the same side (clamped to side
+  // bounds). This lets us slide the port along the rect boundary rather
+  // than floating it off — endpoints stay attached to the node visually.
+  auto sideOfPort = [](double px, double py,
+                       double minX, double minY, double maxX, double maxY) -> int {
+    // 0 = top, 1 = right, 2 = bottom, 3 = left, -1 = unknown
+    const double tol = std::max<double>(1.0, 0.01 * std::max(maxY - minY, maxX - minX));
+    const double dTop = std::abs(py - maxY);
+    const double dBot = std::abs(py - minY);
+    const double dLeft = std::abs(px - minX);
+    const double dRight = std::abs(px - maxX);
+    const double minD = std::min({dTop, dBot, dLeft, dRight});
+    if (minD > tol) return -1;
+    if (dTop == minD) return 0;
+    if (dRight == minD) return 1;
+    if (dBot == minD) return 2;
+    return 3;
+  };
+  auto slidePortOnSide = [](double px, double py, int side,
+                             double minX, double minY, double maxX, double maxY) -> RoutePoint {
+    switch (side) {
+      case 0: return {std::min(maxX, std::max(minX, px)), maxY};
+      case 1: return {maxX, std::min(maxY, std::max(minY, py))};
+      case 2: return {std::min(maxX, std::max(minX, px)), minY};
+      case 3: return {minX, std::min(maxY, std::max(minY, py))};
+      default: return {px, py};
+    }
+  };
+
+  for (std::size_t i = 0; i < edges.size(); ++i) {
+    auto& route = routes[i];
+    if (route.size() != 2) continue;
+    const ogdf::node srcH = edges[i].sourceHandle;
+    const ogdf::node tgtH = edges[i].targetHandle;
+
+    auto countHits = [&](double sx, double sy, double tx, double ty) -> int {
+      int hits = 0;
+      for (const auto& b : obstacles) {
+        if (b.handle == srcH || b.handle == tgtH) continue;
+        if (lineHitsBox(sx, sy, tx, ty, b, /*margin=*/0.0)) ++hits;
+      }
+      return hits;
+    };
+
+    const int baseHits = countHits(route[0].x, route[0].y, route[1].x, route[1].y);
+    if (baseHits == 0) continue;
+
+    const double dx = route[1].x - route[0].x;
+    const double dy = route[1].y - route[0].y;
+    const double len = std::sqrt(dx * dx + dy * dy);
+    if (len < 1e-3) continue;
+    const double nx = -dy / len;
+    const double ny = dx / len;
+
+    // Source/target rect bounds for port-sliding.
+    const double srcCx = attributes.x(srcH);
+    const double srcCy = attributes.y(srcH);
+    const double srcHw = attributes.width(srcH) / 2.0;
+    const double srcHh = attributes.height(srcH) / 2.0;
+    const double tgtCx = attributes.x(tgtH);
+    const double tgtCy = attributes.y(tgtH);
+    const double tgtHw = attributes.width(tgtH) / 2.0;
+    const double tgtHh = attributes.height(tgtH) / 2.0;
+    const int srcSide = sideOfPort(route[0].x, route[0].y,
+                                    srcCx - srcHw, srcCy - srcHh,
+                                    srcCx + srcHw, srcCy + srcHh);
+    const int tgtSide = sideOfPort(route[1].x, route[1].y,
+                                    tgtCx - tgtHw, tgtCy - tgtHh,
+                                    tgtCx + tgtHw, tgtCy + tgtHh);
+
+    const double tries[] = {-12, 12, -24, 24, -36, 36};
+    int bestHits = baseHits;
+    double bestOff = 0.0;
+    for (double off : tries) {
+      RoutePoint a = slidePortOnSide(route[0].x + nx * off, route[0].y + ny * off,
+                                       srcSide,
+                                       srcCx - srcHw, srcCy - srcHh,
+                                       srcCx + srcHw, srcCy + srcHh);
+      RoutePoint b = slidePortOnSide(route[1].x + nx * off, route[1].y + ny * off,
+                                       tgtSide,
+                                       tgtCx - tgtHw, tgtCy - tgtHh,
+                                       tgtCx + tgtHw, tgtCy + tgtHh);
+      const int hits = countHits(a.x, a.y, b.x, b.y);
+      if (hits < bestHits) {
+        bestHits = hits;
+        bestOff = off;
+        if (hits == 0) break;
+      }
+    }
+    if (bestOff != 0.0) {
+      RoutePoint a = slidePortOnSide(route[0].x + nx * bestOff, route[0].y + ny * bestOff,
+                                       srcSide,
+                                       srcCx - srcHw, srcCy - srcHh,
+                                       srcCx + srcHw, srcCy + srcHh);
+      RoutePoint b = slidePortOnSide(route[1].x + nx * bestOff, route[1].y + ny * bestOff,
+                                       tgtSide,
+                                       tgtCx - tgtHw, tgtCy - tgtHh,
+                                       tgtCx + tgtHw, tgtCy + tgtHh);
+      route[0].x = std::round(a.x * 100.0) / 100.0;
+      route[0].y = std::round(a.y * 100.0) / 100.0;
+      route[1].x = std::round(b.x * 100.0) / 100.0;
+      route[1].y = std::round(b.y * 100.0) / 100.0;
+    }
+  }
+
   return routes;
 }
 
@@ -4424,6 +6284,266 @@ std::vector<std::vector<RoutePoint>> routeAllEdgesStraightSmart(
       nodes, attributes, 0.0, edge.sourceHandle, edge.targetHandle);
     routes.push_back(routeStraightWithDetour(line, obstacles, kMaxDetoursPerEdge));
   }
+
+  return routes;
+}
+
+// Cross-aware routing via per-edge A* on a 2D cell grid.
+//
+// For each edge, find a path from source-cell to target-cell that minimises
+// (distance + density × penalty), where density counts how many already-
+// routed edges pass through each cell. Edges are routed in length-desc
+// order — long edges (most likely to cross many things) get first pick of
+// uncongested corridors. Node-occupied cells are forbidden except the
+// edge's own source/target node. Returned polyline is simplified by
+// dropping near-collinear waypoints.
+std::vector<std::vector<RoutePoint>> routeAllEdgesCrossAware(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  ogdf::GraphAttributes& attributes) {
+  std::vector<std::vector<RoutePoint>> routes(edges.size());
+
+  std::unordered_map<std::string, std::size_t> idToIdx;
+  idToIdx.reserve(nodes.size());
+  for (std::size_t i = 0; i < nodes.size(); ++i) {
+    idToIdx[nodes[i].modelId] = i;
+  }
+
+  // Layout bounds with padding.
+  double minX = std::numeric_limits<double>::infinity();
+  double maxX = -std::numeric_limits<double>::infinity();
+  double minY = minX;
+  double maxY = maxX;
+  for (std::size_t i = 0; i < nodes.size(); ++i) {
+    const double cx = attributes.x(nodes[i].handle);
+    const double cy = attributes.y(nodes[i].handle);
+    const double hw = nodes[i].width / 2.0;
+    const double hh = nodes[i].height / 2.0;
+    if (cx - hw < minX) minX = cx - hw;
+    if (cx + hw > maxX) maxX = cx + hw;
+    if (cy - hh < minY) minY = cy - hh;
+    if (cy + hh > maxY) maxY = cy + hh;
+  }
+  const double padX = (maxX - minX) * 0.05 + 100.0;
+  const double padY = (maxY - minY) * 0.05 + 100.0;
+  minX -= padX; maxX += padX;
+  minY -= padY; maxY += padY;
+
+  constexpr int GW = 250;
+  constexpr int GH = 200;
+  const double rangeX = maxX - minX;
+  const double rangeY = maxY - minY;
+  const double cellW = rangeX > 0 ? rangeX / GW : 1.0;
+  const double cellH = rangeY > 0 ? rangeY / GH : 1.0;
+
+  auto worldToCell = [&](double x, double y) {
+    int gx = static_cast<int>((x - minX) / cellW);
+    int gy = static_cast<int>((y - minY) / cellH);
+    if (gx < 0) gx = 0; else if (gx >= GW) gx = GW - 1;
+    if (gy < 0) gy = 0; else if (gy >= GH) gy = GH - 1;
+    return std::make_pair(gx, gy);
+  };
+  auto cellToWorld = [&](int gx, int gy) {
+    return std::make_pair(minX + (gx + 0.5) * cellW,
+                          minY + (gy + 0.5) * cellH);
+  };
+
+  // Mark cells inside any node's bbox. Routing into these cells is
+  // forbidden unless the edge endpoint is THIS node (allowed near src/tgt).
+  std::vector<std::vector<bool>> nodeOccupied(GW, std::vector<bool>(GH, false));
+  std::vector<std::vector<int>> ownerNode(GW, std::vector<int>(GH, -1));
+  for (std::size_t i = 0; i < nodes.size(); ++i) {
+    const double cx = attributes.x(nodes[i].handle);
+    const double cy = attributes.y(nodes[i].handle);
+    const double hw = nodes[i].width / 2.0;
+    const double hh = nodes[i].height / 2.0;
+    auto [gx0, gy0] = worldToCell(cx - hw, cy - hh);
+    auto [gx1, gy1] = worldToCell(cx + hw, cy + hh);
+    for (int x = gx0; x <= gx1; ++x) {
+      for (int y = gy0; y <= gy1; ++y) {
+        nodeOccupied[x][y] = true;
+        ownerNode[x][y] = static_cast<int>(i);
+      }
+    }
+  }
+
+  std::vector<std::vector<int>> density(GW, std::vector<int>(GH, 0));
+
+  // Order edges by length desc.
+  std::vector<std::pair<double, std::size_t>> edgeByLen;
+  edgeByLen.reserve(edges.size());
+  for (std::size_t e = 0; e < edges.size(); ++e) {
+    auto sIt = idToIdx.find(edges[e].sourceModelId);
+    auto tIt = idToIdx.find(edges[e].targetModelId);
+    if (sIt == idToIdx.end() || tIt == idToIdx.end()) {
+      edgeByLen.emplace_back(0.0, e);
+      continue;
+    }
+    const std::size_t a = sIt->second;
+    const std::size_t b = tIt->second;
+    const double dx = attributes.x(nodes[b].handle) - attributes.x(nodes[a].handle);
+    const double dy = attributes.y(nodes[b].handle) - attributes.y(nodes[a].handle);
+    edgeByLen.emplace_back(std::hypot(dx, dy), e);
+  }
+  std::sort(edgeByLen.begin(), edgeByLen.end(),
+            [](const auto& a, const auto& b) { return a.first > b.first; });
+
+  struct OpenEntry {
+    double f;
+    int gx, gy;
+    bool operator<(const OpenEntry& o) const { return f > o.f; }  // min-heap
+  };
+
+  auto cellKey = [](int x, int y) { return y * GW + x; };
+
+  std::size_t fallbacks = 0;
+  for (const auto& kv : edgeByLen) {
+    const std::size_t e = kv.second;
+    auto sIt = idToIdx.find(edges[e].sourceModelId);
+    auto tIt = idToIdx.find(edges[e].targetModelId);
+    if (sIt == idToIdx.end() || tIt == idToIdx.end()
+        || sIt->second == tIt->second) {
+      routes[e] = {};
+      continue;
+    }
+    const std::size_t srcN = sIt->second;
+    const std::size_t tgtN = tIt->second;
+    const double sx = attributes.x(nodes[srcN].handle);
+    const double sy = attributes.y(nodes[srcN].handle);
+    const double tx = attributes.x(nodes[tgtN].handle);
+    const double ty = attributes.y(nodes[tgtN].handle);
+    auto [sgx, sgy] = worldToCell(sx, sy);
+    auto [tgx, tgy] = worldToCell(tx, ty);
+
+    std::priority_queue<OpenEntry> open;
+    std::unordered_map<int, double> gScore;
+    std::unordered_map<int, int> parent;
+
+    gScore[cellKey(sgx, sgy)] = 0.0;
+    open.push({std::hypot(static_cast<double>(tgx - sgx),
+                          static_cast<double>(tgy - sgy)), sgx, sgy});
+
+    bool found = false;
+    while (!open.empty()) {
+      const auto cur = open.top();
+      open.pop();
+      const int gx = cur.gx;
+      const int gy = cur.gy;
+      if (gx == tgx && gy == tgy) { found = true; break; }
+      const int curKey = cellKey(gx, gy);
+      const double curG = gScore[curKey];
+      // Check if entry is stale (better path found earlier).
+      const double h = std::hypot(static_cast<double>(tgx - gx),
+                                   static_cast<double>(tgy - gy));
+      if (cur.f > curG + h + 0.001) continue;
+
+      for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) {
+          if (dx == 0 && dy == 0) continue;
+          const int nx = gx + dx;
+          const int ny = gy + dy;
+          if (nx < 0 || nx >= GW || ny < 0 || ny >= GH) continue;
+
+          // Forbid cells inside non-endpoint nodes.
+          if (nodeOccupied[nx][ny]) {
+            const int owner = ownerNode[nx][ny];
+            if (owner != static_cast<int>(srcN)
+                && owner != static_cast<int>(tgtN)) continue;
+          }
+
+          const double stepCost = (dx != 0 && dy != 0) ? 1.41421356 : 1.0;
+          const double densityCost = static_cast<double>(density[nx][ny]) * 0.5;
+          const double tentativeG = curG + stepCost + densityCost;
+
+          const int nKey = cellKey(nx, ny);
+          auto gIt = gScore.find(nKey);
+          if (gIt == gScore.end() || tentativeG < gIt->second) {
+            gScore[nKey] = tentativeG;
+            parent[nKey] = curKey;
+            const double hN = std::hypot(static_cast<double>(tgx - nx),
+                                          static_cast<double>(tgy - ny));
+            open.push({tentativeG + hN, nx, ny});
+          }
+        }
+      }
+    }
+
+    std::vector<std::pair<int, int>> cellPath;
+    if (found) {
+      int curKey = cellKey(tgx, tgy);
+      const int srcKey = cellKey(sgx, sgy);
+      while (curKey != srcKey) {
+        const int gx = curKey % GW;
+        const int gy = curKey / GW;
+        cellPath.emplace_back(gx, gy);
+        auto pIt = parent.find(curKey);
+        if (pIt == parent.end()) break;
+        curKey = pIt->second;
+      }
+      cellPath.emplace_back(sgx, sgy);
+      std::reverse(cellPath.begin(), cellPath.end());
+    } else {
+      ++fallbacks;
+      cellPath = {{sgx, sgy}, {tgx, tgy}};
+    }
+
+    // Build polyline: exact src endpoint, intermediate cell centres, exact tgt endpoint.
+    std::vector<RoutePoint> route;
+    route.push_back({sx, sy});
+    for (std::size_t i = 1; i + 1 < cellPath.size(); ++i) {
+      const auto [gx, gy] = cellPath[i];
+      const auto [wx, wy] = cellToWorld(gx, gy);
+      route.push_back({wx, wy});
+    }
+    route.push_back({tx, ty});
+
+    // Simplify near-collinear waypoints. Remove waypoint b if its
+    // perpendicular distance from line a→c is < cellW × 0.4.
+    if (route.size() >= 3) {
+      std::vector<RoutePoint> simplified;
+      simplified.push_back(route.front());
+      for (std::size_t i = 1; i + 1 < route.size(); ++i) {
+        const auto& a = simplified.back();
+        const auto& b = route[i];
+        const auto& c = route[i + 1];
+        const double crossV = (b.x - a.x) * (c.y - a.y)
+                             - (b.y - a.y) * (c.x - a.x);
+        const double segLen = std::hypot(c.x - a.x, c.y - a.y);
+        const double dist = (segLen > 1e-3)
+            ? std::abs(crossV) / segLen : 0.0;
+        if (dist > cellW * 0.4) {
+          simplified.push_back(b);
+        }
+      }
+      simplified.push_back(route.back());
+      route = std::move(simplified);
+    }
+
+    routes[e] = route;
+
+    // Update density along path so subsequent edges avoid this corridor.
+    for (std::size_t i = 1; i < route.size(); ++i) {
+      auto [g0x, g0y] = worldToCell(route[i - 1].x, route[i - 1].y);
+      auto [g1x, g1y] = worldToCell(route[i].x, route[i].y);
+      int dx = std::abs(g1x - g0x);
+      int dy = std::abs(g1y - g0y);
+      int sx2 = g0x < g1x ? 1 : -1;
+      int sy2 = g0y < g1y ? 1 : -1;
+      int err = dx - dy;
+      int x = g0x, y = g0y;
+      while (true) {
+        density[x][y] += 1;
+        if (x == g1x && y == g1y) break;
+        const int e2 = err * 2;
+        if (e2 > -dy) { err -= dy; x += sx2; }
+        if (e2 < dx) { err += dx; y += sy2; }
+      }
+    }
+  }
+
+  std::fprintf(stderr,
+    "[cross-aware-routing] Routed %zu edges via A* on %dx%d grid (%zu fallbacks).\n",
+    edges.size(), GW, GH, fallbacks);
 
   return routes;
 }
@@ -4753,7 +6873,8 @@ void refineConstrainedForceLayout(
 
     const std::vector<std::vector<RoutePoint>> routes =
       routeAllEdges(nodes, edges, attributes, true);
-    const LayoutQualityMetrics quality = measureLayoutQuality(nodes, edges, routes, attributes);
+    const LayoutQualityMetrics quality =
+      measureLayoutQuality(nodes, edges, routes, attributes, nullptr);
     if (quality.edgeNodeIntersections == 0) {
       break;
     }
@@ -4901,8 +7022,294 @@ int main(int argc, char** argv) {
     std::vector<EdgeRecord> edges = readEdges(arguments.edgesFile, graph, nodesById);
     LayoutRunMetadata metadata = makeLayoutRunMetadata(arguments.mode);
 
+    // State carried out of the cluster-graph branch into the final spine
+    // flatten pass (after all post-passes). Empty when not running
+    // cluster_graph / bubble. Multi-row backbone: each spine root has a
+    // row index; flatten pins each root's y to its row-mate average.
+    std::vector<std::size_t> spineRootIdxs;
+    std::vector<std::size_t> spineRowOfRoot;       // parallel to spineRootIdxs
+    std::vector<std::pair<std::size_t, std::size_t>> spineOwnedPairs;  // (root, owned)
+    // Non-spine cluster row alignment: pull each non-spine cluster's
+    // owned tree to its primary spine-hub's row, stacking by index.
+    std::vector<std::pair<std::size_t, std::size_t>> nonSpineClusterPrimary;  // (clusterRoot, primaryHub)
+    std::vector<std::pair<std::size_t, std::size_t>> nonSpineOwnedPairs;      // (clusterRoot, owned)
+    // Connector/router → connected cluster roots (for post-pass straight-
+    // line untangling against final hub positions).
+    std::vector<std::pair<std::size_t, std::vector<std::size_t>>> connectorRoots;
+    std::vector<std::pair<std::size_t, std::vector<std::size_t>>> routerRoots;
+    // Full cluster membership for edge bundling. Maps modelId → clusterId
+    // for ALL members (root + leaf + internal + bridge). Used after
+    // routing to group edges by (sourceCluster, targetCluster) and re-
+    // route bundled edges through shared exit/entry ports for visual
+    // bundling and cross reduction.
+    std::unordered_map<std::string, std::string> clusterByModelIdFull;
+    std::unordered_map<std::string, std::pair<double, double>> clusterRootPos;  // clusterId → root (x, y)
+    // Leaf bundle anchor map: leaf nodeIdx → (parentIdx, anchorX, anchorY).
+    // Used after routing: leaf→parent edges get an extra waypoint at the
+    // anchor port so the bundle's exit segment is shared, collapsing N
+    // parallel edges into 1 visual line.
+    struct LeafAnchorInfo {
+      std::size_t parentIdx;
+      double anchorX;
+      double anchorY;
+    };
+    std::unordered_map<std::size_t, LeafAnchorInfo> leafAnchorMap;
+    // Raw matrix groups (parentIdx + leafIdxs) for post-pass bundle
+    // bbox computation. Populated when cluster_graph runs.
+    struct RawLeafGroup {
+      std::size_t parentIdx;
+      std::vector<std::size_t> leafIdxs;
+      std::vector<std::size_t> sharedRootIdxs;
+      double anchorX;
+      double anchorY;
+    };
+    std::vector<RawLeafGroup> rawLeafGroups;
+
     if (graph.numberOfNodes() > 0) {
-      metadata = runLayout(arguments.mode, nodes, edges, attributes);
+      if (arguments.clusterGraph || arguments.bubble) {
+        // Cluster-graph pipeline (graph-terminology.md). Bubble flag implies
+        // cluster-graph + bubble inner placement (concentric ring fill per
+        // cluster, no outward bias).
+        std::size_t louvCommCount = 0;
+        std::size_t louvIters = 0;
+        std::string communityAlgo;
+        std::vector<std::string> labels =
+          assignCommunityClusterLabels(nodes, edges, louvCommCount, louvIters, communityAlgo);
+        std::fprintf(stderr,
+          "[community] algorithm=%s communities=%zu meta=%zu\n",
+          communityAlgo.c_str(), louvCommCount, louvIters);
+        ClusterGraphResult cg = runClusterGraphLayout(
+          nodes, edges, labels, attributes, arguments.bubble);
+        for (const auto& c : cg.clusters) {
+          metadata.clusterByModelId[nodes[c.rootIdx].modelId] = c.clusterId;
+          // Include ALL cluster members (not just root) so downstream
+          // tooling (ML cluster-rigid polish) can identify membership.
+          for (const auto& m : c.members) {
+            metadata.clusterByModelId[nodes[m.nodeIdx].modelId] = c.clusterId;
+          }
+        }
+
+        // Optional: override positions from external TSV (ML polish round-trip).
+        // Format: each line "modelId\tcenterX\tcenterY". Lines without a known
+        // modelId are skipped. Post-passes (leaf-untangle, xings-detour,
+        // visual-knot, face-untangle, etc.) re-run on these positions.
+        if (!arguments.positionsTsv.empty()) {
+          std::ifstream pf(arguments.positionsTsv);
+          if (!pf) {
+            throw std::runtime_error(
+              "failed to open --positions-tsv file: " + arguments.positionsTsv);
+          }
+          std::unordered_map<std::string, std::size_t> idIdx;
+          idIdx.reserve(nodes.size());
+          for (std::size_t i = 0; i < nodes.size(); ++i) {
+            idIdx[nodes[i].modelId] = i;
+          }
+          std::string line;
+          std::size_t applied = 0;
+          while (std::getline(pf, line)) {
+            if (line.empty()) continue;
+            const auto t1 = line.find('\t');
+            if (t1 == std::string::npos) continue;
+            const auto t2 = line.find('\t', t1 + 1);
+            if (t2 == std::string::npos) continue;
+            const std::string mid = line.substr(0, t1);
+            const std::string sx = line.substr(t1 + 1, t2 - t1 - 1);
+            const std::string sy = line.substr(t2 + 1);
+            auto it = idIdx.find(mid);
+            if (it == idIdx.end()) continue;
+            try {
+              const double cx = std::stod(sx);
+              const double cy = std::stod(sy);
+              attributes.x(nodes[it->second].handle) = cx;
+              attributes.y(nodes[it->second].handle) = cy;
+              ++applied;
+            } catch (const std::exception&) {
+              continue;
+            }
+          }
+          std::fprintf(stderr,
+            "[ml-positions] Overrode %zu/%zu node positions from %s.\n",
+            applied, nodes.size(), arguments.positionsTsv.c_str());
+        }
+
+        // Capture spine state for post-pass flatten.
+        spineRootIdxs = cg.mainRingNodeIdxs;
+        spineRowOfRoot = cg.mainRingRowOfNode;
+        if (!spineRootIdxs.empty()) {
+          std::unordered_map<std::size_t, std::size_t> owner;
+          for (const auto& c : cg.clusters) {
+            for (const auto& m : c.members) owner[m.nodeIdx] = c.rootIdx;
+          }
+          std::unordered_map<std::size_t, std::size_t> immParent;
+          for (const auto& p : cg.prunedNodes) immParent[p.nodeIdx] = p.parentIdx;
+          auto coreAnchor = [&](std::size_t v) {
+            int hops = 0;
+            while (hops++ < 200) {
+              auto it = immParent.find(v);
+              if (it == immParent.end() || it->second == v) break;
+              v = it->second;
+            }
+            return v;
+          };
+          for (const auto& p : cg.prunedNodes) {
+            if (p.isAloneRoot) continue;
+            if (owner.count(p.nodeIdx)) continue;
+            auto a = coreAnchor(p.nodeIdx);
+            auto it = owner.find(a);
+            if (it != owner.end()) owner[p.nodeIdx] = it->second;
+          }
+          std::unordered_set<std::size_t> spineSet(
+            spineRootIdxs.begin(), spineRootIdxs.end());
+          for (const auto& kv : owner) {
+            if (spineSet.count(kv.second)) {
+              spineOwnedPairs.emplace_back(kv.second, kv.first);
+            } else {
+              nonSpineOwnedPairs.emplace_back(kv.second, kv.first);
+            }
+          }
+
+          // Compute primary spine-hub for each non-spine cluster. Edge
+          // count to each spine hub, weighted: direct root-root + each
+          // connector linking the two clusters' roots.
+          std::unordered_map<std::string, std::size_t> cidToRootP;
+          for (const auto& c : cg.clusters) cidToRootP[c.clusterId] = c.rootIdx;
+          std::unordered_map<std::size_t,
+            std::unordered_map<std::size_t, std::size_t>> hubEdgeCount;
+          for (const auto& c : cg.clusters) {
+            if (spineSet.count(c.rootIdx)) continue;
+            // (using djerd::adj would require exposing — recompute simple
+            // adjacency from edges here.)
+          }
+          // Recompute adjacency once (cluster_graph already built it but
+          // doesn't expose). Cheaper: scan edges.
+          std::unordered_map<std::string, std::size_t> idToIdx;
+          for (std::size_t i = 0; i < nodes.size(); ++i) idToIdx[nodes[i].modelId] = i;
+          std::vector<std::set<std::size_t>> adjLocal(nodes.size());
+          for (const auto& e : edges) {
+            auto sIt = idToIdx.find(e.sourceModelId);
+            auto tIt = idToIdx.find(e.targetModelId);
+            if (sIt == idToIdx.end() || tIt == idToIdx.end()) continue;
+            if (sIt->second == tIt->second) continue;
+            adjLocal[sIt->second].insert(tIt->second);
+            adjLocal[tIt->second].insert(sIt->second);
+          }
+          // Direct root-root: cluster root → spine hub
+          for (const auto& c : cg.clusters) {
+            if (spineSet.count(c.rootIdx)) continue;
+            for (std::size_t j : adjLocal[c.rootIdx]) {
+              if (spineSet.count(j)) ++hubEdgeCount[c.rootIdx][j];
+            }
+          }
+          // Connector-mediated: connector links two cluster roots.
+          for (const auto& con : cg.connectors) {
+            if (con.connectedClusterIds.size() != 2) continue;
+            auto a = cidToRootP.find(con.connectedClusterIds[0]);
+            auto b = cidToRootP.find(con.connectedClusterIds[1]);
+            if (a == cidToRootP.end() || b == cidToRootP.end()) continue;
+            const bool aSp = spineSet.count(a->second) > 0;
+            const bool bSp = spineSet.count(b->second) > 0;
+            if (aSp && !bSp) ++hubEdgeCount[b->second][a->second];
+            else if (bSp && !aSp) ++hubEdgeCount[a->second][b->second];
+          }
+          for (const auto& kv : hubEdgeCount) {
+            std::size_t primary = std::numeric_limits<std::size_t>::max();
+            std::size_t bestCount = 0;
+            for (const auto& sub : kv.second) {
+              if (sub.second > bestCount
+                  || (sub.second == bestCount && sub.first < primary)) {
+                bestCount = sub.second;
+                primary = sub.first;
+              }
+            }
+            if (primary != std::numeric_limits<std::size_t>::max()) {
+              nonSpineClusterPrimary.emplace_back(kv.first, primary);
+            }
+          }
+
+          // Capture full cluster membership for edge bundling.
+          for (const auto& c : cg.clusters) {
+            for (const auto& m : c.members) {
+              if (m.nodeIdx < nodes.size()) {
+                clusterByModelIdFull[nodes[m.nodeIdx].modelId] = c.clusterId;
+              }
+            }
+          }
+
+          // Capture leaf matrix groups: each group's leaves share an
+          // anchor port near the parent. Used by edge routing AND
+          // exposed in JSON so the renderer can draw the matrix as a
+          // single grouped node with one collective edge to the parent.
+          // Bundles are populated AFTER all post-passes (spine flatten,
+          // ESS, cluster outliers) so leaf positions reflect the final
+          // layout. We store nodeIdx temporarily and resolve to model
+          // IDs + bbox just before writeLayoutJson.
+          for (const auto& g : cg.leafMatrixGroups) {
+            for (std::size_t leaf : g.leafIdxs) {
+              leafAnchorMap[leaf] = {g.parentIdx, g.anchorX, g.anchorY};
+            }
+            RawLeafGroup raw;
+            raw.parentIdx = g.parentIdx;
+            raw.leafIdxs = g.leafIdxs;
+            raw.sharedRootIdxs = g.sharedRootIdxs;
+            raw.anchorX = g.anchorX;
+            raw.anchorY = g.anchorY;
+            rawLeafGroups.push_back(std::move(raw));
+          }
+
+          // Capture connector/router → connected cluster roots so the
+          // post-pass can re-snap connectors to the midpoint of A–B and
+          // routers to the centroid of their connected hubs, AFTER
+          // spine flatten reshapes hub positions. Section 9b2's
+          // untangling ran before spine flatten and is now stale.
+          for (const auto& con : cg.connectors) {
+            std::vector<std::size_t> roots;
+            for (const std::string& cid : con.connectedClusterIds) {
+              auto it = cidToRootP.find(cid);
+              if (it != cidToRootP.end()) roots.push_back(it->second);
+            }
+            if (roots.size() == 2) {
+              connectorRoots.emplace_back(con.nodeIdx, std::move(roots));
+            }
+          }
+          for (const auto& rtr : cg.routers) {
+            std::vector<std::size_t> roots;
+            for (const std::string& cid : rtr.connectedClusterIds) {
+              auto it = cidToRootP.find(cid);
+              if (it != cidToRootP.end()) roots.push_back(it->second);
+            }
+            if (roots.size() >= 2) {
+              routerRoots.emplace_back(rtr.nodeIdx, std::move(roots));
+            }
+          }
+        }
+        metadata.actualMode = arguments.mode;
+        metadata.actualAlgorithm = "ClusterGraphLayout(louvainClusters="
+          + std::to_string(cg.clusters.size())
+          + ", connectors=" + std::to_string(cg.connectors.size())
+          + ", routers=" + std::to_string(cg.routers.size())
+          + ", constellations=" + std::to_string(cg.constellations.size())
+          + ", polars=" + std::to_string(cg.polars.size())
+          + ", polarSkelEdges=" + std::to_string(cg.polarSkeletonEdgeCount)
+          + ", polarRings=" + std::to_string(cg.polarRingCount)
+          + ", polarLines=" + std::to_string(cg.polarLineCount)
+          + ", superPolars=" + std::to_string(cg.superPolars.size())
+          + ", superPolarMetaEdges=" + std::to_string(cg.superPolarMetaEdgeCount)
+          + ", superPolarTopology=" + (cg.superPolarTopology.empty() ? std::string("n/a") : cg.superPolarTopology)
+          + ", rings=" + std::to_string(cg.ringCount)
+          + ", independents=" + std::to_string(cg.independentNodeIndices.size())
+          + ", singletonClusters=" + std::to_string(cg.singletonClusterCount)
+          + ", spuriousClusters=" + std::to_string(cg.spuriousClusterCount)
+          + ", pruned=" + std::to_string(cg.prunedNodes.size())
+          + ", pruneLevels=" + std::to_string(cg.maxPruningLevel)
+          + ", coreNodes=" + std::to_string(cg.coreNodeCount)
+          + ", aloneRoots=" + std::to_string(cg.aloneRootCount)
+          + ", topLevelEdges=" + std::to_string(cg.topLevelEdgeCount)
+          + ", dedupedEdges=" + std::to_string(cg.deduplicatedEdges) + ")";
+        metadata.strategy = "cluster_graph";
+        metadata.strategyReason = cg.strategyReason;
+      } else {
+        metadata = runLayout(arguments.mode, nodes, edges, attributes);
+      }
     }
 
     sanitizeLayoutGeometry(nodes, edges, attributes);
@@ -4912,7 +7319,15 @@ int main(int argc, char** argv) {
       }
       metadata.strategyReason += "post-layout footprint compaction capped oversized axes";
     }
-    compactDistantConnectedNodes(nodes, edges, attributes);
+    // cluster_graph/bubble place members in cluster bubbles with care; the
+    // generic "pull distant neighbours together" / "compact outliers" passes
+    // fight that placement and pull boundary members across cluster
+    // territories, creating cross-cluster node overlaps. Skip those passes
+    // for cluster_graph/bubble to preserve the placement.
+    const bool clusterModeFlag = arguments.clusterGraph || arguments.bubble;
+    if (!clusterModeFlag) {
+      compactDistantConnectedNodes(nodes, edges, attributes);
+    }
     enforceNodeSeparationStrong(nodes, attributes);
     packDisconnectedComponents(nodes, edges, attributes);
     enforceNodeSeparationStrong(nodes, attributes);
@@ -4926,23 +7341,4732 @@ int main(int argc, char** argv) {
       enforceNodeSeparationStrong(nodes, attributes);
     }
     sanitizeLayoutGeometry(nodes, edges, attributes);
-    compactClusterOutliers(nodes, metadata.clusterByModelId, attributes, 1.8);
+    if (!clusterModeFlag) {
+      compactClusterOutliers(nodes, metadata.clusterByModelId, attributes, 1.8);
+    }
     enforceNodeSeparationStrong(nodes, attributes);
     sanitizeLayoutGeometry(nodes, edges, attributes);
+
+    // Final spine flatten (cluster_graph/bubble only): post-passes
+    // (compactDistant, enforceNodeSeparation, packDisconnected, etc.)
+    // drift backbone hubs off the §3.10 multi-row spine. Re-pin every
+    // spine root's y to its row-mate average and translate its owned
+    // tree (members + transitive pruned descendants) by the same dy so
+    // leaves stay attached to the hub. Without per-row data the flatten
+    // collapses everything onto a single line.
+    if (!spineRootIdxs.empty()) {
+      // Group roots by row.
+      std::unordered_map<std::size_t, std::vector<std::size_t>> rowsToRoots;
+      const bool useRows = !spineRowOfRoot.empty()
+        && spineRowOfRoot.size() == spineRootIdxs.size();
+      for (std::size_t i = 0; i < spineRootIdxs.size(); ++i) {
+        const std::size_t row = useRows ? spineRowOfRoot[i] : 0;
+        rowsToRoots[row].push_back(spineRootIdxs[i]);
+      }
+      // Compute target y per row (avg current y).
+      std::unordered_map<std::size_t, double> rowTargetY;
+      for (const auto& kv : rowsToRoots) {
+        double sum = 0.0;
+        std::size_t cnt = 0;
+        for (std::size_t r : kv.second) {
+          if (r >= nodes.size()) continue;
+          sum += attributes.y(nodes[r].handle);
+          ++cnt;
+        }
+        if (cnt > 0) rowTargetY[kv.first] = sum / static_cast<double>(cnt);
+      }
+      // Pin each root's owned tree to its row's target y.
+      std::unordered_map<std::size_t, std::vector<std::size_t>> ownedByRoot;
+      for (const auto& kv : spineOwnedPairs) {
+        ownedByRoot[kv.first].push_back(kv.second);
+      }
+      for (std::size_t i = 0; i < spineRootIdxs.size(); ++i) {
+        const std::size_t r = spineRootIdxs[i];
+        if (r >= nodes.size()) continue;
+        const std::size_t row = useRows ? spineRowOfRoot[i] : 0;
+        auto rt = rowTargetY.find(row);
+        if (rt == rowTargetY.end()) continue;
+        const double targetY = rt->second;
+        const double rootY = attributes.y(nodes[r].handle);
+        const double dy = targetY - rootY;
+        if (std::abs(dy) < 1e-2) continue;
+        attributes.y(nodes[r].handle) += dy;
+        auto ot = ownedByRoot.find(r);
+        if (ot != ownedByRoot.end()) {
+          for (std::size_t n : ot->second) {
+            if (n == r || n >= nodes.size()) continue;
+            attributes.y(nodes[n].handle) += dy;
+          }
+        }
+      }
+
+    }
+
+    // Edge-aware connector/router untangling: now that all hub positions
+    // are final (spine flatten + post-passes done), re-snap each
+    // connector to the exact midpoint of its 2 cluster roots and each
+    // router to the centroid of its connected roots. Section §9b2 ran
+    // before main.cpp post-passes and any subsequent shift puts
+    // connectors off-line, kinking the A–C–B path and creating
+    // unnecessary crossings.
+    //
+    // After the snap, push-off any cluster root the connector now
+    // overlaps (= a hub bubble between A and B along the axis).
+    // Without push-off, the snap creates ~140 overlaps where connectors
+    // land on top of intermediate hubs.
+    if (!connectorRoots.empty() || !routerRoots.empty()) {
+      // Build cluster-root index set (= nodes that own a cluster bubble).
+      std::unordered_set<std::size_t> clusterRootSet;
+      std::unordered_map<std::string, std::size_t> idToIdxLocal;
+      for (std::size_t i = 0; i < nodes.size(); ++i) {
+        idToIdxLocal[nodes[i].modelId] = i;
+      }
+      for (const auto& kv : metadata.clusterByModelId) {
+        auto it = idToIdxLocal.find(kv.first);
+        if (it != idToIdxLocal.end()) clusterRootSet.insert(it->second);
+      }
+      auto pushOffClusters = [&](std::size_t cIdx,
+                                 std::size_t rA, std::size_t rB,
+                                 double axisDx, double axisDy) {
+        const double axisLen = std::sqrt(axisDx * axisDx + axisDy * axisDy);
+        if (axisLen < 1e-3) return;
+        const double perpX = -axisDy / axisLen;
+        const double perpY = axisDx / axisLen;
+        const double cw = attributes.width(nodes[cIdx].handle) / 2.0;
+        const double ch = attributes.height(nodes[cIdx].handle) / 2.0;
+        constexpr double kPad = 12.0;
+        for (std::size_t r : clusterRootSet) {
+          if (r == rA || r == rB || r >= nodes.size()) continue;
+          const double rx = attributes.x(nodes[r].handle);
+          const double ry = attributes.y(nodes[r].handle);
+          const double rw = attributes.width(nodes[r].handle) / 2.0;
+          const double rh = attributes.height(nodes[r].handle) / 2.0;
+          const double cxNow = attributes.x(nodes[cIdx].handle);
+          const double cyNow = attributes.y(nodes[cIdx].handle);
+          const double dxc = cxNow - rx;
+          const double dyc = cyNow - ry;
+          const double reqX = cw + rw + kPad;
+          const double reqY = ch + rh + kPad;
+          if (std::abs(dxc) >= reqX || std::abs(dyc) >= reqY) continue;
+          const double overX = reqX - std::abs(dxc);
+          const double overY = reqY - std::abs(dyc);
+          const double over = std::min(overX, overY);
+          const double sign = (dxc * perpX + dyc * perpY) >= 0.0 ? 1.0 : -1.0;
+          attributes.x(nodes[cIdx].handle) += sign * perpX * over;
+          attributes.y(nodes[cIdx].handle) += sign * perpY * over;
+        }
+      };
+
+      for (const auto& cr : connectorRoots) {
+        const std::size_t cIdx = cr.first;
+        const auto& roots = cr.second;
+        if (cIdx >= nodes.size() || roots.size() != 2) continue;
+        if (roots[0] >= nodes.size() || roots[1] >= nodes.size()) continue;
+        const double Ax = attributes.x(nodes[roots[0]].handle);
+        const double Ay = attributes.y(nodes[roots[0]].handle);
+        const double Bx = attributes.x(nodes[roots[1]].handle);
+        const double By = attributes.y(nodes[roots[1]].handle);
+        const double mx = 0.5 * (Ax + Bx);
+        const double my = 0.5 * (Ay + By);
+        attributes.x(nodes[cIdx].handle) = mx;
+        attributes.y(nodes[cIdx].handle) = my;
+        pushOffClusters(cIdx, roots[0], roots[1], Bx - Ax, By - Ay);
+      }
+      for (const auto& cr : routerRoots) {
+        const std::size_t rIdx = cr.first;
+        const auto& roots = cr.second;
+        if (rIdx >= nodes.size() || roots.size() < 2) continue;
+        double sumX = 0.0, sumY = 0.0;
+        std::size_t cnt = 0;
+        for (std::size_t r : roots) {
+          if (r >= nodes.size()) continue;
+          sumX += attributes.x(nodes[r].handle);
+          sumY += attributes.y(nodes[r].handle);
+          ++cnt;
+        }
+        if (cnt == 0) continue;
+        attributes.x(nodes[rIdx].handle) = sumX / static_cast<double>(cnt);
+        attributes.y(nodes[rIdx].handle) = sumY / static_cast<double>(cnt);
+        // Push off using the dominant pair as the axis (first two roots).
+        if (roots.size() >= 2 && roots[0] < nodes.size()
+            && roots[1] < nodes.size()) {
+          const double Ax = attributes.x(nodes[roots[0]].handle);
+          const double Ay = attributes.y(nodes[roots[0]].handle);
+          const double Bx = attributes.x(nodes[roots[1]].handle);
+          const double By = attributes.y(nodes[roots[1]].handle);
+          pushOffClusters(rIdx, roots[0], roots[1], Bx - Ax, By - Ay);
+        }
+      }
+
+      // Resolve any remaining overlaps from the snap. ESS may shift
+      // spine hubs slightly; we re-flatten the spine right after to
+      // restore the row alignment.
+      enforceNodeSeparationStrong(nodes, attributes);
+      // Re-flatten spine after ESS shift (mirrors §spine flatten above).
+      if (!spineRootIdxs.empty()) {
+        std::unordered_map<std::size_t, std::vector<std::size_t>> rowsToRoots2;
+        const bool useRows2 = !spineRowOfRoot.empty()
+          && spineRowOfRoot.size() == spineRootIdxs.size();
+        for (std::size_t i = 0; i < spineRootIdxs.size(); ++i) {
+          const std::size_t row = useRows2 ? spineRowOfRoot[i] : 0;
+          rowsToRoots2[row].push_back(spineRootIdxs[i]);
+        }
+        std::unordered_map<std::size_t, double> rowTargetY2;
+        for (const auto& kv : rowsToRoots2) {
+          double sum = 0.0;
+          std::size_t cnt = 0;
+          for (std::size_t r : kv.second) {
+            if (r >= nodes.size()) continue;
+            sum += attributes.y(nodes[r].handle);
+            ++cnt;
+          }
+          if (cnt > 0) rowTargetY2[kv.first] = sum / static_cast<double>(cnt);
+        }
+        std::unordered_map<std::size_t, std::vector<std::size_t>> ownedByRoot2;
+        for (const auto& kv : spineOwnedPairs) {
+          ownedByRoot2[kv.first].push_back(kv.second);
+        }
+        for (std::size_t i = 0; i < spineRootIdxs.size(); ++i) {
+          const std::size_t r = spineRootIdxs[i];
+          if (r >= nodes.size()) continue;
+          const std::size_t row = useRows2 ? spineRowOfRoot[i] : 0;
+          auto rt = rowTargetY2.find(row);
+          if (rt == rowTargetY2.end()) continue;
+          const double targetY = rt->second;
+          const double rootY = attributes.y(nodes[r].handle);
+          const double dy = targetY - rootY;
+          if (std::abs(dy) < 1e-2) continue;
+          attributes.y(nodes[r].handle) += dy;
+          auto ot = ownedByRoot2.find(r);
+          if (ot != ownedByRoot2.end()) {
+            for (std::size_t n : ot->second) {
+              if (n == r || n >= nodes.size()) continue;
+              attributes.y(nodes[n].handle) += dy;
+            }
+          }
+        }
+      }
+    }
+
+    // (C3) Final non-cluster-node clearance pass for cluster_graph/bubble.
+    // Connectors get re-snapped to cluster-pair midpoints by the untangling
+    // pass above, which can land them on top of a cluster member of a
+    // third intervening cluster. The pushOffClusters path inside that
+    // untangling only checks against cluster ROOTS; cluster MEMBERS are
+    // unguarded. Walk every non-cluster node (= modelId not in
+    // clusterByModelIdFull) and push it off any cluster-member rect it
+    // overlaps. Runs after spine flatten + connector snap so nothing
+    // can undo it. Set DJERD_NO_C3=1 to skip.
+    const char* noC3Env = std::getenv("DJERD_NO_C3");
+    const bool skipC3 = noC3Env && std::strcmp(noC3Env, "0") != 0;
+    if (!skipC3 && (arguments.clusterGraph || arguments.bubble)
+        && !clusterByModelIdFull.empty()) {
+      std::unordered_map<std::string, std::size_t> idxByModelId;
+      idxByModelId.reserve(nodes.size());
+      for (std::size_t i = 0; i < nodes.size(); ++i) {
+        idxByModelId[nodes[i].modelId] = i;
+      }
+      std::vector<std::size_t> clusterOwned;
+      clusterOwned.reserve(clusterByModelIdFull.size());
+      for (const auto& kv : clusterByModelIdFull) {
+        auto it = idxByModelId.find(kv.first);
+        if (it != idxByModelId.end()) clusterOwned.push_back(it->second);
+      }
+      std::vector<std::size_t> nonCluster;
+      for (std::size_t i = 0; i < nodes.size(); ++i) {
+        if (!clusterByModelIdFull.count(nodes[i].modelId)) nonCluster.push_back(i);
+      }
+      double maxW = 1.0;
+      double maxH = 1.0;
+      for (std::size_t idx : clusterOwned) {
+        maxW = std::max(maxW, nodes[idx].width);
+        maxH = std::max(maxH, nodes[idx].height);
+      }
+      for (std::size_t idx : nonCluster) {
+        maxW = std::max(maxW, nodes[idx].width);
+        maxH = std::max(maxH, nodes[idx].height);
+      }
+      const double cellSize = std::max(maxW, maxH) * 1.2 + 16.0;
+      auto pairHash = [](const std::pair<long long, long long>& p) {
+        return std::hash<long long>()(p.first)
+          ^ (std::hash<long long>()(p.second) << 1);
+      };
+      std::unordered_map<std::pair<long long, long long>,
+                          std::vector<std::size_t>, decltype(pairHash)>
+        bins(0, pairHash);
+      auto binKey = [&](double x, double y) {
+        return std::make_pair(
+          static_cast<long long>(std::floor(x / cellSize)),
+          static_cast<long long>(std::floor(y / cellSize)));
+      };
+      for (std::size_t idx : clusterOwned) {
+        const NodeRecord& nd = nodes[idx];
+        bins[binKey(attributes.x(nd.handle), attributes.y(nd.handle))]
+          .push_back(idx);
+      }
+      constexpr double kPad = 8.0;
+      constexpr int kMaxIters = 24;
+      std::size_t pushed = 0;
+      for (std::size_t niIdx : nonCluster) {
+        const NodeRecord& nd = nodes[niIdx];
+        double nx = attributes.x(nd.handle);
+        double ny = attributes.y(nd.handle);
+        const double nw = nd.width / 2.0;
+        const double nh = nd.height / 2.0;
+        bool changed = false;
+        for (int iter = 0; iter < kMaxIters; ++iter) {
+          bool moved = false;
+          const auto k = binKey(nx, ny);
+          for (long long dx = -1; dx <= 1; ++dx) {
+            for (long long dy = -1; dy <= 1; ++dy) {
+              auto bIt = bins.find({k.first + dx, k.second + dy});
+              if (bIt == bins.end()) continue;
+              for (std::size_t mi : bIt->second) {
+                const NodeRecord& md = nodes[mi];
+                const double mx = attributes.x(md.handle);
+                const double my = attributes.y(md.handle);
+                const double mw = md.width / 2.0;
+                const double mh = md.height / 2.0;
+                const double cdx = nx - mx;
+                const double cdy = ny - my;
+                const double reqDx = nw + mw + kPad;
+                const double reqDy = nh + mh + kPad;
+                if (std::abs(cdx) >= reqDx || std::abs(cdy) >= reqDy) continue;
+                const double overX = reqDx - std::abs(cdx);
+                const double overY = reqDy - std::abs(cdy);
+                if (overX < overY) {
+                  const double sign = cdx >= 0 ? 1.0 : -1.0;
+                  nx += sign * (overX + 0.5);
+                } else {
+                  const double sign = cdy >= 0 ? 1.0 : -1.0;
+                  ny += sign * (overY + 0.5);
+                }
+                moved = true;
+                changed = true;
+              }
+            }
+          }
+          if (!moved) break;
+        }
+        if (changed) {
+          attributes.x(nd.handle) = std::round(nx * 100.0) / 100.0;
+          attributes.y(nd.handle) = std::round(ny * 100.0) / 100.0;
+          ++pushed;
+        }
+      }
+      if (pushed > 0) {
+        std::fprintf(stderr,
+          "[c3-pass] Pushed %zu non-cluster nodes off cluster members.\n",
+          pushed);
+      }
+    }
+
+    // Populate metadata.leafBundles using FINAL leaf positions (after
+    // all post-passes including spine flatten + ESS). Anchor port = leaf
+    // centroid → parent midpoint (computed fresh from current positions
+    // so it always points at where the matrix actually settled). bbox
+    // = axis-aligned rectangle covering all leaf positions + half-size
+    // padding. Renderer can use bbox to draw a single grouping rectangle
+    // and route every leaf→parent edge through anchor as a thick line.
+    for (const auto& raw : rawLeafGroups) {
+      if (raw.parentIdx >= nodes.size() || raw.leafIdxs.empty()) continue;
+      LeafBundleRecord rec;
+      rec.parentModelId = nodes[raw.parentIdx].modelId;
+      rec.leafModelIds.reserve(raw.leafIdxs.size());
+      // Populate sharedRootModelIds from sharedRootIdxs (multi-root for
+      // bus bundles, single-root for classic leaf bundles).
+      rec.sharedRootModelIds.reserve(raw.sharedRootIdxs.size());
+      for (std::size_t r : raw.sharedRootIdxs) {
+        if (r < nodes.size()) rec.sharedRootModelIds.push_back(nodes[r].modelId);
+      }
+      double minX = std::numeric_limits<double>::infinity();
+      double minY = std::numeric_limits<double>::infinity();
+      double maxX = -std::numeric_limits<double>::infinity();
+      double maxY = -std::numeric_limits<double>::infinity();
+      double sumLX = 0.0, sumLY = 0.0;
+      std::size_t cnt = 0;
+      for (std::size_t l : raw.leafIdxs) {
+        if (l >= nodes.size()) continue;
+        rec.leafModelIds.push_back(nodes[l].modelId);
+        const double cx = attributes.x(nodes[l].handle);
+        const double cy = attributes.y(nodes[l].handle);
+        const double w = attributes.width(nodes[l].handle);
+        const double h = attributes.height(nodes[l].handle);
+        minX = std::min(minX, cx - w / 2.0);
+        minY = std::min(minY, cy - h / 2.0);
+        maxX = std::max(maxX, cx + w / 2.0);
+        maxY = std::max(maxY, cy + h / 2.0);
+        sumLX += cx;
+        sumLY += cy;
+        ++cnt;
+      }
+      if (cnt == 0 || minX == std::numeric_limits<double>::infinity()) continue;
+      rec.bboxX = minX;
+      rec.bboxY = minY;
+      rec.bboxWidth = maxX - minX;
+      rec.bboxHeight = maxY - minY;
+      const double leafCx = sumLX / static_cast<double>(cnt);
+      const double leafCy = sumLY / static_cast<double>(cnt);
+      const double pX = attributes.x(nodes[raw.parentIdx].handle);
+      const double pY = attributes.y(nodes[raw.parentIdx].handle);
+      rec.anchorX = 0.5 * (pX + leafCx);
+      rec.anchorY = 0.5 * (pY + leafCy);
+      metadata.leafBundles.push_back(std::move(rec));
+    }
+
+    // Bundle clearance pass — push every non-bundle-absorbed node
+    // (cluster members AND non-cluster nodes) off any leaf-bundle bbox
+    // it overlaps. The bundle is treated as a single rigid block per
+    // user spec; external nodes encroaching into the matrix area are
+    // pushed back along the (bundle-center → node-center) axis until
+    // their rect clears the bbox. Set DJERD_NO_BUNDLE_CLEAR=1 to skip.
+    {
+      const char* skipEnv = std::getenv("DJERD_NO_BUNDLE_CLEAR");
+      const bool skipBundleClear =
+        skipEnv && std::strcmp(skipEnv, "0") != 0;
+      if (!skipBundleClear && !metadata.leafBundles.empty()) {
+        std::unordered_set<std::string> bundleAbsorbed;
+        std::vector<Rect> bundleRects;
+        std::unordered_map<std::string, std::size_t> idxByModelId;
+        idxByModelId.reserve(nodes.size());
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+          idxByModelId[nodes[i].modelId] = i;
+        }
+        bundleRects.reserve(metadata.leafBundles.size());
+        for (const LeafBundleRecord& bundle : metadata.leafBundles) {
+          bundleAbsorbed.insert(bundle.parentModelId);
+          for (const std::string& leaf : bundle.leafModelIds) {
+            bundleAbsorbed.insert(leaf);
+          }
+          Rect br;
+          // Pre-inflate by kBundleClearPad so cleared positions match
+          // the metric's margin-expanded collision area.
+          constexpr double kPreInflate = 8.0;
+          br.left = bundle.bboxX - kPreInflate;
+          br.right = bundle.bboxX + bundle.bboxWidth + kPreInflate;
+          br.top = bundle.bboxY - kPreInflate;
+          br.bottom = bundle.bboxY + bundle.bboxHeight + kPreInflate;
+          bundleRects.push_back(br);
+        }
+        // Match metric's kVisualMargin so cleared positions ALSO satisfy
+        // the metric's margin-expanded collision check. Iter increased
+        // to 32 to converge on residual overlaps.
+        constexpr double kBundleClearPad = 8.0;
+        constexpr int kBundleClearIters = 32;
+        std::size_t pushed = 0;
+        for (const NodeRecord& nd : nodes) {
+          if (bundleAbsorbed.count(nd.modelId)) continue;
+          double nx = attributes.x(nd.handle);
+          double ny = attributes.y(nd.handle);
+          const double nW = nd.width * 0.5;
+          const double nH = nd.height * 0.5;
+          bool changed = false;
+          for (int iter = 0; iter < kBundleClearIters; ++iter) {
+            bool moved = false;
+            for (const Rect& br : bundleRects) {
+              if (nx + nW + kBundleClearPad <= br.left) continue;
+              if (nx - nW - kBundleClearPad >= br.right) continue;
+              if (ny + nH + kBundleClearPad <= br.top) continue;
+              if (ny - nH - kBundleClearPad >= br.bottom) continue;
+              const double bcx = (br.left + br.right) * 0.5;
+              const double bcy = (br.top + br.bottom) * 0.5;
+              const double brW = (br.right - br.left) * 0.5;
+              const double brH = (br.bottom - br.top) * 0.5;
+              const double dx = nx - bcx;
+              const double dy = ny - bcy;
+              const double reqDx = brW + nW + kBundleClearPad;
+              const double reqDy = brH + nH + kBundleClearPad;
+              const double overX = reqDx - std::abs(dx);
+              const double overY = reqDy - std::abs(dy);
+              if (overX < overY) {
+                const double sign = dx >= 0.0 ? 1.0 : -1.0;
+                nx += sign * (overX + 0.5);
+              } else {
+                const double sign = dy >= 0.0 ? 1.0 : -1.0;
+                ny += sign * (overY + 0.5);
+              }
+              moved = true;
+              changed = true;
+            }
+            if (!moved) break;
+          }
+          if (changed) {
+            attributes.x(nd.handle) = std::round(nx * 100.0) / 100.0;
+            attributes.y(nd.handle) = std::round(ny * 100.0) / 100.0;
+            ++pushed;
+          }
+        }
+        if (pushed > 0) {
+          std::fprintf(stderr,
+            "[bundle-clear] Pushed %zu nodes off bundle bboxes.\n", pushed);
+          // Pushed nodes can now overlap other nodes — resolve cascade
+          // with the standard enforce-separation pass. This MAY shift
+          // the pushed nodes back into bundle bbox if there's no other
+          // empty space; in that case we accept whichever conflict the
+          // ENS pass settles on.
+          enforceNodeSeparationStrong(nodes, attributes);
+        }
+
+        // Bundle self-shift — DISABLED. Tested: shifting 4 bundles
+        // resolved bundle-clear residual but +6 bndlN, +2 nOvl,
+        // +15% eni from cascade. Post-pass bundle relocation creates
+        // new cluster-edge crossings that exceed the bundle bbox
+        // overlap saved. Set DJERD_BUNDLE_SHIFT=1 to enable.
+        const char* bsEnv = std::getenv("DJERD_BUNDLE_SHIFT");
+        const bool runBundleShift = bsEnv && std::strcmp(bsEnv, "0") != 0;
+        std::size_t bundlesShifted = 0;
+        if (runBundleShift)
+        for (std::size_t bi = 0; bi < bundleRects.size(); ++bi) {
+          // Find offending external node count + collective overlap
+          // direction.
+          double sumDx = 0.0, sumDy = 0.0;
+          std::size_t collisions = 0;
+          const Rect& br = bundleRects[bi];
+          const double bcx = (br.left + br.right) * 0.5;
+          const double bcy = (br.top + br.bottom) * 0.5;
+          for (const NodeRecord& nd : nodes) {
+            if (bundleAbsorbed.count(nd.modelId)) continue;
+            const double nx = attributes.x(nd.handle);
+            const double ny = attributes.y(nd.handle);
+            const double nW = nd.width * 0.5;
+            const double nH = nd.height * 0.5;
+            if (nx + nW + kBundleClearPad <= br.left) continue;
+            if (nx - nW - kBundleClearPad >= br.right) continue;
+            if (ny + nH + kBundleClearPad <= br.top) continue;
+            if (ny - nH - kBundleClearPad >= br.bottom) continue;
+            // Vector from external node to bundle center — direction
+            // bundle should move TO clear this node.
+            sumDx += bcx - nx;
+            sumDy += bcy - ny;
+            ++collisions;
+          }
+          if (collisions == 0) continue;
+          // Normalize direction.
+          const double mag = std::sqrt(sumDx * sumDx + sumDy * sumDy);
+          if (mag < 1.0) continue;
+          const double dirX = sumDx / mag;
+          const double dirY = sumDy / mag;
+          // Step distance: half max bundle dim or 200, whichever larger.
+          const double bw = (br.right - br.left);
+          const double bh = (br.bottom - br.top);
+          const double stepDist = std::max(200.0, std::max(bw, bh) * 0.6);
+          const double offX = dirX * stepDist;
+          const double offY = dirY * stepDist;
+          // Translate parent + all leaves of this bundle.
+          const LeafBundleRecord& bundle = metadata.leafBundles[bi];
+          auto pIt = idxByModelId.find(bundle.parentModelId);
+          if (pIt != idxByModelId.end()) {
+            attributes.x(nodes[pIt->second].handle) += offX;
+            attributes.y(nodes[pIt->second].handle) += offY;
+          }
+          for (const std::string& leaf : bundle.leafModelIds) {
+            auto lIt = idxByModelId.find(leaf);
+            if (lIt == idxByModelId.end()) continue;
+            attributes.x(nodes[lIt->second].handle) += offX;
+            attributes.y(nodes[lIt->second].handle) += offY;
+          }
+          // Update bundleRects[bi] for downstream checks (keep it
+          // consistent, in case another bundle's check overlaps).
+          bundleRects[bi].left += offX;
+          bundleRects[bi].right += offX;
+          bundleRects[bi].top += offY;
+          bundleRects[bi].bottom += offY;
+          ++bundlesShifted;
+        }
+        if (bundlesShifted > 0) {
+          std::fprintf(stderr,
+            "[bundle-shift] Shifted %zu bundles to clear external overlap.\n",
+            bundlesShifted);
+          enforceNodeSeparationStrong(nodes, attributes);
+        }
+      }
+    }
+
+    // High-degree hub outward push — DISABLED by default (set
+    // DJERD_HUB_PUSH=1 to enable). Tested with 3 variants (full
+    // cluster shift, hub-only, angular slots); ALL increased
+    // visualCrossings substantially (3.6k → 6-22k) because shifting
+    // hubs post-layout makes their inter-cluster edges much longer,
+    // exploding segment-segment crossings. The right place to push
+    // hubs outward is super-graph FMMM (where the structure is
+    // organized BEFORE inner placement). Left as a flag-gated path
+    // for future experimentation.
+    if ((arguments.clusterGraph || arguments.bubble)
+        && !clusterByModelIdFull.empty()) {
+      const char* hubPushEnv = std::getenv("DJERD_HUB_PUSH");
+      const bool skipHub = !(hubPushEnv && std::strcmp(hubPushEnv, "0") != 0);
+      if (!skipHub) {
+        // Build node-degree (count of edges incident).
+        std::vector<std::size_t> degree(nodes.size(), 0);
+        std::unordered_map<std::string, std::size_t> idToIdxHP;
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+          idToIdxHP[nodes[i].modelId] = i;
+        }
+        for (const EdgeRecord& e : edges) {
+          auto sIt = idToIdxHP.find(e.sourceModelId);
+          auto tIt = idToIdxHP.find(e.targetModelId);
+          if (sIt == idToIdxHP.end() || tIt == idToIdxHP.end()) continue;
+          degree[sIt->second] += 1;
+          degree[tIt->second] += 1;
+        }
+        // Cluster roots = first member listed under a cluster id (stable).
+        // Track each modelId → cluster id; pick the first-seen as the
+        // representative. Roots are the hubs we push.
+        std::unordered_set<std::size_t> rootIdxSet;
+        std::unordered_map<std::string, std::size_t> firstByCluster;
+        for (const auto& kv : clusterByModelIdFull) {
+          auto it = idToIdxHP.find(kv.first);
+          if (it == idToIdxHP.end()) continue;
+          const std::string& cid = kv.second;
+          auto fIt = firstByCluster.find(cid);
+          if (fIt == firstByCluster.end()) {
+            firstByCluster[cid] = it->second;
+          } else if (degree[it->second] > degree[fIt->second]) {
+            firstByCluster[cid] = it->second;
+          }
+        }
+        for (const auto& kv : firstByCluster) rootIdxSet.insert(kv.second);
+        // Layout centroid (over all non-bundle nodes).
+        std::unordered_set<std::string> bundleAbsorbedHP;
+        for (const LeafBundleRecord& bundle : metadata.leafBundles) {
+          bundleAbsorbedHP.insert(bundle.parentModelId);
+          for (const std::string& leaf : bundle.leafModelIds) {
+            bundleAbsorbedHP.insert(leaf);
+          }
+        }
+        double sumX = 0.0, sumY = 0.0;
+        std::size_t cnt = 0;
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+          if (bundleAbsorbedHP.count(nodes[i].modelId)) continue;
+          sumX += attributes.x(nodes[i].handle);
+          sumY += attributes.y(nodes[i].handle);
+          ++cnt;
+        }
+        if (cnt < 4) goto hub_push_done;
+        {
+          const double layoutCx = sumX / static_cast<double>(cnt);
+          const double layoutCy = sumY / static_cast<double>(cnt);
+          // Average distance from centroid (as a length scale).
+          double sumD = 0.0;
+          for (std::size_t i = 0; i < nodes.size(); ++i) {
+            if (bundleAbsorbedHP.count(nodes[i].modelId)) continue;
+            const double dx = attributes.x(nodes[i].handle) - layoutCx;
+            const double dy = attributes.y(nodes[i].handle) - layoutCy;
+            sumD += std::sqrt(dx * dx + dy * dy);
+          }
+          const double avgR = sumD / static_cast<double>(cnt);
+          // Identify top-decile-degree roots — the hubs to push.
+          std::vector<std::size_t> rootsByDeg(rootIdxSet.begin(), rootIdxSet.end());
+          std::sort(rootsByDeg.begin(), rootsByDeg.end(),
+            [&](std::size_t a, std::size_t b) { return degree[a] > degree[b]; });
+          const std::size_t topN = std::max<std::size_t>(3,
+            static_cast<std::size_t>(rootsByDeg.size() / 10));
+          // Per-cluster member set for rigid-translate.
+          std::unordered_map<std::string, std::vector<std::size_t>>
+            membersByClusterHP;
+          for (const auto& kv : clusterByModelIdFull) {
+            auto it = idToIdxHP.find(kv.first);
+            if (it != idToIdxHP.end()) {
+              membersByClusterHP[kv.second].push_back(it->second);
+            }
+          }
+          // Resolve cluster-id of each root.
+          std::unordered_map<std::size_t, std::string> rootIdxToCid;
+          for (const auto& kv : firstByCluster) {
+            rootIdxToCid[kv.second] = kv.first;
+          }
+          // Push hub clusters outward via a SHIFT (= rigid translate of
+          // hub + cluster members) AND assign each top hub a unique
+          // angular slot at radius 1.2× avgR so they don't all land on
+          // top of each other. Cluster members move with the hub, but
+          // the per-cluster relative geometry stays intact.
+          std::size_t pushedCount = 0;
+          for (std::size_t k = 0; k < topN && k < rootsByDeg.size(); ++k) {
+            const std::size_t hubIdx = rootsByDeg[k];
+            const double hx = attributes.x(nodes[hubIdx].handle);
+            const double hy = attributes.y(nodes[hubIdx].handle);
+            const double dx0 = hx - layoutCx;
+            const double dy0 = hy - layoutCy;
+            const double d = std::sqrt(dx0 * dx0 + dy0 * dy0);
+            const double targetR = 1.2 * avgR;
+            if (d >= targetR) continue;
+            // Angular slot: distribute top hubs evenly. Preserve current
+            // bearing if hub is not at centroid (so layout doesn't
+            // wholesale rotate); fall back to slot-based angle.
+            double angle;
+            if (d < 100.0) {
+              angle = (2.0 * 3.14159265358979)
+                * static_cast<double>(k)
+                / static_cast<double>(std::max<std::size_t>(1, topN));
+            } else {
+              angle = std::atan2(dy0, dx0);
+            }
+            const double newHx = layoutCx + targetR * std::cos(angle);
+            const double newHy = layoutCy + targetR * std::sin(angle);
+            const double offX = newHx - hx;
+            const double offY = newHy - hy;
+            // Rigid translate of hub's cluster.
+            auto cidIt = rootIdxToCid.find(hubIdx);
+            if (cidIt == rootIdxToCid.end()) continue;
+            auto memIt = membersByClusterHP.find(cidIt->second);
+            if (memIt == membersByClusterHP.end()) continue;
+            for (std::size_t m : memIt->second) {
+              if (bundleAbsorbedHP.count(nodes[m].modelId)) continue;
+              attributes.x(nodes[m].handle) += offX;
+              attributes.y(nodes[m].handle) += offY;
+            }
+            ++pushedCount;
+          }
+          if (pushedCount > 0) {
+            std::fprintf(stderr,
+              "[hub-push] Pushed %zu high-degree hubs outward (top decile of %zu roots).\n",
+              pushedCount, rootsByDeg.size());
+            // Resolve cascade overlaps from translation.
+            enforceNodeSeparationStrong(nodes, attributes);
+          }
+        }
+        hub_push_done:;
+      }
+    }
+
+    // Knot minimization — intra-cluster node-swap untangle.
+    // For each cluster, try swapping pairs of non-bundle members and
+    // accept the swap if it reduces edge crossings involving their
+    // incident edges. Iterates until no improvement. Bundle-absorbed
+    // nodes (parent + leaves) are pinned. Set DJERD_NO_KNOT_MIN=1 to
+    // skip.
+    if ((arguments.clusterGraph || arguments.bubble)
+        && !clusterByModelIdFull.empty()) {
+      const char* skipKnotEnv = std::getenv("DJERD_NO_KNOT_MIN");
+      const bool skipKnot =
+        skipKnotEnv && std::strcmp(skipKnotEnv, "0") != 0;
+      if (!skipKnot) {
+        std::unordered_set<std::string> bundleAbsorbedKM;
+        for (const LeafBundleRecord& bundle : metadata.leafBundles) {
+          bundleAbsorbedKM.insert(bundle.parentModelId);
+          for (const std::string& leaf : bundle.leafModelIds) {
+            bundleAbsorbedKM.insert(leaf);
+          }
+        }
+        // Group nodes by cluster (cluster id → node indices, excluding
+        // bundle-absorbed).
+        std::unordered_map<std::string, std::vector<std::size_t>>
+          membersByCluster;
+        std::unordered_map<std::string, std::size_t> idToIdxKM;
+        idToIdxKM.reserve(nodes.size());
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+          idToIdxKM[nodes[i].modelId] = i;
+        }
+        for (const auto& kv : clusterByModelIdFull) {
+          if (bundleAbsorbedKM.count(kv.first)) continue;
+          auto it = idToIdxKM.find(kv.first);
+          if (it == idToIdxKM.end()) continue;
+          membersByCluster[kv.second].push_back(it->second);
+        }
+        // Build edge index by node — for each node, the edges incident.
+        std::vector<std::vector<std::size_t>> edgesByNode(nodes.size());
+        for (std::size_t e = 0; e < edges.size(); ++e) {
+          auto sIt = idToIdxKM.find(edges[e].sourceModelId);
+          auto tIt = idToIdxKM.find(edges[e].targetModelId);
+          if (sIt == idToIdxKM.end() || tIt == idToIdxKM.end()) continue;
+          edgesByNode[sIt->second].push_back(e);
+          edgesByNode[tIt->second].push_back(e);
+        }
+        // Build edge endpoint indices for crossing tests.
+        std::vector<std::pair<std::size_t, std::size_t>> edgePairs(edges.size());
+        for (std::size_t e = 0; e < edges.size(); ++e) {
+          auto sIt = idToIdxKM.find(edges[e].sourceModelId);
+          auto tIt = idToIdxKM.find(edges[e].targetModelId);
+          if (sIt == idToIdxKM.end() || tIt == idToIdxKM.end()) {
+            edgePairs[e] = {0, 0};
+            continue;
+          }
+          edgePairs[e] = {sIt->second, tIt->second};
+        }
+        auto sgn = [](double x) { return (x > 0) - (x < 0); };
+        auto segmentsCross = [&](std::size_t e1, std::size_t e2) {
+          const auto& p1 = edgePairs[e1];
+          const auto& p2 = edgePairs[e2];
+          if (p1.first == p2.first || p1.first == p2.second
+              || p1.second == p2.first || p1.second == p2.second) return false;
+          const double ax = attributes.x(nodes[p1.first].handle);
+          const double ay = attributes.y(nodes[p1.first].handle);
+          const double bx = attributes.x(nodes[p1.second].handle);
+          const double by = attributes.y(nodes[p1.second].handle);
+          const double cx = attributes.x(nodes[p2.first].handle);
+          const double cy = attributes.y(nodes[p2.first].handle);
+          const double dx = attributes.x(nodes[p2.second].handle);
+          const double dy = attributes.y(nodes[p2.second].handle);
+          const int o1 = sgn((bx - ax) * (cy - ay) - (by - ay) * (cx - ax));
+          const int o2 = sgn((bx - ax) * (dy - ay) - (by - ay) * (dx - ax));
+          const int o3 = sgn((dx - cx) * (ay - cy) - (dy - cy) * (ax - cx));
+          const int o4 = sgn((dx - cx) * (by - cy) - (dy - cy) * (bx - cx));
+          return (o1 != o2) && (o3 != o4) && (o1 != 0) && (o3 != 0);
+        };
+        // Count crossings involving any edge incident to m1 or m2.
+        auto localCrossCount = [&](std::size_t m1, std::size_t m2) {
+          std::unordered_set<std::size_t> incident;
+          for (std::size_t e : edgesByNode[m1]) incident.insert(e);
+          for (std::size_t e : edgesByNode[m2]) incident.insert(e);
+          std::size_t total = 0;
+          for (std::size_t e1 : incident) {
+            for (std::size_t e2 = 0; e2 < edges.size(); ++e2) {
+              if (incident.count(e2) && e2 <= e1) continue;
+              if (segmentsCross(e1, e2)) ++total;
+            }
+          }
+          return total;
+        };
+        // Pre-build bundle bboxes (with margin) so knot-min's overlap
+        // check can also detect when a swap pushes a node into a
+        // leafBundle's territory.
+        constexpr double kKnotOverlapMargin = 8.0;
+        std::vector<Rect> bundleBoxesKM;
+        std::vector<std::unordered_set<std::size_t>> bundleExemptIdx;
+        bundleBoxesKM.reserve(metadata.leafBundles.size());
+        bundleExemptIdx.reserve(metadata.leafBundles.size());
+        for (const LeafBundleRecord& bundle : metadata.leafBundles) {
+          Rect br;
+          br.left = bundle.bboxX - kKnotOverlapMargin;
+          br.right = bundle.bboxX + bundle.bboxWidth + kKnotOverlapMargin;
+          br.top = bundle.bboxY - kKnotOverlapMargin;
+          br.bottom = bundle.bboxY + bundle.bboxHeight + kKnotOverlapMargin;
+          bundleBoxesKM.push_back(br);
+          std::unordered_set<std::size_t> exempt;
+          auto pIt = idToIdxKM.find(bundle.parentModelId);
+          if (pIt != idToIdxKM.end()) exempt.insert(pIt->second);
+          for (const std::string& leaf : bundle.leafModelIds) {
+            auto lIt = idToIdxKM.find(leaf);
+            if (lIt != idToIdxKM.end()) exempt.insert(lIt->second);
+          }
+          bundleExemptIdx.push_back(std::move(exempt));
+        }
+        // Overlap count: node-rect overlaps + bundle-bbox overlaps for
+        // m1 / m2. Bundle bboxes are obstacles too (per user spec).
+        auto localOverlapCount = [&](std::size_t m1, std::size_t m2) {
+          auto rectOf = [&](std::size_t i) {
+            const NodeRecord& nd = nodes[i];
+            Rect r;
+            const double cx = attributes.x(nd.handle);
+            const double cy = attributes.y(nd.handle);
+            r.left = cx - nd.width / 2.0 - kKnotOverlapMargin;
+            r.right = cx + nd.width / 2.0 + kKnotOverlapMargin;
+            r.top = cy - nd.height / 2.0 - kKnotOverlapMargin;
+            r.bottom = cy + nd.height / 2.0 + kKnotOverlapMargin;
+            return r;
+          };
+          std::size_t total = 0;
+          for (std::size_t target : {m1, m2}) {
+            const Rect tr = rectOf(target);
+            for (std::size_t k = 0; k < nodes.size(); ++k) {
+              if (k == m1 || k == m2) continue;
+              if (rectsOverlap(tr, rectOf(k))) ++total;
+            }
+            // Bundle penalties: m1/m2 should not move INTO any bundle
+            // bbox unless they're already absorbed by it.
+            for (std::size_t bi = 0; bi < bundleBoxesKM.size(); ++bi) {
+              if (bundleExemptIdx[bi].count(target)) continue;
+              if (rectsOverlap(tr, bundleBoxesKM[bi])) ++total;
+            }
+            // Incident-edge bundle penalty: count edges from `target`
+            // whose straight-line segment passes through a bundle bbox
+            // (excluding bundles target is exempt from). This catches
+            // the case where a swap moves the node such that its
+            // incident edge now crosses a bundle area.
+            for (std::size_t e : edgesByNode[target]) {
+              const auto& p = edgePairs[e];
+              const std::size_t other = (p.first == target) ? p.second : p.first;
+              const RoutePoint pa{
+                attributes.x(nodes[target].handle),
+                attributes.y(nodes[target].handle)};
+              const RoutePoint pb{
+                attributes.x(nodes[other].handle),
+                attributes.y(nodes[other].handle)};
+              for (std::size_t bi = 0; bi < bundleBoxesKM.size(); ++bi) {
+                if (bundleExemptIdx[bi].count(target)) continue;
+                if (bundleExemptIdx[bi].count(other)) continue;
+                if (segmentIntersectsRect(pa, pb, bundleBoxesKM[bi])) ++total;
+              }
+            }
+          }
+          return total;
+        };
+        // Build candidate set of swappable nodes: any non-bundle node
+        // that has at least one inter-cluster edge (i.e., participates
+        // in the central tangle). Cluster roots are pinned (backbone
+        // structure) and bundle members are placed by matrix.
+        std::vector<std::size_t> swappable;
+        std::unordered_set<std::size_t> rootSetKM;
+        for (const auto& kv : clusterByModelIdFull) {
+          // We don't have a direct rootSet map; mark nodes that are
+          // listed as rootIdx in any cluster. Simpler: mark nodes with
+          // very high incidence as roots and skip. But the cleanest
+          // marker: a "root" is the cluster's representative — for our
+          // purposes, treat anything in clusterByModelIdFull as a
+          // member candidate. Backbone roots will still tend to settle
+          // because their cluster centroid pulls back.
+          (void)kv;
+        }
+        // Include ALL non-bundle nodes (cluster members AND non-cluster).
+        // Earlier filter (only inter-cluster edge owners) limited the
+        // pool to 604 candidates; expanding to ~1.1k lets intra-cluster
+        // re-arrangements untangle local knots too.
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+          if (bundleAbsorbedKM.count(nodes[i].modelId)) continue;
+          swappable.push_back(i);
+        }
+        // Spatial bin for nearby-pair lookup. Only swap nodes within
+        // 2× average cluster radius — avoids absurd long-distance moves
+        // that would scramble the layout.
+        double sumR = 0.0;
+        std::size_t cntR = 0;
+        for (std::size_t i : swappable) {
+          sumR += std::max(nodes[i].width, nodes[i].height);
+          ++cntR;
+        }
+        const double avgNodeDim = cntR > 0 ? sumR / cntR : 100.0;
+        // 9 cells. Tested 6→9: -3.8% visual, +43% time. 9→12 marginal,
+        // not worth the further slowdown. Sweet spot for this graph.
+        const double swapRadius = std::max(800.0, avgNodeDim * 9.0);
+        auto pairHashKM = [](const std::pair<long long, long long>& p) {
+          return std::hash<long long>()(p.first)
+            ^ (std::hash<long long>()(p.second) << 1);
+        };
+        std::unordered_map<std::pair<long long, long long>,
+                            std::vector<std::size_t>, decltype(pairHashKM)>
+          binsKM(0, pairHashKM);
+        const double cellKM = swapRadius;
+        auto binKeyKM = [&](double x, double y) {
+          return std::make_pair(
+            static_cast<long long>(std::floor(x / cellKM)),
+            static_cast<long long>(std::floor(y / cellKM)));
+        };
+        for (std::size_t i : swappable) {
+          binsKM[binKeyKM(attributes.x(nodes[i].handle),
+                          attributes.y(nodes[i].handle))].push_back(i);
+        }
+        // Iter cap raised 6→12 — early termination kicks in once a pass
+        // accepts zero swaps, so doubling the cap costs nothing on
+        // converged graphs but lets harder convergence keep going.
+        constexpr int kKnotMaxIters = 12;
+        std::size_t totalAccepted = 0;
+        for (int iter = 0; iter < kKnotMaxIters; ++iter) {
+          std::size_t accepted = 0;
+          // Rebuild bins each iter (positions changed).
+          if (iter > 0) {
+            binsKM.clear();
+            for (std::size_t i : swappable) {
+              binsKM[binKeyKM(attributes.x(nodes[i].handle),
+                              attributes.y(nodes[i].handle))].push_back(i);
+            }
+          }
+          for (std::size_t m1 : swappable) {
+            const auto k = binKeyKM(attributes.x(nodes[m1].handle),
+                                     attributes.y(nodes[m1].handle));
+            for (long long dx = -1; dx <= 1; ++dx) {
+              for (long long dy = -1; dy <= 1; ++dy) {
+                auto bIt = binsKM.find({k.first + dx, k.second + dy});
+                if (bIt == binsKM.end()) continue;
+                for (std::size_t m2 : bIt->second) {
+                  if (m2 <= m1) continue;
+                  const std::size_t beforeC = localCrossCount(m1, m2);
+                  const std::size_t beforeO = localOverlapCount(m1, m2);
+                  const double x1 = attributes.x(nodes[m1].handle);
+                  const double y1 = attributes.y(nodes[m1].handle);
+                  attributes.x(nodes[m1].handle) = attributes.x(nodes[m2].handle);
+                  attributes.y(nodes[m1].handle) = attributes.y(nodes[m2].handle);
+                  attributes.x(nodes[m2].handle) = x1;
+                  attributes.y(nodes[m2].handle) = y1;
+                  const std::size_t afterC = localCrossCount(m1, m2);
+                  const std::size_t afterO = localOverlapCount(m1, m2);
+                  if (afterC + afterO < beforeC + beforeO
+                      && afterO <= beforeO) {
+                    ++accepted;
+                  } else {
+                    attributes.x(nodes[m2].handle) = attributes.x(nodes[m1].handle);
+                    attributes.y(nodes[m2].handle) = attributes.y(nodes[m1].handle);
+                    attributes.x(nodes[m1].handle) = x1;
+                    attributes.y(nodes[m1].handle) = y1;
+                  }
+                }
+              }
+            }
+          }
+          totalAccepted += accepted;
+          if (accepted == 0) break;
+        }
+        if (totalAccepted > 0) {
+          std::fprintf(stderr,
+            "[knot-min] Accepted %zu spatial swaps among %zu candidates.\n",
+            totalAccepted, swappable.size());
+        }
+
+        // Simulated Annealing pass — DISABLED. Tested 8000 attempts
+        // with T=8 (28% accept rate, 3,278 → 3,568 visualCross worsen
+        // by +9%) and T=1.5 (1,258 accept, 3,278 → 3,345 worsen by
+        // +2%). SA random spatial swaps trade local cross reductions
+        // for global new crosses that aren't captured by localCrossCount
+        // (which only sees edges incident to m1/m2). Set
+        // DJERD_KNOT_SA=1 to enable for experimentation.
+        const char* knotSaEnv = std::getenv("DJERD_KNOT_SA");
+        if (knotSaEnv && std::strcmp(knotSaEnv, "0") != 0) {
+          std::mt19937 rng(0xC0FFEEu);
+          std::uniform_int_distribution<std::size_t> distIdx(
+            0, swappable.size() ? swappable.size() - 1 : 0);
+          std::uniform_real_distribution<double> distR(0.0, 1.0);
+          // Rebuild bins (positions changed in greedy pass).
+          binsKM.clear();
+          for (std::size_t i : swappable) {
+            binsKM[binKeyKM(attributes.x(nodes[i].handle),
+                            attributes.y(nodes[i].handle))].push_back(i);
+          }
+          constexpr int kSaAttempts = 5000;
+          double T = 1.5;  // low: only small uphill (ΔE=1-2) kicks in
+          const double decay = std::pow(0.001 / 1.5, 1.0 / kSaAttempts);
+          std::size_t saAccepted = 0;
+          std::size_t saUphill = 0;
+          for (int k = 0; k < kSaAttempts && swappable.size() >= 2; ++k) {
+            const std::size_t saI = distIdx(rng);
+            const std::size_t m1 = swappable[saI];
+            // Pick m2 from m1's spatial bin ring.
+            const auto kk = binKeyKM(attributes.x(nodes[m1].handle),
+                                      attributes.y(nodes[m1].handle));
+            std::vector<std::size_t> ring;
+            for (long long dx = -1; dx <= 1; ++dx) {
+              for (long long dy = -1; dy <= 1; ++dy) {
+                auto bIt = binsKM.find({kk.first + dx, kk.second + dy});
+                if (bIt == binsKM.end()) continue;
+                for (std::size_t r : bIt->second) {
+                  if (r != m1) ring.push_back(r);
+                }
+              }
+            }
+            if (ring.empty()) continue;
+            std::uniform_int_distribution<std::size_t> distRing(
+              0, ring.size() - 1);
+            const std::size_t m2 = ring[distRing(rng)];
+            const std::size_t beforeC = localCrossCount(m1, m2);
+            const std::size_t beforeO = localOverlapCount(m1, m2);
+            const double x1 = attributes.x(nodes[m1].handle);
+            const double y1 = attributes.y(nodes[m1].handle);
+            attributes.x(nodes[m1].handle) = attributes.x(nodes[m2].handle);
+            attributes.y(nodes[m1].handle) = attributes.y(nodes[m2].handle);
+            attributes.x(nodes[m2].handle) = x1;
+            attributes.y(nodes[m2].handle) = y1;
+            const std::size_t afterC = localCrossCount(m1, m2);
+            const std::size_t afterO = localOverlapCount(m1, m2);
+            const long long dE =
+              static_cast<long long>(afterC + afterO)
+              - static_cast<long long>(beforeC + beforeO);
+            // Hard reject on overlap regression OR pure improvement.
+            bool accept = false;
+            if (afterO > beforeO) {
+              accept = false;
+            } else if (dE <= 0) {
+              accept = true;
+            } else if (T > 1e-3) {
+              const double prob = std::exp(-static_cast<double>(dE) / T);
+              if (distR(rng) < prob) {
+                accept = true;
+                ++saUphill;
+              }
+            }
+            if (accept) {
+              ++saAccepted;
+            } else {
+              attributes.x(nodes[m2].handle) = attributes.x(nodes[m1].handle);
+              attributes.y(nodes[m2].handle) = attributes.y(nodes[m1].handle);
+              attributes.x(nodes[m1].handle) = x1;
+              attributes.y(nodes[m1].handle) = y1;
+            }
+            T *= decay;
+          }
+          if (saAccepted > 0) {
+            std::fprintf(stderr,
+              "[knot-min-sa] Accepted %zu swaps (%zu uphill) of %d attempts.\n",
+              saAccepted, saUphill, kSaAttempts);
+          }
+        }
+
+        // 2-opt cross-targeted pass: directly target each remaining
+        // segment-segment crossing. For each crossing pair (e1, e2),
+        // try swapping the swappable endpoint of e1 with the
+        // swappable endpoint of e2 — this often unties the crossing
+        // in one step. Spatial knot-min picks pairs by proximity, but
+        // some untangle-able crosses involve nodes that aren't
+        // spatially adjacent (long-range edges over the layout).
+        std::unordered_set<std::size_t> swappableSet(
+          swappable.begin(), swappable.end());
+        std::size_t twoOptAccepted = 0;
+        for (int outerIter = 0; outerIter < 8; ++outerIter) {
+          // Find all current crossings.
+          std::vector<std::pair<std::size_t, std::size_t>> crossings;
+          for (std::size_t i = 0; i < edges.size(); ++i) {
+            for (std::size_t j = i + 1; j < edges.size(); ++j) {
+              if (segmentsCross(i, j)) crossings.emplace_back(i, j);
+            }
+          }
+          if (crossings.empty()) break;
+          std::size_t innerAccepted = 0;
+          for (const auto& [e1, e2] : crossings) {
+            if (!segmentsCross(e1, e2)) continue;  // already resolved
+            const auto& p1 = edgePairs[e1];
+            const auto& p2 = edgePairs[e2];
+            // Try each pair of swappable endpoints — one from e1, one
+            // from e2. Accept first swap that reduces visualConflict.
+            const std::array<std::pair<std::size_t, std::size_t>, 4>
+              candidates = {{
+                {p1.first, p2.first},
+                {p1.first, p2.second},
+                {p1.second, p2.first},
+                {p1.second, p2.second},
+              }};
+            bool resolved = false;
+            for (const auto& [m1, m2] : candidates) {
+              if (m1 == m2) continue;
+              if (!swappableSet.count(m1) || !swappableSet.count(m2)) continue;
+              const std::size_t beforeC = localCrossCount(m1, m2);
+              const std::size_t beforeO = localOverlapCount(m1, m2);
+              const double x1 = attributes.x(nodes[m1].handle);
+              const double y1 = attributes.y(nodes[m1].handle);
+              attributes.x(nodes[m1].handle) = attributes.x(nodes[m2].handle);
+              attributes.y(nodes[m1].handle) = attributes.y(nodes[m2].handle);
+              attributes.x(nodes[m2].handle) = x1;
+              attributes.y(nodes[m2].handle) = y1;
+              const std::size_t afterC = localCrossCount(m1, m2);
+              const std::size_t afterO = localOverlapCount(m1, m2);
+              if (afterC + afterO < beforeC + beforeO
+                  && afterO <= beforeO) {
+                ++innerAccepted;
+                resolved = true;
+                break;
+              } else {
+                attributes.x(nodes[m2].handle) = attributes.x(nodes[m1].handle);
+                attributes.y(nodes[m2].handle) = attributes.y(nodes[m1].handle);
+                attributes.x(nodes[m1].handle) = x1;
+                attributes.y(nodes[m1].handle) = y1;
+              }
+            }
+            (void)resolved;
+          }
+          twoOptAccepted += innerAccepted;
+          if (innerAccepted == 0) break;
+        }
+        if (twoOptAccepted > 0) {
+          std::fprintf(stderr,
+            "[knot-min-2opt] Accepted %zu cross-targeted swaps.\n",
+            twoOptAccepted);
+        }
+
+        // Second-pass spatial knot-min after 2-opt — disabled: 16
+        // additional swaps for -20 visualCross at +5s time cost. ROI
+        // too low. Set DJERD_KNOT_2NDPASS=1 to enable.
+        const char* knot2ndEnv = std::getenv("DJERD_KNOT_2NDPASS");
+        const bool runKnot2nd =
+          knot2ndEnv && std::strcmp(knot2ndEnv, "0") != 0;
+        std::size_t totalAccepted2 = 0;
+        for (int iter = 0; runKnot2nd && iter < kKnotMaxIters; ++iter) {
+          std::size_t accepted = 0;
+          binsKM.clear();
+          for (std::size_t i : swappable) {
+            binsKM[binKeyKM(attributes.x(nodes[i].handle),
+                            attributes.y(nodes[i].handle))].push_back(i);
+          }
+          for (std::size_t m1 : swappable) {
+            const auto k = binKeyKM(attributes.x(nodes[m1].handle),
+                                     attributes.y(nodes[m1].handle));
+            for (long long dx = -1; dx <= 1; ++dx) {
+              for (long long dy = -1; dy <= 1; ++dy) {
+                auto bIt = binsKM.find({k.first + dx, k.second + dy});
+                if (bIt == binsKM.end()) continue;
+                for (std::size_t m2 : bIt->second) {
+                  if (m2 <= m1) continue;
+                  const std::size_t beforeC = localCrossCount(m1, m2);
+                  const std::size_t beforeO = localOverlapCount(m1, m2);
+                  const double x1 = attributes.x(nodes[m1].handle);
+                  const double y1 = attributes.y(nodes[m1].handle);
+                  attributes.x(nodes[m1].handle) = attributes.x(nodes[m2].handle);
+                  attributes.y(nodes[m1].handle) = attributes.y(nodes[m2].handle);
+                  attributes.x(nodes[m2].handle) = x1;
+                  attributes.y(nodes[m2].handle) = y1;
+                  const std::size_t afterC = localCrossCount(m1, m2);
+                  const std::size_t afterO = localOverlapCount(m1, m2);
+                  if (afterC + afterO < beforeC + beforeO
+                      && afterO <= beforeO) {
+                    ++accepted;
+                  } else {
+                    attributes.x(nodes[m2].handle) = attributes.x(nodes[m1].handle);
+                    attributes.y(nodes[m2].handle) = attributes.y(nodes[m1].handle);
+                    attributes.x(nodes[m1].handle) = x1;
+                    attributes.y(nodes[m1].handle) = y1;
+                  }
+                }
+              }
+            }
+          }
+          totalAccepted2 += accepted;
+          if (accepted == 0) break;
+        }
+        if (totalAccepted2 > 0) {
+          std::fprintf(stderr,
+            "[knot-min] Second pass: accepted %zu additional spatial swaps.\n",
+            totalAccepted2);
+        }
+      }
+    }
+
     const bool straightLineMode = isStraightLineRoutingMode(arguments.mode)
       || arguments.edgeRouting == "straight"
       || arguments.edgeRouting == "straight_smart";
-    const std::vector<std::vector<RoutePoint>> routes = straightLineMode
-      ? (arguments.edgeRouting == "straight_smart" && !isStraightLineRoutingMode(arguments.mode)
-        ? routeAllEdgesStraightSmart(nodes, edges, attributes)
-        : routeAllEdgesStraight(edges, attributes))
-      : routeAllEdges(nodes, edges, attributes, true);
+    // Cross-aware routing: per-edge A* on a cell grid avoiding both nodes
+    // and high-density corridors. Selected via --edge-routing=cross_aware
+    // OR DJERD_CROSS_AWARE_ROUTING=1.
+    //
+    // Apr 30 verification: cluster_graph 1810 → 2243 (+433) regression.
+    // A* improves edgeNodeIntersections (446→340) but explodes segment
+    // count (×2.2 = 4826 vs 2178), causing segment-segment crossings to
+    // dominate. Plus 651/1476 (44%) fall back to straight line because
+    // A* can't path through node-occupied corridors. Reverted to opt-in.
+    const char* crossAwareEnv = std::getenv("DJERD_CROSS_AWARE_ROUTING");
+    const bool crossAwareRouting =
+      arguments.edgeRouting == "cross_aware"
+      || (crossAwareEnv && std::strcmp(crossAwareEnv, "0") != 0);
+
+    std::vector<std::vector<RoutePoint>> routes = crossAwareRouting
+      ? routeAllEdgesCrossAware(nodes, edges, attributes)
+      : (straightLineMode
+        ? (arguments.edgeRouting == "straight_smart" && !isStraightLineRoutingMode(arguments.mode)
+          ? routeAllEdgesStraightSmart(nodes, edges, attributes)
+          : routeAllEdgesStraight(edges, attributes))
+        : routeAllEdges(nodes, edges, attributes, true));
+
+    // Edge detour pass — straight-line edges cross through unrelated
+    // nodes ("edgeNodeIntersections" metric). For each edge segment,
+    // detect non-endpoint nodes whose rect the segment passes through
+    // and insert a perpendicular waypoint that pulls the polyline
+    // around the blocker. This is the automated equivalent of dragging
+    // an edge around a node in manual untangling. Gated by
+    // DJERD_EDGE_DETOUR=1 (default off until verified).
+    const char* edgeDetourEnv = std::getenv("DJERD_EDGE_DETOUR");
+    const bool edgeDetour =
+      edgeDetourEnv && std::strcmp(edgeDetourEnv, "0") != 0;
+    if (edgeDetour && straightLineMode) {
+      std::vector<Rect> nodeRects(nodes.size());
+      for (std::size_t i = 0; i < nodes.size(); ++i) {
+        nodeRects[i] = nodeRect(nodes[i], attributes);
+      }
+      std::unordered_map<std::string, std::size_t> idToIdxDet;
+      idToIdxDet.reserve(nodes.size());
+      for (std::size_t i = 0; i < nodes.size(); ++i) {
+        idToIdxDet[nodes[i].modelId] = i;
+      }
+      // Bundle obstacle list. Each bundle's bbox is treated as a single
+      // rigid block: edges connecting to the bundle's parent or any of
+      // its leaves are exempt from this bundle's penalty (they're
+      // expected to enter/exit the bundle); all other edges should
+      // detour around it.
+      std::vector<Rect> bundleRectsDet;
+      std::vector<std::unordered_set<std::size_t>> bundleExemptIdx;
+      bundleRectsDet.reserve(metadata.leafBundles.size());
+      bundleExemptIdx.reserve(metadata.leafBundles.size());
+      for (const LeafBundleRecord& bundle : metadata.leafBundles) {
+        Rect br;
+        br.left = bundle.bboxX;
+        br.right = bundle.bboxX + bundle.bboxWidth;
+        br.top = bundle.bboxY;
+        br.bottom = bundle.bboxY + bundle.bboxHeight;
+        bundleRectsDet.push_back(br);
+        std::unordered_set<std::size_t> exempt;
+        auto pIt = idToIdxDet.find(bundle.parentModelId);
+        if (pIt != idToIdxDet.end()) exempt.insert(pIt->second);
+        for (const std::string& leaf : bundle.leafModelIds) {
+          auto lIt = idToIdxDet.find(leaf);
+          if (lIt != idToIdxDet.end()) exempt.insert(lIt->second);
+        }
+        bundleExemptIdx.push_back(std::move(exempt));
+      }
+      // Spatial bin for blocker lookup. Max node dim sets cell size.
+      double maxNodeDim = 1.0;
+      for (std::size_t i = 0; i < nodes.size(); ++i) {
+        maxNodeDim = std::max(maxNodeDim,
+          std::max(nodes[i].width, nodes[i].height));
+      }
+      const double cellSize = maxNodeDim * 1.5 + 16.0;
+      auto pairHash = [](const std::pair<long long, long long>& p) {
+        return std::hash<long long>()(p.first)
+          ^ (std::hash<long long>()(p.second) << 1);
+      };
+      std::unordered_map<std::pair<long long, long long>,
+                          std::vector<std::size_t>, decltype(pairHash)>
+        bins(0, pairHash);
+      auto binKey = [&](double x, double y) {
+        return std::make_pair(
+          static_cast<long long>(std::floor(x / cellSize)),
+          static_cast<long long>(std::floor(y / cellSize)));
+      };
+      for (std::size_t i = 0; i < nodes.size(); ++i) {
+        const double cx = (nodeRects[i].left + nodeRects[i].right) * 0.5;
+        const double cy = (nodeRects[i].top + nodeRects[i].bottom) * 0.5;
+        bins[binKey(cx, cy)].push_back(i);
+      }
+      auto cellsAlongSegment = [&](const RoutePoint& a, const RoutePoint& b) {
+        // Bresenham-ish: emit all cells the segment crosses.
+        std::vector<std::pair<long long, long long>> result;
+        const auto k0 = binKey(a.x, a.y);
+        const auto k1 = binKey(b.x, b.y);
+        const long long minX = std::min(k0.first, k1.first) - 1;
+        const long long maxX = std::max(k0.first, k1.first) + 1;
+        const long long minY = std::min(k0.second, k1.second) - 1;
+        const long long maxY = std::max(k0.second, k1.second) + 1;
+        for (long long x = minX; x <= maxX; ++x) {
+          for (long long y = minY; y <= maxY; ++y) {
+            result.emplace_back(x, y);
+          }
+        }
+        return result;
+      };
+
+      // Multi-pass detour: each pass handles segments that became
+      // blockers due to previous pass's waypoints. Default 2 passes;
+      // diminishing returns past that.
+      const char* detourPassesEnv = std::getenv("DJERD_DETOUR_PASSES");
+      const int detourPasses =
+        detourPassesEnv ? std::max(1, std::atoi(detourPassesEnv)) : 2;
+      std::size_t detoursAdded = 0;
+      std::size_t edgesDetoured = 0;
+    for (int detourPass = 0; detourPass < detourPasses; ++detourPass) {
+      for (std::size_t e = 0; e < edges.size() && e < routes.size(); ++e) {
+        auto& route = routes[e];
+        if (route.size() < 2) continue;
+        auto srcIt = idToIdxDet.find(edges[e].sourceModelId);
+        auto tgtIt = idToIdxDet.find(edges[e].targetModelId);
+        if (srcIt == idToIdxDet.end() || tgtIt == idToIdxDet.end()) continue;
+        const std::size_t srcIdx = srcIt->second;
+        const std::size_t tgtIdx = tgtIt->second;
+
+        bool routeChanged = false;
+        std::vector<RoutePoint> newRoute;
+        newRoute.reserve(route.size() * 2);
+        newRoute.push_back(route[0]);
+        for (std::size_t si = 0; si + 1 < route.size(); ++si) {
+          const RoutePoint a = route[si];
+          const RoutePoint b = route[si + 1];
+          // Find blockers on segment a-b. Blocker = node rect OR
+          // leaf-bundle bbox the segment passes through. Bundle blockers
+          // use a synthetic index space (nodeIdx ≥ nodes.size()).
+          struct Blocker { double t; std::size_t nodeIdx; Rect rect; bool isBundle; };
+          std::vector<Blocker> blockers;
+          std::unordered_set<std::size_t> seenNodes;
+          for (const auto& cell : cellsAlongSegment(a, b)) {
+            auto bIt = bins.find(cell);
+            if (bIt == bins.end()) continue;
+            for (std::size_t ni : bIt->second) {
+              if (ni == srcIdx || ni == tgtIdx) continue;
+              if (!seenNodes.insert(ni).second) continue;
+              if (!segmentIntersectsRect(a, b, nodeRects[ni])) continue;
+              const double cx = (nodeRects[ni].left + nodeRects[ni].right) * 0.5;
+              const double cy = (nodeRects[ni].top + nodeRects[ni].bottom) * 0.5;
+              const double dx = b.x - a.x;
+              const double dy = b.y - a.y;
+              const double len2 = dx * dx + dy * dy;
+              if (len2 < 1e-3) continue;
+              const double t =
+                ((cx - a.x) * dx + (cy - a.y) * dy) / len2;
+              if (t < 0.0 || t > 1.0) continue;
+              blockers.push_back({t, ni, nodeRects[ni], false});
+            }
+          }
+          // Bundle bbox blockers (skip bundles the edge legitimately
+          // enters/exits via parent or leaf).
+          for (std::size_t bi = 0; bi < bundleRectsDet.size(); ++bi) {
+            if (bundleExemptIdx[bi].count(srcIdx)
+                || bundleExemptIdx[bi].count(tgtIdx)) continue;
+            if (!segmentIntersectsRect(a, b, bundleRectsDet[bi])) continue;
+            const double cx = (bundleRectsDet[bi].left + bundleRectsDet[bi].right) * 0.5;
+            const double cy = (bundleRectsDet[bi].top + bundleRectsDet[bi].bottom) * 0.5;
+            const double dx = b.x - a.x;
+            const double dy = b.y - a.y;
+            const double len2 = dx * dx + dy * dy;
+            if (len2 < 1e-3) continue;
+            const double t = ((cx - a.x) * dx + (cy - a.y) * dy) / len2;
+            if (t < 0.0 || t > 1.0) continue;
+            blockers.push_back({t, nodes.size() + bi, bundleRectsDet[bi], true});
+          }
+          std::sort(blockers.begin(), blockers.end(),
+            [](const Blocker& l, const Blocker& r) { return l.t < r.t; });
+          // Helper: count node-rect AND bundle-bbox intersections of a
+          // candidate sub-segment. Excludes the edge's own endpoints
+          // (and, for bundles, exempts the bundles whose parent or
+          // leaves match either endpoint — those are expected entries).
+          auto countHits = [&](const RoutePoint& p, const RoutePoint& q) {
+            int hits = 0;
+            std::unordered_set<std::size_t> seen;
+            for (const auto& cell : cellsAlongSegment(p, q)) {
+              auto bIt = bins.find(cell);
+              if (bIt == bins.end()) continue;
+              for (std::size_t ni : bIt->second) {
+                if (ni == srcIdx || ni == tgtIdx) continue;
+                if (!seen.insert(ni).second) continue;
+                if (segmentIntersectsRect(p, q, nodeRects[ni])) ++hits;
+              }
+            }
+            // Bundle bbox hits.
+            for (std::size_t bi = 0; bi < bundleRectsDet.size(); ++bi) {
+              if (bundleExemptIdx[bi].count(srcIdx)
+                  || bundleExemptIdx[bi].count(tgtIdx)) continue;
+              if (segmentIntersectsRect(p, q, bundleRectsDet[bi])) ++hits;
+            }
+            return hits;
+          };
+
+          // Insert detour waypoint per blocker, picking side (left/right)
+          // that minimizes new node intersections in the new sub-segments.
+          // Uses CURRENT prev (last point of newRoute) as the start of the
+          // pre-detour segment.
+          for (const Blocker& bl : blockers) {
+            const Rect& r = bl.rect;
+            const double cx = (r.left + r.right) * 0.5;
+            const double cy = (r.top + r.bottom) * 0.5;
+            const double rHalf = std::max(
+              (r.right - r.left), (r.bottom - r.top)) * 0.5 + 12.0;
+            const double dx = b.x - a.x;
+            const double dy = b.y - a.y;
+            const double len = std::sqrt(dx * dx + dy * dy);
+            if (len < 1e-3) continue;
+            const double perpX = -dy / len;
+            const double perpY = dx / len;
+            const double t = ((cx - a.x) * dx + (cy - a.y) * dy) / (len * len);
+            const double projX = a.x + dx * t;
+            const double projY = a.y + dy * t;
+            // Try both sides.
+            RoutePoint wpLeft;
+            wpLeft.x = std::round((projX + perpX * rHalf) * 100.0) / 100.0;
+            wpLeft.y = std::round((projY + perpY * rHalf) * 100.0) / 100.0;
+            RoutePoint wpRight;
+            wpRight.x = std::round((projX - perpX * rHalf) * 100.0) / 100.0;
+            wpRight.y = std::round((projY - perpY * rHalf) * 100.0) / 100.0;
+            // prev is the last point already in newRoute (= a or last
+            // blocker waypoint). next is b.
+            const RoutePoint& prev = newRoute.back();
+            const int hitsLeft = countHits(prev, wpLeft) + countHits(wpLeft, b);
+            const int hitsRight = countHits(prev, wpRight) + countHits(wpRight, b);
+            // Also check NO-detour baseline: just keep going to next point.
+            const int hitsBaseline = countHits(prev, b);
+            int bestHits = hitsBaseline;
+            const RoutePoint* bestWp = nullptr;
+            if (hitsLeft < bestHits) { bestHits = hitsLeft; bestWp = &wpLeft; }
+            if (hitsRight < bestHits) { bestHits = hitsRight; bestWp = &wpRight; }
+            if (bestWp != nullptr) {
+              newRoute.push_back(*bestWp);
+              ++detoursAdded;
+              routeChanged = true;
+            }
+          }
+          newRoute.push_back(b);
+        }
+        if (routeChanged) {
+          route = compressRoutePoints(std::move(newRoute));
+          ++edgesDetoured;
+        }
+      }
+    }
+      std::fprintf(stderr,
+        "[edge-detour] %zu detour waypoints across %zu edges (multi-pass).\n",
+        detoursAdded, edgesDetoured);
+    }
+
+    // Leaf bundle anchor port (disabled): adding shared waypoint as a
+    // route polyline waypoint did not reduce cross — segment-level
+    // counting double-counts the extra waypoint segments and the
+    // anchor's path through neighbouring cluster bubbles raises eNI.
+    // True bundle reduction needs renderer-level merging which is out
+    // of scope for the layout binary.
+    if (false && !leafAnchorMap.empty() && straightLineMode) {
+      std::unordered_map<std::string, std::size_t> idToIdxLBA;
+      for (std::size_t i = 0; i < nodes.size(); ++i) {
+        idToIdxLBA[nodes[i].modelId] = i;
+      }
+      // Group leaves by parent to compute centroid + anchor per group.
+      std::unordered_map<std::size_t, std::vector<std::size_t>> bundleByParent;
+      for (const auto& kv : leafAnchorMap) {
+        bundleByParent[kv.second.parentIdx].push_back(kv.first);
+      }
+      std::unordered_map<std::size_t, std::pair<double, double>> currentAnchor;
+      for (const auto& kv : bundleByParent) {
+        const std::size_t parentIdx = kv.first;
+        const auto& leaves = kv.second;
+        if (parentIdx >= nodes.size() || leaves.empty()) continue;
+        double sumX = 0.0, sumY = 0.0;
+        std::size_t cnt = 0;
+        for (std::size_t l : leaves) {
+          if (l >= nodes.size()) continue;
+          sumX += attributes.x(nodes[l].handle);
+          sumY += attributes.y(nodes[l].handle);
+          ++cnt;
+        }
+        if (cnt == 0) continue;
+        const double leafCx = sumX / static_cast<double>(cnt);
+        const double leafCy = sumY / static_cast<double>(cnt);
+        const double pX = attributes.x(nodes[parentIdx].handle);
+        const double pY = attributes.y(nodes[parentIdx].handle);
+        // Anchor at midpoint of parent and leaf centroid.
+        currentAnchor[parentIdx] = {0.5 * (pX + leafCx), 0.5 * (pY + leafCy)};
+      }
+      std::size_t leafBundlesApplied = 0;
+      for (std::size_t i = 0; i < edges.size(); ++i) {
+        auto& route = routes[i];
+        if (route.size() < 2) continue;
+        auto sIt = idToIdxLBA.find(edges[i].sourceModelId);
+        auto tIt = idToIdxLBA.find(edges[i].targetModelId);
+        if (sIt == idToIdxLBA.end() || tIt == idToIdxLBA.end()) continue;
+        const std::size_t srcIdx = sIt->second;
+        const std::size_t tgtIdx = tIt->second;
+        auto laS = leafAnchorMap.find(srcIdx);
+        if (laS != leafAnchorMap.end() && laS->second.parentIdx == tgtIdx) {
+          auto anchorIt = currentAnchor.find(tgtIdx);
+          if (anchorIt == currentAnchor.end()) continue;
+          RoutePoint anchor;
+          anchor.x = std::round(anchorIt->second.first * 100.0) / 100.0;
+          anchor.y = std::round(anchorIt->second.second * 100.0) / 100.0;
+          route.insert(route.end() - 1, anchor);
+          ++leafBundlesApplied;
+          continue;
+        }
+        auto laT = leafAnchorMap.find(tgtIdx);
+        if (laT != leafAnchorMap.end() && laT->second.parentIdx == srcIdx) {
+          auto anchorIt = currentAnchor.find(srcIdx);
+          if (anchorIt == currentAnchor.end()) continue;
+          RoutePoint anchor;
+          anchor.x = std::round(anchorIt->second.first * 100.0) / 100.0;
+          anchor.y = std::round(anchorIt->second.second * 100.0) / 100.0;
+          route.insert(route.begin() + 1, anchor);
+          ++leafBundlesApplied;
+        }
+      }
+      if (leafBundlesApplied > 0 && !metadata.strategyReason.empty()) {
+        metadata.strategyReason += " Leaf bundles: "
+          + std::to_string(leafBundlesApplied) + " edges anchored.";
+      }
+    }
+
+    // Edge bundle / corridor routing (DJERD_EDGE_BUNDLE=1). For each
+    // inter-cluster pair (A, B) with ≥2 edges, redirect every edge to
+    // share a corridor waypoint at the midpoint of A_center→B_center.
+    // Skip the bundle if the waypoint lands in some other cluster's
+    // Voronoi cell (nearest-center test) — those would create new edge-
+    // node intersections through the third cluster.
+    const char* edgeBundleEnv = std::getenv("DJERD_EDGE_BUNDLE");
+    const bool edgeBundle = edgeBundleEnv && std::strcmp(edgeBundleEnv, "0") != 0;
+    const char* edgeBundleVoronoiEnv = std::getenv("DJERD_EDGE_BUNDLE_VORONOI");
+    const bool edgeBundleVoronoi =
+      edgeBundleVoronoiEnv && std::strcmp(edgeBundleVoronoiEnv, "0") != 0;
+    const char* portFracEnv = std::getenv("DJERD_BUNDLE_PORT_FRAC");
+    const double envPortFrac = portFracEnv ? std::atof(portFracEnv) : 0.5;
+    if (edgeBundle && !clusterByModelIdFull.empty() && straightLineMode) {
+      // Index nodes by modelId for fast lookup.
+      std::unordered_map<std::string, std::size_t> modelIdx;
+      for (std::size_t i = 0; i < nodes.size(); ++i) {
+        modelIdx[nodes[i].modelId] = i;
+      }
+      // Compute cluster-root center positions (use cluster root, not
+      // member centroid, to keep waypoint stable against bubble
+      // expansion/post-pass shifts).
+      std::unordered_map<std::string, std::pair<double, double>> clusterRootCenter;
+      for (const auto& kv : metadata.clusterByModelId) {
+        auto it = modelIdx.find(kv.first);
+        if (it == modelIdx.end()) continue;
+        const auto& nd = nodes[it->second];
+        clusterRootCenter[kv.second] = {
+          attributes.x(nd.handle),
+          attributes.y(nd.handle)
+        };
+      }
+      // Flat array for nearest-cluster-center test.
+      std::vector<std::pair<std::string,
+                            std::pair<double, double>>> centerArr(
+        clusterRootCenter.begin(), clusterRootCenter.end());
+      auto nearestCid = [&](double x, double y) -> const std::string& {
+        std::size_t best = 0;
+        double bestD2 = std::numeric_limits<double>::infinity();
+        for (std::size_t k = 0; k < centerArr.size(); ++k) {
+          const double dx = x - centerArr[k].second.first;
+          const double dy = y - centerArr[k].second.second;
+          const double d2 = dx * dx + dy * dy;
+          if (d2 < bestD2) { bestD2 = d2; best = k; }
+        }
+        return centerArr[best].first;
+      };
+
+      // Group edges by inter-cluster pair.
+      std::map<std::pair<std::string, std::string>,
+               std::vector<std::size_t>> bundles;
+      for (std::size_t i = 0; i < edges.size(); ++i) {
+        auto sIt = clusterByModelIdFull.find(edges[i].sourceModelId);
+        auto tIt = clusterByModelIdFull.find(edges[i].targetModelId);
+        if (sIt == clusterByModelIdFull.end()
+            || tIt == clusterByModelIdFull.end()) continue;
+        if (sIt->second == tIt->second) continue;  // intra-cluster
+        const auto& sCid = sIt->second;
+        const auto& tCid = tIt->second;
+        auto key = sCid < tCid
+          ? std::make_pair(sCid, tCid)
+          : std::make_pair(tCid, sCid);
+        bundles[key].push_back(i);
+      }
+
+      // For each bundle with ≥ kBundleMinEdges edges, redirect each
+      // edge to share a midpoint corridor waypoint. Voronoi-validated:
+      // midpoint must lie in either A's or B's cell.
+      constexpr std::size_t kBundleMinEdges = 2;
+      const double kPortFrac = std::clamp(envPortFrac, 0.05, 0.95);
+      std::size_t bundlesApplied = 0;
+      std::size_t bundlesSkippedVoronoi = 0;
+      for (const auto& kv : bundles) {
+        const auto& indices = kv.second;
+        if (indices.size() < kBundleMinEdges) continue;
+        auto aIt = clusterRootCenter.find(kv.first.first);
+        auto bIt = clusterRootCenter.find(kv.first.second);
+        if (aIt == clusterRootCenter.end()
+            || bIt == clusterRootCenter.end()) continue;
+        const double Ax = aIt->second.first, Ay = aIt->second.second;
+        const double Bx = bIt->second.first, By = bIt->second.second;
+        const double dx = Bx - Ax, dy = By - Ay;
+        const double dist = std::sqrt(dx * dx + dy * dy);
+        if (dist < 1e-3) continue;
+        const double exitX = Ax + kPortFrac * dx;
+        const double exitY = Ay + kPortFrac * dy;
+        const double entryX = Bx - kPortFrac * dx;
+        const double entryY = By - kPortFrac * dy;
+        // Voronoi validation (DJERD_EDGE_BUNDLE_VORONOI=1, default off):
+        // skip the bundle if the corridor midpoint falls in some third
+        // cluster's cell. Reduces bundles applied to ~25% but with the
+        // strictest cell-respect.
+        if (edgeBundleVoronoi) {
+          const double midX = (Ax + Bx) * 0.5;
+          const double midY = (Ay + By) * 0.5;
+          const std::string& nearCid = nearestCid(midX, midY);
+          if (nearCid != kv.first.first && nearCid != kv.first.second) {
+            ++bundlesSkippedVoronoi;
+            continue;
+          }
+        }
+        for (std::size_t i : indices) {
+          auto& route = routes[i];
+          if (route.size() < 2) continue;
+          // Determine direction: source belongs to A or B?
+          auto sCidIt = clusterByModelIdFull.find(edges[i].sourceModelId);
+          if (sCidIt == clusterByModelIdFull.end()) continue;
+          const bool sourceIsA = (sCidIt->second == kv.first.first);
+          RoutePoint exitP, entryP;
+          if (sourceIsA) {
+            exitP = {std::round(exitX * 100.0) / 100.0,
+                     std::round(exitY * 100.0) / 100.0};
+            entryP = {std::round(entryX * 100.0) / 100.0,
+                      std::round(entryY * 100.0) / 100.0};
+          } else {
+            exitP = {std::round(entryX * 100.0) / 100.0,
+                     std::round(entryY * 100.0) / 100.0};
+            entryP = {std::round(exitX * 100.0) / 100.0,
+                      std::round(exitY * 100.0) / 100.0};
+          }
+          // Replace [src, tgt] with [src, exit, entry, tgt].
+          const RoutePoint src = route.front();
+          const RoutePoint tgt = route.back();
+          route.clear();
+          route.push_back(src);
+          route.push_back(exitP);
+          route.push_back(entryP);
+          route.push_back(tgt);
+        }
+        ++bundlesApplied;
+      }
+      if (bundlesApplied > 0 && !metadata.strategyReason.empty()) {
+        metadata.strategyReason += " Edge bundles: "
+          + std::to_string(bundlesApplied) + " applied, "
+          + std::to_string(bundlesSkippedVoronoi) + " skipped (voronoi-3rd).";
+      }
+      std::fprintf(stderr,
+        "[edge-bundle] Applied %zu bundles, skipped %zu (waypoint in 3rd cell).\n",
+        bundlesApplied, bundlesSkippedVoronoi);
+    }
+    // === Carrier id pre-computation (Plan A — bundle-aware cost) ===
+    // Reported edgeCrossings counts cross between distinct CARRIERS:
+    //   - bundle leaves vs root → "B<idx>|<root>"
+    //   - cluster pair → "C|<a>|<b>" or "Cself|<c>" (intra-cluster)
+    //   - else own edgeId.
+    // Pre-compute a stable carrier id per edge so cost functions
+    // (leaf-untangle, visual-knot, face-untangle) can skip same-carrier
+    // crosses — aligns their search direction with the metric we report.
+    // Position-dependent fallback (nearest-cluster for non-cluster nodes)
+    // is snapshotted now; positional drift during passes is accepted.
+    // Set DJERD_CARRIER_AWARE_COST=0 to disable.
+    std::vector<std::string> carrierIdByEdgePre(edges.size());
+    {
+      const char* caEnv = std::getenv("DJERD_CARRIER_AWARE_COST");
+      const bool carrierAware = !caEnv || std::strcmp(caEnv, "0") != 0;
+      if (carrierAware && (arguments.clusterGraph || arguments.bubble)) {
+        std::unordered_map<std::string, std::size_t> leafToBundleIdxPre;
+        for (std::size_t bi = 0; bi < metadata.leafBundles.size(); ++bi) {
+          for (const std::string& leaf : metadata.leafBundles[bi].leafModelIds) {
+            leafToBundleIdxPre[leaf] = bi;
+          }
+        }
+        std::unordered_map<std::string, std::pair<double, double>>
+          centroidCachePre;
+        {
+          std::unordered_map<std::string, std::pair<double, double>>
+            sumByCluster;
+          std::unordered_map<std::string, std::size_t> cntByCluster;
+          std::unordered_map<std::string, std::size_t> idIdxCache;
+          idIdxCache.reserve(nodes.size());
+          for (std::size_t i = 0; i < nodes.size(); ++i) {
+            idIdxCache[nodes[i].modelId] = i;
+          }
+          for (const auto& kv : clusterByModelIdFull) {
+            auto idIt = idIdxCache.find(kv.first);
+            if (idIt == idIdxCache.end()) continue;
+            const std::size_t i = idIt->second;
+            sumByCluster[kv.second].first += attributes.x(nodes[i].handle);
+            sumByCluster[kv.second].second += attributes.y(nodes[i].handle);
+            cntByCluster[kv.second] += 1;
+          }
+          for (const auto& kv : sumByCluster) {
+            const std::size_t c = cntByCluster[kv.first];
+            if (c == 0) continue;
+            centroidCachePre[kv.first] = {
+              kv.second.first / c, kv.second.second / c};
+          }
+          auto nearestClusterPre =
+              [&](const std::string& mid) -> std::string {
+            auto idIt = idIdxCache.find(mid);
+            if (idIt == idIdxCache.end()) return {};
+            const std::size_t i = idIt->second;
+            const double mx = attributes.x(nodes[i].handle);
+            const double my = attributes.y(nodes[i].handle);
+            std::string best;
+            double bestD2 = std::numeric_limits<double>::infinity();
+            for (const auto& kv2 : centroidCachePre) {
+              const double dx = mx - kv2.second.first;
+              const double dy = my - kv2.second.second;
+              const double d2 = dx * dx + dy * dy;
+              if (d2 < bestD2) { bestD2 = d2; best = kv2.first; }
+            }
+            return best;
+          };
+          for (std::size_t e = 0; e < edges.size(); ++e) {
+            const std::string& s = edges[e].sourceModelId;
+            const std::string& t = edges[e].targetModelId;
+            auto sBI = leafToBundleIdxPre.find(s);
+            auto tBI = leafToBundleIdxPre.find(t);
+            if (sBI != leafToBundleIdxPre.end()) {
+              const auto& bundle = metadata.leafBundles[sBI->second];
+              const auto& roots = bundle.sharedRootModelIds.empty()
+                ? std::vector<std::string>{bundle.parentModelId}
+                : bundle.sharedRootModelIds;
+              if (std::find(roots.begin(), roots.end(), t) != roots.end()) {
+                carrierIdByEdgePre[e] =
+                  "B" + std::to_string(sBI->second) + "|" + t;
+                continue;
+              }
+            }
+            if (tBI != leafToBundleIdxPre.end()) {
+              const auto& bundle = metadata.leafBundles[tBI->second];
+              const auto& roots = bundle.sharedRootModelIds.empty()
+                ? std::vector<std::string>{bundle.parentModelId}
+                : bundle.sharedRootModelIds;
+              if (std::find(roots.begin(), roots.end(), s) != roots.end()) {
+                carrierIdByEdgePre[e] =
+                  "B" + std::to_string(tBI->second) + "|" + s;
+                continue;
+              }
+            }
+            auto sCit = clusterByModelIdFull.find(s);
+            auto tCit = clusterByModelIdFull.find(t);
+            std::string sCluster, tCluster;
+            if (sCit != clusterByModelIdFull.end()) sCluster = sCit->second;
+            if (tCit != clusterByModelIdFull.end()) tCluster = tCit->second;
+            if (sCluster.empty()) sCluster = nearestClusterPre(s);
+            if (tCluster.empty()) tCluster = nearestClusterPre(t);
+            if (!sCluster.empty() && !tCluster.empty()) {
+              carrierIdByEdgePre[e] = (sCluster == tCluster)
+                ? "Cself|" + sCluster
+                : (sCluster < tCluster
+                    ? "C|" + sCluster + "|" + tCluster
+                    : "C|" + tCluster + "|" + sCluster);
+              continue;
+            }
+            carrierIdByEdgePre[e] = edges[e].edgeId;
+          }
+        }
+        std::set<std::string> distinctCarriersPre;
+        for (const auto& cid : carrierIdByEdgePre) {
+          if (!cid.empty()) distinctCarriersPre.insert(cid);
+        }
+        std::fprintf(stderr,
+          "[carrier-pre] %zu edges → %zu distinct carriers (cost-side filter).\n",
+          edges.size(), distinctCarriersPre.size());
+      }
+    }
+    // Leaf untangle pass — for each degree-1 leaf node, check whether
+    // its single edge crosses other edges and rotate the leaf around
+    // its parent to a position that resolves the crossings. Bundle-
+    // absorbed leaves are skipped (placement is fixed by the matrix).
+    // Set DJERD_NO_LEAF_UNTANGLE=1 to skip. Multi-pass: rotated leaves
+    // change positions, opening new untangling opportunities for other
+    // leaves that previously had no good position.
+    // Wrapped in a lambda so it can be invoked twice: once before pd-knot
+    // (initial untangle) and once after visual-knot (round 2 — picks up
+    // new opportunities from intervening node-position changes).
+    auto runLeafUntangle = [&](int passes) {
+    for (int leafPass = 0; leafPass < passes
+         && (arguments.clusterGraph || arguments.bubble); ++leafPass) {
+      const char* skipLuEnv = std::getenv("DJERD_NO_LEAF_UNTANGLE");
+      const bool skipLu = skipLuEnv && std::strcmp(skipLuEnv, "0") != 0;
+      if (!skipLu) {
+        std::unordered_set<std::string> bundleAbsorbedLU;
+        for (const LeafBundleRecord& b : metadata.leafBundles) {
+          bundleAbsorbedLU.insert(b.parentModelId);
+          for (const std::string& l : b.leafModelIds) {
+            bundleAbsorbedLU.insert(l);
+          }
+        }
+        std::unordered_map<std::string, std::size_t> idToIdxLU;
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+          idToIdxLU[nodes[i].modelId] = i;
+        }
+        // Compute degree per node from the structural edges. A leaf is
+        // a node with degree exactly 1 — its single neighbor is its
+        // parent. Bundle-absorbed nodes don't qualify (they're inside
+        // the matrix already).
+        std::vector<std::vector<std::size_t>> nbrs(nodes.size());
+        std::vector<std::vector<std::size_t>> incidentEdges(nodes.size());
+        for (std::size_t e = 0; e < edges.size(); ++e) {
+          auto sIt = idToIdxLU.find(edges[e].sourceModelId);
+          auto tIt = idToIdxLU.find(edges[e].targetModelId);
+          if (sIt == idToIdxLU.end() || tIt == idToIdxLU.end()) continue;
+          if (sIt->second == tIt->second) continue;
+          nbrs[sIt->second].push_back(tIt->second);
+          nbrs[tIt->second].push_back(sIt->second);
+          incidentEdges[sIt->second].push_back(e);
+          incidentEdges[tIt->second].push_back(e);
+        }
+        // Local edgePairs (the earlier knot-min scope's edgePairs is
+        // not visible here).
+        std::vector<std::pair<std::size_t, std::size_t>> edgePairs(edges.size());
+        for (std::size_t e = 0; e < edges.size(); ++e) {
+          auto sIt = idToIdxLU.find(edges[e].sourceModelId);
+          auto tIt = idToIdxLU.find(edges[e].targetModelId);
+          if (sIt == idToIdxLU.end() || tIt == idToIdxLU.end()) {
+            edgePairs[e] = {0, 0};
+          } else {
+            edgePairs[e] = {sIt->second, tIt->second};
+          }
+        }
+        // Cross check helper: count crossings on routes[e] vs all other
+        // edges (excluding shared endpoints).
+        auto sgnLU = [](double x) { return (x > 0) - (x < 0); };
+        auto segCross = [&](double ax, double ay, double bx, double by,
+                             double cx, double cy, double dxv, double dyv) {
+          const int o1 = sgnLU((bx - ax) * (cy - ay) - (by - ay) * (cx - ax));
+          const int o2 = sgnLU((bx - ax) * (dyv - ay) - (by - ay) * (dxv - ax));
+          const int o3 = sgnLU((dxv - cx) * (ay - cy) - (dyv - cy) * (ax - cx));
+          const int o4 = sgnLU((dxv - cx) * (by - cy) - (dyv - cy) * (bx - cx));
+          return (o1 != o2) && (o3 != o4) && (o1 != 0) && (o3 != 0);
+        };
+        // Cost = sum over ALL incident edges of leaf, of (segment-segment
+        // crossings + segment-through-node-rect penalty). Earlier version
+        // only counted leaf-parent edge — fine for deg-1 leaves but missed
+        // crossings on other edges of deg-2/3 nodes (loopback, bridge,
+        // ring members). That mismatch caused bridge nodes (Apr 30) to
+        // appear locally improved while their other edges stretched and
+        // crossed many things. Extended cost makes bridge/ring nodes
+        // safely placeable.
+        auto leafEdgeCost = [&](std::size_t leaf, std::size_t parent,
+                                 double lx, double ly) {
+          (void)parent;  // anchor used only for rotation, not cost
+          std::size_t total = 0;
+          if (leaf >= nbrs.size()) return total;
+          for (std::size_t nb : nbrs[leaf]) {
+            if (nb == leaf) continue;
+            const double nx = attributes.x(nodes[nb].handle);
+            const double ny = attributes.y(nodes[nb].handle);
+            // Plan A: find leaf-nb edge index for carrier-aware filter.
+            std::size_t eLeafNb = SIZE_MAX;
+            for (std::size_t ei : incidentEdges[leaf]) {
+              const auto& p = edgePairs[ei];
+              if ((p.first == leaf && p.second == nb)
+                  || (p.first == nb && p.second == leaf)) {
+                eLeafNb = ei; break;
+              }
+            }
+            for (std::size_t e = 0; e < edges.size(); ++e) {
+              const auto& p = edgePairs[e];
+              if (p.first == leaf || p.second == leaf) continue;
+              if (p.first == nb || p.second == nb) continue;
+              // Plan A: same-carrier edges are masked in reported metric.
+              if (eLeafNb != SIZE_MAX
+                  && !carrierIdByEdgePre[eLeafNb].empty()
+                  && carrierIdByEdgePre[eLeafNb] == carrierIdByEdgePre[e]) {
+                continue;
+              }
+              const double ex0 = attributes.x(nodes[p.first].handle);
+              const double ey0 = attributes.y(nodes[p.first].handle);
+              const double ex1 = attributes.x(nodes[p.second].handle);
+              const double ey1 = attributes.y(nodes[p.second].handle);
+              if (segCross(lx, ly, nx, ny, ex0, ey0, ex1, ey1)) ++total;
+            }
+            // Edge-node intersection (×3 weight).
+            RoutePoint a{lx, ly};
+            RoutePoint b{nx, ny};
+            for (std::size_t k = 0; k < nodes.size(); ++k) {
+              if (k == leaf || k == nb) continue;
+              const NodeRecord& nd = nodes[k];
+              Rect r;
+              r.left = attributes.x(nd.handle) - nd.width / 2.0;
+              r.right = attributes.x(nd.handle) + nd.width / 2.0;
+              r.top = attributes.y(nd.handle) - nd.height / 2.0;
+              r.bottom = attributes.y(nd.handle) + nd.height / 2.0;
+              if (segmentIntersectsRect(a, b, r)) total += 3;
+            }
+          }
+          return total;
+        };
+        // Overlap check at candidate position.
+        constexpr double kLuMargin = 8.0;
+        auto leafOverlapAt = [&](std::size_t leaf, double lx, double ly) {
+          const NodeRecord& nd = nodes[leaf];
+          const double w = nd.width / 2.0 + kLuMargin;
+          const double h = nd.height / 2.0 + kLuMargin;
+          for (std::size_t k = 0; k < nodes.size(); ++k) {
+            if (k == leaf) continue;
+            const NodeRecord& md = nodes[k];
+            const double mx = attributes.x(md.handle);
+            const double my = attributes.y(md.handle);
+            const double mw = md.width / 2.0 + kLuMargin;
+            const double mh = md.height / 2.0 + kLuMargin;
+            if (std::abs(lx - mx) < w + mw && std::abs(ly - my) < h + mh) {
+              return true;
+            }
+          }
+          return false;
+        };
+        // Per-leaf rotation: try 24 angles around parent at multiple radii
+        // (was 12 angles × 1 radius, only resolved 95-127 crossings per pass
+        // before plateauing with 43+ leaves still crossing). Stronger
+        // search: 24 × 5 = 120 candidates per leaf.
+        constexpr int kAnglesLU = 24;
+        const std::array<double, 5> kRadiiMulLU = {0.5, 0.75, 1.0, 1.25, 1.5};
+        const double pi = 3.14159265358979;
+        // Build untangle candidate list: true leaves (deg 1) AND loopback
+        // nodes (deg 2 where both neighbours are connected = the node is
+        // a "lollipop tip" / triangle-vertex; positions can rotate around
+        // either neighbour without breaking topology). User Apr 30:
+        // "오일러 루트가 그려지면서 루트나 허브로 돌아가는 경로... 개념적으로 리프"
+        struct UntangleCand {
+          std::size_t node;
+          std::size_t parent;
+        };
+        std::vector<UntangleCand> untangleCands;
+        // Helper: are nodes a, b directly connected?
+        auto neighborsLinked = [&](std::size_t a, std::size_t b) {
+          for (std::size_t an : nbrs[a]) {
+            if (an == b) return true;
+          }
+          return false;
+        };
+        for (std::size_t v = 0; v < nodes.size(); ++v) {
+          if (bundleAbsorbedLU.count(nodes[v].modelId)) continue;
+          if (nbrs[v].size() == 1) {
+            untangleCands.push_back({v, nbrs[v][0]});
+          } else if (nbrs[v].size() == 2) {
+            const std::size_t a = nbrs[v][0];
+            const std::size_t b = nbrs[v][1];
+            if (neighborsLinked(a, b)) {
+              // Loopback (triangle).
+              const std::size_t aD = nbrs[a].size();
+              const std::size_t bD = nbrs[b].size();
+              untangleCands.push_back({v, aD >= bD ? a : b});
+            } else {
+              // Bridge: a, b share an EXTERNAL common neighbour (≠ v).
+              // (May 1 bugfix: previous code put v itself in aNbrSet, so
+              // every deg-2 non-linked was wrongly classified as bridge.)
+              std::unordered_set<std::size_t> aNbrSet;
+              for (std::size_t an : nbrs[a]) {
+                if (an != v) aNbrSet.insert(an);
+              }
+              bool bridge = false;
+              for (std::size_t bn : nbrs[b]) {
+                if (bn == v) continue;
+                if (aNbrSet.count(bn)) { bridge = true; break; }
+              }
+              // Chain-to-leaf: v has a neighbour with deg ≤ 2. Catches
+              // user's "leaf로 끝나는 2deg연속 노드" — H-A-B-L style chain
+              // where A is deg-2 with neighbours {H, B} (B itself deg-2),
+              // and B is deg-2 with neighbours {A, L} (L deg-1). Anchor
+              // = higher-deg side; the other (shorter-deg) edge tracks
+              // through extended leafEdgeCost.
+              const bool chainEnd =
+                nbrs[a].size() <= 2 || nbrs[b].size() <= 2;
+              if (bridge || chainEnd) {
+                const std::size_t aD = nbrs[a].size();
+                const std::size_t bD = nbrs[b].size();
+                untangleCands.push_back({v, aD >= bD ? a : b});
+              }
+            }
+          } else if (nbrs[v].size() == 3) {
+            // Deg-3: include if at least 1 pair of neighbours is linked
+            // (= v on a cycle/ring structure). Captures user's "ring
+            // returning to local root" pattern: hub-R1-R2-...-hub where
+            // R1's neighbours include hub and R2 (linked through cycle).
+            // Relaxed from ≥2 to ≥1 pairs after leafEdgeCost extension.
+            const std::size_t a = nbrs[v][0];
+            const std::size_t b = nbrs[v][1];
+            const std::size_t c = nbrs[v][2];
+            const bool ab = neighborsLinked(a, b);
+            const bool bc = neighborsLinked(b, c);
+            const bool ac = neighborsLinked(a, c);
+            const int linkCount = (ab ? 1 : 0) + (bc ? 1 : 0) + (ac ? 1 : 0);
+            if (linkCount >= 1) {
+              // Anchor = highest-degree among the linked-pair endpoints.
+              std::size_t anchor = a;
+              std::size_t anchorDeg = nbrs[a].size();
+              if (nbrs[b].size() > anchorDeg) { anchor = b; anchorDeg = nbrs[b].size(); }
+              if (nbrs[c].size() > anchorDeg) { anchor = c; anchorDeg = nbrs[c].size(); }
+              untangleCands.push_back({v, anchor});
+            }
+          }
+        }
+        std::size_t leafCandidates = untangleCands.size();
+        std::size_t leavesWithCross = 0;
+        std::size_t leavesMoved = 0;
+        std::size_t totalCrossesResolved = 0;
+        for (const auto& uc : untangleCands) {
+          const std::size_t leaf = uc.node;
+          const std::size_t parent = uc.parent;
+          if (bundleAbsorbedLU.count(nodes[parent].modelId)) continue;
+          const double lx0 = attributes.x(nodes[leaf].handle);
+          const double ly0 = attributes.y(nodes[leaf].handle);
+          const double px = attributes.x(nodes[parent].handle);
+          const double py = attributes.y(nodes[parent].handle);
+          const double dx = lx0 - px;
+          const double dy = ly0 - py;
+          const double r = std::sqrt(dx * dx + dy * dy);
+          if (r < 1.0) continue;
+          const std::size_t baseCross = leafEdgeCost(leaf, parent, lx0, ly0);
+          if (baseCross == 0) continue;
+          ++leavesWithCross;
+          double bestX = lx0, bestY = ly0;
+          std::size_t bestCross = baseCross;
+          for (double rMul : kRadiiMulLU) {
+            const double rEff = r * rMul;
+            for (int a = 0; a < kAnglesLU; ++a) {
+              const double angle = 2.0 * pi * static_cast<double>(a)
+                                    / static_cast<double>(kAnglesLU);
+              const double cx = px + rEff * std::cos(angle);
+              const double cy = py + rEff * std::sin(angle);
+              if (std::abs(cx - lx0) < 1.0 && std::abs(cy - ly0) < 1.0) continue;
+              if (leafOverlapAt(leaf, cx, cy)) continue;
+              const std::size_t candCross =
+                leafEdgeCost(leaf, parent, cx, cy);
+              if (candCross < bestCross) {
+                bestCross = candCross;
+                bestX = cx;
+                bestY = cy;
+              }
+            }
+          }
+          // Centroid grid (May 1) tested: caused +331 regression because
+          // leaves placed near "centroid of neighbours" landed inside
+          // leaf bundle frames, exploding bundleEdgeIntersections 44→194.
+          // leafEdgeCost (straight-line) couldn't see bundle-frame
+          // segments. Reverted; stuck multi-hub leaves are structural.
+          if (bestCross < baseCross) {
+            attributes.x(nodes[leaf].handle) =
+              std::round(bestX * 100.0) / 100.0;
+            attributes.y(nodes[leaf].handle) =
+              std::round(bestY * 100.0) / 100.0;
+            ++leavesMoved;
+            totalCrossesResolved += (baseCross - bestCross);
+          }
+        }
+        std::fprintf(stderr,
+          "[leaf-untangle] candidates=%zu, with-cross=%zu, moved=%zu, "
+          "crossings-resolved=%zu.\n",
+          leafCandidates, leavesWithCross, leavesMoved, totalCrossesResolved);
+        if (leavesMoved > 0) {
+          // Update routes for moved leaves' incident edges. In straight
+          // line mode each route is a 2-point polyline; rebuild those
+          // endpoints from the new node positions. Detour waypoints in
+          // the middle of multi-point polylines stay; the endpoints
+          // pull to the new leaf position.
+          for (std::size_t leaf = 0; leaf < nodes.size(); ++leaf) {
+            if (nbrs[leaf].size() != 1) continue;
+            if (bundleAbsorbedLU.count(nodes[leaf].modelId)) continue;
+            for (std::size_t e : incidentEdges[leaf]) {
+              if (e >= routes.size() || routes[e].size() < 2) continue;
+              const auto& p = edgePairs[e];
+              const double newX = attributes.x(nodes[leaf].handle);
+              const double newY = attributes.y(nodes[leaf].handle);
+              if (p.first == leaf) {
+                routes[e].front() = {newX, newY};
+              }
+              if (p.second == leaf) {
+                routes[e].back() = {newX, newY};
+              }
+            }
+          }
+        }
+        // === Stuck-leaf diagnostic ===
+        // After this pass, identify candidates that STILL have crossings
+        // and log top-15 with details so we can analyse why
+        // rotation/multi-radius can't untangle them. Emit only when this
+        // is the FINAL pass (leavesMoved == 0 → early-exit OR last
+        // configured pass). User Apr 30: 119 stuck leaves persist; need
+        // case-by-case understanding to design next fix.
+        if (leavesMoved == 0 || leafPass == passes - 1) {
+          std::vector<std::tuple<std::size_t, std::size_t, std::size_t>> stuck;
+          stuck.reserve(untangleCands.size());
+          for (std::size_t ci = 0; ci < untangleCands.size(); ++ci) {
+            const auto& uc = untangleCands[ci];
+            if (uc.node >= nodes.size()) continue;
+            if (bundleAbsorbedLU.count(nodes[uc.node].modelId)) continue;
+            if (uc.parent >= nodes.size()) continue;
+            const double lx = attributes.x(nodes[uc.node].handle);
+            const double ly = attributes.y(nodes[uc.node].handle);
+            const std::size_t cost =
+              leafEdgeCost(uc.node, uc.parent, lx, ly);
+            if (cost > 0) {
+              stuck.emplace_back(cost, ci, uc.node);
+            }
+          }
+          std::sort(stuck.begin(), stuck.end(),
+                    [](const auto& a, const auto& b) {
+                      return std::get<0>(a) > std::get<0>(b);
+                    });
+          std::fprintf(stderr,
+            "[stuck-leaf-diag] %zu candidates with cost>0 (top 15 below):\n",
+            stuck.size());
+          const std::size_t topN = std::min(stuck.size(), std::size_t(15));
+          for (std::size_t k = 0; k < topN; ++k) {
+            const auto& s = stuck[k];
+            const std::size_t cost = std::get<0>(s);
+            const std::size_t ci = std::get<1>(s);
+            const std::size_t leaf = std::get<2>(s);
+            const std::size_t parent = untangleCands[ci].parent;
+            const std::size_t deg =
+              (leaf < nbrs.size()) ? nbrs[leaf].size() : 0;
+            std::string nbrStr;
+            if (leaf < nbrs.size()) {
+              for (std::size_t k2 = 0; k2 < nbrs[leaf].size() && k2 < 3; ++k2) {
+                if (!nbrStr.empty()) nbrStr += ",";
+                nbrStr += nodes[nbrs[leaf][k2]].modelId;
+              }
+            }
+            std::fprintf(stderr,
+              "  cost=%zu deg=%zu node=%s parent=%s nbrs={%s}\n",
+              cost, deg,
+              nodes[leaf].modelId.c_str(),
+              nodes[parent].modelId.c_str(),
+              nbrStr.c_str());
+          }
+        }
+
+        // Multi-pass convergence guard: stop once a pass moves nothing.
+        if (leavesMoved == 0) break;
+      }
+    }
+    };  // end runLeafUntangle lambda
+    {
+      const char* leafPassesEnv = std::getenv("DJERD_LEAF_PASSES");
+      const int leafPasses =
+        leafPassesEnv ? std::max(1, std::atoi(leafPassesEnv)) : 4;
+      runLeafUntangle(leafPasses);
+    }
+
+    // === xings-detour: cross-aware waypoint insertion (A+B+C+D) ===
+    //
+    // (A) Iteration: re-detect polyline crossings after each round of
+    //     waypoint insertions. Some new crossings may emerge, others may
+    //     resolve. Stops at convergence or 3 iters max.
+    // (B) Polyline-based detection: only attempt pairs that ACTUALLY cross
+    //     in current polyline routes (= matches reported metric, no false
+    //     positives from dedup over-detection).
+    // (C) Multi-segment exploration: try waypoint insertion on top-2
+    //     longest segments per edge, not just the longest.
+    // (D) Density-aware waypoint placement: rasterise current routes to a
+    //     200×150 grid; score each candidate W by sum of densities along
+    //     (segA → W) + (W → segB) — picks "open corridor" placements that
+    //     are unlikely to introduce new crossings.
+    //
+    // Gated by DJERD_XINGS_DETOUR=1 (default ON).
+    // DJERD_XINGS_DETOUR_PHASE=pre|post (default post).
+    auto runXingsDetour = [&]() {
+      const char* xdEnv = std::getenv("DJERD_XINGS_DETOUR");
+      if (xdEnv && std::strcmp(xdEnv, "0") == 0) return;
+
+      // (B) Polyline cross helpers.
+      auto polyCross = [&](std::size_t e1, std::size_t e2) -> bool {
+        if (e1 >= routes.size() || e2 >= routes.size()) return false;
+        if (routes[e1].size() < 2 || routes[e2].size() < 2) return false;
+        if (sharesEndpoint(edges[e1], edges[e2])) return false;
+        for (std::size_t li = 1; li < routes[e1].size(); ++li) {
+          for (std::size_t rj = 1; rj < routes[e2].size(); ++rj) {
+            RoutePoint isect;
+            if (properSegmentIntersection(
+                routes[e1][li - 1], routes[e1][li],
+                routes[e2][rj - 1], routes[e2][rj], isect)) {
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+
+      auto edgePolyCrossCount = [&](std::size_t e) -> std::size_t {
+        std::size_t total = 0;
+        for (std::size_t e2 = 0; e2 < edges.size(); ++e2) {
+          if (e == e2) continue;
+          if (polyCross(e, e2)) ++total;
+        }
+        return total;
+      };
+
+      // (D) Raster setup — bounds from all node positions, padded 5%.
+      double rMinX = std::numeric_limits<double>::infinity();
+      double rMaxX = -std::numeric_limits<double>::infinity();
+      double rMinY = std::numeric_limits<double>::infinity();
+      double rMaxY = -std::numeric_limits<double>::infinity();
+      for (std::size_t i = 0; i < nodes.size(); ++i) {
+        const double x = attributes.x(nodes[i].handle);
+        const double y = attributes.y(nodes[i].handle);
+        if (x < rMinX) rMinX = x;
+        if (x > rMaxX) rMaxX = x;
+        if (y < rMinY) rMinY = y;
+        if (y > rMaxY) rMaxY = y;
+      }
+      const double padX = (rMaxX - rMinX) * 0.05 + 1.0;
+      const double padY = (rMaxY - rMinY) * 0.05 + 1.0;
+      rMinX -= padX; rMaxX += padX;
+      rMinY -= padY; rMaxY += padY;
+      constexpr int GW = 200, GH = 150;
+      const double rangeX = rMaxX - rMinX;
+      const double rangeY = rMaxY - rMinY;
+      const double cellW = rangeX > 0 ? rangeX / GW : 1.0;
+      const double cellH = rangeY > 0 ? rangeY / GH : 1.0;
+
+      auto worldToCell = [&](double x, double y) {
+        int gx = static_cast<int>((x - rMinX) / cellW);
+        int gy = static_cast<int>((y - rMinY) / cellH);
+        if (gx < 0) gx = 0; else if (gx >= GW) gx = GW - 1;
+        if (gy < 0) gy = 0; else if (gy >= GH) gy = GH - 1;
+        return std::make_pair(gx, gy);
+      };
+
+      std::vector<std::vector<int>> density(GW, std::vector<int>(GH, 0));
+
+      auto rasterLine = [&](double x0w, double y0w, double x1w, double y1w,
+                             int delta) {
+        auto [gx0, gy0] = worldToCell(x0w, y0w);
+        auto [gx1, gy1] = worldToCell(x1w, y1w);
+        int dx = std::abs(gx1 - gx0), dy = std::abs(gy1 - gy0);
+        int sx = gx0 < gx1 ? 1 : -1;
+        int sy = gy0 < gy1 ? 1 : -1;
+        int err = dx - dy;
+        int x = gx0, y = gy0;
+        while (true) {
+          density[x][y] += delta;
+          if (x == gx1 && y == gy1) break;
+          int e2 = err * 2;
+          if (e2 > -dy) { err -= dy; x += sx; }
+          if (e2 < dx) { err += dx; y += sy; }
+        }
+      };
+
+      auto pathScore = [&](double x0w, double y0w, double x1w, double y1w) -> int {
+        auto [gx0, gy0] = worldToCell(x0w, y0w);
+        auto [gx1, gy1] = worldToCell(x1w, y1w);
+        int dx = std::abs(gx1 - gx0), dy = std::abs(gy1 - gy0);
+        int sx = gx0 < gx1 ? 1 : -1;
+        int sy = gy0 < gy1 ? 1 : -1;
+        int err = dx - dy;
+        int x = gx0, y = gy0;
+        int score = 0;
+        while (true) {
+          score += density[x][y];
+          if (x == gx1 && y == gy1) break;
+          int e2 = err * 2;
+          if (e2 > -dy) { err -= dy; x += sx; }
+          if (e2 < dx) { err += dx; y += sy; }
+        }
+        return score;
+      };
+
+      auto rasterRoute = [&](std::size_t e, int delta) {
+        if (e >= routes.size() || routes[e].size() < 2) return;
+        for (std::size_t i = 1; i < routes[e].size(); ++i) {
+          rasterLine(routes[e][i - 1].x, routes[e][i - 1].y,
+                     routes[e][i].x, routes[e][i].y, delta);
+        }
+      };
+
+      // Build initial density.
+      for (std::size_t e = 0; e < edges.size(); ++e) rasterRoute(e, +1);
+
+      // (C) Try insertion with multi-segment + multi-offset + density-aware.
+      auto tryInsertWaypoint = [&](std::size_t eMod) -> bool {
+        if (eMod >= routes.size() || routes[eMod].size() < 2) return false;
+
+        // Collect segments by length descending; consider top-2.
+        std::vector<std::pair<double, std::size_t>> segByLen;
+        for (std::size_t i = 1; i < routes[eMod].size(); ++i) {
+          const double len = std::hypot(
+              routes[eMod][i].x - routes[eMod][i - 1].x,
+              routes[eMod][i].y - routes[eMod][i - 1].y);
+          segByLen.emplace_back(len, i);
+        }
+        std::sort(segByLen.begin(), segByLen.end(),
+                  [](const auto& a, const auto& b) {
+                    return a.first > b.first;
+                  });
+
+        const std::size_t before = edgePolyCrossCount(eMod);
+        if (before == 0) return false;
+
+        // Subtract eMod's current contribution from density so candidate
+        // scoring isn't biased by eMod's own segments.
+        rasterRoute(eMod, -1);
+
+        struct Cand {
+          std::size_t segIdx;
+          double wx, wy;
+          int score;
+        };
+        std::vector<Cand> cands;
+        cands.reserve(16);
+        const std::array<double, 4> kOffsetMul = {0.15, 0.25, 0.40, 0.60};
+        const std::size_t maxSegs = std::min<std::size_t>(2, segByLen.size());
+        for (std::size_t s = 0; s < maxSegs; ++s) {
+          const double segLen = segByLen[s].first;
+          const std::size_t segIdx = segByLen[s].second;
+          if (segLen < 50.0) continue;
+          const auto& segA = routes[eMod][segIdx - 1];
+          const auto& segB = routes[eMod][segIdx];
+          const double mx = (segA.x + segB.x) * 0.5;
+          const double my = (segA.y + segB.y) * 0.5;
+          const double dx = segB.x - segA.x;
+          const double dy = segB.y - segA.y;
+          const double len = std::hypot(dx, dy);
+          if (len < 1.0) continue;
+          const double perpX = -dy / len;
+          const double perpY = dx / len;
+          for (double mul : kOffsetMul) {
+            const double offset = std::min(segLen * mul, 200.0);
+            for (double sign : {+1.0, -1.0}) {
+              const double wx = mx + sign * offset * perpX;
+              const double wy = my + sign * offset * perpY;
+              const int score = pathScore(segA.x, segA.y, wx, wy)
+                              + pathScore(wx, wy, segB.x, segB.y);
+              cands.push_back({segIdx, wx, wy, score});
+            }
+          }
+        }
+
+        // (D) Sort by density score asc — try open-corridor candidates first.
+        std::sort(cands.begin(), cands.end(),
+                  [](const Cand& a, const Cand& b) { return a.score < b.score; });
+
+        bool accepted = false;
+        const std::size_t topK = std::min<std::size_t>(8, cands.size());
+        for (std::size_t k = 0; k < topK; ++k) {
+          const auto& c = cands[k];
+          RoutePoint W{c.wx, c.wy};
+          routes[eMod].insert(routes[eMod].begin() + c.segIdx, W);
+          const std::size_t after = edgePolyCrossCount(eMod);
+          if (after < before) {
+            accepted = true;
+            break;
+          }
+          routes[eMod].erase(routes[eMod].begin() + c.segIdx);
+        }
+
+        // Re-add eMod (with new waypoint or original) to density for next nodes.
+        rasterRoute(eMod, +1);
+        return accepted;
+      };
+
+      // (A) Iteration loop.
+      std::size_t totalAccepted = 0;
+      std::size_t initialPairs = 0;
+      int iterCount = 0;
+      for (int iter = 0; iter < 3; ++iter) {
+        ++iterCount;
+        std::vector<std::pair<std::size_t, std::size_t>> pairs;
+        for (std::size_t i = 0; i < edges.size(); ++i) {
+          for (std::size_t j = i + 1; j < edges.size(); ++j) {
+            if (polyCross(i, j)) pairs.emplace_back(i, j);
+          }
+        }
+        if (iter == 0) initialPairs = pairs.size();
+        if (pairs.empty()) break;
+
+        std::size_t iterAccepted = 0;
+        for (const auto& [e1, e2] : pairs) {
+          if (!polyCross(e1, e2)) continue;
+          if (tryInsertWaypoint(e1)) {
+            ++iterAccepted;
+          } else if (tryInsertWaypoint(e2)) {
+            ++iterAccepted;
+          }
+        }
+        totalAccepted += iterAccepted;
+        if (iterAccepted == 0) break;
+      }
+
+      std::fprintf(stderr,
+        "[xings-detour] iters=%d initial-poly-pairs=%zu accepted=%zu (multi-seg, density-aware, polyline detect, iterative).\n",
+        iterCount, initialPairs, totalAccepted);
+    };
+
+    {
+      const char* xdPhaseEnv = std::getenv("DJERD_XINGS_DETOUR_PHASE");
+      const std::string xdPhase = xdPhaseEnv ? std::string(xdPhaseEnv) : "post";
+      if (xdPhase == "pre") runXingsDetour();
+    }
+
+    // (1) Post-detour knot-min: cross detection on POLYLINE routes
+    // (after multi-pass detour), endpoint-swap candidates evaluated by
+    // their pair's polyline cross delta. Affected route endpoints
+    // updated in-place (detour waypoints kept). Set DJERD_NO_PD_KNOT=1
+    // to skip.
+    if ((arguments.clusterGraph || arguments.bubble)
+        && !clusterByModelIdFull.empty()) {
+      const char* skipPDEnv = std::getenv("DJERD_NO_PD_KNOT");
+      const bool skipPD = skipPDEnv && std::strcmp(skipPDEnv, "0") != 0;
+      if (!skipPD) {
+        std::unordered_set<std::string> bundleAbsorbedPD;
+        for (const LeafBundleRecord& b : metadata.leafBundles) {
+          bundleAbsorbedPD.insert(b.parentModelId);
+          for (const std::string& l : b.leafModelIds) bundleAbsorbedPD.insert(l);
+        }
+        std::unordered_map<std::string, std::size_t> idToIdxPD;
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+          idToIdxPD[nodes[i].modelId] = i;
+        }
+        std::vector<std::pair<std::size_t, std::size_t>> edgePairsPD(edges.size());
+        std::vector<std::vector<std::size_t>> edgesByNodePD(nodes.size());
+        for (std::size_t e = 0; e < edges.size(); ++e) {
+          auto sIt = idToIdxPD.find(edges[e].sourceModelId);
+          auto tIt = idToIdxPD.find(edges[e].targetModelId);
+          if (sIt == idToIdxPD.end() || tIt == idToIdxPD.end()) {
+            edgePairsPD[e] = {0, 0};
+            continue;
+          }
+          edgePairsPD[e] = {sIt->second, tIt->second};
+          if (sIt->second != tIt->second) {
+            edgesByNodePD[sIt->second].push_back(e);
+            edgesByNodePD[tIt->second].push_back(e);
+          }
+        }
+        auto polylineCross = [&](std::size_t e1, std::size_t e2) {
+          if (e1 >= routes.size() || e2 >= routes.size()) return false;
+          if (routes[e1].size() < 2 || routes[e2].size() < 2) return false;
+          if (sharesEndpoint(edges[e1], edges[e2])) return false;
+          for (std::size_t li = 1; li < routes[e1].size(); ++li) {
+            for (std::size_t rj = 1; rj < routes[e2].size(); ++rj) {
+              RoutePoint isect;
+              if (properSegmentIntersection(
+                  routes[e1][li - 1], routes[e1][li],
+                  routes[e2][rj - 1], routes[e2][rj], isect)) {
+                return true;
+              }
+            }
+          }
+          return false;
+        };
+        // Local cost for swap (m1, m2): sum polyline-cross over their
+        // incident edges with all other edges. After swap, recount.
+        auto incidentCrossCount = [&](std::size_t m1, std::size_t m2) {
+          std::unordered_set<std::size_t> incident;
+          for (std::size_t e : edgesByNodePD[m1]) incident.insert(e);
+          for (std::size_t e : edgesByNodePD[m2]) incident.insert(e);
+          std::size_t total = 0;
+          for (std::size_t e1 : incident) {
+            for (std::size_t e2 = 0; e2 < edges.size(); ++e2) {
+              if (e1 == e2) continue;
+              if (incident.count(e2) && e2 < e1) continue;
+              if (polylineCross(e1, e2)) ++total;
+            }
+          }
+          return total;
+        };
+        auto applyEndpointMove = [&](std::size_t node) {
+          // Update route endpoints for edges incident to `node`.
+          for (std::size_t e : edgesByNodePD[node]) {
+            if (e >= routes.size() || routes[e].size() < 2) continue;
+            const double nx = attributes.x(nodes[node].handle);
+            const double ny = attributes.y(nodes[node].handle);
+            if (edgePairsPD[e].first == node) routes[e].front() = {nx, ny};
+            if (edgePairsPD[e].second == node) routes[e].back() = {nx, ny};
+          }
+        };
+        // Find all polyline cross pairs.
+        std::vector<std::pair<std::size_t, std::size_t>> crossPairs;
+        for (std::size_t i = 0; i < edges.size(); ++i) {
+          for (std::size_t j = i + 1; j < edges.size(); ++j) {
+            if (polylineCross(i, j)) crossPairs.emplace_back(i, j);
+          }
+        }
+        std::size_t pdAccepted = 0;
+        for (const auto& [e1, e2] : crossPairs) {
+          if (!polylineCross(e1, e2)) continue;
+          const auto& p1 = edgePairsPD[e1];
+          const auto& p2 = edgePairsPD[e2];
+          const std::array<std::pair<std::size_t, std::size_t>, 4>
+            cand = {{
+              {p1.first, p2.first},
+              {p1.first, p2.second},
+              {p1.second, p2.first},
+              {p1.second, p2.second},
+            }};
+          for (const auto& [m1, m2] : cand) {
+            if (m1 == m2) continue;
+            if (bundleAbsorbedPD.count(nodes[m1].modelId)
+                || bundleAbsorbedPD.count(nodes[m2].modelId)) continue;
+            const std::size_t before = incidentCrossCount(m1, m2);
+            const double x1 = attributes.x(nodes[m1].handle);
+            const double y1 = attributes.y(nodes[m1].handle);
+            attributes.x(nodes[m1].handle) = attributes.x(nodes[m2].handle);
+            attributes.y(nodes[m1].handle) = attributes.y(nodes[m2].handle);
+            attributes.x(nodes[m2].handle) = x1;
+            attributes.y(nodes[m2].handle) = y1;
+            applyEndpointMove(m1);
+            applyEndpointMove(m2);
+            const std::size_t after = incidentCrossCount(m1, m2);
+            if (after < before) {
+              ++pdAccepted;
+              break;
+            }
+            attributes.x(nodes[m2].handle) = attributes.x(nodes[m1].handle);
+            attributes.y(nodes[m2].handle) = attributes.y(nodes[m1].handle);
+            attributes.x(nodes[m1].handle) = x1;
+            attributes.y(nodes[m1].handle) = y1;
+            applyEndpointMove(m1);
+            applyEndpointMove(m2);
+          }
+        }
+        std::fprintf(stderr,
+          "[pd-knot] %zu polyline cross pairs, %zu resolved via endpoint swap.\n",
+          crossPairs.size(), pdAccepted);
+      }
+    }
+
+    {
+      const char* xdPhaseEnv = std::getenv("DJERD_XINGS_DETOUR_PHASE");
+      const std::string xdPhase = xdPhaseEnv ? std::string(xdPhaseEnv) : "post";
+      if (xdPhase != "pre") runXingsDetour();
+    }
+
+    // === Visual knot detector ===
+    // Targets the user's "시각적으로 바로 풀수있는 knot들" — spatial
+    // clusters of polyline crossings that pd-knot's edge-pair iteration
+    // missed. Bucket polyline crossings by spatial cell (~300 units),
+    // identify hot cells (≥ 3 crossings), then for each hot cell try
+    // pairwise position swaps among the involved nodes. Accept swap if
+    // global polyline cross count drops.
+    //
+    // Default ON. Disable with DJERD_VISUAL_KNOT=0.
+    {
+      const char* vkEnv = std::getenv("DJERD_VISUAL_KNOT");
+      const bool runVk = !vkEnv || std::strcmp(vkEnv, "0") != 0;
+      if (runVk) {
+        // Build edge → node map.
+        std::unordered_map<std::string, std::size_t> idToIdxVK;
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+          idToIdxVK[nodes[i].modelId] = i;
+        }
+        std::vector<std::pair<std::size_t, std::size_t>> edgePairsVK(edges.size());
+        std::vector<std::vector<std::size_t>> edgesByNodeVK(nodes.size());
+        for (std::size_t e = 0; e < edges.size(); ++e) {
+          auto sIt = idToIdxVK.find(edges[e].sourceModelId);
+          auto tIt = idToIdxVK.find(edges[e].targetModelId);
+          if (sIt == idToIdxVK.end() || tIt == idToIdxVK.end()) {
+            edgePairsVK[e] = {0, 0};
+            continue;
+          }
+          edgePairsVK[e] = {sIt->second, tIt->second};
+          if (sIt->second != tIt->second) {
+            edgesByNodeVK[sIt->second].push_back(e);
+            edgesByNodeVK[tIt->second].push_back(e);
+          }
+        }
+        std::unordered_set<std::string> bundleAbsorbedVK;
+        for (const LeafBundleRecord& b : metadata.leafBundles) {
+          bundleAbsorbedVK.insert(b.parentModelId);
+          for (const std::string& l : b.leafModelIds) {
+            bundleAbsorbedVK.insert(l);
+          }
+        }
+
+        auto polyCrossVK = [&](std::size_t e1, std::size_t e2) -> bool {
+          if (e1 >= routes.size() || e2 >= routes.size()) return false;
+          if (routes[e1].size() < 2 || routes[e2].size() < 2) return false;
+          if (sharesEndpoint(edges[e1], edges[e2])) return false;
+          // Plan A: same-carrier edges are masked in reported metric.
+          if (e1 < carrierIdByEdgePre.size() && e2 < carrierIdByEdgePre.size()
+              && !carrierIdByEdgePre[e1].empty()
+              && carrierIdByEdgePre[e1] == carrierIdByEdgePre[e2]) {
+            return false;
+          }
+          for (std::size_t li = 1; li < routes[e1].size(); ++li) {
+            for (std::size_t rj = 1; rj < routes[e2].size(); ++rj) {
+              RoutePoint isect;
+              if (properSegmentIntersection(
+                  routes[e1][li - 1], routes[e1][li],
+                  routes[e2][rj - 1], routes[e2][rj], isect)) {
+                return true;
+              }
+            }
+          }
+          return false;
+        };
+        auto polyCrossPointVK = [&](std::size_t e1, std::size_t e2,
+                                     RoutePoint& outPt) -> bool {
+          if (e1 >= routes.size() || e2 >= routes.size()) return false;
+          if (routes[e1].size() < 2 || routes[e2].size() < 2) return false;
+          if (sharesEndpoint(edges[e1], edges[e2])) return false;
+          if (e1 < carrierIdByEdgePre.size() && e2 < carrierIdByEdgePre.size()
+              && !carrierIdByEdgePre[e1].empty()
+              && carrierIdByEdgePre[e1] == carrierIdByEdgePre[e2]) {
+            return false;
+          }
+          for (std::size_t li = 1; li < routes[e1].size(); ++li) {
+            for (std::size_t rj = 1; rj < routes[e2].size(); ++rj) {
+              if (properSegmentIntersection(
+                  routes[e1][li - 1], routes[e1][li],
+                  routes[e2][rj - 1], routes[e2][rj], outPt)) {
+                return true;
+              }
+            }
+          }
+          return false;
+        };
+
+        // Collect cross points with coordinates.
+        struct VKCross {
+          double x, y;
+          std::size_t e1, e2;
+        };
+        std::vector<VKCross> crosses;
+        for (std::size_t i = 0; i < edges.size(); ++i) {
+          for (std::size_t j = i + 1; j < edges.size(); ++j) {
+            RoutePoint pt;
+            if (polyCrossPointVK(i, j, pt)) {
+              crosses.push_back({pt.x, pt.y, i, j});
+            }
+          }
+        }
+
+        // Spatial bucketing: cell ~300 units (typical node diameter).
+        constexpr double kCellSize = 300.0;
+        auto cellKey = [&](double x, double y) {
+          return std::make_pair(static_cast<long long>(std::floor(x / kCellSize)),
+                                static_cast<long long>(std::floor(y / kCellSize)));
+        };
+        std::map<std::pair<long long, long long>, std::vector<std::size_t>> cellMap;
+        for (std::size_t k = 0; k < crosses.size(); ++k) {
+          cellMap[cellKey(crosses[k].x, crosses[k].y)].push_back(k);
+        }
+
+        // Hot cells: 3+ crossings.
+        constexpr std::size_t kMinKnot = 3;
+        std::vector<std::pair<std::size_t, std::pair<long long, long long>>> hotCells;
+        for (const auto& cm : cellMap) {
+          if (cm.second.size() >= kMinKnot) {
+            hotCells.emplace_back(cm.second.size(), cm.first);
+          }
+        }
+        std::sort(hotCells.begin(), hotCells.end(),
+                  [](const auto& a, const auto& b) { return a.first > b.first; });
+
+        // For each hot cell, collect involved nodes and try pairwise swap.
+        // Cost: total polyline crosses incident to the swap pair. Accept if
+        // the swap reduces it.
+        auto incidentCrossVK = [&](std::size_t m1, std::size_t m2) -> std::size_t {
+          std::unordered_set<std::size_t> incident;
+          for (std::size_t e : edgesByNodeVK[m1]) incident.insert(e);
+          for (std::size_t e : edgesByNodeVK[m2]) incident.insert(e);
+          std::size_t total = 0;
+          for (std::size_t e1 : incident) {
+            for (std::size_t e2 = 0; e2 < edges.size(); ++e2) {
+              if (e1 == e2) continue;
+              if (incident.count(e2) && e2 < e1) continue;
+              if (polyCrossVK(e1, e2)) ++total;
+            }
+          }
+          return total;
+        };
+        auto applyEndpointMoveVK = [&](std::size_t node) {
+          for (std::size_t e : edgesByNodeVK[node]) {
+            if (e >= routes.size() || routes[e].size() < 2) continue;
+            const double nx = attributes.x(nodes[node].handle);
+            const double ny = attributes.y(nodes[node].handle);
+            if (edgePairsVK[e].first == node) routes[e].front() = {nx, ny};
+            if (edgePairsVK[e].second == node) routes[e].back() = {nx, ny};
+          }
+        };
+
+        std::size_t totalAccepted = 0;
+        std::size_t totalHandled = 0;
+        std::size_t initialCrossPoints = crosses.size();
+        std::size_t initialHotCells = hotCells.size();
+
+        // Multi-iteration: re-detect hot cells after each round of swaps.
+        // Resolved swaps may have eliminated some hot cells but created
+        // new patterns. Default 3 rounds, env-tunable.
+        const char* vkIterEnv = std::getenv("DJERD_VISUAL_KNOT_ITERS");
+        const int vkMaxIters = vkIterEnv ? std::max(1, std::atoi(vkIterEnv)) : 3;
+        for (int iter = 0; iter < vkMaxIters; ++iter) {
+          std::size_t iterAccepted = 0;
+          for (const auto& hc : hotCells) {
+            std::set<std::size_t> involved;
+            for (std::size_t crossIdx : cellMap[hc.second]) {
+              const auto& cr = crosses[crossIdx];
+              involved.insert(edgePairsVK[cr.e1].first);
+              involved.insert(edgePairsVK[cr.e1].second);
+              involved.insert(edgePairsVK[cr.e2].first);
+              involved.insert(edgePairsVK[cr.e2].second);
+            }
+            std::vector<std::size_t> swappable;
+            for (std::size_t n : involved) {
+              if (n < nodes.size()
+                  && !bundleAbsorbedVK.count(nodes[n].modelId)) {
+                swappable.push_back(n);
+              }
+            }
+            if (swappable.size() < 2) continue;
+            ++totalHandled;
+
+            for (std::size_t i = 0; i < swappable.size(); ++i) {
+              for (std::size_t j = i + 1; j < swappable.size(); ++j) {
+                const std::size_t m1 = swappable[i];
+                const std::size_t m2 = swappable[j];
+                const std::size_t before = incidentCrossVK(m1, m2);
+                if (before == 0) continue;
+                const double x1 = attributes.x(nodes[m1].handle);
+                const double y1 = attributes.y(nodes[m1].handle);
+                attributes.x(nodes[m1].handle) = attributes.x(nodes[m2].handle);
+                attributes.y(nodes[m1].handle) = attributes.y(nodes[m2].handle);
+                attributes.x(nodes[m2].handle) = x1;
+                attributes.y(nodes[m2].handle) = y1;
+                applyEndpointMoveVK(m1);
+                applyEndpointMoveVK(m2);
+                const std::size_t after = incidentCrossVK(m1, m2);
+                if (after < before) {
+                  ++iterAccepted;
+                } else {
+                  attributes.x(nodes[m2].handle) = attributes.x(nodes[m1].handle);
+                  attributes.y(nodes[m2].handle) = attributes.y(nodes[m1].handle);
+                  attributes.x(nodes[m1].handle) = x1;
+                  attributes.y(nodes[m1].handle) = y1;
+                  applyEndpointMoveVK(m1);
+                  applyEndpointMoveVK(m2);
+                }
+              }
+            }
+
+            // 3-rotation: for hot cells with EXACTLY 3 swappable nodes,
+            // try the two cyclic rotations (A→C→B→A and A→B→C→A). Pair
+            // swaps alone can't achieve these — they require all 3
+            // positions to cycle simultaneously. Implemented as 2
+            // sequential pair-swaps.
+            if (swappable.size() == 3) {
+              const std::size_t a = swappable[0];
+              const std::size_t b = swappable[1];
+              const std::size_t c = swappable[2];
+              auto swapPair = [&](std::size_t m1, std::size_t m2) {
+                const double x1 = attributes.x(nodes[m1].handle);
+                const double y1 = attributes.y(nodes[m1].handle);
+                attributes.x(nodes[m1].handle) = attributes.x(nodes[m2].handle);
+                attributes.y(nodes[m1].handle) = attributes.y(nodes[m2].handle);
+                attributes.x(nodes[m2].handle) = x1;
+                attributes.y(nodes[m2].handle) = y1;
+                applyEndpointMoveVK(m1);
+                applyEndpointMoveVK(m2);
+              };
+              auto cost3 = [&]() {
+                std::unordered_set<std::size_t> incident;
+                for (std::size_t e : edgesByNodeVK[a]) incident.insert(e);
+                for (std::size_t e : edgesByNodeVK[b]) incident.insert(e);
+                for (std::size_t e : edgesByNodeVK[c]) incident.insert(e);
+                std::size_t total = 0;
+                for (std::size_t e1 : incident) {
+                  for (std::size_t e2 = 0; e2 < edges.size(); ++e2) {
+                    if (e1 == e2) continue;
+                    if (incident.count(e2) && e2 < e1) continue;
+                    if (polyCrossVK(e1, e2)) ++total;
+                  }
+                }
+                return total;
+              };
+              const std::size_t before3 = cost3();
+              if (before3 > 0) {
+                // Rotation 1: a@C, b@A, c@B — swap(a,b); swap(a,c).
+                swapPair(a, b);
+                swapPair(a, c);
+                const std::size_t after1 = cost3();
+                if (after1 < before3) {
+                  ++iterAccepted;
+                } else {
+                  // Revert rotation 1.
+                  swapPair(a, c);
+                  swapPair(a, b);
+                  // Rotation 2: a@B, b@C, c@A — swap(a,c); swap(a,b).
+                  swapPair(a, c);
+                  swapPair(a, b);
+                  const std::size_t after2 = cost3();
+                  if (after2 < before3) {
+                    ++iterAccepted;
+                  } else {
+                    swapPair(a, b);
+                    swapPair(a, c);
+                  }
+                }
+              }
+            }
+          }
+          totalAccepted += iterAccepted;
+          if (iterAccepted == 0) break;
+
+          // Re-detect crosses + hot cells for next iteration.
+          crosses.clear();
+          for (std::size_t i = 0; i < edges.size(); ++i) {
+            for (std::size_t j = i + 1; j < edges.size(); ++j) {
+              RoutePoint pt;
+              if (polyCrossPointVK(i, j, pt)) {
+                crosses.push_back({pt.x, pt.y, i, j});
+              }
+            }
+          }
+          cellMap.clear();
+          for (std::size_t k = 0; k < crosses.size(); ++k) {
+            cellMap[cellKey(crosses[k].x, crosses[k].y)].push_back(k);
+          }
+          hotCells.clear();
+          for (const auto& cm : cellMap) {
+            if (cm.second.size() >= kMinKnot) {
+              hotCells.emplace_back(cm.second.size(), cm.first);
+            }
+          }
+          std::sort(hotCells.begin(), hotCells.end(),
+                    [](const auto& a, const auto& b) { return a.first > b.first; });
+        }
+
+        std::fprintf(stderr,
+          "[visual-knot] %zu→%zu cross points, %zu→%zu hot cells (≥%zu), "
+          "%zu handled, %zu swap accepted.\n",
+          initialCrossPoints, crosses.size(),
+          initialHotCells, hotCells.size(),
+          kMinKnot, totalHandled, totalAccepted);
+      }
+    }
+
+    // === Leaf-untangle round 2 ===
+    // pd-knot, xings-detour, and visual-knot may have moved nodes (endpoint
+    // swaps). That changes the geometry around leaves, possibly opening new
+    // rotation angles that weren't optimal in round 1. Re-run leaf-untangle
+    // with a tighter pass budget. Default 3 passes — pass 1 typically
+    // resolves ~70 cross, pass 2 finds another ~25, pass 3 catches stragglers
+    // (or early-exits on no-progress).
+    {
+      const char* leaf2Env = std::getenv("DJERD_LEAF_PASSES_2");
+      const int leafPasses2 = leaf2Env ? std::max(0, std::atoi(leaf2Env)) : 3;
+      if (leafPasses2 > 0) runLeafUntangle(leafPasses2);
+    }
+
+    // Final envelope-based knot-min pass — DISABLED by default.
+    // Tested: detected 2,851 polyline crossing pairs after detour,
+    // resolved 321 via endpoint swap, but the re-route dropped detour
+    // waypoints → segment crosses ballooned 2,826 → 16,943. Set
+    // DJERD_FINAL_KNOT=1 to enable for experimentation only.
+    const char* finalKnotEnv = std::getenv("DJERD_FINAL_KNOT");
+    const bool runFinalKnot =
+      finalKnotEnv && std::strcmp(finalKnotEnv, "0") != 0;
+    if (runFinalKnot && (arguments.clusterGraph || arguments.bubble)
+        && !clusterByModelIdFull.empty()) {
+      {
+        std::unordered_set<std::string> bundleAbsorbedFK;
+        for (const LeafBundleRecord& b : metadata.leafBundles) {
+          bundleAbsorbedFK.insert(b.parentModelId);
+          for (const std::string& l : b.leafModelIds) {
+            bundleAbsorbedFK.insert(l);
+          }
+        }
+        std::unordered_map<std::string, std::size_t> idToIdxFK;
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+          idToIdxFK[nodes[i].modelId] = i;
+        }
+        std::unordered_set<std::size_t> swappableFK;
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+          if (!bundleAbsorbedFK.count(nodes[i].modelId)) {
+            swappableFK.insert(i);
+          }
+        }
+        // Compute polyline AABB per edge (the "edge area").
+        struct EdgeEnv {
+          double left, right, top, bottom;
+          std::size_t srcIdx, tgtIdx;
+        };
+        std::vector<EdgeEnv> envs(edges.size());
+        for (std::size_t e = 0; e < edges.size(); ++e) {
+          if (e >= routes.size() || routes[e].size() < 2) {
+            envs[e] = {0, 0, 0, 0,
+                       std::numeric_limits<std::size_t>::max(),
+                       std::numeric_limits<std::size_t>::max()};
+            continue;
+          }
+          double mn = std::numeric_limits<double>::infinity();
+          double mx = -std::numeric_limits<double>::infinity();
+          double tn = std::numeric_limits<double>::infinity();
+          double tx = -std::numeric_limits<double>::infinity();
+          for (const RoutePoint& p : routes[e]) {
+            mn = std::min(mn, p.x); mx = std::max(mx, p.x);
+            tn = std::min(tn, p.y); tx = std::max(tx, p.y);
+          }
+          auto sIt = idToIdxFK.find(edges[e].sourceModelId);
+          auto tIt = idToIdxFK.find(edges[e].targetModelId);
+          envs[e].left = mn; envs[e].right = mx;
+          envs[e].top = tn; envs[e].bottom = tx;
+          envs[e].srcIdx = (sIt != idToIdxFK.end())
+            ? sIt->second : std::numeric_limits<std::size_t>::max();
+          envs[e].tgtIdx = (tIt != idToIdxFK.end())
+            ? tIt->second : std::numeric_limits<std::size_t>::max();
+        }
+        // Find AABB-overlapping edge pairs whose polylines actually
+        // cross (segment-segment intersection on each segment combo).
+        auto polylineCross = [&](std::size_t e1, std::size_t e2) {
+          if (envs[e1].right < envs[e2].left
+              || envs[e2].right < envs[e1].left
+              || envs[e1].bottom < envs[e2].top
+              || envs[e2].bottom < envs[e1].top) return false;
+          if (sharesEndpoint(edges[e1], edges[e2])) return false;
+          for (std::size_t li = 1; li < routes[e1].size(); ++li) {
+            for (std::size_t rj = 1; rj < routes[e2].size(); ++rj) {
+              RoutePoint isect;
+              if (properSegmentIntersection(
+                  routes[e1][li - 1], routes[e1][li],
+                  routes[e2][rj - 1], routes[e2][rj], isect)) {
+                return true;
+              }
+            }
+          }
+          return false;
+        };
+        // Collect crossing pairs.
+        std::vector<std::pair<std::size_t, std::size_t>> crossPairs;
+        for (std::size_t i = 0; i < edges.size(); ++i) {
+          for (std::size_t j = i + 1; j < edges.size(); ++j) {
+            if (polylineCross(i, j)) crossPairs.emplace_back(i, j);
+          }
+        }
+        std::fprintf(stderr,
+          "[final-knot] Found %zu crossing pairs after detour.\n",
+          crossPairs.size());
+        // For each crossing pair, try the 4 endpoint swap candidates.
+        // Accept if it reduces this pair's segment-cross count without
+        // creating new crosses for either edge.
+        auto edgePairwiseCross = [&](std::size_t e1, std::size_t e2) {
+          // Recompute straight-line cross for this pair (not polyline,
+          // since we'll re-route later if accepted).
+          if (sharesEndpoint(edges[e1], edges[e2])) return false;
+          if (envs[e1].srcIdx == std::numeric_limits<std::size_t>::max()
+              || envs[e1].tgtIdx == std::numeric_limits<std::size_t>::max()
+              || envs[e2].srcIdx == std::numeric_limits<std::size_t>::max()
+              || envs[e2].tgtIdx == std::numeric_limits<std::size_t>::max()) return false;
+          const RoutePoint a{
+            attributes.x(nodes[envs[e1].srcIdx].handle),
+            attributes.y(nodes[envs[e1].srcIdx].handle)};
+          const RoutePoint b{
+            attributes.x(nodes[envs[e1].tgtIdx].handle),
+            attributes.y(nodes[envs[e1].tgtIdx].handle)};
+          const RoutePoint c{
+            attributes.x(nodes[envs[e2].srcIdx].handle),
+            attributes.y(nodes[envs[e2].srcIdx].handle)};
+          const RoutePoint d{
+            attributes.x(nodes[envs[e2].tgtIdx].handle),
+            attributes.y(nodes[envs[e2].tgtIdx].handle)};
+          RoutePoint isect;
+          return properSegmentIntersection(a, b, c, d, isect);
+        };
+        std::size_t accepted = 0;
+        for (const auto& [e1, e2] : crossPairs) {
+          if (!edgePairwiseCross(e1, e2)) continue;  // already resolved
+          const std::array<std::pair<std::size_t, std::size_t>, 4>
+            cand = {{
+              {envs[e1].srcIdx, envs[e2].srcIdx},
+              {envs[e1].srcIdx, envs[e2].tgtIdx},
+              {envs[e1].tgtIdx, envs[e2].srcIdx},
+              {envs[e1].tgtIdx, envs[e2].tgtIdx},
+            }};
+          for (const auto& [m1, m2] : cand) {
+            if (m1 == m2) continue;
+            if (m1 == std::numeric_limits<std::size_t>::max()
+                || m2 == std::numeric_limits<std::size_t>::max()) continue;
+            if (!swappableFK.count(m1) || !swappableFK.count(m2)) continue;
+            // Try swap.
+            const double x1 = attributes.x(nodes[m1].handle);
+            const double y1 = attributes.y(nodes[m1].handle);
+            attributes.x(nodes[m1].handle) = attributes.x(nodes[m2].handle);
+            attributes.y(nodes[m1].handle) = attributes.y(nodes[m2].handle);
+            attributes.x(nodes[m2].handle) = x1;
+            attributes.y(nodes[m2].handle) = y1;
+            // Check: did this pair's cross resolve AND no new
+            // overlap on m1/m2's nodes (margin-aware)?
+            const bool stillCross = edgePairwiseCross(e1, e2);
+            // Quick overlap probe: m1/m2's new rect vs all others.
+            constexpr double kFKMargin = 8.0;
+            auto rectOf = [&](std::size_t i) {
+              const NodeRecord& nd = nodes[i];
+              Rect r;
+              r.left = attributes.x(nd.handle) - nd.width / 2.0 - kFKMargin;
+              r.right = attributes.x(nd.handle) + nd.width / 2.0 + kFKMargin;
+              r.top = attributes.y(nd.handle) - nd.height / 2.0 - kFKMargin;
+              r.bottom = attributes.y(nd.handle) + nd.height / 2.0 + kFKMargin;
+              return r;
+            };
+            bool newOverlap = false;
+            for (std::size_t target : {m1, m2}) {
+              const Rect tr = rectOf(target);
+              for (std::size_t k = 0; k < nodes.size(); ++k) {
+                if (k == m1 || k == m2) continue;
+                if (rectsOverlap(tr, rectOf(k))) {
+                  newOverlap = true; break;
+                }
+              }
+              if (newOverlap) break;
+            }
+            if (!stillCross && !newOverlap) {
+              ++accepted;
+              break;  // success — move to next pair
+            } else {
+              // Revert.
+              attributes.x(nodes[m2].handle) = attributes.x(nodes[m1].handle);
+              attributes.y(nodes[m2].handle) = attributes.y(nodes[m1].handle);
+              attributes.x(nodes[m1].handle) = x1;
+              attributes.y(nodes[m1].handle) = y1;
+            }
+          }
+        }
+        if (accepted > 0) {
+          std::fprintf(stderr,
+            "[final-knot] Resolved %zu crossings via endpoint swap. Re-routing.\n",
+            accepted);
+          // Re-route edges with new positions. Same logic as initial
+          // route generation — pick straight or routed mode.
+          routes = straightLineMode
+            ? (arguments.edgeRouting == "straight_smart" && !isStraightLineRoutingMode(arguments.mode)
+              ? routeAllEdgesStraightSmart(nodes, edges, attributes)
+              : routeAllEdgesStraight(edges, attributes))
+            : routeAllEdges(nodes, edges, attributes, true);
+        }
+      }
+    }
+
     std::vector<std::vector<std::string>> crossingIdsByEdge(edges.size());
     std::size_t totalRouteCrossings = 0;
     const std::vector<EdgeCrossingRecord> crossings =
       detectRouteCrossings(edges, routes, crossingIdsByEdge, totalRouteCrossings);
-    LayoutQualityMetrics quality = measureLayoutQuality(nodes, edges, routes, attributes);
+    LayoutQualityMetrics quality =
+      measureLayoutQuality(nodes, edges, routes, attributes, &metadata.leafBundles);
     quality.edgeCrossings = totalRouteCrossings;
+
+    // Carrier-grouped edgeCrossings: bus/leaf bundles consolidate
+    // multiple underlying edges into one visual carrier line. Counting
+    // each underlying segment-segment cross independently overstates
+    // visual cross count — viewers see only the carrier line. Re-group:
+    // assign each edge a carrier id (bundle root↔bundle anchor, or own
+    // edge id), then count each (carrier_a, carrier_b) pair only once.
+    // Set DJERD_NO_CARRIER_CROSS=1 to skip.
+    {
+      const char* skipCarrierEnv = std::getenv("DJERD_NO_CARRIER_CROSS");
+      const bool skipCarrier =
+        skipCarrierEnv && std::strcmp(skipCarrierEnv, "0") != 0;
+      if (!skipCarrier && !metadata.leafBundles.empty()) {
+        std::unordered_map<std::string, std::size_t> leafToBundleIdx;
+        for (std::size_t bi = 0; bi < metadata.leafBundles.size(); ++bi) {
+          for (const std::string& leaf : metadata.leafBundles[bi].leafModelIds) {
+            leafToBundleIdx[leaf] = bi;
+          }
+        }
+        std::vector<std::string> carrierIdByEdge(edges.size());
+        for (std::size_t e = 0; e < edges.size(); ++e) {
+          const std::string& s = edges[e].sourceModelId;
+          const std::string& t = edges[e].targetModelId;
+          auto sBI = leafToBundleIdx.find(s);
+          auto tBI = leafToBundleIdx.find(t);
+          if (sBI != leafToBundleIdx.end()) {
+            const auto& bundle = metadata.leafBundles[sBI->second];
+            const auto& roots = bundle.sharedRootModelIds.empty()
+              ? std::vector<std::string>{bundle.parentModelId}
+              : bundle.sharedRootModelIds;
+            if (std::find(roots.begin(), roots.end(), t) != roots.end()) {
+              carrierIdByEdge[e] =
+                "B" + std::to_string(sBI->second) + "|" + t;
+              continue;
+            }
+          }
+          if (tBI != leafToBundleIdx.end()) {
+            const auto& bundle = metadata.leafBundles[tBI->second];
+            const auto& roots = bundle.sharedRootModelIds.empty()
+              ? std::vector<std::string>{bundle.parentModelId}
+              : bundle.sharedRootModelIds;
+            if (std::find(roots.begin(), roots.end(), s) != roots.end()) {
+              carrierIdByEdge[e] =
+                "B" + std::to_string(tBI->second) + "|" + s;
+              continue;
+            }
+          }
+          // Cluster-pair carrier: edges between two clusters whose
+          // endpoints are NOT in any bundle collapse to a single
+          // (clusterA, clusterB) carrier.
+          //
+          // For nodes NOT in any cluster (connectors, routers,
+          // independents), use nearest cluster by Euclidean distance
+          // as a proxy — visually they sit closest to a particular
+          // cluster, so an edge from such a node to a cluster member
+          // appears as part of that cluster pair's bundle of edges.
+          auto sCit = clusterByModelIdFull.find(s);
+          auto tCit = clusterByModelIdFull.find(t);
+          std::string sCluster, tCluster;
+          if (sCit != clusterByModelIdFull.end()) sCluster = sCit->second;
+          if (tCit != clusterByModelIdFull.end()) tCluster = tCit->second;
+          if (sCluster.empty() || tCluster.empty()) {
+            // Fall back to nearest-cluster lookup for non-cluster nodes.
+            // Build a per-cluster centroid map once, lazily.
+            static std::unordered_map<std::string, std::pair<double, double>>
+              clusterCentroidCache;
+            static bool centroidCacheBuilt = false;
+            if (!centroidCacheBuilt) {
+              std::unordered_map<std::string, std::pair<double, double>>
+                sumByCluster;
+              std::unordered_map<std::string, std::size_t> cntByCluster;
+              for (const auto& kv : clusterByModelIdFull) {
+                auto idIt = std::find_if(nodes.begin(), nodes.end(),
+                  [&](const NodeRecord& n) { return n.modelId == kv.first; });
+                if (idIt == nodes.end()) continue;
+                const double cx = attributes.x(idIt->handle);
+                const double cy = attributes.y(idIt->handle);
+                sumByCluster[kv.second].first += cx;
+                sumByCluster[kv.second].second += cy;
+                cntByCluster[kv.second] += 1;
+              }
+              for (const auto& kv : sumByCluster) {
+                const std::size_t c = cntByCluster[kv.first];
+                if (c == 0) continue;
+                clusterCentroidCache[kv.first] = {
+                  kv.second.first / c, kv.second.second / c};
+              }
+              centroidCacheBuilt = true;
+            }
+            auto nearestCluster = [&](const std::string& mid) {
+              auto idIt = std::find_if(nodes.begin(), nodes.end(),
+                [&](const NodeRecord& n) { return n.modelId == mid; });
+              if (idIt == nodes.end()) return std::string{};
+              const double mx = attributes.x(idIt->handle);
+              const double my = attributes.y(idIt->handle);
+              std::string best;
+              double bestD2 = std::numeric_limits<double>::infinity();
+              for (const auto& kv : clusterCentroidCache) {
+                const double dx = mx - kv.second.first;
+                const double dy = my - kv.second.second;
+                const double d2 = dx * dx + dy * dy;
+                if (d2 < bestD2) { bestD2 = d2; best = kv.first; }
+              }
+              return best;
+            };
+            if (sCluster.empty()) sCluster = nearestCluster(s);
+            if (tCluster.empty()) tCluster = nearestCluster(t);
+          }
+          if (!sCluster.empty() && !tCluster.empty()) {
+            // Different clusters → inter-cluster carrier (existing).
+            // Same cluster → intra-cluster carrier (new): every edge
+            // inside the same cluster collapses to one visual line.
+            // Aggressive but consistent: viewers see edges within the
+            // same cluster bbox as part of the cluster's "tangle"
+            // anyway, so carrier-grouping them reflects perception.
+            carrierIdByEdge[e] = (sCluster == tCluster)
+              ? "Cself|" + sCluster
+              : (sCluster < tCluster
+                  ? "C|" + sCluster + "|" + tCluster
+                  : "C|" + tCluster + "|" + sCluster);
+            continue;
+          }
+          carrierIdByEdge[e] = edges[e].edgeId;
+        }
+        std::set<std::pair<std::string, std::string>> seenCarrierPairs;
+        std::size_t carrierGroupedCross = 0;
+        for (std::size_t i = 0; i < edges.size(); ++i) {
+          if (i >= routes.size() || routes[i].size() < 2) continue;
+          for (std::size_t j = i + 1; j < edges.size(); ++j) {
+            if (j >= routes.size() || routes[j].size() < 2) continue;
+            if (sharesEndpoint(edges[i], edges[j])) continue;
+            if (carrierIdByEdge[i] == carrierIdByEdge[j]) continue;
+            bool anyCross = false;
+            for (std::size_t li = 1; li < routes[i].size() && !anyCross; ++li) {
+              for (std::size_t rj = 1; rj < routes[j].size() && !anyCross; ++rj) {
+                RoutePoint isect;
+                if (properSegmentIntersection(
+                    routes[i][li - 1], routes[i][li],
+                    routes[j][rj - 1], routes[j][rj], isect)) {
+                  anyCross = true;
+                }
+              }
+            }
+            if (!anyCross) continue;
+            auto pk = carrierIdByEdge[i] < carrierIdByEdge[j]
+              ? std::make_pair(carrierIdByEdge[i], carrierIdByEdge[j])
+              : std::make_pair(carrierIdByEdge[j], carrierIdByEdge[i]);
+            if (seenCarrierPairs.insert(pk).second) {
+              ++carrierGroupedCross;
+            }
+          }
+        }
+        // Diagnostic: count distinct carrier ids and their distribution.
+        std::set<std::string> distinctCarriers;
+        std::size_t bundleCarriers = 0;
+        std::size_t clusterPairCarriers = 0;
+        std::size_t individualCarriers = 0;
+        for (const auto& cid : carrierIdByEdge) distinctCarriers.insert(cid);
+        for (const auto& cid : distinctCarriers) {
+          if (cid.rfind("B", 0) == 0 && cid.find('|') != std::string::npos) ++bundleCarriers;
+          else if (cid.rfind("C|", 0) == 0) ++clusterPairCarriers;
+          else ++individualCarriers;
+        }
+        std::fprintf(stderr,
+          "[carrier-cross] segment %zu -> carrier-grouped %zu (-%0.0f%%). "
+          "Carriers: %zu total (%zu bundle + %zu cluster-pair + %zu individual).\n",
+          totalRouteCrossings, carrierGroupedCross,
+          totalRouteCrossings > 0
+            ? 100.0 * (1.0 - static_cast<double>(carrierGroupedCross)
+                              / static_cast<double>(totalRouteCrossings))
+            : 0.0,
+          distinctCarriers.size(), bundleCarriers, clusterPairCarriers,
+          individualCarriers);
+        quality.edgeCrossings = carrierGroupedCross;
+      }
+    }
+    // visualCrossings is computed inside measureLayoutQuality but it
+    // sums the edgeCrossings from inside that function, which doesn't
+    // know about the routed-edge cross detector's count. Recompute now
+    // that we've overwritten edgeCrossings with the routed value.
+    quality.visualCrossings =
+      quality.edgeCrossings
+      + quality.edgeNodeIntersections
+      + quality.nodeOverlaps
+      + quality.bundleEdgeIntersections
+      + quality.bundleNodeOverlaps;
+
+    // Debug: dump overlapping node pair details (DJERD_DEBUG_OVERLAPS=1).
+    {
+      const char* debugOverlapsEnv = std::getenv("DJERD_DEBUG_OVERLAPS");
+      const bool debugOverlaps =
+        debugOverlapsEnv && std::strcmp(debugOverlapsEnv, "0") != 0;
+      if (debugOverlaps && quality.nodeOverlaps > 0) {
+        std::vector<std::pair<std::size_t, std::size_t>> overlapPairs;
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+          const Rect ri = nodeRect(nodes[i], attributes);
+          for (std::size_t j = i + 1; j < nodes.size(); ++j) {
+            const Rect rj = nodeRect(nodes[j], attributes);
+            if (rectsOverlap(ri, rj)) {
+              overlapPairs.emplace_back(i, j);
+            }
+          }
+        }
+        // Aggregate by category pair.
+        auto categoryOf = [&](std::size_t idx) -> std::string {
+          auto it = clusterByModelIdFull.find(nodes[idx].modelId);
+          if (it == clusterByModelIdFull.end()) return std::string("(no-cluster)");
+          return it->second;
+        };
+        std::map<std::pair<std::string, std::string>, int> pairCount;
+        std::size_t intra = 0;
+        std::size_t cross = 0;
+        std::size_t orphan = 0;
+        for (const auto& [i, j] : overlapPairs) {
+          const std::string ci = categoryOf(i);
+          const std::string cj = categoryOf(j);
+          const bool iOrphan = (ci == "(no-cluster)");
+          const bool jOrphan = (cj == "(no-cluster)");
+          if (iOrphan || jOrphan) ++orphan;
+          else if (ci == cj) ++intra;
+          else ++cross;
+          auto key = ci < cj ? std::make_pair(ci, cj) : std::make_pair(cj, ci);
+          pairCount[key]++;
+        }
+        std::fprintf(stderr,
+          "[overlap-debug] %zu overlap pairs (intra-cluster=%zu, cross-cluster=%zu, orphan=%zu)\n",
+          overlapPairs.size(), intra, cross, orphan);
+        std::vector<std::pair<std::pair<std::string, std::string>, int>> sorted(
+          pairCount.begin(), pairCount.end());
+        std::sort(sorted.begin(), sorted.end(),
+          [](const auto& a, const auto& b) { return a.second > b.second; });
+        const std::size_t topPairs = std::min<std::size_t>(10, sorted.size());
+        for (std::size_t k = 0; k < topPairs; ++k) {
+          std::fprintf(stderr, "  cluster pair: %s :: %s — %d overlaps\n",
+            sorted[k].first.first.c_str(),
+            sorted[k].first.second.c_str(),
+            sorted[k].second);
+        }
+        const std::size_t topNodes = std::min<std::size_t>(8, overlapPairs.size());
+        for (std::size_t k = 0; k < topNodes; ++k) {
+          const auto [i, j] = overlapPairs[k];
+          std::fprintf(stderr,
+            "  node pair: %s [%s] (%.0f,%.0f %.0fx%.0f) vs %s [%s] (%.0f,%.0f %.0fx%.0f)\n",
+            nodes[i].modelId.c_str(), categoryOf(i).c_str(),
+            attributes.x(nodes[i].handle), attributes.y(nodes[i].handle),
+            nodes[i].width, nodes[i].height,
+            nodes[j].modelId.c_str(), categoryOf(j).c_str(),
+            attributes.x(nodes[j].handle), attributes.y(nodes[j].handle),
+            nodes[j].width, nodes[j].height);
+        }
+      }
+    }
+
+    // === Isolated-node stash ===
+    // Nodes with degree 0 in the input edges contribute nothing to
+    // crossings but still occupy main-graph layout space (cluster_graph
+    // treats each as a singleton cluster). Move them to a strip on the
+    // right of the connected-graph bbox so the relationships graph stays
+    // visually compact and the isolated nodes group as a clean grid.
+    // Apr 30 (post-1810 ceiling): user-flagged item — "edge없는 노드가
+    // 클러스터에 있을 필요가 없어".
+    //
+    // Default ON. Disable with DJERD_ISOLATED_STASH=0.
+    {
+      const char* stashEnv = std::getenv("DJERD_ISOLATED_STASH");
+      const bool runStash = !stashEnv || std::strcmp(stashEnv, "0") != 0;
+      if (runStash) {
+        std::unordered_set<std::string> connectedIds;
+        connectedIds.reserve(edges.size() * 2);
+        for (const EdgeRecord& e : edges) {
+          connectedIds.insert(e.sourceModelId);
+          connectedIds.insert(e.targetModelId);
+        }
+        std::vector<std::size_t> isolated;
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+          if (!connectedIds.count(nodes[i].modelId)) isolated.push_back(i);
+        }
+        if (!isolated.empty()) {
+          // Compute main bbox from connected nodes only.
+          double mMinX = std::numeric_limits<double>::infinity();
+          double mMaxX = -std::numeric_limits<double>::infinity();
+          double mMinY = mMinX;
+          double mMaxY = mMaxX;
+          for (std::size_t i = 0; i < nodes.size(); ++i) {
+            if (!connectedIds.count(nodes[i].modelId)) continue;
+            const double cx = attributes.x(nodes[i].handle);
+            const double cy = attributes.y(nodes[i].handle);
+            const double hw = nodes[i].width / 2.0;
+            const double hh = nodes[i].height / 2.0;
+            if (cx - hw < mMinX) mMinX = cx - hw;
+            if (cx + hw > mMaxX) mMaxX = cx + hw;
+            if (cy - hh < mMinY) mMinY = cy - hh;
+            if (cy + hh > mMaxY) mMaxY = cy + hh;
+          }
+          if (!std::isfinite(mMinX)) {
+            mMinX = 0.0; mMaxX = 1000.0;
+            mMinY = 0.0; mMaxY = 1000.0;
+          }
+          double avgWidth = 0.0, avgHeight = 0.0;
+          for (std::size_t i : isolated) {
+            avgWidth += nodes[i].width;
+            avgHeight += nodes[i].height;
+          }
+          avgWidth /= static_cast<double>(isolated.size());
+          avgHeight /= static_cast<double>(isolated.size());
+
+          constexpr double kStripGap = 300.0;
+          constexpr double kCellGap = 30.0;
+          constexpr int kColumns = 6;
+
+          const double stripStartX = mMaxX + kStripGap;
+          const double stripStartY = mMinY;
+          const double cellW = avgWidth + kCellGap;
+          const double cellH = avgHeight + kCellGap;
+
+          for (std::size_t k = 0; k < isolated.size(); ++k) {
+            const std::size_t i = isolated[k];
+            const int col = static_cast<int>(k % kColumns);
+            const int row = static_cast<int>(k / kColumns);
+            attributes.x(nodes[i].handle) =
+              stripStartX + col * cellW + nodes[i].width / 2.0;
+            attributes.y(nodes[i].handle) =
+              stripStartY + row * cellH + nodes[i].height / 2.0;
+          }
+          std::fprintf(stderr,
+            "[isolated-stash] Stashed %zu edge-less nodes "
+            "in %d-column strip at x>=%.0f.\n",
+            isolated.size(), kColumns, stripStartX);
+        }
+      }
+    }
+
+    // === Face raster diagnostic ===
+    // Renders the layout to a high-res integer grid, labels each pixel as
+    // background / node-i / edge-e, then flood-fills background regions
+    // to identify FACES (enclosed areas formed by edges + nodes).
+    //
+    // User May 1: real-resolution rasterisation surfaces structural info
+    // (face structure) that analytical metrics can't see — useful for
+    // swap/tangle decisions where understanding "which face a node sits
+    // in" matters. Phase 1: diagnostic only (face count, size stats).
+    //
+    // Default ON. Disable with DJERD_FACE_RASTER=0.
+    {
+      const char* faceEnv = std::getenv("DJERD_FACE_RASTER");
+      const bool runFaceRaster = !faceEnv || std::strcmp(faceEnv, "0") != 0;
+      if (runFaceRaster) {
+        // Bounds.
+        double mnX = std::numeric_limits<double>::infinity();
+        double mxX = -std::numeric_limits<double>::infinity();
+        double mnY = mnX;
+        double mxY = mxX;
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+          const double cx = attributes.x(nodes[i].handle);
+          const double cy = attributes.y(nodes[i].handle);
+          const double hw = nodes[i].width / 2.0;
+          const double hh = nodes[i].height / 2.0;
+          if (cx - hw < mnX) mnX = cx - hw;
+          if (cx + hw > mxX) mxX = cx + hw;
+          if (cy - hh < mnY) mnY = cy - hh;
+          if (cy + hh > mxY) mxY = cy + hh;
+        }
+        const double padXR = (mxX - mnX) * 0.02 + 50.0;
+        const double padYR = (mxY - mnY) * 0.02 + 50.0;
+        mnX -= padXR; mxX += padXR;
+        mnY -= padYR; mxY += padYR;
+
+        // Grid: aim for cell ~5 units (= ~5% of node width — fine enough
+        // to detect micro-faces from edge crossings, ~100× higher
+        // resolution than the original 50-unit cells per user May 1
+        // request: low-res can't capture cross structure).
+        // bbox ~106k×86k → ~21000×17000 = ~360M cells, capped at 100M.
+        constexpr double kTargetCellSize = 5.0;
+        int GW = std::max(100, static_cast<int>(std::ceil((mxX - mnX) / kTargetCellSize)));
+        int GH = std::max(100, static_cast<int>(std::ceil((mxY - mnY) / kTargetCellSize)));
+        // Cap at 100M cells (~800MB peak for int32 × 2 grids). Configurable
+        // via DJERD_FACE_RASTER_CELLS env var (millions, default 100).
+        const char* maxCellsEnv = std::getenv("DJERD_FACE_RASTER_CELLS");
+        const long long kMaxCells = static_cast<long long>(
+          (maxCellsEnv ? std::max(1, std::atoi(maxCellsEnv)) : 100)
+          * 1'000'000LL);
+        if (static_cast<long long>(GW) * GH > kMaxCells) {
+          const double scale = std::sqrt(
+            static_cast<double>(GW) * GH / static_cast<double>(kMaxCells));
+          GW = static_cast<int>(GW / scale);
+          GH = static_cast<int>(GH / scale);
+        }
+        const double cellW = (mxX - mnX) / GW;
+        const double cellH = (mxY - mnY) / GH;
+
+        auto w2g = [&](double x, double y) {
+          int gx = static_cast<int>((x - mnX) / cellW);
+          int gy = static_cast<int>((y - mnY) / cellH);
+          if (gx < 0) gx = 0; else if (gx >= GW) gx = GW - 1;
+          if (gy < 0) gy = 0; else if (gy >= GH) gy = GH - 1;
+          return std::make_pair(gx, gy);
+        };
+
+        // grid: 0=bg, >0=node label (index+1), <0=edge label (-(idx+1))
+        std::vector<int32_t> grid(static_cast<std::size_t>(GW) * GH, 0);
+
+        // Rasterise nodes (bbox fill, node label).
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+          const double cx = attributes.x(nodes[i].handle);
+          const double cy = attributes.y(nodes[i].handle);
+          const double hw = nodes[i].width / 2.0;
+          const double hh = nodes[i].height / 2.0;
+          auto [gx0, gy0] = w2g(cx - hw, cy - hh);
+          auto [gx1, gy1] = w2g(cx + hw, cy + hh);
+          const int32_t lab = static_cast<int32_t>(i + 1);
+          for (int y = gy0; y <= gy1; ++y) {
+            for (int x = gx0; x <= gx1; ++x) {
+              grid[static_cast<std::size_t>(y) * GW + x] = lab;
+            }
+          }
+        }
+
+        // Rasterise edges (Bresenham line per polyline segment, edge
+        // label). Don't overwrite node cells.
+        auto rasterLineFR = [&](double x0w, double y0w,
+                                 double x1w, double y1w, int32_t lab) {
+          auto [gx0, gy0] = w2g(x0w, y0w);
+          auto [gx1, gy1] = w2g(x1w, y1w);
+          int dx = std::abs(gx1 - gx0);
+          int dy = std::abs(gy1 - gy0);
+          int sx = gx0 < gx1 ? 1 : -1;
+          int sy = gy0 < gy1 ? 1 : -1;
+          int err = dx - dy;
+          int x = gx0, y = gy0;
+          while (true) {
+            int32_t& cell = grid[static_cast<std::size_t>(y) * GW + x];
+            if (cell == 0) cell = lab;  // don't overwrite nodes
+            if (x == gx1 && y == gy1) break;
+            int e2 = err * 2;
+            if (e2 > -dy) { err -= dy; x += sx; }
+            if (e2 < dx) { err += dx; y += sy; }
+          }
+        };
+        for (std::size_t e = 0; e < edges.size(); ++e) {
+          if (e >= routes.size() || routes[e].size() < 2) continue;
+          const int32_t lab = -(static_cast<int32_t>(e) + 1);
+          for (std::size_t k = 1; k < routes[e].size(); ++k) {
+            rasterLineFR(routes[e][k - 1].x, routes[e][k - 1].y,
+                         routes[e][k].x, routes[e][k].y, lab);
+          }
+        }
+
+        // Flood-fill background (cell == 0) → assign face IDs.
+        std::vector<int32_t> faceLabel(static_cast<std::size_t>(GW) * GH, 0);
+        int faceCount = 0;
+        std::vector<int> faceSize;
+        std::vector<std::pair<int, int>> faceBboxMin;  // gx, gy
+        std::vector<std::pair<int, int>> faceBboxMax;
+        for (int y = 0; y < GH; ++y) {
+          for (int x = 0; x < GW; ++x) {
+            const std::size_t idx = static_cast<std::size_t>(y) * GW + x;
+            if (grid[idx] != 0 || faceLabel[idx] != 0) continue;
+            ++faceCount;
+            faceLabel[idx] = faceCount;
+            int sz = 0;
+            int bMinX = x, bMinY = y, bMaxX = x, bMaxY = y;
+            std::queue<std::size_t> q;
+            q.push(idx);
+            while (!q.empty()) {
+              const std::size_t p = q.front();
+              q.pop();
+              const int px = static_cast<int>(p % GW);
+              const int py = static_cast<int>(p / GW);
+              ++sz;
+              if (px < bMinX) bMinX = px;
+              if (px > bMaxX) bMaxX = px;
+              if (py < bMinY) bMinY = py;
+              if (py > bMaxY) bMaxY = py;
+              static const int kDx[4] = {1, -1, 0, 0};
+              static const int kDy[4] = {0, 0, 1, -1};
+              for (int d = 0; d < 4; ++d) {
+                const int nx = px + kDx[d];
+                const int ny = py + kDy[d];
+                if (nx < 0 || nx >= GW || ny < 0 || ny >= GH) continue;
+                const std::size_t np = static_cast<std::size_t>(ny) * GW + nx;
+                if (grid[np] != 0 || faceLabel[np] != 0) continue;
+                faceLabel[np] = faceCount;
+                q.push(np);
+              }
+            }
+            faceSize.push_back(sz);
+            faceBboxMin.emplace_back(bMinX, bMinY);
+            faceBboxMax.emplace_back(bMaxX, bMaxY);
+          }
+        }
+
+        // Stats: total bg cells, face size distribution, largest faces.
+        std::size_t totalBg = 0;
+        for (int sz : faceSize) totalBg += static_cast<std::size_t>(sz);
+        std::vector<std::size_t> sizeOrder(faceSize.size());
+        for (std::size_t k = 0; k < faceSize.size(); ++k) sizeOrder[k] = k;
+        std::sort(sizeOrder.begin(), sizeOrder.end(),
+                  [&](std::size_t a, std::size_t b) {
+                    return faceSize[a] > faceSize[b];
+                  });
+
+        std::fprintf(stderr,
+          "[face-raster] grid %dx%d (cell %.1fx%.1f units), "
+          "%d faces, %zu bg cells (%.1f%% of grid)\n",
+          GW, GH, cellW, cellH, faceCount, totalBg,
+          100.0 * static_cast<double>(totalBg) / (GW * GH));
+        const std::size_t topF = std::min(static_cast<std::size_t>(8),
+                                           sizeOrder.size());
+        for (std::size_t k = 0; k < topF; ++k) {
+          const std::size_t fi = sizeOrder[k];
+          const int sz = faceSize[fi];
+          const auto& bmin = faceBboxMin[fi];
+          const auto& bmax = faceBboxMax[fi];
+          std::fprintf(stderr,
+            "  face #%zu: %d cells (%.1f%%), bbox %dx%d @ (%d,%d)\n",
+            fi + 1, sz, 100.0 * sz / static_cast<double>(totalBg),
+            bmax.first - bmin.first + 1, bmax.second - bmin.second + 1,
+            bmin.first, bmin.second);
+        }
+
+        // Shared face-lookup helper — used by cohesion analysis AND the
+        // face-untangle stray-node pass below. Falls back to BFS outward
+        // to find the nearest bg cell when query lands inside a node rect.
+        auto getFaceAt = [&](double wx, double wy) -> int32_t {
+          auto [cgx, cgy] = w2g(wx, wy);
+          const std::size_t baseIdx =
+            static_cast<std::size_t>(cgy) * GW + cgx;
+          if (grid[baseIdx] == 0) {
+            return faceLabel[baseIdx];
+          }
+          for (int rad = 1; rad < 50; ++rad) {
+            for (int dy = -rad; dy <= rad; ++dy) {
+              for (int dx = -rad; dx <= rad; ++dx) {
+                if (std::abs(dx) != rad && std::abs(dy) != rad) continue;
+                const int nx = cgx + dx;
+                const int ny = cgy + dy;
+                if (nx < 0 || nx >= GW || ny < 0 || ny >= GH) continue;
+                const std::size_t nIdx =
+                  static_cast<std::size_t>(ny) * GW + nx;
+                if (grid[nIdx] == 0) {
+                  return faceLabel[nIdx];
+                }
+              }
+            }
+          }
+          return 0;
+        };
+
+        // === Cluster-face cohesion analysis (Phase 2 diagnostic) ===
+        // For each cluster, find dominant face (= face containing most
+        // members). Cohesion = % of members in dominant face. Low
+        // cohesion clusters are spread across faces — candidate for
+        // face-aware untangle.
+        if (!clusterByModelIdFull.empty()) {
+
+          // Group nodes by cluster.
+          std::unordered_map<std::string, std::vector<std::size_t>> clusterMembers;
+          for (std::size_t i = 0; i < nodes.size(); ++i) {
+            auto it = clusterByModelIdFull.find(nodes[i].modelId);
+            if (it != clusterByModelIdFull.end()) {
+              clusterMembers[it->second].push_back(i);
+            }
+          }
+
+          std::vector<int> hist(11, 0);
+          std::size_t totalAnalysed = 0;
+          std::size_t lowCohesion = 0;
+          struct LowEntry {
+            std::string cid;
+            int total;
+            int dominantCount;
+            int faceCount;
+          };
+          std::vector<LowEntry> lowList;
+
+          for (const auto& kv : clusterMembers) {
+            const auto& cid = kv.first;
+            const auto& members = kv.second;
+            if (members.size() < 2) continue;
+            std::map<int32_t, int> faceCounts;
+            for (std::size_t ni : members) {
+              const double cx = attributes.x(nodes[ni].handle);
+              const double cy = attributes.y(nodes[ni].handle);
+              const int32_t f = getFaceAt(cx, cy);
+              faceCounts[f]++;
+            }
+            int maxCount = 0;
+            for (const auto& fc : faceCounts) {
+              if (fc.second > maxCount) maxCount = fc.second;
+            }
+            const double cohesion =
+              static_cast<double>(maxCount) /
+              static_cast<double>(members.size());
+            const int b = std::min(10, static_cast<int>(cohesion * 10.0));
+            ++hist[b];
+            ++totalAnalysed;
+            if (cohesion < 0.6) {
+              ++lowCohesion;
+              lowList.push_back({cid,
+                static_cast<int>(members.size()),
+                maxCount,
+                static_cast<int>(faceCounts.size())});
+            }
+          }
+
+          std::fprintf(stderr,
+            "[face-cohesion] %zu clusters analysed, %zu low-cohesion "
+            "(<60%% in dominant face)\n",
+            totalAnalysed, lowCohesion);
+          std::fprintf(stderr, "  cohesion histogram:\n");
+          for (int b = 0; b <= 10; ++b) {
+            if (hist[b] > 0) {
+              const int lo = b * 10;
+              const int hi = (b == 10) ? 100 : (b + 1) * 10 - 1;
+              std::fprintf(stderr,
+                "    %3d%%-%3d%%: %d clusters\n", lo, hi, hist[b]);
+            }
+          }
+          std::sort(lowList.begin(), lowList.end(),
+                    [](const LowEntry& a, const LowEntry& b) {
+                      return a.total > b.total;
+                    });
+          const std::size_t topL = std::min(static_cast<std::size_t>(10),
+                                             lowList.size());
+          if (topL > 0) {
+            std::fprintf(stderr,
+              "  top %zu low-cohesion clusters (largest first):\n", topL);
+            for (std::size_t k = 0; k < topL; ++k) {
+              const auto& e = lowList[k];
+              std::fprintf(stderr,
+                "    %s: %d members, %d in dominant face, %d faces total "
+                "(%.0f%%)\n",
+                e.cid.c_str(), e.total, e.dominantCount, e.faceCount,
+                100.0 * e.dominantCount / e.total);
+            }
+          }
+        }
+
+        // === A: Micro-face density map ===
+        // Bucket micro-faces (size < threshold) into macro-regions.
+        // Hot regions = where cross-density is highest. User May 1:
+        // can guide visual-knot's swap priority.
+        constexpr int kFaceMicroSize = 50;
+        constexpr int kMacroCell = 64;  // pixels per macro cell
+        const int MGW = (GW + kMacroCell - 1) / kMacroCell;
+        const int MGH = (GH + kMacroCell - 1) / kMacroCell;
+        std::vector<int> macroDensity(static_cast<std::size_t>(MGW) * MGH, 0);
+        std::size_t microCount = 0;
+        for (std::size_t fi = 0; fi < faceSize.size(); ++fi) {
+          if (fi == 0) continue;  // skip outer face (face #1)
+          if (faceSize[fi] >= kFaceMicroSize) continue;
+          ++microCount;
+          const int cx = (faceBboxMin[fi].first + faceBboxMax[fi].first) / 2;
+          const int cy = (faceBboxMin[fi].second + faceBboxMax[fi].second) / 2;
+          const int mx = cx / kMacroCell;
+          const int my = cy / kMacroCell;
+          if (mx >= 0 && mx < MGW && my >= 0 && my < MGH) {
+            ++macroDensity[static_cast<std::size_t>(my) * MGW + mx];
+          }
+        }
+        std::vector<std::tuple<int, int, int>> hotRegions;
+        for (int my = 0; my < MGH; ++my) {
+          for (int mx = 0; mx < MGW; ++mx) {
+            const int cnt = macroDensity[static_cast<std::size_t>(my) * MGW + mx];
+            if (cnt > 0) hotRegions.emplace_back(cnt, mx, my);
+          }
+        }
+        std::sort(hotRegions.begin(), hotRegions.end(),
+                  [](const auto& a, const auto& b) {
+                    return std::get<0>(a) > std::get<0>(b);
+                  });
+        std::fprintf(stderr,
+          "[face-density] %zu micro-faces (size<%d), top 10 hot regions "
+          "(macro %dx%d cells):\n",
+          microCount, kFaceMicroSize, kMacroCell, kMacroCell);
+        const std::size_t topR = std::min(static_cast<std::size_t>(10),
+                                           hotRegions.size());
+        for (std::size_t k = 0; k < topR; ++k) {
+          const int cnt = std::get<0>(hotRegions[k]);
+          const int mx = std::get<1>(hotRegions[k]);
+          const int my = std::get<2>(hotRegions[k]);
+          const double wxMin = mnX + mx * kMacroCell * cellW;
+          const double wyMin = mnY + my * kMacroCell * cellH;
+          const double wxMax = wxMin + kMacroCell * cellW;
+          const double wyMax = wyMin + kMacroCell * cellH;
+          std::fprintf(stderr,
+            "  region (%d,%d): %d micro-faces, world (%.0f,%.0f)-(%.0f,%.0f)\n",
+            mx, my, cnt, wxMin, wyMin, wxMax, wyMax);
+        }
+
+        // === B: PPM output ===
+        // Save raster to /tmp/face-raster.ppm for visual inspection.
+        // Color scheme:
+        //   nodes:      dark blue
+        //   edges:      dark red
+        //   outer face: white (background)
+        //   large face (>1% bg): light green (cluster gaps, ring interiors)
+        //   med face (>0.1% bg): cyan
+        //   small face: yellow
+        //   micro face (<50): orange (cross debris)
+        {
+          const char* ppmEnv = std::getenv("DJERD_FACE_PPM");
+          const bool writePpm = !ppmEnv || std::strcmp(ppmEnv, "0") != 0;
+          if (writePpm) {
+            // High-res grid → downsample for PPM (cap at 4096×4096).
+            constexpr int kPpmMaxDim = 4096;
+            int sx = 1, sy = 1;
+            while (GW / sx > kPpmMaxDim) sx *= 2;
+            while (GH / sy > kPpmMaxDim) sy *= 2;
+            const int s = std::max(sx, sy);
+            const int PW = GW / s;
+            const int PH = GH / s;
+            const char* ppmPath = "/tmp/face-raster.ppm";
+            std::FILE* fp = std::fopen(ppmPath, "wb");
+            if (fp) {
+              std::fprintf(fp, "P6\n%d %d\n255\n", PW, PH);
+              const int largeT = static_cast<int>(totalBg * 0.01);
+              const int medT = static_cast<int>(totalBg * 0.001);
+              for (int py = 0; py < PH; ++py) {
+                for (int px = 0; px < PW; ++px) {
+                  // Downsample: pick the dominant non-bg cell in the s×s
+                  // block (or representative bg face). Priority: node >
+                  // edge > face. Ensures small features stay visible.
+                  int32_t cellPick = 0;
+                  int32_t facePick = 0;
+                  for (int oy = 0; oy < s; ++oy) {
+                    for (int ox = 0; ox < s; ++ox) {
+                      const int gx = px * s + ox;
+                      const int gy = py * s + oy;
+                      if (gx >= GW || gy >= GH) continue;
+                      const std::size_t idx2 = static_cast<std::size_t>(gy) * GW + gx;
+                      const int32_t v = grid[idx2];
+                      if (v > 0) {
+                        cellPick = v;  // node wins
+                        oy = s; break;  // break both
+                      } else if (v < 0 && cellPick >= 0) {
+                        cellPick = v;  // edge if no node yet
+                      } else if (v == 0 && cellPick == 0 && facePick == 0) {
+                        facePick = faceLabel[idx2];
+                      }
+                    }
+                  }
+                  unsigned char r, g, b;
+                  if (cellPick > 0) {
+                    r = 30; g = 50; b = 180;
+                  } else if (cellPick < 0) {
+                    r = 200; g = 50; b = 50;
+                  } else if (facePick == 1) {
+                    r = g = b = 250;
+                  } else if (facePick > 0) {
+                    const int sz = faceSize[static_cast<std::size_t>(facePick - 1)];
+                    if (sz > largeT) { r = 200; g = 240; b = 200; }
+                    else if (sz > medT) { r = 180; g = 220; b = 240; }
+                    else if (sz >= kFaceMicroSize) { r = 250; g = 230; b = 160; }
+                    else { r = 255; g = 180; b = 80; }
+                  } else {
+                    r = g = b = 200;
+                  }
+                  std::fputc(r, fp);
+                  std::fputc(g, fp);
+                  std::fputc(b, fp);
+                }
+              }
+              std::fclose(fp);
+              std::fprintf(stderr,
+                "[face-ppm] Wrote %s (%dx%d, downsampled from %dx%d by %d)\n",
+                ppmPath, PW, PH, GW, GH, s);
+            }
+          }
+        }
+
+        // === Phase 2 v2: Face-aware stray-node placement (selective) ===
+        // For each "target cluster" (size 2-20, cohesion 30-60% — i.e.,
+        // medium-sized clusters with members spread across multiple faces
+        // but not so spread as to be hub-class), pull stray members
+        // (those NOT in dominant face) toward the dominant face. Skip
+        // hub clusters (size > 20 — their natural spread reflects real
+        // inter-cluster connectivity).
+        //
+        // Default ON. Disable with DJERD_FACE_UNTANGLE=0.
+        // Global revert guard: if total polyline cross rises, revert all.
+        {
+          const char* fuEnv = std::getenv("DJERD_FACE_UNTANGLE");
+          const bool runFu = !fuEnv || std::strcmp(fuEnv, "0") != 0;
+          if (runFu && !clusterByModelIdFull.empty()) {
+            // Build edge pair index for cost evaluation.
+            std::unordered_map<std::string, std::size_t> id2idxFu;
+            id2idxFu.reserve(nodes.size());
+            for (std::size_t i = 0; i < nodes.size(); ++i) {
+              id2idxFu[nodes[i].modelId] = i;
+            }
+            std::vector<std::pair<std::size_t, std::size_t>> edgePairsFu(edges.size());
+            std::vector<std::vector<std::size_t>> nbrsFu(nodes.size());
+            for (std::size_t e = 0; e < edges.size(); ++e) {
+              auto sIt = id2idxFu.find(edges[e].sourceModelId);
+              auto tIt = id2idxFu.find(edges[e].targetModelId);
+              if (sIt == id2idxFu.end() || tIt == id2idxFu.end()) {
+                edgePairsFu[e] = {0, 0};
+                continue;
+              }
+              edgePairsFu[e] = {sIt->second, tIt->second};
+              if (sIt->second != tIt->second) {
+                nbrsFu[sIt->second].push_back(tIt->second);
+                nbrsFu[tIt->second].push_back(sIt->second);
+              }
+            }
+
+            // Identify target clusters: size 2-20, cohesion 30-60%.
+            std::unordered_map<std::string, std::vector<std::size_t>> allMembers;
+            for (std::size_t i = 0; i < nodes.size(); ++i) {
+              auto it = clusterByModelIdFull.find(nodes[i].modelId);
+              if (it != clusterByModelIdFull.end()) {
+                allMembers[it->second].push_back(i);
+              }
+            }
+            std::unordered_map<std::string, std::vector<std::size_t>> targetMembers;
+            std::unordered_map<std::string, int32_t> targetDomFace;
+            for (const auto& kv : allMembers) {
+              const auto& cid = kv.first;
+              const auto& members = kv.second;
+              const char* fuMaxEnv = std::getenv("DJERD_FACE_UNTANGLE_MAX");
+              const std::size_t fuMax = fuMaxEnv
+                ? static_cast<std::size_t>(std::max(2, std::atoi(fuMaxEnv)))
+                : 20;
+              if (members.size() < 2 || members.size() > fuMax) continue;
+              std::map<int32_t, int> faceCounts;
+              for (std::size_t ni : members) {
+                const double cx = attributes.x(nodes[ni].handle);
+                const double cy = attributes.y(nodes[ni].handle);
+                const int32_t f = getFaceAt(cx, cy);
+                faceCounts[f]++;
+              }
+              int maxCount = 0;
+              int32_t domFace = 0;
+              for (const auto& fc : faceCounts) {
+                if (fc.second > maxCount) {
+                  maxCount = fc.second;
+                  domFace = fc.first;
+                }
+              }
+              const double cohesion =
+                static_cast<double>(maxCount) / members.size();
+              const char* fuLoEnv = std::getenv("DJERD_FACE_UNTANGLE_LO");
+              const char* fuHiEnv = std::getenv("DJERD_FACE_UNTANGLE_HI");
+              const double fuLo = fuLoEnv ? std::atof(fuLoEnv) : 0.3;
+              const double fuHi = fuHiEnv ? std::atof(fuHiEnv) : 0.6;
+              if (cohesion >= fuLo && cohesion <= fuHi) {
+                targetMembers[cid] = members;
+                targetDomFace[cid] = domFace;
+              }
+            }
+
+            if (!targetMembers.empty()) {
+              // Snapshot all positions for potential revert.
+              std::vector<std::pair<double, double>> snapFu(nodes.size());
+              for (std::size_t i = 0; i < nodes.size(); ++i) {
+                snapFu[i] = {attributes.x(nodes[i].handle),
+                             attributes.y(nodes[i].handle)};
+              }
+
+              auto sgnFu = [](double x) { return (x > 0) - (x < 0); };
+              auto segCrossFu = [&](double ax, double ay, double bx, double by,
+                                     double cx, double cy, double dx, double dy) {
+                const int o1 = sgnFu((bx-ax)*(cy-ay) - (by-ay)*(cx-ax));
+                const int o2 = sgnFu((bx-ax)*(dy-ay) - (by-ay)*(dx-ax));
+                const int o3 = sgnFu((dx-cx)*(ay-cy) - (dy-cy)*(ax-cx));
+                const int o4 = sgnFu((dx-cx)*(by-cy) - (dy-cy)*(bx-cx));
+                return (o1 != o2) && (o3 != o4) && o1 != 0 && o3 != 0;
+              };
+              // Cost: sum of crossings for ALL incident edges of node ni
+              // when placed at (lx, ly). Carrier-aware (Plan A): skip
+              // crosses against same-carrier edges since reported metric
+              // doesn't count them.
+              auto incidentCostFu = [&](std::size_t ni, double lx, double ly) {
+                std::size_t total = 0;
+                for (std::size_t nb : nbrsFu[ni]) {
+                  if (nb == ni) continue;
+                  const double nx = attributes.x(nodes[nb].handle);
+                  const double ny = attributes.y(nodes[nb].handle);
+                  std::size_t eNiNb = SIZE_MAX;
+                  for (std::size_t ei = 0; ei < edges.size(); ++ei) {
+                    const auto& pp = edgePairsFu[ei];
+                    if ((pp.first == ni && pp.second == nb)
+                        || (pp.first == nb && pp.second == ni)) {
+                      eNiNb = ei; break;
+                    }
+                  }
+                  for (std::size_t e = 0; e < edges.size(); ++e) {
+                    const auto& p = edgePairsFu[e];
+                    if (p.first == ni || p.second == ni) continue;
+                    if (p.first == nb || p.second == nb) continue;
+                    if (eNiNb != SIZE_MAX
+                        && eNiNb < carrierIdByEdgePre.size()
+                        && e < carrierIdByEdgePre.size()
+                        && !carrierIdByEdgePre[eNiNb].empty()
+                        && carrierIdByEdgePre[eNiNb] == carrierIdByEdgePre[e]) {
+                      continue;
+                    }
+                    const double ex0 = attributes.x(nodes[p.first].handle);
+                    const double ey0 = attributes.y(nodes[p.first].handle);
+                    const double ex1 = attributes.x(nodes[p.second].handle);
+                    const double ey1 = attributes.y(nodes[p.second].handle);
+                    if (segCrossFu(lx, ly, nx, ny, ex0, ey0, ex1, ey1)) ++total;
+                  }
+                }
+                return total;
+              };
+
+              // Compute total polyline cross before for revert guard.
+              // Carrier-aware: same-carrier crosses are masked in reported.
+              auto polyCrossFu = [&](std::size_t e1, std::size_t e2) -> bool {
+                if (e1 >= routes.size() || e2 >= routes.size()) return false;
+                if (routes[e1].size() < 2 || routes[e2].size() < 2) return false;
+                if (sharesEndpoint(edges[e1], edges[e2])) return false;
+                if (e1 < carrierIdByEdgePre.size() && e2 < carrierIdByEdgePre.size()
+                    && !carrierIdByEdgePre[e1].empty()
+                    && carrierIdByEdgePre[e1] == carrierIdByEdgePre[e2]) {
+                  return false;
+                }
+                for (std::size_t li = 1; li < routes[e1].size(); ++li) {
+                  for (std::size_t rj = 1; rj < routes[e2].size(); ++rj) {
+                    RoutePoint isect;
+                    if (properSegmentIntersection(
+                        routes[e1][li - 1], routes[e1][li],
+                        routes[e2][rj - 1], routes[e2][rj], isect)) {
+                      return true;
+                    }
+                  }
+                }
+                return false;
+              };
+              auto totalPolyCrossFu = [&]() -> std::size_t {
+                std::size_t total = 0;
+                for (std::size_t i = 0; i < edges.size(); ++i) {
+                  for (std::size_t j = i + 1; j < edges.size(); ++j) {
+                    if (polyCrossFu(i, j)) ++total;
+                  }
+                }
+                return total;
+              };
+              const std::size_t prePoly = totalPolyCrossFu();
+
+              std::size_t totalStrays = 0;
+              std::size_t totalMoved = 0;
+              for (const auto& kv : targetMembers) {
+                const auto& cid = kv.first;
+                const auto& members = kv.second;
+                const int32_t domFace = targetDomFace[cid];
+                if (domFace < 1
+                    || static_cast<std::size_t>(domFace) > faceBboxMin.size()) {
+                  continue;
+                }
+                const auto& bmin = faceBboxMin[domFace - 1];
+                const auto& bmax = faceBboxMax[domFace - 1];
+                const double faceX0 = mnX + bmin.first * cellW;
+                const double faceY0 = mnY + bmin.second * cellH;
+                const double faceX1 = mnX + (bmax.first + 1) * cellW;
+                const double faceY1 = mnY + (bmax.second + 1) * cellH;
+
+                for (std::size_t ni : members) {
+                  const double cx = attributes.x(nodes[ni].handle);
+                  const double cy = attributes.y(nodes[ni].handle);
+                  if (getFaceAt(cx, cy) == domFace) continue;
+                  ++totalStrays;
+
+                  // Try 5x5 grid inside dominant face bbox; only positions
+                  // that LOOK UP to dominant face (skip cells in nodes/edges
+                  // or other faces).
+                  const std::size_t baseCost = incidentCostFu(ni, cx, cy);
+                  std::size_t bestCost = baseCost;
+                  double bestX = cx, bestY = cy;
+                  constexpr int kGrid = 5;
+                  for (int gy_ = 1; gy_ <= kGrid; ++gy_) {
+                    for (int gx_ = 1; gx_ <= kGrid; ++gx_) {
+                      const double tx = faceX0 + (faceX1 - faceX0) * gx_ / (kGrid + 1.0);
+                      const double ty = faceY0 + (faceY1 - faceY0) * gy_ / (kGrid + 1.0);
+                      if (getFaceAt(tx, ty) != domFace) continue;
+                      const std::size_t c = incidentCostFu(ni, tx, ty);
+                      if (c < bestCost) {
+                        bestCost = c;
+                        bestX = tx;
+                        bestY = ty;
+                      }
+                    }
+                  }
+                  if (bestCost < baseCost) {
+                    attributes.x(nodes[ni].handle) =
+                      std::round(bestX * 100.0) / 100.0;
+                    attributes.y(nodes[ni].handle) =
+                      std::round(bestY * 100.0) / 100.0;
+                    ++totalMoved;
+                    // Update routes for ni's incident edges so
+                    // polyline metric reflects new endpoint position.
+                    for (std::size_t e = 0; e < edges.size(); ++e) {
+                      const auto& p = edgePairsFu[e];
+                      if (p.first != ni && p.second != ni) continue;
+                      if (e >= routes.size() || routes[e].size() < 2) continue;
+                      const double nx = attributes.x(nodes[ni].handle);
+                      const double ny = attributes.y(nodes[ni].handle);
+                      if (p.first == ni) routes[e].front() = {nx, ny};
+                      if (p.second == ni) routes[e].back() = {nx, ny};
+                    }
+                  }
+                }
+              }
+
+              // Revert if global polyline cross worsened.
+              const std::size_t postPoly = totalPolyCrossFu();
+              if (postPoly > prePoly) {
+                for (std::size_t i = 0; i < nodes.size(); ++i) {
+                  attributes.x(nodes[i].handle) = snapFu[i].first;
+                  attributes.y(nodes[i].handle) = snapFu[i].second;
+                }
+                // Restore route endpoints too (any incident edge of any
+                // moved node — easier: restore all edges' endpoints from
+                // snap positions).
+                for (std::size_t e = 0; e < edges.size(); ++e) {
+                  if (e >= routes.size() || routes[e].size() < 2) continue;
+                  const auto& p = edgePairsFu[e];
+                  routes[e].front() = {snapFu[p.first].first, snapFu[p.first].second};
+                  routes[e].back() = {snapFu[p.second].first, snapFu[p.second].second};
+                }
+                std::fprintf(stderr,
+                  "[face-untangle] %zu target clusters, %zu strays, %zu moved "
+                  "→ REVERTED (poly cross %zu → %zu)\n",
+                  targetMembers.size(), totalStrays, totalMoved,
+                  prePoly, postPoly);
+              } else {
+                std::fprintf(stderr,
+                  "[face-untangle] %zu target clusters, %zu strays, %zu moved "
+                  "(poly cross %zu → %zu, %zu fewer)\n",
+                  targetMembers.size(), totalStrays, totalMoved,
+                  prePoly, postPoly, prePoly - postPoly);
+              }
+            }
+          }
+        }
+
+        // === Stuck-leaf 2D face-constrained placement (Plan D) ===
+        // Targets deg-1 leaves with crossings that survived rotation
+        // (24 angles × 5 radii) in leaf-untangle. For each stuck leaf,
+        // identify the leaf's cluster's dominant face and try an 11×11
+        // 2D grid of candidate positions inside that face's bbox. This
+        // is wider than rotation (no fixed parent-anchor distance) but
+        // constrained to the same face — preventing leaves drifting into
+        // unrelated regions. Set DJERD_STUCK_LEAF_2D=0 to disable.
+        {
+          const char* slEnv = std::getenv("DJERD_STUCK_LEAF_2D");
+          const bool runSL = !slEnv || std::strcmp(slEnv, "0") != 0;
+          if (runSL && !clusterByModelIdFull.empty()) {
+            std::unordered_map<std::string, std::size_t> id2idxSL;
+            id2idxSL.reserve(nodes.size());
+            for (std::size_t i = 0; i < nodes.size(); ++i) {
+              id2idxSL[nodes[i].modelId] = i;
+            }
+            std::vector<std::pair<std::size_t, std::size_t>> edgePairsSL(edges.size());
+            std::vector<std::vector<std::size_t>> nbrsSL(nodes.size());
+            std::vector<std::vector<std::size_t>> incEdgeSL(nodes.size());
+            for (std::size_t e = 0; e < edges.size(); ++e) {
+              auto sIt = id2idxSL.find(edges[e].sourceModelId);
+              auto tIt = id2idxSL.find(edges[e].targetModelId);
+              if (sIt == id2idxSL.end() || tIt == id2idxSL.end()) {
+                edgePairsSL[e] = {0, 0};
+                continue;
+              }
+              edgePairsSL[e] = {sIt->second, tIt->second};
+              if (sIt->second != tIt->second) {
+                nbrsSL[sIt->second].push_back(tIt->second);
+                nbrsSL[tIt->second].push_back(sIt->second);
+                incEdgeSL[sIt->second].push_back(e);
+                incEdgeSL[tIt->second].push_back(e);
+              }
+            }
+            std::unordered_set<std::string> bundleAbsSL;
+            for (const LeafBundleRecord& b : metadata.leafBundles) {
+              bundleAbsSL.insert(b.parentModelId);
+              for (const std::string& l : b.leafModelIds) {
+                bundleAbsSL.insert(l);
+              }
+            }
+            // Carrier-aware leaf cost (Plan A semantics).
+            auto sgnSL = [](double x) { return (x > 0) - (x < 0); };
+            auto segCrossSL = [&](double ax, double ay, double bx, double by,
+                                    double cx, double cy, double dx, double dy) {
+              const int o1 = sgnSL((bx-ax)*(cy-ay) - (by-ay)*(cx-ax));
+              const int o2 = sgnSL((bx-ax)*(dy-ay) - (by-ay)*(dx-ax));
+              const int o3 = sgnSL((dx-cx)*(ay-cy) - (dy-cy)*(ax-cx));
+              const int o4 = sgnSL((dx-cx)*(by-cy) - (dy-cy)*(bx-cx));
+              return (o1 != o2) && (o3 != o4) && o1 != 0 && o3 != 0;
+            };
+            auto leafCostSL = [&](std::size_t leaf, double lx, double ly) {
+              std::size_t total = 0;
+              for (std::size_t nb : nbrsSL[leaf]) {
+                if (nb == leaf) continue;
+                const double nx = attributes.x(nodes[nb].handle);
+                const double ny = attributes.y(nodes[nb].handle);
+                std::size_t eLN = SIZE_MAX;
+                for (std::size_t ei : incEdgeSL[leaf]) {
+                  const auto& p = edgePairsSL[ei];
+                  if ((p.first == leaf && p.second == nb)
+                      || (p.first == nb && p.second == leaf)) {
+                    eLN = ei; break;
+                  }
+                }
+                for (std::size_t e = 0; e < edges.size(); ++e) {
+                  const auto& p = edgePairsSL[e];
+                  if (p.first == leaf || p.second == leaf) continue;
+                  if (p.first == nb || p.second == nb) continue;
+                  if (eLN != SIZE_MAX
+                      && eLN < carrierIdByEdgePre.size()
+                      && e < carrierIdByEdgePre.size()
+                      && !carrierIdByEdgePre[eLN].empty()
+                      && carrierIdByEdgePre[eLN] == carrierIdByEdgePre[e]) {
+                    continue;
+                  }
+                  const double ex0 = attributes.x(nodes[p.first].handle);
+                  const double ey0 = attributes.y(nodes[p.first].handle);
+                  const double ex1 = attributes.x(nodes[p.second].handle);
+                  const double ey1 = attributes.y(nodes[p.second].handle);
+                  if (segCrossSL(lx, ly, nx, ny, ex0, ey0, ex1, ey1)) ++total;
+                }
+              }
+              return total;
+            };
+            auto leafOverlapSL = [&](std::size_t leaf, double lx, double ly) {
+              constexpr double kSlMargin = 8.0;
+              const NodeRecord& nd = nodes[leaf];
+              const double w = nd.width / 2.0 + kSlMargin;
+              const double h = nd.height / 2.0 + kSlMargin;
+              for (std::size_t k = 0; k < nodes.size(); ++k) {
+                if (k == leaf) continue;
+                const NodeRecord& md = nodes[k];
+                const double mx = attributes.x(md.handle);
+                const double my = attributes.y(md.handle);
+                const double mw = md.width / 2.0 + kSlMargin;
+                const double mh = md.height / 2.0 + kSlMargin;
+                if (std::abs(lx - mx) < w + mw && std::abs(ly - my) < h + mh) {
+                  return true;
+                }
+              }
+              return false;
+            };
+            // Snapshot for revert.
+            std::vector<std::pair<double, double>> snapSL(nodes.size());
+            for (std::size_t i = 0; i < nodes.size(); ++i) {
+              snapSL[i] = {attributes.x(nodes[i].handle),
+                           attributes.y(nodes[i].handle)};
+            }
+            auto polyCrossSL = [&](std::size_t e1, std::size_t e2) -> bool {
+              if (e1 >= routes.size() || e2 >= routes.size()) return false;
+              if (routes[e1].size() < 2 || routes[e2].size() < 2) return false;
+              if (sharesEndpoint(edges[e1], edges[e2])) return false;
+              if (e1 < carrierIdByEdgePre.size() && e2 < carrierIdByEdgePre.size()
+                  && !carrierIdByEdgePre[e1].empty()
+                  && carrierIdByEdgePre[e1] == carrierIdByEdgePre[e2]) {
+                return false;
+              }
+              for (std::size_t li = 1; li < routes[e1].size(); ++li) {
+                for (std::size_t rj = 1; rj < routes[e2].size(); ++rj) {
+                  RoutePoint isect;
+                  if (properSegmentIntersection(
+                      routes[e1][li - 1], routes[e1][li],
+                      routes[e2][rj - 1], routes[e2][rj], isect)) {
+                    return true;
+                  }
+                }
+              }
+              return false;
+            };
+            auto totalPolySL = [&]() -> std::size_t {
+              std::size_t total = 0;
+              for (std::size_t i = 0; i < edges.size(); ++i) {
+                for (std::size_t j = i + 1; j < edges.size(); ++j) {
+                  if (polyCrossSL(i, j)) ++total;
+                }
+              }
+              return total;
+            };
+            const std::size_t prePolySL = totalPolySL();
+            // Plan E: 24×24 grid (was 11×11), topN default 60 (was 30),
+            // multi-pass with re-collection of stuck leaves between passes.
+            // Resolved leaves change geometry, opening new positions for
+            // remaining stuck leaves.
+            constexpr int kGridSL = 24;
+            const char* topNEnv = std::getenv("DJERD_STUCK_LEAF_TOP_N");
+            const std::size_t topN =
+              topNEnv ? std::max(1, std::atoi(topNEnv)) : 60;
+            const char* slPassEnv = std::getenv("DJERD_STUCK_LEAF_PASSES");
+            const int slPasses =
+              slPassEnv ? std::max(1, std::atoi(slPassEnv)) : 3;
+            std::size_t leavesMovedAll = 0;
+            std::size_t totalResolvedAll = 0;
+            std::size_t lastLimit = 0;
+            for (int pass = 0; pass < slPasses; ++pass) {
+              // Re-collect stuck leaves at current positions.
+              struct StuckLeaf {
+                std::size_t leaf;
+                std::size_t cost;
+              };
+              std::vector<StuckLeaf> stuck;
+              for (std::size_t v = 0; v < nodes.size(); ++v) {
+                if (bundleAbsSL.count(nodes[v].modelId)) continue;
+                if (nbrsSL[v].size() != 1) continue;
+                const double lx = attributes.x(nodes[v].handle);
+                const double ly = attributes.y(nodes[v].handle);
+                const std::size_t c = leafCostSL(v, lx, ly);
+                if (c > 0) stuck.push_back({v, c});
+              }
+              std::sort(stuck.begin(), stuck.end(),
+                        [](const auto& a, const auto& b) {
+                          return a.cost > b.cost;
+                        });
+              const std::size_t limit = std::min(stuck.size(), topN);
+              lastLimit = limit;
+              std::size_t leavesMoved = 0;
+              std::size_t totalResolved = 0;
+              for (std::size_t k = 0; k < limit; ++k) {
+                const std::size_t leaf = stuck[k].leaf;
+                // Re-evaluate cost at current pos (may have changed if leaf's
+                // neighbour was moved by an earlier leaf's processing).
+                const double lxNow = attributes.x(nodes[leaf].handle);
+                const double lyNow = attributes.y(nodes[leaf].handle);
+                const std::size_t baseCost = leafCostSL(leaf, lxNow, lyNow);
+                if (baseCost == 0) continue;
+                if (nbrsSL[leaf].empty()) continue;
+                const std::size_t parent = nbrsSL[leaf][0];
+                const double px = attributes.x(nodes[parent].handle);
+                const double py = attributes.y(nodes[parent].handle);
+                const int32_t domFace = getFaceAt(px, py);
+                if (domFace < 1
+                    || static_cast<std::size_t>(domFace) > faceBboxMin.size()) {
+                  continue;
+                }
+                const auto& bmin = faceBboxMin[domFace - 1];
+                const auto& bmax = faceBboxMax[domFace - 1];
+                const double faceX0 = mnX + bmin.first * cellW;
+                const double faceY0 = mnY + bmin.second * cellH;
+                const double faceX1 = mnX + (bmax.first + 1) * cellW;
+                const double faceY1 = mnY + (bmax.second + 1) * cellH;
+                std::size_t bestCost = baseCost;
+                double bestX = lxNow, bestY = lyNow;
+                for (int gy = 1; gy <= kGridSL; ++gy) {
+                  for (int gx = 1; gx <= kGridSL; ++gx) {
+                    const double tx =
+                      faceX0 + (faceX1 - faceX0) * gx / (kGridSL + 1.0);
+                    const double ty =
+                      faceY0 + (faceY1 - faceY0) * gy / (kGridSL + 1.0);
+                    if (getFaceAt(tx, ty) != domFace) continue;
+                    if (leafOverlapSL(leaf, tx, ty)) continue;
+                    const std::size_t c = leafCostSL(leaf, tx, ty);
+                    if (c < bestCost) {
+                      bestCost = c;
+                      bestX = tx;
+                      bestY = ty;
+                    }
+                  }
+                }
+                if (bestCost < baseCost) {
+                  attributes.x(nodes[leaf].handle) =
+                    std::round(bestX * 100.0) / 100.0;
+                  attributes.y(nodes[leaf].handle) =
+                    std::round(bestY * 100.0) / 100.0;
+                  ++leavesMoved;
+                  totalResolved += (baseCost - bestCost);
+                  for (std::size_t e : incEdgeSL[leaf]) {
+                    if (e >= routes.size() || routes[e].size() < 2) continue;
+                    const auto& p = edgePairsSL[e];
+                    const double nx = attributes.x(nodes[leaf].handle);
+                    const double ny = attributes.y(nodes[leaf].handle);
+                    if (p.first == leaf) routes[e].front() = {nx, ny};
+                    if (p.second == leaf) routes[e].back() = {nx, ny};
+                  }
+                }
+              }
+              std::fprintf(stderr,
+                "[stuck-leaf-2d] pass %d: %zu candidates, %zu moved, "
+                "%zu cost units resolved.\n",
+                pass + 1, limit, leavesMoved, totalResolved);
+              leavesMovedAll += leavesMoved;
+              totalResolvedAll += totalResolved;
+              if (leavesMoved == 0) break;
+            }
+            const std::size_t leavesMoved = leavesMovedAll;
+            const std::size_t totalResolved = totalResolvedAll;
+            const std::size_t limit = lastLimit;
+            const std::size_t postPolySL = totalPolySL();
+            if (postPolySL > prePolySL) {
+              for (std::size_t i = 0; i < nodes.size(); ++i) {
+                attributes.x(nodes[i].handle) = snapSL[i].first;
+                attributes.y(nodes[i].handle) = snapSL[i].second;
+              }
+              for (std::size_t e = 0; e < edges.size(); ++e) {
+                if (e >= routes.size() || routes[e].size() < 2) continue;
+                const auto& p = edgePairsSL[e];
+                routes[e].front() = {snapSL[p.first].first, snapSL[p.first].second};
+                routes[e].back() = {snapSL[p.second].first, snapSL[p.second].second};
+              }
+              std::fprintf(stderr,
+                "[stuck-leaf-2d] %zu candidates, %zu moved → REVERTED "
+                "(poly cross %zu → %zu)\n",
+                limit, leavesMoved, prePolySL, postPolySL);
+            } else {
+              std::fprintf(stderr,
+                "[stuck-leaf-2d] %zu candidates, %zu moved, %zu cost units "
+                "resolved (poly cross %zu → %zu, %zu fewer)\n",
+                limit, leavesMoved, totalResolved,
+                prePolySL, postPolySL,
+                prePolySL >= postPolySL ? prePolySL - postPolySL : 0);
+            }
+          }
+        }
+
+        // === Hot-region focused SA (Plan B) ===
+        // Detect polyline crossing hotspots via spatial bucketing at
+        // ~640-unit cells; for top 5 hot cells, run simulated annealing
+        // on local subgraph: random pair swap accepted by Metropolis.
+        // Extends visual-knot's pair-swap (cell ~300, K=3) with a wider
+        // window and probabilistic uphill moves to escape local minima.
+        // Set DJERD_HOT_REGION_SA=0 to disable.
+        {
+          const char* hrEnv = std::getenv("DJERD_HOT_REGION_SA");
+          const bool runHR = !hrEnv || std::strcmp(hrEnv, "0") != 0;
+          if (runHR) {
+            std::unordered_map<std::string, std::size_t> id2idxHR;
+            id2idxHR.reserve(nodes.size());
+            for (std::size_t i = 0; i < nodes.size(); ++i) {
+              id2idxHR[nodes[i].modelId] = i;
+            }
+            std::vector<std::pair<std::size_t, std::size_t>> edgePairsHR(edges.size());
+            std::vector<std::vector<std::size_t>> incEdgeHR(nodes.size());
+            for (std::size_t e = 0; e < edges.size(); ++e) {
+              auto sIt = id2idxHR.find(edges[e].sourceModelId);
+              auto tIt = id2idxHR.find(edges[e].targetModelId);
+              if (sIt == id2idxHR.end() || tIt == id2idxHR.end()) {
+                edgePairsHR[e] = {0, 0};
+                continue;
+              }
+              edgePairsHR[e] = {sIt->second, tIt->second};
+              if (sIt->second != tIt->second) {
+                incEdgeHR[sIt->second].push_back(e);
+                incEdgeHR[tIt->second].push_back(e);
+              }
+            }
+            std::unordered_set<std::string> bundleAbsHR;
+            for (const LeafBundleRecord& b : metadata.leafBundles) {
+              bundleAbsHR.insert(b.parentModelId);
+              for (const std::string& l : b.leafModelIds) {
+                bundleAbsHR.insert(l);
+              }
+            }
+            auto polyCrossHR = [&](std::size_t e1, std::size_t e2) -> bool {
+              if (e1 >= routes.size() || e2 >= routes.size()) return false;
+              if (routes[e1].size() < 2 || routes[e2].size() < 2) return false;
+              if (sharesEndpoint(edges[e1], edges[e2])) return false;
+              if (e1 < carrierIdByEdgePre.size() && e2 < carrierIdByEdgePre.size()
+                  && !carrierIdByEdgePre[e1].empty()
+                  && carrierIdByEdgePre[e1] == carrierIdByEdgePre[e2]) {
+                return false;
+              }
+              for (std::size_t li = 1; li < routes[e1].size(); ++li) {
+                for (std::size_t rj = 1; rj < routes[e2].size(); ++rj) {
+                  RoutePoint isect;
+                  if (properSegmentIntersection(
+                      routes[e1][li - 1], routes[e1][li],
+                      routes[e2][rj - 1], routes[e2][rj], isect)) {
+                    return true;
+                  }
+                }
+              }
+              return false;
+            };
+            auto polyCrossPointHR = [&](std::size_t e1, std::size_t e2,
+                                          RoutePoint& outPt) -> bool {
+              if (e1 >= routes.size() || e2 >= routes.size()) return false;
+              if (routes[e1].size() < 2 || routes[e2].size() < 2) return false;
+              if (sharesEndpoint(edges[e1], edges[e2])) return false;
+              if (e1 < carrierIdByEdgePre.size() && e2 < carrierIdByEdgePre.size()
+                  && !carrierIdByEdgePre[e1].empty()
+                  && carrierIdByEdgePre[e1] == carrierIdByEdgePre[e2]) {
+                return false;
+              }
+              for (std::size_t li = 1; li < routes[e1].size(); ++li) {
+                for (std::size_t rj = 1; rj < routes[e2].size(); ++rj) {
+                  if (properSegmentIntersection(
+                      routes[e1][li - 1], routes[e1][li],
+                      routes[e2][rj - 1], routes[e2][rj], outPt)) {
+                    return true;
+                  }
+                }
+              }
+              return false;
+            };
+            // Collect cross points (carrier-aware).
+            struct HRCross { double x, y; std::size_t e1, e2; };
+            std::vector<HRCross> crossesHR;
+            for (std::size_t i = 0; i < edges.size(); ++i) {
+              for (std::size_t j = i + 1; j < edges.size(); ++j) {
+                RoutePoint pt;
+                if (polyCrossPointHR(i, j, pt)) {
+                  crossesHR.push_back({pt.x, pt.y, i, j});
+                }
+              }
+            }
+            // Spatial bucketing at 640 units.
+            constexpr double kHRCellSize = 640.0;
+            auto cellKeyHR = [&](double x, double y) {
+              return std::make_pair(
+                static_cast<long long>(std::floor(x / kHRCellSize)),
+                static_cast<long long>(std::floor(y / kHRCellSize)));
+            };
+            std::map<std::pair<long long, long long>, std::vector<std::size_t>>
+              cellMapHR;
+            for (std::size_t k = 0; k < crossesHR.size(); ++k) {
+              cellMapHR[cellKeyHR(crossesHR[k].x, crossesHR[k].y)].push_back(k);
+            }
+            std::vector<std::pair<std::size_t, std::pair<long long, long long>>>
+              hotCellsHR;
+            for (const auto& cm : cellMapHR) {
+              if (cm.second.size() >= 4) {
+                hotCellsHR.emplace_back(cm.second.size(), cm.first);
+              }
+            }
+            std::sort(hotCellsHR.begin(), hotCellsHR.end(),
+                      [](const auto& a, const auto& b) { return a.first > b.first; });
+            const std::size_t initialHotsHR = hotCellsHR.size();
+            const std::size_t initialCrossHR = crossesHR.size();
+            const char* topHrEnv = std::getenv("DJERD_HOT_REGION_TOP");
+            const std::size_t topHR = std::min(hotCellsHR.size(),
+              static_cast<std::size_t>(topHrEnv ? std::max(1, std::atoi(topHrEnv)) : 5));
+            // Snapshot for global revert.
+            std::vector<std::pair<double, double>> snapHR(nodes.size());
+            for (std::size_t i = 0; i < nodes.size(); ++i) {
+              snapHR[i] = {attributes.x(nodes[i].handle),
+                           attributes.y(nodes[i].handle)};
+            }
+            auto totalCrossHR = [&]() -> std::size_t {
+              std::size_t total = 0;
+              for (std::size_t i = 0; i < edges.size(); ++i) {
+                for (std::size_t j = i + 1; j < edges.size(); ++j) {
+                  if (polyCrossHR(i, j)) ++total;
+                }
+              }
+              return total;
+            };
+            const std::size_t preCrossHR = totalCrossHR();
+            auto applyMoveHR = [&](std::size_t node) {
+              for (std::size_t e : incEdgeHR[node]) {
+                if (e >= routes.size() || routes[e].size() < 2) continue;
+                const double nx = attributes.x(nodes[node].handle);
+                const double ny = attributes.y(nodes[node].handle);
+                if (edgePairsHR[e].first == node) routes[e].front() = {nx, ny};
+                if (edgePairsHR[e].second == node) routes[e].back() = {nx, ny};
+              }
+            };
+            // Local cost: crossings on edges incident to a node-set.
+            auto localCostHR = [&](const std::vector<std::size_t>& nodesIn) {
+              std::unordered_set<std::size_t> incident;
+              for (std::size_t n : nodesIn) {
+                for (std::size_t e : incEdgeHR[n]) incident.insert(e);
+              }
+              std::size_t total = 0;
+              for (std::size_t e1 : incident) {
+                for (std::size_t e2 = 0; e2 < edges.size(); ++e2) {
+                  if (e1 == e2) continue;
+                  if (incident.count(e2) && e2 < e1) continue;
+                  if (polyCrossHR(e1, e2)) ++total;
+                }
+              }
+              return total;
+            };
+            std::size_t totalAcceptedHR = 0;
+            std::size_t totalConsideredHR = 0;
+            std::mt19937 rng(0xC0FFEE);
+            const char* hrRadiusEnv = std::getenv("DJERD_HOT_REGION_RADIUS");
+            const double kRadiusHR = hrRadiusEnv
+              ? std::atof(hrRadiusEnv) : 640.0;
+            const char* hrItersEnv = std::getenv("DJERD_HOT_REGION_ITERS");
+            const int kIterPerCell = hrItersEnv
+              ? std::max(50, std::atoi(hrItersEnv)) : 200;
+            for (std::size_t hi = 0; hi < topHR; ++hi) {
+              const auto& cell = hotCellsHR[hi].second;
+              const double cxR = (cell.first + 0.5) * kHRCellSize;
+              const double cyR = (cell.second + 0.5) * kHRCellSize;
+              std::vector<std::size_t> regionNodes;
+              for (std::size_t n = 0; n < nodes.size(); ++n) {
+                if (bundleAbsHR.count(nodes[n].modelId)) continue;
+                const double dx = attributes.x(nodes[n].handle) - cxR;
+                const double dy = attributes.y(nodes[n].handle) - cyR;
+                if (dx * dx + dy * dy <= kRadiusHR * kRadiusHR) {
+                  regionNodes.push_back(n);
+                }
+              }
+              if (regionNodes.size() < 2) continue;
+              const std::size_t baseLocal = localCostHR(regionNodes);
+              if (baseLocal == 0) continue;
+              // Simulated annealing.
+              double T = 4.0;
+              constexpr double kCool = 0.92;
+              std::uniform_int_distribution<std::size_t> pick(
+                0, regionNodes.size() - 1);
+              std::uniform_real_distribution<double> uniform(0.0, 1.0);
+              std::size_t curLocal = baseLocal;
+              for (int it = 0; it < kIterPerCell; ++it) {
+                std::size_t a = pick(rng), b = pick(rng);
+                if (a == b) continue;
+                const std::size_t na = regionNodes[a];
+                const std::size_t nb = regionNodes[b];
+                if (na == nb) continue;
+                ++totalConsideredHR;
+                const double xa = attributes.x(nodes[na].handle);
+                const double ya = attributes.y(nodes[na].handle);
+                const double xb = attributes.x(nodes[nb].handle);
+                const double yb = attributes.y(nodes[nb].handle);
+                attributes.x(nodes[na].handle) = xb;
+                attributes.y(nodes[na].handle) = yb;
+                attributes.x(nodes[nb].handle) = xa;
+                attributes.y(nodes[nb].handle) = ya;
+                applyMoveHR(na);
+                applyMoveHR(nb);
+                const std::size_t newLocal = localCostHR(regionNodes);
+                bool accept = false;
+                if (newLocal < curLocal) {
+                  accept = true;
+                } else if (T > 0.01) {
+                  const double delta =
+                    static_cast<double>(newLocal) - static_cast<double>(curLocal);
+                  const double prob = std::exp(-delta / T);
+                  if (uniform(rng) < prob) accept = true;
+                }
+                if (accept) {
+                  curLocal = newLocal;
+                  ++totalAcceptedHR;
+                } else {
+                  // Revert.
+                  attributes.x(nodes[na].handle) = xa;
+                  attributes.y(nodes[na].handle) = ya;
+                  attributes.x(nodes[nb].handle) = xb;
+                  attributes.y(nodes[nb].handle) = yb;
+                  applyMoveHR(na);
+                  applyMoveHR(nb);
+                }
+                T *= kCool;
+              }
+            }
+            const std::size_t postCrossHR = totalCrossHR();
+            if (postCrossHR > preCrossHR) {
+              for (std::size_t i = 0; i < nodes.size(); ++i) {
+                attributes.x(nodes[i].handle) = snapHR[i].first;
+                attributes.y(nodes[i].handle) = snapHR[i].second;
+              }
+              for (std::size_t e = 0; e < edges.size(); ++e) {
+                if (e >= routes.size() || routes[e].size() < 2) continue;
+                const auto& p = edgePairsHR[e];
+                routes[e].front() = {snapHR[p.first].first, snapHR[p.first].second};
+                routes[e].back() = {snapHR[p.second].first, snapHR[p.second].second};
+              }
+              std::fprintf(stderr,
+                "[hot-region-sa] %zu hot cells (≥4 cross), top %zu processed, "
+                "%zu/%zu swap accepted → REVERTED (cross %zu → %zu)\n",
+                initialHotsHR, topHR,
+                totalAcceptedHR, totalConsideredHR,
+                preCrossHR, postCrossHR);
+            } else {
+              std::fprintf(stderr,
+                "[hot-region-sa] %zu hot cells (≥4 cross, %zu cross pts), "
+                "top %zu processed, %zu/%zu swap accepted "
+                "(cross %zu → %zu, %zu fewer)\n",
+                initialHotsHR, initialCrossHR, topHR,
+                totalAcceptedHR, totalConsideredHR,
+                preCrossHR, postCrossHR,
+                preCrossHR >= postCrossHR ? preCrossHR - postCrossHR : 0);
+            }
+          }
+        }
+      }
+    }
+
+    // Sync route endpoints ONLY when the existing endpoint is far from
+    // the node (indicating a stale endpoint left by an earlier pass that
+    // moved nodes without updating routes). Threshold: gap from node bbox
+    // edge > 100 units. Avoids disturbing well-routed edges (whose
+    // endpoints sit at node boundaries by design — moving them to centers
+    // would shift edge geometry by ~half node size and inflate cross by
+    // ~80 in observed tests).
+    {
+      std::unordered_map<std::string, std::size_t> id2idxRouteSync;
+      id2idxRouteSync.reserve(nodes.size());
+      for (std::size_t i = 0; i < nodes.size(); ++i) {
+        id2idxRouteSync[nodes[i].modelId] = i;
+      }
+      auto gapToBox = [&](const RoutePoint& p, const NodeRecord& nd) {
+        const double cx = attributes.x(nd.handle);
+        const double cy = attributes.y(nd.handle);
+        const double hw = attributes.width(nd.handle) / 2.0;
+        const double hh = attributes.height(nd.handle) / 2.0;
+        const double dx = std::max(0.0, std::abs(p.x - cx) - hw);
+        const double dy = std::max(0.0, std::abs(p.y - cy) - hh);
+        return dx + dy;  // manhattan (matches audit metric)
+      };
+      constexpr double kGapThreshold = 0.0;
+      std::size_t synced = 0;
+      for (std::size_t e = 0; e < edges.size(); ++e) {
+        if (e >= routes.size() || routes[e].size() < 2) continue;
+        auto sIt = id2idxRouteSync.find(edges[e].sourceModelId);
+        auto tIt = id2idxRouteSync.find(edges[e].targetModelId);
+        if (sIt == id2idxRouteSync.end() || tIt == id2idxRouteSync.end()) {
+          continue;
+        }
+        const NodeRecord& sNode = nodes[sIt->second];
+        const NodeRecord& tNode = nodes[tIt->second];
+        const auto& fp = routes[e].front();
+        const auto& bp = routes[e].back();
+        const double g_fs = gapToBox(fp, sNode);
+        const double g_bt = gapToBox(bp, tNode);
+        const double g_ft = gapToBox(fp, tNode);
+        const double g_bs = gapToBox(bp, sNode);
+        const bool aOriented = (g_fs + g_bt) <= (g_ft + g_bs);
+        const double worstGap = aOriented ? std::max(g_fs, g_bt)
+                                          : std::max(g_ft, g_bs);
+        if (worstGap < kGapThreshold) continue;
+        const double sx = attributes.x(sNode.handle);
+        const double sy = attributes.y(sNode.handle);
+        const double tx = attributes.x(tNode.handle);
+        const double ty = attributes.y(tNode.handle);
+        if (aOriented) {
+          routes[e].front() = {sx, sy};
+          routes[e].back() = {tx, ty};
+        } else {
+          routes[e].front() = {tx, ty};
+          routes[e].back() = {sx, sy};
+        }
+        ++synced;
+      }
+      std::fprintf(stderr,
+        "[final-route-sync] Pulled %zu stale route endpoints "
+        "(gap > %.0f) to node centers.\n",
+        synced, kGapThreshold);
+    }
+
+    // Recompute leaf bundle bboxes from FINAL leaf positions. Leaves may
+    // have moved during late post-passes (stuck-leaf-2d, hot-region-sa,
+    // face-untangle) or via --positions-tsv override; the bbox computed
+    // earlier (before those passes) is stale. Stale bbox causes:
+    //  - non-leaf nodes appearing inside the rendered bundle frame
+    //  - bundle clearance pass operating on wrong rect
+    {
+      std::unordered_map<std::string, std::size_t> id2idxFinal;
+      id2idxFinal.reserve(nodes.size());
+      for (std::size_t i = 0; i < nodes.size(); ++i) {
+        id2idxFinal[nodes[i].modelId] = i;
+      }
+      for (auto& bundle : metadata.leafBundles) {
+        double minX = std::numeric_limits<double>::infinity();
+        double minY = std::numeric_limits<double>::infinity();
+        double maxX = -std::numeric_limits<double>::infinity();
+        double maxY = -std::numeric_limits<double>::infinity();
+        double sumLX = 0.0, sumLY = 0.0;
+        std::size_t cnt = 0;
+        for (const std::string& leaf : bundle.leafModelIds) {
+          auto it = id2idxFinal.find(leaf);
+          if (it == id2idxFinal.end()) continue;
+          const auto& nd = nodes[it->second];
+          const double cx = attributes.x(nd.handle);
+          const double cy = attributes.y(nd.handle);
+          const double w = attributes.width(nd.handle);
+          const double h = attributes.height(nd.handle);
+          minX = std::min(minX, cx - w / 2.0);
+          minY = std::min(minY, cy - h / 2.0);
+          maxX = std::max(maxX, cx + w / 2.0);
+          maxY = std::max(maxY, cy + h / 2.0);
+          sumLX += cx; sumLY += cy; ++cnt;
+        }
+        if (cnt == 0 || !std::isfinite(minX)) continue;
+        bundle.bboxX = minX;
+        bundle.bboxY = minY;
+        bundle.bboxWidth = maxX - minX;
+        bundle.bboxHeight = maxY - minY;
+        const double leafCx = sumLX / static_cast<double>(cnt);
+        const double leafCy = sumLY / static_cast<double>(cnt);
+        auto pit = id2idxFinal.find(bundle.parentModelId);
+        if (pit != id2idxFinal.end()) {
+          const double pX = attributes.x(nodes[pit->second].handle);
+          const double pY = attributes.y(nodes[pit->second].handle);
+          bundle.anchorX = 0.5 * (pX + leafCx);
+          bundle.anchorY = 0.5 * (pY + leafCy);
+        }
+      }
+    }
+
     const Bounds bounds = measureBounds(nodes, routes, attributes);
     writeLayoutJson(
       std::cout,

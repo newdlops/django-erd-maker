@@ -1,0 +1,110 @@
+[community] algorithm=louvain communities=85 meta=4
+[hub-bias] Super-graph: pushed 7 high-deg cluster roots to 1.4x avgR.
+[cg-time] 8ms post-hub-bias
+[cg-time] 465ms pre-§10-outward-radial
+[cg-time] 465ms pre-§11-compose
+[cg-time] 465ms pre-§12-pruning-reattach
+[cg-time] 465ms pre-§13-cluster-swap
+[cg-time] 851ms pre-§14-chain-straightening
+[cg-time] 851ms pre-§15-pruned-cross-min
+[§15.5] Optimized 38 alone-root+independent nodes (8 moves).
+[cg-time] 857ms pre-bus-bundle
+[bus-bundle] Created 1 bus bundles (2 members, sig ≥ 2 roots).
+[xings-hotspot] total=281 xings across 119 offending edges (of 272)
+  edge app0.M4↔app4.M3 xings=23 cluster=(_louv_6,_louv_28)
+  edge app7.M0↔app7.M2 xings=21 cluster=(?,?)
+  edge core.Hub1↔app16.M0 xings=17 cluster=(?,?)
+  edge app3.M0↔app3.M3 xings=16 cluster=(?,?)
+  edge core.Hub0↔app7.M0 xings=15 cluster=(_louv_0,?)
+  edge app7.M0↔app7.M3 xings=15 cluster=(?,_louv_0)
+  edge core.Hub1↔app13.M0 xings=15 cluster=(?,?)
+  edge app14.M0↔app14.M1 xings=14 cluster=(?,_louv_64)
+[xings-hotspot] top cluster signatures:
+  {?} xings=24
+  {?|_louv_0} xings=11
+  {?|_louv_0|_louv_31} xings=11
+  {?|_louv_82} xings=8
+  {?|_louv_28|_louv_6} xings=8
+  {?|_louv_31} xings=7
+  {?|_louv_43} xings=6
+  {?|_louv_69} xings=5
+[knot-min] Accepted 63 spatial swaps among 216 candidates.
+[carrier-pre] 274 edges → 166 distinct carriers (cost-side filter).
+[leaf-untangle] candidates=133, with-cross=46, moved=39, crossings-resolved=138.
+[leaf-untangle] candidates=133, with-cross=15, moved=5, crossings-resolved=13.
+[leaf-untangle] candidates=133, with-cross=10, moved=0, crossings-resolved=0.
+[stuck-leaf-diag] 11 candidates with cost>0 (top 15 below):
+  cost=13 deg=2 node=app17.M4 parent=app17.M0 nbrs={app17.M0,app9.M9}
+  cost=12 deg=2 node=app9.M9 parent=app9.M0 nbrs={app9.M0,app17.M4}
+  cost=4 deg=3 node=app9.M14 parent=app9.M0 nbrs={app9.M0,app9.M8,app7.M2}
+  cost=4 deg=3 node=app12.M2 parent=app12.M0 nbrs={app12.M0,app12.M4,app14.M1}
+  cost=3 deg=2 node=app0.M3 parent=app0.M0 nbrs={app0.M0,app2.M2}
+  cost=3 deg=2 node=app2.M2 parent=app0.M3 nbrs={app0.M3,app5.M9}
+  cost=3 deg=2 node=app9.M4 parent=app9.M0 nbrs={app9.M0,app9.Address15}
+  cost=2 deg=3 node=app0.M6 parent=app0.M0 nbrs={app0.M0,app0.M11,app15.M1}
+  cost=2 deg=3 node=app0.M11 parent=app0.M0 nbrs={app0.M0,app0.M6,app0.Tag32}
+  cost=1 deg=2 node=app2.M4 parent=app4.M4 nbrs={app2.Log33,app4.M4}
+  cost=1 deg=1 node=app2.File7 parent=app2.M8 nbrs={app2.M8}
+[pd-knot] 168 polyline cross pairs, 0 resolved via endpoint swap.
+[xings-detour] iters=2 initial-poly-pairs=184 accepted=6 (multi-seg, density-aware, polyline detect, iterative).
+[visual-knot] 177→177 cross points, 20→20 hot cells (≥3), 20 handled, 0 swap accepted.
+[leaf-untangle] candidates=133, with-cross=10, moved=0, crossings-resolved=0.
+[stuck-leaf-diag] 11 candidates with cost>0 (top 15 below):
+  cost=13 deg=2 node=app17.M4 parent=app17.M0 nbrs={app17.M0,app9.M9}
+  cost=12 deg=2 node=app9.M9 parent=app9.M0 nbrs={app9.M0,app17.M4}
+  cost=4 deg=3 node=app9.M14 parent=app9.M0 nbrs={app9.M0,app9.M8,app7.M2}
+  cost=4 deg=3 node=app12.M2 parent=app12.M0 nbrs={app12.M0,app12.M4,app14.M1}
+  cost=3 deg=2 node=app0.M3 parent=app0.M0 nbrs={app0.M0,app2.M2}
+  cost=3 deg=2 node=app2.M2 parent=app0.M3 nbrs={app0.M3,app5.M9}
+  cost=3 deg=2 node=app9.M4 parent=app9.M0 nbrs={app9.M0,app9.Address15}
+  cost=2 deg=3 node=app0.M6 parent=app0.M0 nbrs={app0.M0,app0.M11,app15.M1}
+  cost=2 deg=3 node=app0.M11 parent=app0.M0 nbrs={app0.M0,app0.M6,app0.Tag32}
+  cost=1 deg=2 node=app2.M4 parent=app4.M4 nbrs={app2.Log33,app4.M4}
+  cost=1 deg=1 node=app2.File7 parent=app2.M8 nbrs={app2.M8}
+[carrier-cross] segment 177 -> carrier-grouped 164 (-7%). Carriers: 167 total (2 bundle + 113 cluster-pair + 52 individual).
+[isolated-stash] Stashed 6 edge-less nodes in 6-column strip at x>=18576.
+[face-raster] grid 4222x2761 (cell 5.0x5.0 units), 555 faces, 11433978 bg cells (98.1% of grid)
+  face #1: 6822254 cells (59.7%), bbox 4222x2761 @ (0,0)
+  face #404: 503577 cells (4.4%), bbox 1118x1108 @ (687,1537)
+  face #28: 396557 cells (3.5%), bbox 529x1448 @ (623,455)
+  face #174: 284170 cells (2.5%), bbox 646x1433 @ (2595,1002)
+  face #2: 281721 cells (2.5%), bbox 1038x539 @ (816,79)
+  face #372: 277628 cells (2.4%), bbox 588x1270 @ (1619,1375)
+  face #387: 185919 cells (1.6%), bbox 465x863 @ (1938,1442)
+  face #505: 184824 cells (1.6%), bbox 982x407 @ (2240,2215)
+[face-cohesion] 53 clusters analysed, 20 low-cohesion (<60% in dominant face)
+  cohesion histogram:
+     20%- 29%: 2 clusters
+     30%- 39%: 4 clusters
+     40%- 49%: 1 clusters
+     50%- 59%: 13 clusters
+     60%- 69%: 8 clusters
+     80%- 89%: 2 clusters
+    100%-100%: 23 clusters
+  top 10 low-cohesion clusters (largest first):
+    _louv_31: 5 members, 2 in dominant face, 4 faces total (40%)
+    _louv_59: 4 members, 2 in dominant face, 3 faces total (50%)
+    _louv_17: 4 members, 1 in dominant face, 4 faces total (25%)
+    _louv_44: 4 members, 1 in dominant face, 4 faces total (25%)
+    _louv_4: 4 members, 2 in dominant face, 3 faces total (50%)
+    _louv_69: 3 members, 1 in dominant face, 3 faces total (33%)
+    _louv_37: 3 members, 1 in dominant face, 3 faces total (33%)
+    _louv_18: 3 members, 1 in dominant face, 3 faces total (33%)
+    _louv_5: 3 members, 1 in dominant face, 3 faces total (33%)
+    _louv_74: 2 members, 1 in dominant face, 2 faces total (50%)
+[face-density] 265 micro-faces (size<50), top 10 hot regions (macro 64x64 cells):
+  region (50,37): 15 micro-faces, world (15544,11508)-(15864,11828)
+  region (34,17): 13 micro-faces, world (10425,5109)-(10745,5429)
+  region (27,5): 12 micro-faces, world (8185,1270)-(8505,1590)
+  region (24,41): 11 micro-faces, world (7225,12788)-(7545,13108)
+  region (37,32): 11 micro-faces, world (11385,9909)-(11705,10229)
+  region (36,29): 10 micro-faces, world (11065,8949)-(11385,9269)
+  region (36,28): 10 micro-faces, world (11065,8629)-(11385,8949)
+  region (36,27): 9 micro-faces, world (11065,8309)-(11385,8629)
+  region (38,20): 9 micro-faces, world (11705,6069)-(12025,6389)
+  region (20,19): 9 micro-faces, world (5945,5749)-(6265,6069)
+[face-ppm] Wrote /tmp/face-raster.ppm (2111x1380, downsampled from 4222x2761 by 2)
+[face-untangle] 19 target clusters, 28 strays, 0 moved (poly cross 177 → 177, 0 fewer)
+[stuck-leaf-2d] pass 1: 1 candidates, 0 moved, 0 cost units resolved.
+[stuck-leaf-2d] 1 candidates, 0 moved, 0 cost units resolved (poly cross 177 → 177, 0 fewer)
+[hot-region-sa] 16 hot cells (≥4 cross, 177 cross pts), top 5 processed, 25/798 swap accepted (cross 177 → 177, 0 fewer)

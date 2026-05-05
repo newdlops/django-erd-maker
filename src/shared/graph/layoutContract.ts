@@ -433,15 +433,29 @@ export interface EdgeCrossing {
   position: Point;
 }
 
+export interface LeafBundle {
+  anchor: Point;
+  bbox: { height: number; width: number; x: number; y: number };
+  leafModelIds: ModelId[];
+  parentModelId: ModelId;
+  // For bus bundles: ALL cluster roots whose members the bundle members
+  // collectively connect to. Includes parentModelId. Empty (or single
+  // entry equal to parentModelId) for classic leaf bundles.
+  sharedRootModelIds?: ModelId[];
+}
+
 export interface LayoutEngineMetadata {
   actualAlgorithm?: string;
   actualMode?: LayoutMode;
   aspectRatio?: number;
   boundingBoxArea?: number;
+  bundleEdgeIntersections?: number;
+  bundleNodeOverlaps?: number;
   edgeCrossings?: number;
   edgeLengthStddev?: number;
   edgeNodeIntersections?: number;
   edgeSegmentOverlaps?: number;
+  leafBundles?: LeafBundle[];
   meanEdgeLength?: number;
   nodeOverlaps?: number;
   nodeSpacingOverlaps?: number;
@@ -451,6 +465,7 @@ export interface LayoutEngineMetadata {
   routeSegments?: number;
   strategy?: string;
   strategyReason?: string;
+  visualCrossings?: number;
 }
 
 export interface LayoutSnapshot {

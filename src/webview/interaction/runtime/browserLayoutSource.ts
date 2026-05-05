@@ -290,6 +290,21 @@ export function getBrowserLayoutSource(): string {
             return drag.currentPosition;
           }
 
+          if (
+            drag &&
+            drag.kind === "table" &&
+            drag.currentPosition &&
+            drag.startPosition &&
+            typeof bundleLeafToFakeId === "object" &&
+            bundleLeafToFakeId[modelId] === drag.modelId
+          ) {
+            const dx = drag.currentPosition.x - drag.startPosition.x;
+            const dy = drag.currentPosition.y - drag.startPosition.y;
+            const options = getTableOptions(state, modelId);
+            const base = options.manualPosition || getBasePosition(modelId);
+            return { x: base.x + dx, y: base.y + dy };
+          }
+
           const options = getTableOptions(state, modelId);
           return options.manualPosition || getBasePosition(modelId);
         }

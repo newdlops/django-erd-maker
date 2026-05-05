@@ -15,6 +15,15 @@ struct CliArguments {
   std::string edgesFile;
   std::string mode;
   std::string nodesFile;
+  // Optional: path to a TSV file with rows "modelId\tcenterX\tcenterY"
+  // produced by an external optimizer (e.g., ML polish). When set, node
+  // positions are overridden with these values immediately after the main
+  // layout pass, so post-passes (leaf-untangle, xings-detour, visual-knot,
+  // face-untangle, etc.) re-run on the externally-provided positions and
+  // produce freshly-routed output for evaluation/integration.
+  std::string positionsTsv;
+  bool clusterGraph = false;
+  bool bubble = false;
 };
 
 struct NodeRecord {
@@ -105,6 +114,26 @@ struct VisibilityRoute {
   std::size_t targetPortIndex = 0;
 };
 
+// Single leaf-bundle entry: a parent (= cluster root) plus the matrix-
+// laid-out leaves attached to it, with a shared anchor port used by
+// renderer for collapsing all leaf→parent edges into one visual line.
+struct LeafBundleRecord {
+  std::string parentModelId;
+  std::vector<std::string> leafModelIds;
+  // For bus bundles: ALL cluster roots whose members the bundle members
+  // connect to (the multi-root signature). Includes parentModelId. The
+  // webview consolidates edges from each shared root to bundle members
+  // into a single carrier polyline via the bundle anchor. For classic
+  // leaf bundles (single parent), this is just [parentModelId].
+  std::vector<std::string> sharedRootModelIds;
+  double anchorX = 0.0;
+  double anchorY = 0.0;
+  double bboxX = 0.0;       // matrix bbox top-left
+  double bboxY = 0.0;
+  double bboxWidth = 0.0;
+  double bboxHeight = 0.0;
+};
+
 struct LayoutRunMetadata {
   std::string requestedMode;
   std::string actualMode;
@@ -113,6 +142,7 @@ struct LayoutRunMetadata {
   std::string strategy;
   std::string strategyReason;
   std::unordered_map<std::string, std::string> clusterByModelId;
+  std::vector<LeafBundleRecord> leafBundles;
 };
 
 struct LayoutQualityMetrics {
@@ -123,6 +153,18 @@ struct LayoutQualityMetrics {
   std::size_t nodeSpacingOverlaps = 0;
   std::size_t overlappingEdges = 0;
   std::size_t routeSegments = 0;
+  // Edge passes through a leafBundle bbox (bundle is treated as a single
+  // visual block that no edge should cross).
+  std::size_t bundleEdgeIntersections = 0;
+  // A leafBundle bbox overlaps a non-bundle node rect (cluster member or
+  // standalone) — visual collision between the bundle frame and an
+  // unrelated node.
+  std::size_t bundleNodeOverlaps = 0;
+  // Unified visual crossings: total of all visible-conflict counts.
+  // edgeCrossings (segment-segment) + edgeNodeIntersections (segment-node)
+  // + nodeOverlaps (node-node) + bundleEdgeIntersections (segment-bundle)
+  // + bundleNodeOverlaps (bundle-node).
+  std::size_t visualCrossings = 0;
   double aspectRatio = 0.0;
   double boundingBoxArea = 0.0;
   double edgeLengthStddev = 0.0;

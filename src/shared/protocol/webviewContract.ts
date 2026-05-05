@@ -33,6 +33,9 @@ export interface DiagramViewportRectSnapshot {
 export interface InitialViewState {
   collapseClusters?: boolean;
   edgeBundling?: boolean;
+  useEdgeBends?: boolean;
+  clusterGraphLayout?: boolean;
+  bubbleLayout?: boolean;
   layoutMode: LayoutMode;
   selectedMethodContext?: SelectedMethodContext;
   selectedModelId?: ModelId;

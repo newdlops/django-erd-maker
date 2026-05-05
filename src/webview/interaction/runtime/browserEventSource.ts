@@ -124,6 +124,67 @@ export function getBrowserEventSource(): string {
           });
         }
 
+        for (const button of document.querySelectorAll("[data-edge-bends-toggle]")) {
+          if (state.useEdgeBends) {
+            button.classList.add("is-active");
+          }
+          button.addEventListener("click", () => {
+            state.useEdgeBends = !state.useEdgeBends;
+            button.classList.toggle("is-active", state.useEdgeBends);
+            logErd("info", "event.edge.bends.toggle", {
+              enabled: state.useEdgeBends,
+              renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
+            });
+            invalidateSceneGraph();
+            applyState();
+          });
+        }
+
+        for (const button of document.querySelectorAll("[data-cluster-graph-toggle]")) {
+          if (state.clusterGraphLayout) {
+            button.classList.add("is-active");
+          }
+          button.addEventListener("click", () => {
+            state.clusterGraphLayout = !state.clusterGraphLayout;
+            button.classList.toggle("is-active", state.clusterGraphLayout);
+            logErd("info", "event.cluster.graph.toggle", {
+              enabled: state.clusterGraphLayout,
+              renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
+            });
+            // Cluster-graph layout is computed in C++; trigger a layout refresh.
+            vscode?.postMessage({
+              layoutMode: state.layoutMode,
+              refreshKind: "layout",
+              settings: { ...state.settings },
+              viewState: createRefreshViewStateSnapshot(state),
+              type: "diagram.requestRefresh",
+            });
+          });
+        }
+
+        for (const button of document.querySelectorAll("[data-bubble-toggle]")) {
+          if (state.bubbleLayout) {
+            button.classList.add("is-active");
+          }
+          button.addEventListener("click", () => {
+            state.bubbleLayout = !state.bubbleLayout;
+            button.classList.toggle("is-active", state.bubbleLayout);
+            logErd("info", "event.bubble.toggle", {
+              enabled: state.bubbleLayout,
+              renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
+            });
+            vscode?.postMessage({
+              layoutMode: state.layoutMode,
+              refreshKind: "layout",
+              settings: { ...state.settings },
+              viewState: createRefreshViewStateSnapshot(state),
+              type: "diagram.requestRefresh",
+            });
+          });
+        }
+
+
+
         root.addEventListener("click", (event) => {
           const target = event.target;
           if (!(target instanceof Element)) {
@@ -437,6 +498,20 @@ export function getBrowserEventSource(): string {
               modelId: completedDrag.modelId,
               type: "set-table-manual-position",
             });
+            const groupLeaves = bundleLeavesByFakeIdRaw[completedDrag.modelId];
+            if (Array.isArray(groupLeaves) && completedDrag.startPosition) {
+              const dx = completedDrag.currentPosition.x - completedDrag.startPosition.x;
+              const dy = completedDrag.currentPosition.y - completedDrag.startPosition.y;
+              for (const leafId of groupLeaves) {
+                const leafOptions = getTableOptions(state, leafId);
+                const base = leafOptions.manualPosition || getBasePosition(leafId);
+                dispatch({
+                  manualPosition: { x: round2(base.x + dx), y: round2(base.y + dy) },
+                  modelId: leafId,
+                  type: "set-table-manual-position",
+                });
+              }
+            }
           } else {
             applyState();
           }
@@ -501,5 +576,57 @@ export function getBrowserEventSource(): string {
             panY: newPanY,
           });
         }, { passive: false });
+
+        // Keyboard navigation: arrow keys pan; +/- zoom; shift = 5x pan.
+        window.addEventListener("keydown", (event) => {
+          const target = event.target;
+          if (target && target.tagName) {
+            const tag = target.tagName;
+            if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+            if (target.isContentEditable) return;
+          }
+          const baseStep = 80;
+          const step = event.shiftKey ? baseStep * 5 : baseStep;
+          let panDX = 0;
+          let panDY = 0;
+          let zoomFactor = 0;
+          switch (event.key) {
+            case "ArrowLeft":  panDX = step;  break;
+            case "ArrowRight": panDX = -step; break;
+            case "ArrowUp":    panDY = step;  break;
+            case "ArrowDown":  panDY = -step; break;
+            case "+":
+            case "=":          zoomFactor = 1.1; break;
+            case "-":
+            case "_":          zoomFactor = 1 / 1.1; break;
+            default: return;
+          }
+          event.preventDefault();
+          if (panDX !== 0 || panDY !== 0) {
+            dispatch({
+              panX: state.viewport.panX + panDX,
+              panY: state.viewport.panY + panDY,
+              type: "set-viewport-pan",
+            });
+            return;
+          }
+          if (zoomFactor !== 0) {
+            const oldZoom = state.viewport.zoom;
+            const newZoom = clampZoom(oldZoom * zoomFactor);
+            if (newZoom === oldZoom) return;
+            const drawingRect = drawingCanvas.getBoundingClientRect();
+            const anchorX = drawingRect.width / 2;
+            const anchorY = drawingRect.height / 2;
+            const ratio = newZoom / oldZoom;
+            const newPanX = anchorX - (anchorX - state.viewport.panX) * ratio;
+            const newPanY = anchorY - (anchorY - state.viewport.panY) * ratio;
+            dispatch({
+              type: "set-viewport-zoom",
+              zoom: newZoom,
+              panX: newPanX,
+              panY: newPanY,
+            });
+          }
+        });
   `;
 }
