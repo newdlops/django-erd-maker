@@ -85,8 +85,13 @@ void writeLayoutEngineMetadata(
          << "\",\"requestedAlgorithm\":\"" << escapeJson(metadata.requestedAlgorithm)
          << "\",\"actualAlgorithm\":\"" << escapeJson(metadata.actualAlgorithm)
          << "\",\"strategy\":\"" << escapeJson(metadata.strategy)
-         << "\",\"strategyReason\":\"" << escapeJson(metadata.strategyReason)
-         << "\",\"nodeOverlaps\":" << quality.nodeOverlaps
+         << "\",\"strategyReason\":\"" << escapeJson(metadata.strategyReason) << "\"";
+  if (metadata.hubCarrierThreshold > 0) {
+    stream << ",\"hubCarrierThreshold\":" << metadata.hubCarrierThreshold
+           << ",\"hubCarrierEdgesGrouped\":" << metadata.hubCarrierEdgesGrouped
+           << ",\"hubCarrierClusters\":" << metadata.hubCarrierClusters;
+  }
+  stream << ",\"nodeOverlaps\":" << quality.nodeOverlaps
          << ",\"nodeSpacingOverlaps\":" << quality.nodeSpacingOverlaps
          << ",\"edgeCrossings\":" << quality.edgeCrossings
          << ",\"edgeNodeIntersections\":" << quality.edgeNodeIntersections
@@ -100,7 +105,49 @@ void writeLayoutEngineMetadata(
          << ",\"aspectRatio\":" << quality.aspectRatio
          << ",\"meanEdgeLength\":" << quality.meanEdgeLength
          << ",\"edgeLengthStddev\":" << quality.edgeLengthStddev
-         << ",\"leafBundles\":[";
+         << ",\"stressScore\":" << quality.stressScore
+         << ",\"edgeLengthCv\":" << quality.edgeLengthCv
+         << ",\"crossingAngleMean\":" << quality.crossingAngleMean
+         << ",\"crossingAngleCv\":" << quality.crossingAngleCv
+         << ",\"edgeBendTotal\":" << quality.edgeBendTotal
+         << ",\"hubClearanceP10\":" << quality.hubClearanceP10
+         << ",\"clusterCompactnessMean\":" << quality.clusterCompactnessMean
+         << ",\"crossingsPerEdgeP50\":" << quality.crossingsPerEdgeP50
+         << ",\"crossingsPerEdgeP90\":" << quality.crossingsPerEdgeP90
+         << ",\"cleanEdgeRatio\":" << quality.cleanEdgeRatio
+         << ",\"edgeCrossingsBetweenClusters\":" << quality.edgeCrossingsBetweenClusters
+         << ",\"nodeAreaCoverage\":" << quality.nodeAreaCoverage
+         << ",\"emptySpaceCv\":" << quality.emptySpaceCv
+         << ",\"compositeQuality\":" << quality.compositeQuality
+         << ",\"subCleanQuality\":" << quality.subCleanQuality
+         << ",\"subSeverityQuality\":" << quality.subSeverityQuality
+         << ",\"subAngleQuality\":" << quality.subAngleQuality
+         << ",\"subStressQuality\":" << quality.subStressQuality
+         << ",\"subCompactQuality\":" << quality.subCompactQuality
+         << ",\"subUniformQuality\":" << quality.subUniformQuality
+         << ",\"subSpreadQuality\":" << quality.subSpreadQuality
+         << ",\"topCrossEdges\":[";
+  {
+    bool firstTop = true;
+    for (const CrossingEdgeRecord& rec : quality.topCrossEdges) {
+      if (!firstTop) stream << ",";
+      firstTop = false;
+      stream << "{\"sourceModelId\":\"" << escapeJson(rec.sourceModelId)
+             << "\",\"targetModelId\":\"" << escapeJson(rec.targetModelId)
+             << "\",\"crossings\":" << rec.crossings << "}";
+    }
+  }
+  stream << "],\"clusterByModelId\":{";
+  {
+    bool firstCluster = true;
+    for (const auto& kv : metadata.clusterByModelId) {
+      if (!firstCluster) stream << ",";
+      firstCluster = false;
+      stream << "\"" << escapeJson(kv.first) << "\":\""
+             << escapeJson(kv.second) << "\"";
+    }
+  }
+  stream << "},\"leafBundles\":[";
   for (std::size_t bi = 0; bi < metadata.leafBundles.size(); ++bi) {
     const LeafBundleRecord& bundle = metadata.leafBundles[bi];
     if (bi > 0) {
@@ -165,6 +212,8 @@ CliArguments parseArguments(int argc, char** argv) {
       arguments.bubble = (value == "1" || value == "true");
     } else if (flag == "--positions-tsv") {
       arguments.positionsTsv = value;
+    } else if (flag == "--rigid-positions") {
+      arguments.rigidPositions = (value == "1" || value == "true");
     } else {
       throw std::runtime_error("unknown argument: " + flag);
     }

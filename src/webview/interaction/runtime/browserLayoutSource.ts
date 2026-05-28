@@ -417,6 +417,56 @@ export function getBrowserLayoutSource(): string {
           return normalizePoints(points);
         }
 
+        function attachPathEndpointsToRenderedTables(entry, points) {
+          if (!Array.isArray(points) || points.length < 2) {
+            return points;
+          }
+
+          const nextPoints = points.map((point) => ({
+            x: round2(point.x),
+            y: round2(point.y),
+          }));
+          const lastIndex = nextPoints.length - 1;
+          nextPoints[0] = computeRenderedEndpointPort(
+            entry.sourcePosition,
+            entry.sourceTable,
+            nextPoints[1],
+          );
+          nextPoints[lastIndex] = computeRenderedEndpointPort(
+            entry.targetPosition,
+            entry.targetTable,
+            nextPoints[lastIndex - 1],
+          );
+
+          return normalizePoints(nextPoints);
+        }
+
+        function computeRenderedEndpointPort(position, table, peerPoint) {
+          const left = position.x;
+          const right = position.x + table.width;
+          const top = position.y;
+          const bottom = position.y + table.height;
+          const center = getCenter(position, table);
+          let dx = peerPoint.x - center.x;
+          let dy = peerPoint.y - center.y;
+          if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) {
+            dx = 1;
+            dy = 0;
+          }
+
+          if (Math.abs(dx) >= Math.abs(dy)) {
+            return {
+              x: round2(dx >= 0 ? right : left),
+              y: round2(Math.max(top, Math.min(bottom, peerPoint.y))),
+            };
+          }
+
+          return {
+            x: round2(Math.max(left, Math.min(right, peerPoint.x))),
+            y: round2(dy >= 0 ? bottom : top),
+          };
+        }
+
         function computeAppClusterCenters(visibleEdgeEntries) {
           const accumulators = new Map();
           function accumulate(table, position) {
@@ -800,7 +850,7 @@ export function getBrowserLayoutSource(): string {
           const targetAtBase = samePosition(entry.targetPosition, entry.targetTable.basePosition);
 
           if (staticPoints.length >= 2 && sourceAtBase && targetAtBase) {
-            return staticPoints;
+            return attachPathEndpointsToRenderedTables(entry, staticPoints);
           }
 
           return [];
@@ -812,11 +862,14 @@ export function getBrowserLayoutSource(): string {
             return staticPoints;
           }
 
-          return buildStraightPath(
-            entry.sourcePosition,
-            entry.sourceTable,
-            entry.targetPosition,
-            entry.targetTable,
+          return attachPathEndpointsToRenderedTables(
+            entry,
+            buildStraightPath(
+              entry.sourcePosition,
+              entry.sourceTable,
+              entry.targetPosition,
+              entry.targetTable,
+            ),
           );
         }
 

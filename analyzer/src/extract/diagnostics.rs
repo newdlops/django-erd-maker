@@ -4,21 +4,6 @@ use crate::protocol::diagnostics::{
 use crate::protocol::model_identity::CanonicalModelId;
 use std::path::Path;
 
-pub fn partial_inference_diagnostic(
-    file_path: &Path,
-    symbol_name: &str,
-    message: impl Into<String>,
-    related_model_id: Option<&CanonicalModelId>,
-) -> AnalyzerDiagnostic {
-    AnalyzerDiagnostic {
-        code: DiagnosticCode::PartialInference,
-        location: Some(source_location(file_path, symbol_name)),
-        message: message.into(),
-        related_model_id: related_model_id.cloned(),
-        severity: DiagnosticSeverity::Warning,
-    }
-}
-
 pub fn unresolved_reference_diagnostic(
     file_path: &Path,
     symbol_name: &str,

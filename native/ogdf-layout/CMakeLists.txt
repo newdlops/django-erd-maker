@@ -23,3 +23,14 @@ add_executable(django-erd-ogdf-layout
 )
 
 target_link_libraries(django-erd-ogdf-layout PRIVATE OGDF)
+
+# OpenMP for parallel hot loops (cluster_graph cross-min, route detour,
+# face raster). On Apple Silicon, prefer libomp from Homebrew.
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(django-erd-ogdf-layout PRIVATE OpenMP::OpenMP_CXX)
+  target_compile_definitions(django-erd-ogdf-layout PRIVATE DJERD_HAS_OPENMP=1)
+  message(STATUS "OpenMP enabled for django-erd-ogdf-layout")
+else()
+  message(WARNING "OpenMP not found; binary will run single-threaded")
+endif()

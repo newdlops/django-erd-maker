@@ -2,7 +2,7 @@
   "name": "django-erd-maker",
   "displayName": "Django ERD Maker",
   "description": "VS Code extension scaffold for visualizing Django model ERDs.",
-  "version": "0.0.1",
+  "version": "0.0.1068",
   "private": true,
   "engines": {
     "vscode": "^1.100.0"
@@ -51,6 +51,7 @@
     "analyzer:run": "cargo run --manifest-path analyzer/Cargo.toml"
   },
   "devDependencies": {
+    "onnxruntime-node": "^1.26.0",
     "typescript": "^5.9.3"
   }
 }

@@ -12,6 +12,7 @@ import {
   type Point,
   type RoutedEdgePath,
   type Size,
+  type TopCrossEdge,
 } from "../graph/layoutContract";
 import type {
   AnalysisSummary,
@@ -264,6 +265,9 @@ function decodeLayoutEngineMetadata(
     edgeLengthStddev: readOptionalNumber(metadata, "edgeLengthStddev", `${context}.engineMetadata`),
     edgeNodeIntersections: readOptionalNumber(metadata, "edgeNodeIntersections", `${context}.engineMetadata`),
     edgeSegmentOverlaps: readOptionalNumber(metadata, "edgeSegmentOverlaps", `${context}.engineMetadata`),
+    hubCarrierClusters: readOptionalNumber(metadata, "hubCarrierClusters", `${context}.engineMetadata`),
+    hubCarrierEdgesGrouped: readOptionalNumber(metadata, "hubCarrierEdgesGrouped", `${context}.engineMetadata`),
+    hubCarrierThreshold: readOptionalNumber(metadata, "hubCarrierThreshold", `${context}.engineMetadata`),
     leafBundles: decodeLeafBundles(metadata, `${context}.engineMetadata`),
     meanEdgeLength: readOptionalNumber(metadata, "meanEdgeLength", `${context}.engineMetadata`),
     nodeOverlaps: readOptionalNumber(metadata, "nodeOverlaps", `${context}.engineMetadata`),
@@ -275,7 +279,71 @@ function decodeLayoutEngineMetadata(
     strategy: readOptionalString(metadata, "strategy", `${context}.engineMetadata`),
     strategyReason: readOptionalString(metadata, "strategyReason", `${context}.engineMetadata`),
     visualCrossings: readOptionalNumber(metadata, "visualCrossings", `${context}.engineMetadata`),
+    stressScore: readOptionalNumber(metadata, "stressScore", `${context}.engineMetadata`),
+    edgeLengthCv: readOptionalNumber(metadata, "edgeLengthCv", `${context}.engineMetadata`),
+    crossingAngleMean: readOptionalNumber(metadata, "crossingAngleMean", `${context}.engineMetadata`),
+    crossingAngleCv: readOptionalNumber(metadata, "crossingAngleCv", `${context}.engineMetadata`),
+    edgeBendTotal: readOptionalNumber(metadata, "edgeBendTotal", `${context}.engineMetadata`),
+    hubClearanceP10: readOptionalNumber(metadata, "hubClearanceP10", `${context}.engineMetadata`),
+    clusterCompactnessMean: readOptionalNumber(metadata, "clusterCompactnessMean", `${context}.engineMetadata`),
+    crossingsPerEdgeP50: readOptionalNumber(metadata, "crossingsPerEdgeP50", `${context}.engineMetadata`),
+    crossingsPerEdgeP90: readOptionalNumber(metadata, "crossingsPerEdgeP90", `${context}.engineMetadata`),
+    cleanEdgeRatio: readOptionalNumber(metadata, "cleanEdgeRatio", `${context}.engineMetadata`),
+    edgeCrossingsBetweenClusters: readOptionalNumber(metadata, "edgeCrossingsBetweenClusters", `${context}.engineMetadata`),
+    nodeAreaCoverage: readOptionalNumber(metadata, "nodeAreaCoverage", `${context}.engineMetadata`),
+    emptySpaceCv: readOptionalNumber(metadata, "emptySpaceCv", `${context}.engineMetadata`),
+    compositeQuality: readOptionalNumber(metadata, "compositeQuality", `${context}.engineMetadata`),
+    subCleanQuality: readOptionalNumber(metadata, "subCleanQuality", `${context}.engineMetadata`),
+    subSeverityQuality: readOptionalNumber(metadata, "subSeverityQuality", `${context}.engineMetadata`),
+    subAngleQuality: readOptionalNumber(metadata, "subAngleQuality", `${context}.engineMetadata`),
+    subStressQuality: readOptionalNumber(metadata, "subStressQuality", `${context}.engineMetadata`),
+    subCompactQuality: readOptionalNumber(metadata, "subCompactQuality", `${context}.engineMetadata`),
+    subUniformQuality: readOptionalNumber(metadata, "subUniformQuality", `${context}.engineMetadata`),
+    subSpreadQuality: readOptionalNumber(metadata, "subSpreadQuality", `${context}.engineMetadata`),
+    topCrossEdges: decodeTopCrossEdges(metadata, `${context}.engineMetadata`),
+    clusterByModelId: decodeClusterByModelId(metadata, `${context}.engineMetadata`),
   };
+}
+
+
+function decodeTopCrossEdges(
+  record: JsonRecord,
+  context: string,
+): TopCrossEdge[] | undefined {
+  if (record.topCrossEdges === undefined) return undefined;
+  const items = readArray(record, "topCrossEdges", context);
+  return items.map((item, index) => {
+    const rec = readRecord(item, `${context}.topCrossEdges[${index}]`);
+    const source = rec.sourceModelId;
+    const target = rec.targetModelId;
+    const crossings = rec.crossings;
+    if (typeof source !== "string" || !isModelId(source)
+        || typeof target !== "string" || !isModelId(target)
+        || typeof crossings !== "number") {
+      throw new Error(`${context}.topCrossEdges[${index}] malformed`);
+    }
+    return { sourceModelId: source, targetModelId: target, crossings };
+  });
+}
+
+
+function decodeClusterByModelId(
+  record: JsonRecord,
+  context: string,
+): Record<string, string> | undefined {
+  const raw = record.clusterByModelId;
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error(`${context}.clusterByModelId must be an object`);
+  }
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof v !== "string") {
+      throw new Error(`${context}.clusterByModelId[${k}] must be a string`);
+    }
+    out[k] = v;
+  }
+  return out;
 }
 
 function decodeLeafBundles(
@@ -624,6 +692,7 @@ function decodeViewState(record: JsonRecord): InitialViewState {
     useEdgeBends: record.useEdgeBends === true,
     clusterGraphLayout: record.clusterGraphLayout === true,
     bubbleLayout: record.bubbleLayout === true,
+    optimizedLayout: record.optimizedLayout === true,
     layoutMode: readLiteral(record, "layoutMode", OGDF_LAYOUT_MODES, "diagramBootstrapPayload.view"),
     selectedMethodContext: selectedMethodContext
       ? decodeSelectedMethodContext(

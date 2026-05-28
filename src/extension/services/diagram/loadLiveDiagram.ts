@@ -31,6 +31,7 @@ export async function relayoutLiveDiagram(
   edgeRouting: EdgeRoutingStyle = DEFAULT_EDGE_ROUTING,
   clusterGraphLayout: boolean = false,
   bubbleLayout: boolean = false,
+  optimizedLayout: boolean = false,
 ): Promise<LiveDiagramResult> {
   const requestedLayoutMode = normalizeLayoutMode(layoutMode);
   // Stash on basePayload.view so applyRequestedLayout → runOgdfLayout sees
@@ -39,6 +40,7 @@ export async function relayoutLiveDiagram(
   // off (false) actually clears the flag.
   current.basePayload.view.clusterGraphLayout = clusterGraphLayout;
   current.basePayload.view.bubbleLayout = bubbleLayout;
+  current.basePayload.view.optimizedLayout = optimizedLayout;
   const { layoutFailures, payload } = await applyRequestedLayout(
     extensionRootPath,
     current.basePayload,
@@ -67,6 +69,7 @@ export async function loadLiveDiagram(
   edgeRouting: EdgeRoutingStyle = DEFAULT_EDGE_ROUTING,
   clusterGraphLayout: boolean = false,
   bubbleLayout: boolean = false,
+  optimizedLayout: boolean = false,
 ): Promise<LiveDiagramResult> {
   const requestedLayoutMode = normalizeLayoutMode(layoutMode);
   const basePayload =
@@ -84,6 +87,7 @@ export async function loadLiveDiagram(
 
   basePayload.view.clusterGraphLayout = clusterGraphLayout;
   basePayload.view.bubbleLayout = bubbleLayout;
+  basePayload.view.optimizedLayout = optimizedLayout;
   const { layoutFailures, payload } = await applyRequestedLayout(
     extensionRootPath,
     basePayload,
@@ -174,6 +178,7 @@ async function applyRequestedLayout(
     edgeRouting,
     payload.view?.clusterGraphLayout === true,
     payload.view?.bubbleLayout === true,
+    payload.view?.optimizedLayout === true,
   );
 
   payload.timings = mergePipelineTimings(payload.timings, {

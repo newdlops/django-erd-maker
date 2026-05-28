@@ -128,6 +128,7 @@ export function getBrowserStateSource(): string {
             useEdgeBends: Boolean(value.useEdgeBends),
             clusterGraphLayout: Boolean(value.clusterGraphLayout),
             bubbleLayout: Boolean(value.bubbleLayout),
+            optimizedLayout: Boolean(value.optimizedLayout),
             layoutMode: value.layoutMode || "hierarchical",
             settings: normalizeInteractionSettings(value.settings),
             selectedMethodContext: value.selectedMethodContext,
@@ -365,6 +366,7 @@ export function getBrowserStateSource(): string {
             useEdgeBends: Boolean(currentState.useEdgeBends),
             clusterGraphLayout: Boolean(currentState.clusterGraphLayout),
             bubbleLayout: Boolean(currentState.bubbleLayout),
+            optimizedLayout: Boolean(currentState.optimizedLayout),
             layoutMode: currentState.layoutMode,
             selectedMethodContext: currentState.selectedMethodContext
               ? {

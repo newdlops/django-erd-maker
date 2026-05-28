@@ -46,7 +46,11 @@ export const OGDF_LAYOUT_MODES = [
   "visibility",
 ] as const;
 export type LayoutMode = (typeof OGDF_LAYOUT_MODES)[number];
-export const DEFAULT_LAYOUT_MODE: LayoutMode = "hierarchical_barycenter";
+// fmmm (Fast Multipole Multilevel) is force-directed: 1250-node ERDs
+// take ~30-60s, vs ~4-5 min for SugiyamaLayout (hierarchical_barycenter).
+// Layout style is non-layered but readable; users can switch back to a
+// hierarchical mode via the layout dropdown for stricter top-down flow.
+export const DEFAULT_LAYOUT_MODE: LayoutMode = "fmmm";
 
 export const EDGE_ROUTING_STYLES = ["orthogonal", "straight", "straight_smart"] as const;
 export type EdgeRoutingStyle = (typeof EDGE_ROUTING_STYLES)[number];
@@ -444,6 +448,15 @@ export interface LeafBundle {
   sharedRootModelIds?: ModelId[];
 }
 
+// One offender record in engineMetadata.topCrossEdges. Identifies an
+// edge by source/target model ids and reports its raw geometric
+// crossing participation count (pre carrier-aware filter).
+export interface TopCrossEdge {
+  sourceModelId: ModelId;
+  targetModelId: ModelId;
+  crossings: number;
+}
+
 export interface LayoutEngineMetadata {
   actualAlgorithm?: string;
   actualMode?: LayoutMode;
@@ -455,6 +468,9 @@ export interface LayoutEngineMetadata {
   edgeLengthStddev?: number;
   edgeNodeIntersections?: number;
   edgeSegmentOverlaps?: number;
+  hubCarrierClusters?: number;
+  hubCarrierEdgesGrouped?: number;
+  hubCarrierThreshold?: number;
   leafBundles?: LeafBundle[];
   meanEdgeLength?: number;
   nodeOverlaps?: number;
@@ -466,6 +482,37 @@ export interface LayoutEngineMetadata {
   strategy?: string;
   strategyReason?: string;
   visualCrossings?: number;
+  // ML evaluation signals (Gansner 2005 stress + distribution stats).
+  // All metrics are dataset-agnostic — no per-graph thresholds.
+  stressScore?: number;
+  edgeLengthCv?: number;
+  crossingAngleMean?: number;
+  crossingAngleCv?: number;
+  edgeBendTotal?: number;
+  hubClearanceP10?: number;
+  clusterCompactnessMean?: number;
+  // Cross/bbox subdivision metrics — see types.h for definitions.
+  crossingsPerEdgeP50?: number;
+  crossingsPerEdgeP90?: number;
+  cleanEdgeRatio?: number;
+  edgeCrossingsBetweenClusters?: number;
+  nodeAreaCoverage?: number;
+  emptySpaceCv?: number;
+  // Composite quality score (Bennett-weighted sum of 7 sub-scores).
+  compositeQuality?: number;
+  subCleanQuality?: number;
+  subSeverityQuality?: number;
+  subAngleQuality?: number;
+  subStressQuality?: number;
+  subCompactQuality?: number;
+  subUniformQuality?: number;
+  subSpreadQuality?: number;
+  // Top-N edges by raw geometric crossing count, sorted descending.
+  topCrossEdges?: TopCrossEdge[];
+  // Map of model id → cluster id (e.g. "_louv_24") for whichever
+  // clustering algorithm the layout engine used. Exposed so downstream
+  // tooling (Python parity, ML training) can use the same partition.
+  clusterByModelId?: Record<string, string>;
 }
 
 export interface LayoutSnapshot {

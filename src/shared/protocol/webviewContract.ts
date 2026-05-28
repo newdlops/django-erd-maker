@@ -36,6 +36,7 @@ export interface InitialViewState {
   useEdgeBends?: boolean;
   clusterGraphLayout?: boolean;
   bubbleLayout?: boolean;
+  optimizedLayout?: boolean;
   layoutMode: LayoutMode;
   selectedMethodContext?: SelectedMethodContext;
   selectedModelId?: ModelId;

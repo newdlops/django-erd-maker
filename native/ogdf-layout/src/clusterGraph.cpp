@@ -38,6 +38,22 @@ constexpr double kInnerInternalRingPad = 32.0;
 constexpr double kInnerBridgeRingPad = 48.0;
 constexpr double kSuperNodePadding = 24.0;
 
+// FMMM randSeed is independent from ogdf::setSeed (the global RNG).
+// To make multistart actually vary the layout, each FMMM instance must
+// be re-seeded explicitly. main.cpp sets DJERD_FMMM_SEED per run; we
+// read it here so every FMMM call inside cluster_graph picks it up.
+// When unset, OGDF's built-in default (100) stays in force, preserving
+// pre-multistart determinism.
+inline int fmmmEnvSeedOr(int fallback) {
+  const char* env = std::getenv("DJERD_FMMM_SEED");
+  if (!env || env[0] == '\0') return fallback;
+  const int v = std::atoi(env);
+  return v >= 0 ? v : fallback;
+}
+inline void applyFmmmEnvSeed(ogdf::FMMMLayout& fmmm) {
+  fmmm.randSeed(fmmmEnvSeedOr(100));
+}
+
 // Build dedup adjacency (parallel edges count as 1). Returns adj[i] = sorted
 // list of distinct neighbour indices. Self-loops excluded.
 std::vector<std::vector<std::size_t>> buildDedupAdjacency(
@@ -1315,6 +1331,7 @@ ClusterGraphResult runClusterGraphLayout(
             sugi.call(spAttr);
           } catch (...) {
             ogdf::FMMMLayout fmmm;
+            applyFmmmEnvSeed(fmmm);
             fmmm.useHighLevelOptions(true);
             fmmm.unitEdgeLength(spSeparation);
             fmmm.newInitialPlacement(true);
@@ -1628,6 +1645,7 @@ ClusterGraphResult runClusterGraphLayout(
 
       tryLayout("FMMM", [&]() {
         ogdf::FMMMLayout fmmm;
+        applyFmmmEnvSeed(fmmm);
         fmmm.useHighLevelOptions(true);
         fmmm.unitEdgeLength(120.0);
         fmmm.qualityVersusSpeed(ogdf::FMMMOptions::QualityVsSpeed::GorgeousAndEfficient);
@@ -1767,6 +1785,7 @@ ClusterGraphResult runClusterGraphLayout(
           // Layout super-skel via FMMM.
           {
             ogdf::FMMMLayout fmmm;
+            applyFmmmEnvSeed(fmmm);
             fmmm.useHighLevelOptions(true);
             fmmm.unitEdgeLength(120.0);
             fmmm.qualityVersusSpeed(ogdf::FMMMOptions::QualityVsSpeed::GorgeousAndEfficient);
@@ -1841,6 +1860,7 @@ ClusterGraphResult runClusterGraphLayout(
               local.newEdge(idxToLocal[p.first], idxToLocal[p.second]);
             }
             ogdf::FMMMLayout fmmm;
+            applyFmmmEnvSeed(fmmm);
             fmmm.useHighLevelOptions(true);
             fmmm.unitEdgeLength(40.0);
             fmmm.qualityVersusSpeed(ogdf::FMMMOptions::QualityVsSpeed::GorgeousAndEfficient);
@@ -1981,6 +2001,7 @@ ClusterGraphResult runClusterGraphLayout(
     }
     if (coGraph.numberOfNodes() >= 2) {
       ogdf::FMMMLayout fmmm;
+      applyFmmmEnvSeed(fmmm);
       fmmm.useHighLevelOptions(true);
       fmmm.unitEdgeLength(120.0);
       fmmm.qualityVersusSpeed(ogdf::FMMMOptions::QualityVsSpeed::GorgeousAndEfficient);
@@ -2108,6 +2129,8 @@ ClusterGraphResult runClusterGraphLayout(
         std::max(120.0, anchorSpread / 12.0));
 
       ogdf::FMMMLayout fmmm;
+
+      applyFmmmEnvSeed(fmmm);
       fmmm.useHighLevelOptions(true);
       fmmm.unitEdgeLength(anchorEdgeLen);
       fmmm.newInitialPlacement(false);
@@ -2306,6 +2329,7 @@ ClusterGraphResult runClusterGraphLayout(
       } catch (const std::exception& ex) {
         // Fall back to FMMM if planarization throws.
         ogdf::FMMMLayout fmmm;
+        applyFmmmEnvSeed(fmmm);
         fmmm.useHighLevelOptions(true);
         fmmm.unitEdgeLength(120.0);
         fmmm.newInitialPlacement(true);
@@ -2332,6 +2356,7 @@ ClusterGraphResult runClusterGraphLayout(
         sugi.call(superAttr);
       } catch (...) {
         ogdf::FMMMLayout fmmm;
+        applyFmmmEnvSeed(fmmm);
         fmmm.useHighLevelOptions(true);
         fmmm.unitEdgeLength(120.0);
         fmmm.newInitialPlacement(true);
@@ -2340,6 +2365,7 @@ ClusterGraphResult runClusterGraphLayout(
       }
     } else {
       ogdf::FMMMLayout fmmm;
+      applyFmmmEnvSeed(fmmm);
       fmmm.useHighLevelOptions(true);
       fmmm.unitEdgeLength(120.0);
       fmmm.newInitialPlacement(true);
@@ -3822,6 +3848,29 @@ ClusterGraphResult runClusterGraphLayout(
   }
 
   cgCheckpoint("pre-§13-cluster-swap");
+  // Fast-path: when the caller is going to overwrite all positions
+  // (rigid-positions with --positions-tsv), the §13/§14/§15 position-
+  // optimizing passes are wasted work — they only adjust attributes.x/y
+  // which gets replaced. Skip them when DJERD_SKIP_CG_OPT=1 is set.
+  // §13 alone takes ~2 min on captain (1248 nodes); skipping it brings
+  // the rigid-positions reroute from ~126s back to ~30s.
+  const char* skipCgOptEnv = std::getenv("DJERD_SKIP_CG_OPT");
+  const bool skipCgOpt = skipCgOptEnv && std::strcmp(skipCgOptEnv, "0") != 0;
+  if (skipCgOpt) {
+    std::fprintf(stderr,
+      "[cg-fast] DJERD_SKIP_CG_OPT=1 — skipping §13/§14/§15 position passes\n");
+  }
+  // Counters referenced in end-of-function summary log; declared outside
+  // the skipCgOpt block so the summary still compiles when §13/§14/§15
+  // are skipped.
+  std::size_t finalSwaps = 0;
+  std::size_t spineCorridorPushed = 0;
+  std::size_t prunedMoves = 0;
+  std::size_t chainStraightened = 0;
+  std::size_t busPushed = 0;
+  std::size_t nodeNudges = 0;
+  std::size_t subtreePushCount = 0;
+  if (!skipCgOpt) {
   // 13. Final cluster-swap crossing-reduction pass.
   //
   // After ALL placement (compose, alone-root grid, pruning re-attach), use
@@ -3833,8 +3882,6 @@ ClusterGraphResult runClusterGraphLayout(
   //
   // This is the LAST pass and operates on the final layout, catching
   // crossings that the super-graph-level passes (9b3) couldn't see.
-  std::size_t finalSwaps = 0;
-  std::size_t nodeNudges = 0;
   {
     // Build owned-nodes per cluster root: members + transitive pruned subtree
     std::unordered_map<std::size_t, std::size_t> nodeToCRoot;
@@ -4323,7 +4370,7 @@ ClusterGraphResult runClusterGraphLayout(
   // edges from other backbones don't have to cross them.
   //
   // Skipped in bubble mode (placement is fixed concentric).
-  std::size_t subtreePushCount = 0;
+  // (subtreePushCount hoisted earlier so it survives skipCgOpt branch)
   if (!bubbleMode && !backboneSet.empty() && result.clusters.size() >= 2) {
     // 1. Build cluster-id adjacency from inter-cluster edges (dedup pairs).
     std::unordered_map<std::string, std::size_t> cidToRoot;
@@ -4602,7 +4649,7 @@ ClusterGraphResult runClusterGraphLayout(
   // Skipped in bubble mode (graph-terminology.md §11.2): bubble has no
   // directionalised bus concept and equal-distribution per-cluster fill
   // would be undone by linearising chains anyway.
-  std::size_t chainStraightened = 0;
+  // (chainStraightened hoisted earlier so it survives skipCgOpt branch)
   if (!bubbleMode) {
     auto walkChain = [&](std::size_t start, std::size_t prev,
                           std::size_t targetRoot) -> std::vector<std::size_t> {
@@ -4856,7 +4903,7 @@ ClusterGraphResult runClusterGraphLayout(
   // bus corridor gets invaded by some member. With strict push-out the whole
   // canvas inflates 2× (observed: 123×95k → 208×265k). Bubble keeps its
   // isotropic shape; bus-vs-bubble overlaps are accepted.
-  std::size_t busPushed = 0;
+  // (busPushed hoisted earlier so it survives skipCgOpt branch)
   if (!bubbleMode) {
     // Build cluster ownership: root → all owned nodes (members + attached
     // pruned subtree). Translating the cluster moves all of these together.
@@ -4995,7 +5042,7 @@ ClusterGraphResult runClusterGraphLayout(
   // moderate (≈300 px) so we only displace clusters genuinely on the
   // spine line; clusters already in the upper/lower hemisphere keep
   // their FMMM-balanced positions.
-  std::size_t spineCorridorPushed = 0;
+  // (spineCorridorPushed hoisted earlier so it survives skipCgOpt branch)
   if (result.mainRingNodeIdxs.size() >= 4 && !result.mainRingClosed) {
     // 1. Build cluster-owned-nodes map (members + transitive pruned tree).
     std::unordered_map<std::size_t, std::size_t> ownerOfNode2;
@@ -5096,7 +5143,7 @@ ClusterGraphResult runClusterGraphLayout(
   // parent without affecting graph structure. Iterate: for each pruned
   // node, try alternative angles around parent; pick the angle that
   // minimizes crossings of its edge against other edges.
-  std::size_t prunedMoves = 0;
+  // (prunedMoves hoisted earlier so it survives skipCgOpt branch)
   {
     // Build dedup edge list once
     std::vector<std::pair<std::size_t, std::size_t>> dedupEdges;
@@ -5783,6 +5830,7 @@ ClusterGraphResult runClusterGraphLayout(
         voronoiClamped, voronoiPrunedClamped);
     }
   }
+  }  // end if (!skipCgOpt) — §13/§14/§15 block
 
   cgCheckpoint("pre-bus-bundle");
   // === Bus bundle detection (graph-terminology.md §3.7.5 extension) ===

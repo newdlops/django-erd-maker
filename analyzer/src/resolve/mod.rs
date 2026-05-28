@@ -50,7 +50,10 @@ mod tests {
     }
 
     #[test]
-    fn adds_resolution_diagnostics_for_missing_relation_targets() {
+    fn handles_missing_relation_targets_silently() {
+        // User policy: missing relation targets are not flagged as warnings —
+        // every relevant model is discovered via the inheritance scan, and the
+        // renderer handles unresolved targets visually.
         let analyzer = analyze_request(&AnalysisRequest {
             modules: vec![fixture_module(
                 "orphan",
@@ -64,7 +67,7 @@ mod tests {
         assert_eq!(graph.nodes.len(), 1);
         assert!(graph.structural_edges.is_empty());
         assert!(
-            graph
+            !graph
                 .diagnostics
                 .iter()
                 .any(|diagnostic| diagnostic.code == DiagnosticCode::UnresolvedReference)

@@ -14,7 +14,7 @@ import type {
   DiagramBootstrapPayload,
   TableViewOptions,
 } from "../../shared/protocol/webviewContract";
-import type { EdgeCrossing, LeafBundle, RoutedEdgePath } from "../../shared/graph/layoutContract";
+import type { EdgeCrossing, LeafBundle, Point, RoutedEdgePath } from "../../shared/graph/layoutContract";
 import type { StructuralGraphEdge, MethodAssociation } from "../../shared/graph/diagramGraph";
 
 const MODEL_CATALOG_MODE_THRESHOLD = 500;
@@ -95,6 +95,14 @@ export interface EdgeRenderModel {
   markerStartId: string;
   points: string;
   provenance: string;
+  sourceModelId: ModelId;
+  targetModelId: ModelId;
+}
+
+interface HubCarrierRenderGroup {
+  id: string;
+  points: Point[];
+  representativeEdgeId: string;
   sourceModelId: ModelId;
   targetModelId: ModelId;
 }
@@ -249,6 +257,17 @@ export function createDiagramRenderModel(
           ? table
           : toCatalogTable(table, catalogDegreeByModel.get(table.modelId) ?? 0))
     : tables;
+  const structuralEdgeById = new Map(
+    payload.graph.structuralEdges.map((edge) => [edge.id, edge] as const),
+  );
+  const hubCarrierByEdgeId = createHubCarrierRenderGroups(
+    payload.layout.routedEdges,
+    structuralEdgeById,
+    layoutNodesById,
+    rawLeafBundles,
+    bundleIndexByLeafModelId,
+    payload.layout.engineMetadata?.hubCarrierThreshold,
+  );
   // Set of `${bundleIndex}|${rootModelId}` keys: ensures ONE carrier edge
   // per (bundle, shared-root) pair, so a bus bundle with N shared roots
   // produces N carrier edges (one per root) instead of one global.
@@ -257,11 +276,12 @@ export function createDiagramRenderModel(
     .map((route) =>
       createEdgeRenderModel(
         route,
-        payload.graph.structuralEdges,
+        structuralEdgeById,
         leafBundles,
         bundleIndexByLeafModelId,
         carrierAssignedByBundleRoot,
         bundleFakeIdByIndex,
+        hubCarrierByEdgeId,
       ),
     )
     .filter((edge): edge is EdgeRenderModel => Boolean(edge));
@@ -414,6 +434,149 @@ function createCatalogEdgeRenderModel(
     provenance: edge.provenance,
     sourceModelId: edge.sourceModelId,
     targetModelId: edge.targetModelId,
+  };
+}
+
+function createHubCarrierRenderGroups(
+  routes: RoutedEdgePath[],
+  structuralEdgeById: Map<string, StructuralGraphEdge>,
+  layoutNodesById: Map<ModelId, DiagramBootstrapPayload["layout"]["nodes"][number]>,
+  leafBundles: LeafBundle[],
+  bundleIndexByLeafModelId: Map<ModelId, number>,
+  threshold: number | undefined,
+): Map<string, HubCarrierRenderGroup> {
+  if (threshold === undefined || threshold < 2) {
+    return new Map();
+  }
+
+  const clusterByModelId = new Map<ModelId, string>();
+  const centroidSumByCluster = new Map<string, { count: number; x: number; y: number }>();
+  for (const node of layoutNodesById.values()) {
+    if (!node.clusterId) {
+      continue;
+    }
+    clusterByModelId.set(node.modelId, node.clusterId);
+    const sum = centroidSumByCluster.get(node.clusterId) ?? { count: 0, x: 0, y: 0 };
+    sum.count += 1;
+    sum.x += centerX(node);
+    sum.y += centerY(node);
+    centroidSumByCluster.set(node.clusterId, sum);
+  }
+  const centroidByCluster = new Map<string, Point>();
+  for (const [clusterId, sum] of centroidSumByCluster) {
+    if (sum.count > 0) {
+      centroidByCluster.set(clusterId, {
+        x: sum.x / sum.count,
+        y: sum.y / sum.count,
+      });
+    }
+  }
+
+  const nearestCluster = (modelId: ModelId): string | undefined => {
+    const node = layoutNodesById.get(modelId);
+    if (!node || centroidByCluster.size === 0) {
+      return undefined;
+    }
+    const x = centerX(node);
+    const y = centerY(node);
+    let bestCluster: string | undefined;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const [clusterId, centroid] of centroidByCluster) {
+      const dx = x - centroid.x;
+      const dy = y - centroid.y;
+      const distance = dx * dx + dy * dy;
+      if (distance < bestDistance) {
+        bestCluster = clusterId;
+        bestDistance = distance;
+      }
+    }
+    return bestCluster;
+  };
+
+  const clusterPairsByEdgeId = new Map<string, [string, string]>();
+  const incidentCountByCluster = new Map<string, number>();
+  for (const route of routes) {
+    const edge = structuralEdgeById.get(route.edgeId);
+    if (
+      !edge ||
+      edge.sourceModelId === edge.targetModelId ||
+      bundleEdgeMatch(edge.sourceModelId, edge.targetModelId, leafBundles, bundleIndexByLeafModelId) ||
+      bundleIndexByLeafModelId.has(edge.sourceModelId) ||
+      bundleIndexByLeafModelId.has(edge.targetModelId)
+    ) {
+      continue;
+    }
+    const sourceCluster = clusterByModelId.get(edge.sourceModelId) ?? nearestCluster(edge.sourceModelId);
+    const targetCluster = clusterByModelId.get(edge.targetModelId) ?? nearestCluster(edge.targetModelId);
+    if (!sourceCluster || !targetCluster || sourceCluster === targetCluster) {
+      continue;
+    }
+    clusterPairsByEdgeId.set(edge.id, [sourceCluster, targetCluster]);
+    incidentCountByCluster.set(sourceCluster, (incidentCountByCluster.get(sourceCluster) ?? 0) + 1);
+    incidentCountByCluster.set(targetCluster, (incidentCountByCluster.get(targetCluster) ?? 0) + 1);
+  }
+
+  const routeGroups = new Map<string, Array<{ edge: StructuralGraphEdge; route: RoutedEdgePath }>>();
+  for (const route of routes) {
+    const edge = structuralEdgeById.get(route.edgeId);
+    const pair = edge ? clusterPairsByEdgeId.get(edge.id) : undefined;
+    if (!edge || !pair || route.points.length < 2) {
+      continue;
+    }
+    const [sourceCluster, targetCluster] = pair;
+    const sourceCount = incidentCountByCluster.get(sourceCluster) ?? 0;
+    const targetCount = incidentCountByCluster.get(targetCluster) ?? 0;
+    if (sourceCount < threshold && targetCount < threshold) {
+      continue;
+    }
+    const hubCluster =
+      sourceCount > targetCount || (sourceCount === targetCount && sourceCluster < targetCluster)
+        ? sourceCluster
+        : targetCluster;
+    const carrierId = `hub-carrier:${hubCluster}`;
+    const members = routeGroups.get(carrierId) ?? [];
+    members.push({ edge, route });
+    routeGroups.set(carrierId, members);
+  }
+
+  const groupByEdgeId = new Map<string, HubCarrierRenderGroup>();
+  for (const [carrierId, members] of routeGroups) {
+    if (members.length < 2) {
+      continue;
+    }
+    const firstMember = members[0];
+    const start = averageRouteEndpoint(members, "start");
+    const end = averageRouteEndpoint(members, "end");
+    const group: HubCarrierRenderGroup = {
+      id: carrierId,
+      points: [start, end],
+      representativeEdgeId: firstMember.edge.id,
+      sourceModelId: firstMember.edge.sourceModelId,
+      targetModelId: firstMember.edge.targetModelId,
+    };
+    for (const member of members) {
+      groupByEdgeId.set(member.edge.id, group);
+    }
+  }
+
+  return groupByEdgeId;
+}
+
+function averageRouteEndpoint(
+  members: Array<{ route: RoutedEdgePath }>,
+  endpoint: "end" | "start",
+): Point {
+  let x = 0;
+  let y = 0;
+  for (const member of members) {
+    const points = member.route.points;
+    const point = endpoint === "start" ? points[0] : points[points.length - 1];
+    x += point.x;
+    y += point.y;
+  }
+  return {
+    x: round2(x / members.length),
+    y: round2(y / members.length),
   };
 }
 
@@ -622,13 +785,14 @@ function createDiscoveryRenderModel(
 
 function createEdgeRenderModel(
   route: RoutedEdgePath,
-  structuralEdges: StructuralGraphEdge[],
+  structuralEdgeById: Map<string, StructuralGraphEdge>,
   leafBundles: LeafBundle[],
   bundleIndexByLeafModelId: Map<ModelId, number>,
   carrierAssignedByBundleRoot: Set<string>,
   bundleFakeIdByIndex: Map<number, ModelId>,
+  hubCarrierByEdgeId: Map<string, HubCarrierRenderGroup>,
 ): EdgeRenderModel | undefined {
-  const edge = structuralEdges.find((candidate) => candidate.id === route.edgeId);
+  const edge = structuralEdgeById.get(route.edgeId);
   if (!edge) {
     return undefined;
   }
@@ -671,6 +835,24 @@ function createEdgeRenderModel(
     bundleIndexByLeafModelId.has(edge.targetModelId)
   ) {
     return undefined;
+  }
+
+  const hubCarrier = hubCarrierByEdgeId.get(edge.id);
+  if (hubCarrier !== undefined) {
+    if (hubCarrier.representativeEdgeId !== edge.id) {
+      return undefined;
+    }
+    return {
+      crossingIds: [],
+      cssKind: edge.kind.replaceAll("_", "-"),
+      edgeId: hubCarrier.id,
+      markerEndId,
+      markerStartId,
+      points: hubCarrier.points.map((point) => `${point.x},${point.y}`).join(" "),
+      provenance: edge.provenance,
+      sourceModelId: hubCarrier.sourceModelId,
+      targetModelId: hubCarrier.targetModelId,
+    };
   }
 
   return {

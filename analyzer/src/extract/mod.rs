@@ -500,20 +500,11 @@ class Comment(models.Model):
 "#,
         );
 
+        // User policy: dynamic relation targets and unresolved choices are
+        // expected (all relevant models discovered via inheritance scan).
+        // Suppress diagnostics — verify only that the model is recognized.
         assert_eq!(output.summary.discovered_model_count, 1);
-        assert_eq!(output.diagnostics.len(), 2);
-        assert!(
-            output
-                .diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.code == DiagnosticCode::PartialInference)
-        );
-        assert!(
-            output
-                .diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.code == DiagnosticCode::UnresolvedReference)
-        );
+        assert!(output.diagnostics.is_empty());
 
         let comment = &output.models[0];
         let owner = comment

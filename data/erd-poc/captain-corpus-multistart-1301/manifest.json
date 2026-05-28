@@ -1,0 +1,110 @@
+{
+  "binary": "/Users/lky/project/django-erd-maker/bin/ogdf/darwin-arm64/django-erd-ogdf-layout",
+  "nodes_tsv": "data/erd-poc/graphs/real-main-1301/nodes.tsv",
+  "edges_tsv": "data/erd-poc/graphs/real-main-1301/edges.tsv",
+  "seeds": [
+    43,
+    44,
+    45,
+    50,
+    51,
+    100,
+    101,
+    200,
+    300,
+    500
+  ],
+  "summaries": [
+    {
+      "seed": 43,
+      "elapsed_s": 275.60151195526123,
+      "edgeCrossings": 1781,
+      "visualCrossings": 2738,
+      "bundleEdgeIntersections": 29,
+      "quality": null,
+      "nodes": 1301
+    },
+    {
+      "seed": 44,
+      "elapsed_s": 226.5173680782318,
+      "edgeCrossings": 1657,
+      "visualCrossings": 2549,
+      "bundleEdgeIntersections": 40,
+      "quality": null,
+      "nodes": 1301
+    },
+    {
+      "seed": 45,
+      "elapsed_s": 252.26382517814636,
+      "edgeCrossings": 1945,
+      "visualCrossings": 2999,
+      "bundleEdgeIntersections": 29,
+      "quality": null,
+      "nodes": 1301
+    },
+    {
+      "seed": 50,
+      "elapsed_s": 251.8595371246338,
+      "edgeCrossings": 1804,
+      "visualCrossings": 2689,
+      "bundleEdgeIntersections": 24,
+      "quality": null,
+      "nodes": 1301
+    },
+    {
+      "seed": 51,
+      "elapsed_s": 263.6953709125519,
+      "edgeCrossings": 1996,
+      "visualCrossings": 2969,
+      "bundleEdgeIntersections": 54,
+      "quality": null,
+      "nodes": 1301
+    },
+    {
+      "seed": 100,
+      "elapsed_s": 195.43649411201477,
+      "edgeCrossings": 1599,
+      "visualCrossings": 2509,
+      "bundleEdgeIntersections": 26,
+      "quality": null,
+      "nodes": 1301
+    },
+    {
+      "seed": 101,
+      "elapsed_s": 215.53059482574463,
+      "edgeCrossings": 1920,
+      "visualCrossings": 2801,
+      "bundleEdgeIntersections": 42,
+      "quality": null,
+      "nodes": 1301
+    },
+    {
+      "seed": 200,
+      "elapsed_s": 231.57378005981445,
+      "edgeCrossings": 1816,
+      "visualCrossings": 2799,
+      "bundleEdgeIntersections": 35,
+      "quality": null,
+      "nodes": 1301
+    },
+    {
+      "seed": 300,
+      "elapsed_s": 167.85961604118347,
+      "edgeCrossings": 1420,
+      "visualCrossings": 2377,
+      "bundleEdgeIntersections": 19,
+      "quality": null,
+      "nodes": 1301
+    },
+    {
+      "seed": 500,
+      "elapsed_s": 209.1644308567047,
+      "edgeCrossings": 1554,
+      "visualCrossings": 2594,
+      "bundleEdgeIntersections": 39,
+      "quality": null,
+      "nodes": 1301
+    }
+  ],
+  "total_elapsed_s": 2289.63374710083
+}

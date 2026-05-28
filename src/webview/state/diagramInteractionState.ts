@@ -52,8 +52,14 @@ export function createDiagramInteractionState(
     collapseClusters: Boolean(view.collapseClusters),
     edgeBundling: Boolean(view.edgeBundling),
     useEdgeBends: Boolean(view.useEdgeBends),
-    clusterGraphLayout: Boolean(view.clusterGraphLayout),
+    // Always start OFF; cluster_graph on a 1000-node ERD takes ~3-5 min
+    // (community detection + 13 post-passes). User-triggered toggle keeps
+    // first-load fast and falls back to hierarchical_barycenter.
+    clusterGraphLayout: false,
     bubbleLayout: Boolean(view.bubbleLayout),
+    // Always start OFF; ML pipeline is user-triggered so reloads do not
+    // start background layout work automatically.
+    optimizedLayout: false,
     layoutMode: view.layoutMode,
     settings: normalizeInteractionSettings(settingsOverride ?? DEFAULT_INTERACTION_SETTINGS),
     selectedMethodContext: cloneSelectedMethodContext(view.selectedMethodContext),
@@ -167,6 +173,7 @@ export function cloneDiagramInteractionState(
     useEdgeBends: Boolean(state.useEdgeBends),
     clusterGraphLayout: Boolean(state.clusterGraphLayout),
     bubbleLayout: Boolean(state.bubbleLayout),
+    optimizedLayout: Boolean(state.optimizedLayout),
     layoutMode: state.layoutMode,
     settings: { ...state.settings },
     selectedMethodContext: cloneSelectedMethodContext(state.selectedMethodContext),

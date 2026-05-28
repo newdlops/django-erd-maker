@@ -52,6 +52,50 @@ def parse_baseline_layout_crossings(layout_path: Path) -> int | None:
     return layout.get("engineMetadata", {}).get("edgeCrossings")
 
 
+# Names of extended ML-signal metrics from engineMetadata. Surfaced
+# alongside edgeCrossings so the eval table shows full quality picture.
+EXTENDED_METRIC_KEYS = (
+    "stressScore",
+    "edgeLengthCv",
+    "crossingAngleMean",
+    "crossingAngleCv",
+    "edgeBendTotal",
+    "hubClearanceP10",
+    "clusterCompactnessMean",
+)
+
+
+def parse_extended_metrics(layout_path: Path) -> dict:
+    """Read all extended ML-signal metrics from layout JSON.
+
+    Returns dict of metric_key → value (or None if absent). Empty dict if
+    the layout file does not exist.
+    """
+    if not layout_path.exists():
+        return {}
+    with layout_path.open() as f:
+        layout = json.load(f)
+    meta = layout.get("engineMetadata", {}) or {}
+    return {k: meta.get(k) for k in EXTENDED_METRIC_KEYS}
+
+
+def extract_extended_from_layout(layout: dict) -> dict:
+    """Same as parse_extended_metrics but from an already-loaded layout dict."""
+    meta = (layout or {}).get("engineMetadata", {}) or {}
+    return {k: meta.get(k) for k in EXTENDED_METRIC_KEYS}
+
+
+def format_metric_value(name: str, value) -> str:
+    if value is None:
+        return "—"
+    if name == "crossingAngleMean":  # radians → degrees
+        import math
+        return f"{value * 180.0 / math.pi:.1f}°"
+    if name in ("edgeBendTotal", "hubClearanceP10"):
+        return f"{value:.1f}"
+    return f"{value:.4f}"
+
+
 def write_positions_tsv(graph_dir: Path, pred, target_path: Path):
     """Write modelId\tcx\tcy lines based on prediction.
 
@@ -145,12 +189,16 @@ def main():
           f"{'%':>6s}")
 
     deltas = []
+    extended_deltas: dict[str, list[tuple[float, float]]] = {
+        k: [] for k in EXTENDED_METRIC_KEYS
+    }
     for i in eval_indices:
         data = full_ds.get(i)
         g_dir = full_ds.graph_dirs[i]
         name = g_dir.name
         baseline_path = args.layouts / f"{name}.json"
         baseline_cross = parse_baseline_layout_crossings(baseline_path)
+        baseline_ext = parse_extended_metrics(baseline_path)
 
         pred = predict_positions(model, data, device)
         with tempfile.NamedTemporaryFile(
@@ -165,6 +213,7 @@ def main():
             print(f"  {name:40s}  C++ failed")
             continue
         gnn_cross = layout.get("engineMetadata", {}).get("edgeCrossings")
+        gnn_ext = extract_extended_from_layout(layout)
         if baseline_cross is None or gnn_cross is None:
             print(f"  {name:40s}  baseline={baseline_cross} gnn={gnn_cross}")
             continue
@@ -176,6 +225,12 @@ def main():
             f"  {name:40s}  {baseline_cross:10d}  {gnn_cross:10d}  "
             f"{sign}{delta:7d}  {sign}{pct:5.1f}%"
         )
+        for key in EXTENDED_METRIC_KEYS:
+            b = baseline_ext.get(key)
+            g = gnn_ext.get(key)
+            if b is None or g is None:
+                continue
+            extended_deltas[key].append((float(b), float(g)))
 
     if deltas:
         avg_delta = sum(d[3] for d in deltas) / len(deltas)
@@ -186,6 +241,29 @@ def main():
         print(f"  better than heuristic:  {better}")
         print(f"  worse than heuristic:   {worse}")
         print(f"  avg delta:  {avg_delta:+.1f}  ({avg_pct:+.1f}%)")
+
+        # Extended-metric averages (baseline vs gnn means). Lower is
+        # better for stress/edgeLenCv/xAngCv/edgeBend/clusterCompact;
+        # higher is better for xAngMean/hubClearP10.
+        printed_header = False
+        for key in EXTENDED_METRIC_KEYS:
+            pairs = extended_deltas[key]
+            if not pairs:
+                continue
+            base_mean = sum(b for b, _ in pairs) / len(pairs)
+            gnn_mean = sum(g for _, g in pairs) / len(pairs)
+            if not printed_header:
+                print(f"\nExtended metrics (mean across {len(pairs)} graphs):")
+                print(
+                    f"  {'metric':24s}  {'baseline':>14s}  {'gnn':>14s}  "
+                    f"{'delta':>14s}"
+                )
+                printed_header = True
+            print(
+                f"  {key:24s}  {format_metric_value(key, base_mean):>14s}  "
+                f"{format_metric_value(key, gnn_mean):>14s}  "
+                f"{format_metric_value(key, gnn_mean - base_mean):>14s}"
+            )
 
 
 if __name__ == "__main__":

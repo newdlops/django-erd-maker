@@ -54,10 +54,11 @@ export async function openDiagram(
 
         const clusterGraphLayout = viewState?.clusterGraphLayout === true;
         const bubbleLayout = viewState?.bubbleLayout === true;
+        const optimizedLayout = viewState?.optimizedLayout === true;
 
         if (refreshKind === "layout" && previousDiagram) {
           logger.info(
-            `Layout refresh reusing cached analyzer payload · requestId=${refreshRunId} · layout=${layoutMode}${clusterGraphLayout ? " · clusterGraph=on" : ""}${bubbleLayout ? " · bubble=on" : ""}`,
+            `Layout refresh reusing cached analyzer payload · requestId=${refreshRunId} · layout=${layoutMode}${clusterGraphLayout ? " · clusterGraph=on" : ""}${bubbleLayout ? " · bubble=on" : ""}${optimizedLayout ? " · optimized=on" : ""}`,
           );
           liveDiagram = await relayoutLiveDiagram(
             context.extensionUri.fsPath,
@@ -68,6 +69,7 @@ export async function openDiagram(
             undefined,
             clusterGraphLayout,
             bubbleLayout,
+            optimizedLayout,
           );
         } else {
           const timedDiscovery = await timeAsync(() =>
@@ -84,6 +86,7 @@ export async function openDiagram(
             undefined,
             clusterGraphLayout,
             bubbleLayout,
+            optimizedLayout,
           );
         }
 

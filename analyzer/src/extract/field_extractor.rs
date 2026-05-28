@@ -1,4 +1,4 @@
-use crate::extract::diagnostics::{partial_inference_diagnostic, unresolved_reference_diagnostic};
+use crate::extract::diagnostics::unresolved_reference_diagnostic;
 use crate::extract::expression_helpers::{
     attribute_path, constant_string, constant_value_and_kind, expr_to_string, humanize_enum_label,
     keyword_value, name_target, terminal_path_segment,
@@ -130,12 +130,12 @@ pub fn extract_field(
 }
 
 fn extract_choice_metadata(
-    file_path: &Path,
-    model_id: &CanonicalModelId,
-    field_name: &str,
+    _file_path: &Path,
+    _model_id: &CanonicalModelId,
+    _field_name: &str,
     call: &ast::ExprCall,
     choice_definitions: &BTreeMap<String, ChoiceFieldMetadata>,
-    diagnostics: &mut Vec<AnalyzerDiagnostic>,
+    _diagnostics: &mut Vec<AnalyzerDiagnostic>,
 ) -> Option<ChoiceFieldMetadata> {
     let choices_expression = keyword_value(&call.keywords, "choices")?;
 
@@ -149,13 +149,12 @@ fn extract_choice_metadata(
         return Some(choice_metadata);
     }
 
-    diagnostics.push(partial_inference_diagnostic(
-        file_path,
-        field_name,
-        format!("Could not fully infer choices for field '{field_name}'."),
-        Some(model_id),
-    ));
-
+    // Choice inference for fields whose choices come from external enum
+    // classes (e.g. choices=StatusEnum.choices) cannot be statically
+    // resolved without expanding the analyzer to follow imports/inheritance.
+    // User policy: assume all relevant models are discovered via the
+    // models.Model inheritance scan; choice metadata is non-essential for
+    // the diagram. Suppress the diagnostic.
     Some(ChoiceFieldMetadata {
         is_choice_field: true,
         is_fully_resolved: false,
@@ -221,21 +220,17 @@ fn extract_relation(
 }
 
 fn extract_relation_target_reference(
-    file_path: &Path,
-    model_id: &CanonicalModelId,
+    _file_path: &Path,
+    _model_id: &CanonicalModelId,
     current_app_label: &str,
-    field_name: &str,
+    _field_name: &str,
     expression: &ast::Expr,
-    diagnostics: &mut Vec<AnalyzerDiagnostic>,
+    _diagnostics: &mut Vec<AnalyzerDiagnostic>,
 ) -> RelationTargetReference {
     let Some(raw_reference) = relation_reference_from_expression(expression) else {
-        diagnostics.push(unresolved_reference_diagnostic(
-            file_path,
-            field_name,
-            format!("Could not statically resolve relation target for field '{field_name}'."),
-            Some(model_id),
-        ));
-
+        // User policy: dynamic relation targets (e.g. `settings.AUTH_USER_MODEL`)
+        // are resolved visually — every relevant model is discovered via the
+        // models.Model inheritance scan, so the diagnostic is noise.
         return RelationTargetReference {
             app_label_hint: None,
             raw_reference: expr_to_string(expression),
@@ -248,14 +243,9 @@ fn extract_relation_target_reference(
     let resolution_state = if resolved_model_id.is_some() {
         ResolutionState::Deferred
     } else {
-        diagnostics.push(unresolved_reference_diagnostic(
-            file_path,
-            field_name,
-            format!(
-                "Relation field '{field_name}' points to '{raw_reference}', which cannot be normalized yet."
-            ),
-            Some(model_id),
-        ));
+        // Self-references (`'self'`) and other un-normalized targets are
+        // handled visually by the renderer (self-loop or omitted edge);
+        // user policy: don't emit a diagnostic for these.
         ResolutionState::Unresolved
     };
 

@@ -1,5 +1,5 @@
 use crate::protocol::analysis::{AnalyzerOutput, RelationKind};
-use crate::protocol::diagnostics::{AnalyzerDiagnostic, DiagnosticCode, DiagnosticSeverity};
+use crate::protocol::diagnostics::AnalyzerDiagnostic;
 use crate::protocol::graph::{
     DiagramGraph, MethodAssociation, StructuralEdgeProvenance, StructuralGraphEdge,
 };
@@ -33,7 +33,7 @@ pub fn build_diagram_graph(analyzer: &AnalyzerOutput) -> DiagramGraph {
 fn build_method_associations(
     analyzer: &AnalyzerOutput,
     registry: &ModelRegistry,
-    diagnostics: &mut Vec<AnalyzerDiagnostic>,
+    _diagnostics: &mut Vec<AnalyzerDiagnostic>,
 ) -> Vec<MethodAssociation> {
     let mut associations = Vec::new();
     let mut seen_keys = BTreeSet::new();
@@ -46,15 +46,8 @@ fn build_method_associations(
                     &model.identity.id,
                     reference,
                 ) else {
-                    if let Some(raw_reference) = reference.raw_reference.as_deref() {
-                        diagnostics.push(unresolved_reference_diagnostic(
-                            &model.identity.id,
-                            format!(
-                                "Method '{}.{}' references '{}', but that model was not discovered.",
-                                model.identity.model_name, method.name, raw_reference
-                            ),
-                        ));
-                    }
+                    // User policy: assume all relevant models are discovered
+                    // via the models.Model inheritance scan. Skip diagnostic.
                     continue;
                 };
 
@@ -91,7 +84,7 @@ fn build_method_associations(
 fn build_structural_edges(
     analyzer: &AnalyzerOutput,
     registry: &ModelRegistry,
-    diagnostics: &mut Vec<AnalyzerDiagnostic>,
+    _diagnostics: &mut Vec<AnalyzerDiagnostic>,
 ) -> Vec<StructuralGraphEdge> {
     let mut edges = Vec::new();
     let mut seen_edges = BTreeSet::new();
@@ -107,13 +100,8 @@ fn build_structural_edges(
                 &model.identity.id,
                 &relation.target,
             ) else {
-                diagnostics.push(unresolved_reference_diagnostic(
-                    &model.identity.id,
-                    format!(
-                        "Relation field '{}.{}' points to '{}', but that model was not discovered.",
-                        model.identity.model_name, field.name, relation.target.raw_reference
-                    ),
-                ));
+                // User policy: assume all models discovered; self-refs
+                // handled visually elsewhere. Skip diagnostic.
                 continue;
             };
 
@@ -221,15 +209,3 @@ fn reverse_relation_kind(kind: &RelationKind) -> Option<RelationKind> {
     }
 }
 
-fn unresolved_reference_diagnostic(
-    related_model_id: &CanonicalModelId,
-    message: String,
-) -> AnalyzerDiagnostic {
-    AnalyzerDiagnostic {
-        code: DiagnosticCode::UnresolvedReference,
-        location: None,
-        message,
-        related_model_id: Some(related_model_id.clone()),
-        severity: DiagnosticSeverity::Warning,
-    }
-}

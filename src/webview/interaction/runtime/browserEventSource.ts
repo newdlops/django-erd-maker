@@ -183,7 +183,26 @@ export function getBrowserEventSource(): string {
           });
         }
 
-
+        for (const button of document.querySelectorAll("[data-optimized-toggle]")) {
+          if (state.optimizedLayout) {
+            button.classList.add("is-active");
+          }
+          button.addEventListener("click", () => {
+            state.optimizedLayout = !state.optimizedLayout;
+            button.classList.toggle("is-active", state.optimizedLayout);
+            logErd("info", "event.optimized.toggle", {
+              enabled: state.optimizedLayout,
+              renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
+            });
+            vscode?.postMessage({
+              layoutMode: state.layoutMode,
+              refreshKind: "layout",
+              settings: { ...state.settings },
+              viewState: createRefreshViewStateSnapshot(state),
+              type: "diagram.requestRefresh",
+            });
+          });
+        }
 
         root.addEventListener("click", (event) => {
           const target = event.target;
