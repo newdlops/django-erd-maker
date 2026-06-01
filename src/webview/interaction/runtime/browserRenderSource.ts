@@ -80,6 +80,7 @@ export function getBrowserRenderSource(): string {
             action.type === "set-layout-mode" ||
             action.type === "set-table-hidden" ||
             action.type === "set-table-manual-position" ||
+            action.type === "apply-progress-positions" ||
             action.type === "reset-view"
           ) {
             invalidateSceneGraph();

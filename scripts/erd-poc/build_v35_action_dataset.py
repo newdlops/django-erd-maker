@@ -880,7 +880,12 @@ def main() -> None:
     parser.add_argument("--overlap-margin", type=float, default=16.0)
     parser.add_argument("--overlap-weight", type=float, default=5000.0)
     parser.add_argument("--edge-node-margin", type=float, default=0.0)
-    parser.add_argument("--edge-node-weight", type=float, default=0.5)
+    # edge_node multiplier inside score_metrics (v34_move_search). 0 falls
+    # back to the legacy 1x weight (edge_node folded into visual_cross). >0
+    # amplifies the edge-node penalty so the learned policy avoids edge/node
+    # collisions when bbox compression is aggressive — set to ~3 to roughly
+    # triple the relative cost of an edge-node hit vs an edge-edge crossing.
+    parser.add_argument("--edge-node-weight", type=float, default=0.0)
     parser.add_argument("--bbox-weight", type=float, default=800.0)
     parser.add_argument("--bbox-target-b", type=float, default=4.0)
     # composite_weight > 0 turns the Bennett-weighted quality (clean,
@@ -890,6 +895,16 @@ def main() -> None:
     # keeps legacy semantics; v37-multistart-1301-bbox 후속 학습에서
     # subCompactQuality 0.01 약점이 학습 신호에 반영되도록 사용.
     parser.add_argument("--composite-weight", type=float, default=0.0)
+    # When set, composite quality uses only the cheap sub-scores
+    # (compact, uniform, spread) — O(N+E) per call vs O(E²) for the
+    # full measure_extended. 1000x faster, subCompact still 50% of the
+    # signal, missing scores (clean, severity, angle, stress) are
+    # either redundant with visual_cross or low-priority for this run.
+    # Recommended whenever composite-weight > 0 to keep build time
+    # under ~60 min on Captain-scale.
+    parser.add_argument(
+        "--composite-light", action="store_true", default=False,
+    )
     parser.add_argument("--max-cross-regression", type=int, default=0)
     parser.add_argument("--max-overlap-regression", type=int, default=0)
     parser.add_argument("--max-edge-node-regression", type=int, default=0)
@@ -951,6 +966,7 @@ def main() -> None:
             heights=heights,
             cluster_ids=[str(nd.get("clusterId") or "") for nd in layout["nodes"]],
             weight=float(args.composite_weight),
+            light_only=bool(args.composite_light),
         )
 
     action_types: dict[str, int] = {}

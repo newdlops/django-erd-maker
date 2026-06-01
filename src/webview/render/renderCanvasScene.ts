@@ -26,6 +26,10 @@ export function renderCanvasScene(viewModel: DiagramRenderModel, appVersion: str
   return `
     <section class="erd-stage">
       <div class="erd-stage__toolbar">
+        <div class="erd-toolbar-group erd-search">
+          <input type="search" class="erd-search__input" data-erd-search placeholder="Search tables (⌘/Ctrl+F)" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Search tables by name, app, or table name" />
+          <span class="erd-search__count" data-erd-search-count aria-live="polite"></span>
+        </div>
         <div class="erd-toolbar-group">
           <button type="button" class="erd-tool" data-zoom-action="in">Zoom In</button>
           <button type="button" class="erd-tool" data-zoom-action="out">Zoom Out</button>

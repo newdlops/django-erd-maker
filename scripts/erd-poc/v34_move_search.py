@@ -82,6 +82,12 @@ class CompositeContext:
     heights: np.ndarray
     cluster_ids: list[str]
     weight: float  # composite_weight in the score formula
+    # When True, skip the O(E²)/O(N²) sub-scores (clean, severity,
+    # angle, stress, hub-clearance) and use only the 3 cheap ones
+    # (compact, uniform, spread). The missing signal is already
+    # covered by visual_cross in the base score, so the only loss is
+    # the angle and stress tiebreakers — fine for fast NPZ builds.
+    light_only: bool = False
 
 
 @dataclass
@@ -1318,11 +1324,15 @@ def score_metrics(
 ) -> float:
     bbox_penalty = max(0.0, bbox - bbox_target_b)
     # A table/edge collision is visually the same class of defect as an
-    # edge/edge crossing: the diagram route is obstructed. Count it in the
-    # cross bucket instead of treating it as a weak secondary penalty.
-    visual_cross = cross + edge_node
+    # edge/edge crossing: the diagram route is obstructed. edge_node_weight
+    # controls how much harder than a single edge/edge crossing an edge/node
+    # hit is penalised — default 0 falls back to the legacy 1x weight so
+    # pre-existing checkpoints keep their original gain semantics. >0 lets
+    # later checkpoints amplify the edge-node signal (e.g. 3.0 for ~3x).
+    en_weight = edge_node_weight if edge_node_weight > 0.0 else 1.0
     base = (
-        visual_cross
+        cross
+        + en_weight * edge_node
         + overlap_weight * overlaps
         + bbox_weight * bbox_penalty
     )
@@ -1547,14 +1557,22 @@ def measure(
             _mod = module_from_spec(_spec)
             _spec.loader.exec_module(_mod)
             _MEASURE_METRICS_EXTENDED_MOD = _mod
-        ext = _MEASURE_METRICS_EXTENDED_MOD.measure_extended(
-            positions,
-            evaluator.edges,
-            composite_context.widths,
-            composite_context.heights,
-            composite_context.cluster_ids,
-        )
-        composite_q = float(ext.composite_quality)
+        if composite_context.light_only:
+            composite_q = _MEASURE_METRICS_EXTENDED_MOD.light_composite_quality(
+                positions,
+                evaluator.edges,
+                composite_context.widths,
+                composite_context.heights,
+            )
+        else:
+            ext = _MEASURE_METRICS_EXTENDED_MOD.measure_extended(
+                positions,
+                evaluator.edges,
+                composite_context.widths,
+                composite_context.heights,
+                composite_context.cluster_ids,
+            )
+            composite_q = float(ext.composite_quality)
         composite_w = float(composite_context.weight)
     score = score_metrics(
         cross,
@@ -1880,14 +1898,23 @@ def measure_candidate_incremental(
             _mod = module_from_spec(_spec)
             _spec.loader.exec_module(_mod)
             _MEASURE_METRICS_EXTENDED_MOD = _mod
-        ext = _MEASURE_METRICS_EXTENDED_MOD.measure_extended(
-            moved_positions,
-            evaluator.edges,
-            composite_context.widths,
-            composite_context.heights,
-            composite_context.cluster_ids,
-        )
-        score += composite_context.weight * (1.0 - float(ext.composite_quality))
+        if composite_context.light_only:
+            composite_q = _MEASURE_METRICS_EXTENDED_MOD.light_composite_quality(
+                moved_positions,
+                evaluator.edges,
+                composite_context.widths,
+                composite_context.heights,
+            )
+        else:
+            ext = _MEASURE_METRICS_EXTENDED_MOD.measure_extended(
+                moved_positions,
+                evaluator.edges,
+                composite_context.widths,
+                composite_context.heights,
+                composite_context.cluster_ids,
+            )
+            composite_q = float(ext.composite_quality)
+        score += composite_context.weight * (1.0 - composite_q)
     return Metrics(
         cross=cross,
         overlaps=overlaps,

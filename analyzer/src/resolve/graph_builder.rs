@@ -10,7 +10,8 @@ use std::collections::BTreeSet;
 pub fn build_diagram_graph(analyzer: &AnalyzerOutput) -> DiagramGraph {
     let registry = ModelRegistry::new(&analyzer.models);
     let mut diagnostics = analyzer.diagnostics.clone();
-    let structural_edges = build_structural_edges(analyzer, &registry, &mut diagnostics);
+    let mut structural_edges = build_structural_edges(analyzer, &registry, &mut diagnostics);
+    structural_edges.extend(build_inheritance_edges(analyzer, &registry));
     let method_associations = build_method_associations(analyzer, &registry, &mut diagnostics);
 
     let mut graph = DiagramGraph {
@@ -79,6 +80,68 @@ fn build_method_associations(
     }
 
     associations
+}
+
+fn build_inheritance_edges(
+    analyzer: &AnalyzerOutput,
+    registry: &ModelRegistry,
+) -> Vec<StructuralGraphEdge> {
+    let mut edges = Vec::new();
+    let mut seen_keys = BTreeSet::new();
+
+    for model in &analyzer.models {
+        for raw_base in &model.declared_base_classes {
+            if is_django_builtin_base(raw_base) {
+                continue;
+            }
+
+            let Some(parent_id) = registry.resolve_base_class(
+                &model.identity.app_label,
+                &model.identity.id,
+                raw_base,
+            ) else {
+                continue;
+            };
+
+            if parent_id.as_str() == model.identity.id.as_str() {
+                continue;
+            }
+
+            let edge = StructuralGraphEdge {
+                id: inheritance_edge_id(&model.identity.id, &parent_id),
+                kind: RelationKind::Inheritance,
+                provenance: StructuralEdgeProvenance::Declared,
+                source_model_id: model.identity.id.clone(),
+                target_model_id: parent_id,
+            };
+            let key = edge_key(&edge);
+            if seen_keys.insert(key) {
+                edges.push(edge);
+            }
+        }
+    }
+
+    edges
+}
+
+fn is_django_builtin_base(raw: &str) -> bool {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return true;
+    }
+    // Standard Python / Django chrome that should never become a node edge.
+    matches!(
+        trimmed,
+        "object" | "Model" | "models.Model"
+    ) || trimmed.starts_with("django.")
+}
+
+fn inheritance_edge_id(child_id: &CanonicalModelId, parent_id: &CanonicalModelId) -> String {
+    format!(
+        "edge:inheritance:{}->{}",
+        child_id.as_str(),
+        parent_id.as_str()
+    )
 }
 
 fn build_structural_edges(
@@ -205,7 +268,8 @@ fn reverse_relation_kind(kind: &RelationKind) -> Option<RelationKind> {
         RelationKind::OneToOne => Some(RelationKind::ReverseOneToOne),
         RelationKind::ReverseForeignKey
         | RelationKind::ReverseManyToMany
-        | RelationKind::ReverseOneToOne => None,
+        | RelationKind::ReverseOneToOne
+        | RelationKind::Inheritance => None,
     }
 }
 

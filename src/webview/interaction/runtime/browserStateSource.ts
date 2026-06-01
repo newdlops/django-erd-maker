@@ -572,6 +572,107 @@ export function getBrowserStateSource(): string {
                 ),
               };
             }
+            case "focus-model": {
+              // Search-driven focus: select the node AND recentre the viewport
+              // on it at a readable zoom. Never zoom OUT (keep the user's zoom
+              // if already closer than the focus level); just guarantee the
+              // node is large enough to read on a huge canvas.
+              const focusZoom = clampZoom(
+                Math.max(currentState.viewport.zoom, action.zoom || 1),
+              );
+              const focusViewport = computeCenteredViewportOnSelectedNode(
+                currentState.layoutMode,
+                currentState.tableOptions,
+                action.modelId,
+                focusZoom,
+              );
+              return {
+                ...currentState,
+                selectedModelId: action.modelId,
+                viewport: focusViewport || currentState.viewport,
+              };
+            }
+            case "apply-progress-positions": {
+              // Intermediate multistart/ML preview. Non-bundled nodes get their
+              // streamed top-left position as manualPosition (edges re-route as
+              // straight lines). Leaf BUNDLES are kept MERGED: rather than
+              // scattering each leaf pill to its raw streamed position (which
+              // made the preview look "unfolded"), the whole bundle (frame +
+              // compact pills) is shifted RIGIDLY by the delta between its
+              // leaves' streamed centroid and their current render centroid —
+              // matching how the engine treats the bundle as one unit (leaves
+              // only get individual positions at the final §12 matrix).
+              const pos = action.positions || {};
+              const fakeMap =
+                (typeof bundleLeavesByFakeIdRaw === "object" && bundleLeavesByFakeIdRaw)
+                  ? bundleLeavesByFakeIdRaw
+                  : {};
+              const leafToFake =
+                (typeof bundleLeafToFakeId === "object" && bundleLeafToFakeId)
+                  ? bundleLeafToFakeId
+                  : {};
+              // Compute rigid target manualPosition for each bundle frame + pill.
+              const bundleTarget = {};
+              for (const fakeId in fakeMap) {
+                const leaves = fakeMap[fakeId] || [];
+                let tx = 0, ty = 0, cx = 0, cy = 0, n = 0;
+                for (const leaf of leaves) {
+                  const p = pos[leaf];
+                  if (!Array.isArray(p) || p.length < 2) continue;
+                  const base = getBasePosition(leaf);
+                  tx += p[0]; ty += p[1]; cx += base.x; cy += base.y; n += 1;
+                }
+                if (n === 0) continue;
+                const dx = tx / n - cx / n;
+                const dy = ty / n - cy / n;
+                const fb = getBasePosition(fakeId);
+                bundleTarget[fakeId] = { x: fb.x + dx, y: fb.y + dy };
+                for (const leaf of leaves) {
+                  const lb = getBasePosition(leaf);
+                  bundleTarget[leaf] = { x: lb.x + dx, y: lb.y + dy };
+                }
+              }
+              const seen = {};
+              const tableOptions = currentState.tableOptions.map((options) => {
+                const mid = options.modelId;
+                if (bundleTarget[mid]) {
+                  seen[mid] = true;
+                  return { ...options, manualPosition: { ...bundleTarget[mid] } };
+                }
+                const p = pos[mid];
+                if (Array.isArray(p) && p.length >= 2 && !leafToFake[mid]) {
+                  seen[mid] = true;
+                  return { ...options, manualPosition: { x: p[0], y: p[1] } };
+                }
+                return {
+                  ...options,
+                  manualPosition: options.manualPosition
+                    ? { ...options.manualPosition }
+                    : undefined,
+                };
+              });
+              const pushOpt = (mid, mp) => {
+                tableOptions.push({
+                  hidden: false,
+                  modelId: mid,
+                  manualPosition: mp,
+                  showMethodHighlights: true,
+                  showMethods: true,
+                  showProperties: true,
+                });
+              };
+              for (const mid in bundleTarget) {
+                if (!seen[mid]) { seen[mid] = true; pushOpt(mid, { ...bundleTarget[mid] }); }
+              }
+              for (const mid in pos) {
+                if (seen[mid] || leafToFake[mid]) continue;
+                const p = pos[mid];
+                if (!Array.isArray(p) || p.length < 2) continue;
+                seen[mid] = true;
+                pushOpt(mid, { x: p[0], y: p[1] });
+              }
+              return { ...currentState, tableOptions };
+            }
             default:
               return currentState;
           }

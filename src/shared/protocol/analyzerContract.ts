@@ -12,7 +12,8 @@ export type RelationKind =
   | "one_to_one"
   | "reverse_foreign_key"
   | "reverse_many_to_many"
-  | "reverse_one_to_one";
+  | "reverse_one_to_one"
+  | "inheritance";
 export type ResolutionState = "deferred" | "resolved" | "unresolved";
 
 export interface AnalysisSummary {

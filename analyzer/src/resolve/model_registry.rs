@@ -59,6 +59,17 @@ impl ModelRegistry {
         self.contains(&candidate).then_some(candidate)
     }
 
+    pub fn resolve_base_class(
+        &self,
+        source_app_label: &str,
+        source_model_id: &CanonicalModelId,
+        raw_base: &str,
+    ) -> Option<CanonicalModelId> {
+        let candidate =
+            candidate_from_raw_reference(source_app_label, source_model_id, raw_base.trim())?;
+        self.contains(&candidate).then_some(candidate)
+    }
+
     pub fn resolve_relation_target(
         &self,
         source_app_label: &str,

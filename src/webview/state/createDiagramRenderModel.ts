@@ -500,6 +500,11 @@ function createHubCarrierRenderGroups(
     if (
       !edge ||
       edge.sourceModelId === edge.targetModelId ||
+      // Inheritance ("is-a") edges are structurally significant and few;
+      // never fold them into a cluster-to-cluster hub carrier or the direct
+      // parent→child line disappears (e.g. Shareholder→Stakeholder). They
+      // always render as their own edge.
+      edge.kind === "inheritance" ||
       bundleEdgeMatch(edge.sourceModelId, edge.targetModelId, leafBundles, bundleIndexByLeafModelId) ||
       bundleIndexByLeafModelId.has(edge.sourceModelId) ||
       bundleIndexByLeafModelId.has(edge.targetModelId)
@@ -834,6 +839,31 @@ function createEdgeRenderModel(
     bundleIndexByLeafModelId.has(edge.sourceModelId) ||
     bundleIndexByLeafModelId.has(edge.targetModelId)
   ) {
+    // An edge whose endpoint is a bundled leaf but which is NOT a carrier
+    // match (the other endpoint is not the bundle's shared root/parent)
+    // would otherwise be dropped. For most edge kinds that is intentional —
+    // a leaf's incidental relations collapse into the bundle. But an
+    // inheritance ("is-a") edge to a parent OTHER than the bundle root must
+    // stay visible (e.g. CmeBulkEmailRecipient → BulkEmailRecipient, where
+    // the child is a topological leaf bundled under a different FK parent).
+    // The bundled leaf is still a rendered compact pill (modifiedLeafTables
+    // keeps its modelId in `tables`), so emit a direct edge with empty
+    // points: the renderer's getStaticOrLiveEdgePath falls back to
+    // buildStraightPath between the two rendered tables at their current
+    // (compact) positions — the same path mechanism the bundle carrier uses.
+    if (edge.kind === "inheritance") {
+      return {
+        crossingIds: [],
+        cssKind: edge.kind.replaceAll("_", "-"),
+        edgeId: edge.id,
+        markerEndId,
+        markerStartId,
+        points: "",
+        provenance: edge.provenance,
+        sourceModelId: edge.sourceModelId,
+        targetModelId: edge.targetModelId,
+      };
+    }
     return undefined;
   }
 
@@ -991,6 +1021,8 @@ function markerIds(kind: StructuralGraphEdge["kind"]): [string, string] {
     case "reverse_many_to_many":
       return ["erd-marker-many", "erd-marker-many"];
     case "reverse_one_to_one":
+      return ["erd-marker-one", "erd-marker-one"];
+    case "inheritance":
       return ["erd-marker-one", "erd-marker-one"];
   }
 }

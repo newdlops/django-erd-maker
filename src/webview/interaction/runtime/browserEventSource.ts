@@ -380,6 +380,119 @@ export function getBrowserEventSource(): string {
           });
         }
 
+        // --- Node search + focus -------------------------------------------
+        const searchInput = document.querySelector("[data-erd-search]");
+        const searchCount = document.querySelector("[data-erd-search-count]");
+        let searchMatches = [];
+        let searchIndex = -1;
+
+        function rankSearchMatch(meta, q) {
+          const name = String(meta.modelName || "").toLowerCase();
+          if (name === q) return 0;
+          if (name.indexOf(q) === 0) return 1;
+          if (name.indexOf(q) >= 0) return 2;
+          if (String(meta.tableName || "").toLowerCase().indexOf(q) >= 0) return 3;
+          if (String(meta.appLabel || "").toLowerCase().indexOf(q) >= 0) return 4;
+          return -1;
+        }
+
+        function updateSearchCount() {
+          if (!searchCount) return;
+          const q = searchInput ? searchInput.value.trim() : "";
+          if (!q) {
+            searchCount.textContent = "";
+            return;
+          }
+          const total = searchMatches.length;
+          if (total === 0) {
+            searchCount.textContent = "0";
+            return;
+          }
+          searchCount.textContent =
+            searchIndex >= 0 ? (searchIndex + 1) + "/" + total : String(total);
+        }
+
+        function runSearch(raw) {
+          const q = String(raw || "").trim().toLowerCase();
+          searchMatches = [];
+          searchIndex = -1;
+          if (q) {
+            const scored = [];
+            for (const meta of tableMetaList) {
+              if (!meta || !meta.modelId) continue;
+              if (String(meta.modelId).indexOf("__leafbundle.") === 0) continue;
+              const rank = rankSearchMatch(meta, q);
+              if (rank >= 0) scored.push({ meta: meta, rank: rank });
+            }
+            scored.sort(function (a, b) {
+              return (
+                a.rank - b.rank ||
+                String(a.meta.modelName || "").length -
+                  String(b.meta.modelName || "").length ||
+                String(a.meta.modelName || "").localeCompare(
+                  String(b.meta.modelName || ""),
+                )
+              );
+            });
+            searchMatches = scored.map(function (s) {
+              return s.meta;
+            });
+          }
+          updateSearchCount();
+        }
+
+        function focusSearchMatch(index) {
+          const total = searchMatches.length;
+          if (total === 0) return;
+          const wrapped = ((index % total) + total) % total;
+          searchIndex = wrapped;
+          const meta = searchMatches[wrapped];
+          dispatch({ type: "focus-model", modelId: meta.modelId, zoom: 1 });
+          updateSearchCount();
+        }
+
+        if (searchInput) {
+          searchInput.addEventListener("input", function () {
+            runSearch(searchInput.value);
+          });
+          searchInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              if (searchMatches.length === 0) return;
+              focusSearchMatch(event.shiftKey ? searchIndex - 1 : searchIndex + 1);
+            } else if (event.key === "Escape") {
+              event.preventDefault();
+              searchInput.value = "";
+              runSearch("");
+              searchInput.blur();
+            }
+          });
+          window.addEventListener("keydown", function (event) {
+            if (
+              (event.metaKey || event.ctrlKey) &&
+              (event.key === "f" || event.key === "F")
+            ) {
+              event.preventDefault();
+              searchInput.focus();
+              searchInput.select();
+            }
+          });
+        }
+        // -------------------------------------------------------------------
+
+        // --- Progressive layout preview (multistart streaming) -------------
+        // While a re-layout runs, the extension streams intermediate
+        // multistart layouts (one per new-best seed) as { type:
+        // "diagram.progress", positions: { modelId: [x, y] } }. Override node
+        // positions so the user watches the layout improve; the fully-routed
+        // final layout reloads the webview when the refresh completes.
+        window.addEventListener("message", function (event) {
+          const msg = event && event.data;
+          if (!msg || msg.type !== "diagram.progress" || !msg.positions) return;
+          dispatch({ type: "apply-progress-positions", positions: msg.positions });
+        });
+        // -------------------------------------------------------------------
+
         if (minimap) {
           minimap.addEventListener("pointerdown", (event) => {
             event.preventDefault();

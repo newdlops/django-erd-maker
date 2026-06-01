@@ -34,10 +34,16 @@ export function consolidateEdges(
   const groups: ConsolidationGroup[] = [];
   const layoutEdges: StructuralGraphEdge[] = [];
   for (const bucket of grouped.values()) {
-    // Prefer a declared edge as the representative to keep direction
-    // semantically meaningful (FK direction). Falls back to first.
+    // Inheritance ("is-a") is the most structurally significant tie. When a
+    // node pair also carries a data relation (e.g. a model both inherits a
+    // parent and declares a FK back to it), surface the inheritance edge so
+    // the class hierarchy stays visible instead of being masked by the FK.
+    // Otherwise prefer a declared edge to keep FK direction meaningful, then
+    // fall back to the first edge.
     const representative =
-      bucket.find((edge) => edge.provenance === "declared") ?? bucket[0]!;
+      bucket.find((edge) => edge.kind === "inheritance") ??
+      bucket.find((edge) => edge.provenance === "declared") ??
+      bucket[0]!;
     layoutEdges.push(representative);
     groups.push({
       count: bucket.length,

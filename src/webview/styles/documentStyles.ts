@@ -290,6 +290,37 @@ export function getDocumentStyles(): string {
       gap: 10px;
     }
 
+    .erd-search {
+      align-items: center;
+    }
+
+    .erd-search__input {
+      border-radius: 14px;
+      border: 1px solid rgba(122, 163, 177, 0.22);
+      background: rgba(16, 31, 44, 0.9);
+      color: var(--text);
+      padding: 10px 12px;
+      min-width: 220px;
+      font: inherit;
+    }
+
+    .erd-search__input::placeholder {
+      color: var(--muted);
+    }
+
+    .erd-search__input:focus {
+      outline: none;
+      border-color: rgba(109, 208, 176, 0.44);
+      background: rgba(22, 56, 67, 0.92);
+    }
+
+    .erd-search__count {
+      color: var(--muted);
+      font-size: 12px;
+      min-width: 40px;
+      text-align: left;
+    }
+
     .erd-canvas {
       overflow: hidden;
       cursor: grab;
@@ -388,6 +419,7 @@ export function getDocumentStyles(): string {
     .erd-edge--derived_reverse { stroke: #9dcfe1; stroke-dasharray: 7 6; }
     .erd-edge--many-to-many { stroke: #f7d18a; }
     .erd-edge--reverse-many-to-many { stroke: #f7d18a; stroke-dasharray: 7 6; }
+    .erd-edge--inheritance { stroke: #c8b6ff; stroke-width: 2.6; }
 
     .erd-method-overlay {
       stroke: rgba(255, 191, 105, 0.7);

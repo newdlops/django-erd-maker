@@ -68,21 +68,90 @@ function ogdfRenderedCarrierEnv(
       process.env.DJERD_RENDERED_CARRIER_METRICS_FINAL ?? "1",
     // Multi-start cluster_graph: run FMMM N times with different OGDF
     // seeds and keep the layout with the fewest straight-line edge
-    // crossings. N>1 costs ~N× cluster_graph runtime (Captain ~3
-    // min/run), but unlike local search it explores *global*
-    // alternative local optima — the only proven escape from the
-    // bundle-aware visualCross=679 plateau.
+    // crossings. Unlike local search it explores *global* alternative
+    // local optima — the only proven escape from the bundle-aware
+    // visualCross plateau (memory: multistart-fmmm-success).
     //
-    // Multi-start cluster_graph (off by default). Set RUNS=4 +
-    // SEED_BASE=42 to get the captain-2026-05-25-multistart-s43
-    // baseline (visualCross 663, quality 0.434). Confirmed
-    // deterministic; cost is ~N× cluster_graph runtime (~3 min each
-    // on captain). Enabling adds ~10 min per layout — keep off
-    // unless explicitly running a quality experiment.
+    // RUNS=8, SEED_BASE=42 (2026-05-29). The seed lottery is high
+    // variance: a baseline-style probe on the 1301 graph spread 4759–7022
+    // straight-line crossings across seeds 43–53, and the best (seed=46)
+    // sat *beyond* the first three seeds — RUNS=4 would have missed it.
+    // RUNS=8 (seeds 43–49) doubles the sampling and captured that win.
+    //
+    // This used to cost ~N× the *whole* cluster_graph pipeline because
+    // multistart re-ran on every positions-tsv round-trip (ML reroute,
+    // bbox-target, polish) where its positions are immediately discarded
+    // — ~44 wasted multistarts per Captain reload. main.cpp now gates the
+    // multistart loop on an empty --positions-tsv, so it runs only on the
+    // baseline layout that keeps its result. Net: RUNS=8 is *cheaper* than
+    // the old RUNS=4 (52 vs 180 cluster_graph runs/reload) while sampling
+    // 2× the seeds. Drop to RUNS=1 to disable for quick reloads.
     DJERD_MULTISTART_RUNS:
-      process.env.DJERD_MULTISTART_RUNS ?? "1",
+      process.env.DJERD_MULTISTART_RUNS ?? "8",
     DJERD_MULTISTART_SEED_BASE:
       process.env.DJERD_MULTISTART_SEED_BASE ?? "42",
+    // Candidate C: multistart winner = min(straight-line crossings +
+    // BBOX_WEIGHT · bbox-area-in-billions). Default 0 ⇒ pure-crossings
+    // selection (byte-identical to before; raw crossings already tracks
+    // the visualCrossings winner on the Captain corpus). Raise it to
+    // trade a few crossings for a more compact seed — a Pareto knob, not
+    // a free win, and routing-based metrics aren't available at selection
+    // time so this is a cheap position-only proxy.
+    DJERD_MULTISTART_BBOX_WEIGHT:
+      process.env.DJERD_MULTISTART_BBOX_WEIGHT ?? "0",
+    // Periphery reroute: for the worst high-crossing edges, route them around
+    // the layout bbox periphery instead of straight through the dense centre,
+    // keeping the candidate that minimises that edge's crossings (greedy
+    // worst-first, global revert if total worsens). The FIRST inter-cluster
+    // lever to actually cut edge crossings after placement (2-level community)
+    // and routing-pass budgets both proved saturated (memory:
+    // two-level-community-failed). Offline proxy (real-main-1301, no
+    // inheritance, betweenCluster 29%): edgeCross 1275→1234 (-3.2%),
+    // visualCross 2158→2128 (-1.4%), ~15 edges rerouted, edgeNode flat.
+    // ON for production validation — production has 96% inter-cluster
+    // crossings (more long edges) so the gain may differ; measure real
+    // edgeCross on reload, then keep or set to 0. Visual cost: a handful of
+    // long arcs around the diagram edge.
+    DJERD_PERIPHERY_REROUTE:
+      process.env.DJERD_PERIPHERY_REROUTE ?? "1",
+    DJERD_PERIPHERY_TOPK:
+      process.env.DJERD_PERIPHERY_TOPK ?? "400",
+    // Cap the outward lane offset of peripheral arcs. Each rerouted edge was
+    // pushed ~1% of the layout span further out than the last; left unbounded
+    // the 65-200 reroutes inflated the ROUTE bbox (the visible extent) to
+    // 6-29× the node bbox for ZERO crossing benefit. Cycling a small fixed
+    // number of lanes separates parallel arcs just as well. Offline proxy
+    // (real-main-1301, seed 46, orthogonal): vs unbounded, maxLanes=6 keeps the
+    // crossing win (edgeCross 4381→4302, even slightly better) while cutting
+    // routeBBox 285.5B→14.0B (≈1.4× the node bbox vs 29×) — a ~20× shrink of
+    // the wasted peripheral whitespace. edgeNode +13 vs unbounded.
+    DJERD_PERIPHERY_MAX_LANES:
+      process.env.DJERD_PERIPHERY_MAX_LANES ?? "6",
+    // Edge-node-aware periphery selection. Capped arcs hug the bbox, so they can
+    // dodge centre crossings yet slice peripheral node boxes — that's what drove
+    // the cap=6 edgeNode regression (178→310 on reload, amplified through the
+    // bbox-target/polish quality gates). Score each candidate by crossings +
+    // W·(node-box hits) and reroute only when the COMBINED cost drops (never
+    // increasing this edge's crossings), so box-slicing arcs are rejected. Offline
+    // proxy (real-main-1301, cap=6, seed 46): W=1 is a strict win over W=0 on all
+    // three — edgeCross 4302→4237, visualCross 5374→5241, edgeNode 964→901, bbox
+    // flat. W=2/3 cut edgeNode further but cost edgeCrossings. W=1 = a box-clip
+    // weighted like a crossing (the metric's own weighting). W=0 = crossings-only.
+    DJERD_PERIPHERY_EDGE_NODE_WEIGHT:
+      process.env.DJERD_PERIPHERY_EDGE_NODE_WEIGHT ?? "1",
+    // Carrier-aware multistart: score each seed by distinct CARRIER-PAIR
+    // crossings (leaf bundles + cluster-pair "bus" carriers) instead of raw
+    // straight-line crossings — i.e. the rendered carrier-grouped crossing the
+    // user actually sees. Offline proxy (real-main-1301, RUNS=8): picks seed 46
+    // vs raw's seed 48 — carrier-grouped 1508 vs 1559 (-3.3%), edgeCross
+    // 1275 vs 1355 (-5.9%), bbox -10%, BUT edgeNode 819 vs 703 (+16%) and
+    // visualCross ~tie. A Pareto knob (fewer edge-crossings + more compact, at
+    // the cost of more edge-node collisions). ON for production validation —
+    // production is 96% inter-cluster so the cluster-pair-bus grouping should
+    // help more; measure real visualCross/edgeCross/edgeNode on reload, then
+    // keep or set to 0.
+    DJERD_MULTISTART_BUNDLE_AWARE:
+      process.env.DJERD_MULTISTART_BUNDLE_AWARE ?? "1",
     ...overrides,
   };
 }
@@ -1166,6 +1235,63 @@ export interface OgdfLayoutResult {
   requestedLayoutMode: LayoutMode;
 }
 
+/**
+ * Intermediate multistart layout, streamed while the cluster_graph binary is
+ * still running (one frame per new-best seed). `positions` is modelId →
+ * [topLeftX, topLeftY] (same convention as the final layout JSON node
+ * positions). Pre-route, so the webview previews it with straight edges.
+ */
+export interface OgdfProgressFrame {
+  // From the C++ multistart side-channel (pre-route). Absent for the later
+  // ML-pipeline stages, which carry `stage` instead.
+  run?: number;
+  seed?: number;
+  crossings?: number;
+  // ML-pipeline stage label ("reroute" | "bbox" | "polish") for the routed
+  // intermediates streamed from the extension.
+  stage?: string;
+  positions: Record<string, [number, number]>;
+}
+
+// Optional sink for intermediate layout frames. The ERD panel registers its
+// `webview.postMessage` here around a re-layout (the webview is alive during
+// the refresh), so we avoid threading an onProgress callback through the whole
+// openDiagram → relayout → applyRequestedLayout → runOgdfLayout chain. Only one
+// diagram lays out at a time, so a single module-level slot is sufficient; the
+// panel clears it when the layout finishes.
+let ogdfProgressListener: ((frame: OgdfProgressFrame) => void) | undefined;
+
+export function setOgdfProgressListener(
+  listener: ((frame: OgdfProgressFrame) => void) | undefined,
+): void {
+  ogdfProgressListener = listener;
+}
+
+// Stream one ML-pipeline intermediate (a fully-parsed layout JSON) to the
+// webview as a positions preview, so the user sees each long stage (reroute,
+// each bbox-target candidate, polish) land instead of waiting for the whole
+// pipeline. No-op when no listener is registered. The node positions are
+// top-left (same convention the webview treats as basePosition); the webview
+// previews them with straight edges and snaps to the routed final on reload.
+function streamIntermediateLayout(stage: string, layout: unknown): void {
+  if (!ogdfProgressListener) return;
+  const nodes = (
+    layout as { nodes?: Array<{ modelId?: unknown; position?: { x?: unknown; y?: unknown } }> }
+  )?.nodes;
+  if (!Array.isArray(nodes)) return;
+  const positions: Record<string, [number, number]> = {};
+  for (const node of nodes) {
+    if (typeof node?.modelId === "string" && node.position) {
+      positions[node.modelId] = [
+        Number(node.position.x) || 0,
+        Number(node.position.y) || 0,
+      ];
+    }
+  }
+  if (Object.keys(positions).length === 0) return;
+  ogdfProgressListener({ stage, positions });
+}
+
 export async function runOgdfLayout(
   extensionRootPath: string,
   payload: DiagramBootstrapPayload,
@@ -1335,28 +1461,68 @@ export async function runOgdfLayout(
       }
     }
     if (!loadedFromFile) {
-      ({ stderr, stdout } = await execFileAsync(
-        binaryPath,
-        [
-          "layout",
-          "--mode",
-          normalizedRequestedLayoutMode,
-          "--nodes-file",
-          nodesPath,
-          "--edges-file",
-          edgesPath,
-          "--edge-routing",
-          effectiveEdgeRouting,
-          ...(clusterGraphLayout ? ["--cluster-graph", "1"] : []),
-          ...(bubbleLayout ? ["--bubble", "1"] : []),
-        ],
-        {
-          cwd: extensionRootPath,
-          env: ogdfRenderedCarrierEnv(),
-          maxBuffer: 100 * 1024 * 1024,
-          timeout: OGDF_LAYOUT_TIMEOUT_MS,
-        },
-      ));
+      // Progressive rendering: when a caller wants intermediate frames, ask
+      // the binary to dump each multistart new-best to a temp file
+      // (DJERD_PROGRESS_FILE) and poll it while execFileAsync runs (the call
+      // is buffered, so we can't read its stream — the side-channel file is
+      // the bridge). The binary writes atomically (.tmp + rename) so each read
+      // sees a complete JSON. Only the baseline call runs multistart, so this
+      // is the only call that needs it.
+      const progressSink = ogdfProgressListener;
+      let progressTimer: ReturnType<typeof setInterval> | undefined;
+      const progressPath = progressSink
+        ? path.join(
+            os.tmpdir(),
+            `django-erd-progress-${requestId ?? 0}-${Date.now()}.json`,
+          )
+        : undefined;
+      if (progressSink && progressPath) {
+        let lastProgress = "";
+        progressTimer = setInterval(() => {
+          void readFile(progressPath, "utf8")
+            .then((content) => {
+              if (!content || content === lastProgress) return;
+              lastProgress = content;
+              try {
+                progressSink(JSON.parse(content) as OgdfProgressFrame);
+              } catch {
+                // Mid-rename partial read — ignore; next poll catches it.
+              }
+            })
+            .catch(() => {
+              // File not created yet (before the first new-best) — ignore.
+            });
+        }, 150);
+      }
+      try {
+        ({ stderr, stdout } = await execFileAsync(
+          binaryPath,
+          [
+            "layout",
+            "--mode",
+            normalizedRequestedLayoutMode,
+            "--nodes-file",
+            nodesPath,
+            "--edges-file",
+            edgesPath,
+            "--edge-routing",
+            effectiveEdgeRouting,
+            ...(clusterGraphLayout ? ["--cluster-graph", "1"] : []),
+            ...(bubbleLayout ? ["--bubble", "1"] : []),
+          ],
+          {
+            cwd: extensionRootPath,
+            env: ogdfRenderedCarrierEnv(
+              progressPath ? { DJERD_PROGRESS_FILE: progressPath } : {},
+            ),
+            maxBuffer: 100 * 1024 * 1024,
+            timeout: OGDF_LAYOUT_TIMEOUT_MS,
+          },
+        ));
+      } finally {
+        if (progressTimer) clearInterval(progressTimer);
+        if (progressPath) void rm(progressPath, { force: true }).catch(() => {});
+      }
       if (layoutOutputFile) {
         try {
           await writeFile(layoutOutputFile, stdout, "utf8");
@@ -1466,17 +1632,35 @@ export async function runOgdfLayout(
           extensionRootPath,
           "data/erd-poc/checkpoints/v36-pure-action-scorer.pt",
         );
-      // v37-multistart-1301-bbox: trained on 1301-node workspace's
-      // multistart corpus (10 FMMM seeds) with bbox-friendly weights
-      // (bbox_weight 2000, bbox_target_b 6.0). Production validated
-      // on Captain 1302-node workspace: visualCross 679→651 (-4.1%),
-      // bbox 11.6B→7.5B (-35%), edgeNode 182→62 (-66%), bundleEdges
-      // 6→2 (-67%). The new model prefers cluster-level actions on
-      // worst states, which is what bbox compaction needs.
+      // v37-diverse.pt: the production default since 2026-05-30. Retrained
+      // from v37-multistart-1301-light's predecessor datasets PLUS 15
+      // synthetic graphs (n=92–530) to fix a Captain-overfit in the
+      // family prior. The light prior (trained on Captain alone) learned to
+      // deprioritise the overlap-resolution families
+      // (overlap_component_line/ring/batch, louvain_cluster_anchor) because
+      // Captain's dense biconnected core rarely needs them; on sparser graphs
+      // those families ARE the workhorses, so the light prior left search
+      // gains on the table (held-out synth: recovered only ~57% of the
+      // exhaustive-search gain, never beat it; see memory
+      // [[project-generalization-synth]]).
+      //
+      // v37-diverse validation (2026-05-30, memory [[project-v37-diverse-prior]]):
+      //   - Captain (real-main-1301): IDENTICAL to light (single-round gain 26
+      //     both; compare_v37_ckpts 4-start top-5 overlap 4-5/5, #1 family
+      //     identical) — zero regression on the production target.
+      //   - 16 held-out + 8 fresh synth graphs: matches-or-beats the
+      //     exhaustive (prior-off) search (ratio ~1.1 / ~1.0, 0–1 graphs worse,
+      //     2–3 better) — the overfit is gone.
+      // The diverse prior carries 17 action families (vs light's 12); the 5
+      // extra families synth graphs surface stay dormant on Captain.
+      //
+      // Predecessor v37-multistart-1301-light.pt (visualCross 609, bbox 1.67B,
+      // qSub cmp 0.06 on Captain 1304) and the en3 experiment (REVERTED;
+      // [[en3-edge-node-failed]]) are kept on disk for record.
       const familyPriorPath = process.env.DJERD_V37_FAMILY_PRIOR_CKPT_PATH
         ?? path.join(
           extensionRootPath,
-          "data/erd-poc/checkpoints/v37-multistart-1301-bbox.pt",
+          "data/erd-poc/checkpoints/v37-diverse.pt",
         );
       const precomputedPositionsPath = process.env.DJERD_OPTIMIZED_POSITIONS_TSV;
       let effectivePositionsPath = positionsPath;
@@ -1584,6 +1768,9 @@ export async function runOgdfLayout(
           const reroutedLayout = JSON.parse(reroute.stdout);
           let acceptedStdout = reroute.stdout;
           let acceptedLayout = reroutedLayout;
+          // Show the routed reroute result immediately (don't wait for the
+          // long bbox-target / polish stages that follow).
+          streamIntermediateLayout("reroute", reroutedLayout);
 
           if (usePoststackReroute) {
             const bboxTargetB = readFloatEnv("DJERD_OPTIMIZED_BBOX_TARGET_B", 1.0);
@@ -1758,6 +1945,11 @@ export async function runOgdfLayout(
                           );
                         }
                         const bboxCandidate = JSON.parse(bboxReroute.stdout);
+                        // Draw every bbox-target candidate as it's computed so
+                        // the user sees progress through this long stage
+                        // (accepted or not — the final routed layout reloads
+                        // when the whole pipeline finishes).
+                        streamIntermediateLayout("bbox", bboxCandidate);
                         const bboxCandidateLayout =
                           decodeLayoutSnapshot(bboxCandidate, "ogdfLayout");
                         const bboxCandidateSummary = summarizeLayout(bboxCandidateLayout);
@@ -2070,6 +2262,8 @@ export async function runOgdfLayout(
                     );
                   }
                   const polishCandidate = JSON.parse(polishReroute.stdout);
+                  // Draw every polish candidate as it's computed.
+                  streamIntermediateLayout("polish", polishCandidate);
                   const polishCandidateLayout =
                     decodeLayoutSnapshot(polishCandidate, "ogdfLayout");
                   const polishCandidateSummary = summarizeLayout(polishCandidateLayout);
@@ -3566,9 +3760,13 @@ function readBboxTargetRelativeStages(finalTargetB: number, initialAreaB: number
   if (!Number.isFinite(initialAreaB) || initialAreaB <= finalTargetB) {
     return [finalTargetB];
   }
+  // 6 coarser stages (was 10). Each stage is a separate cluster_graph binary
+  // call (~16s on the inheritance graph), and ~83% of candidates are rejected,
+  // so halving the stage count is a ~40% perf win for a small compaction-step
+  // granularity cost. The qualityDebtPerGain gate still rejects bad jumps.
   const raw = readStringEnv(
     "DJERD_OPTIMIZED_BBOX_TARGET_STAGE_RATIOS",
-    "0.86,0.74,0.64,0.55,0.45,0.36,0.28,0.22,0.17,0.13",
+    "0.80,0.63,0.47,0.34,0.23,0.14",
   );
   const ratios = raw
     .split(",")

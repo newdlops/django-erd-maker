@@ -84,7 +84,25 @@ pub fn extract_field(
     choice_definitions: &BTreeMap<String, ChoiceFieldMetadata>,
 ) -> Option<(ModelField, Vec<AnalyzerDiagnostic>)> {
     let field_type = terminal_path_segment(&call.func)?;
-    let relation_kind = relation_kind_from_field_type(&field_type);
+    let mut relation_kind = relation_kind_from_field_type(&field_type);
+
+    // Django multi-table-inheritance parent pointer:
+    //   OneToOneField(Parent, parent_link=True, ...)
+    // This field *is* the inheritance link — the same parent↔child connection
+    // is already emitted as an `inheritance` structural edge built from the
+    // class hierarchy. Keeping it as a one_to_one relation duplicates the edge
+    // and, because edge consolidation collapses both directions of a node pair
+    // into a single visual edge (preferring a declared edge), the one_to_one
+    // wins and masks the inheritance edge. Drop the relation so the field stays
+    // a plain column and only the inheritance edge represents the link.
+    if relation_kind == Some(RelationKind::OneToOne)
+        && keyword_value(&call.keywords, "parent_link")
+            .and_then(boolean_literal)
+            .unwrap_or(false)
+    {
+        relation_kind = None;
+    }
+
     let is_supported_field = relation_kind.is_some() || field_type.ends_with("Field");
     if !is_supported_field {
         return None;

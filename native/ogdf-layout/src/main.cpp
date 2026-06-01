@@ -9565,6 +9565,21 @@ int main(int argc, char** argv) {
         if (arguments.rigidPositions && !arguments.positionsTsv.empty()) {
           ::setenv("DJERD_SKIP_CG_OPT", "1", 1);
         }
+        // Performance: when --positions-tsv is supplied, the entire
+        // cluster_graph POSITIONING (§7b polar skeleton, §9 super-graph FMMM +
+        // similarity-fit + hub repulsion, §9.5 perimeter/backbone/connector
+        // untangling) is wasted work — every node position it computes is
+        // overwritten by the TSV further down (~16s/run on the inheritance
+        // graph × ~56 ML-pipeline calls). Skip it; the cheap STRUCTURE
+        // (clusters, pruning, super-graph, leaf-bundle membership) still runs
+        // so routing/carriers are intact. Multistart keeps positioning (it has
+        // an empty positions-tsv and selects among the layouts it computes).
+        if (!arguments.positionsTsv.empty()) {
+          // overwrite=0 so a test/override env (DJERD_CG_SKIP_POSITIONING=0)
+          // can disable it for A/B comparison; production never sets it, so it
+          // defaults to "1" here.
+          ::setenv("DJERD_CG_SKIP_POSITIONING", "1", 0);
+        }
         // Optional multi-start: run cluster_graph N times with
         // different OGDF random seeds and keep the result with the
         // fewest straight-line edge crossings. FMMM's super-graph
@@ -9607,7 +9622,17 @@ int main(int argc, char** argv) {
         ClusterGraphResult cg = runClusterGraphLayout(
           nodes, edges, labels, attributes, arguments.bubble);
 
-        if (multistartRuns > 1) {
+        // Multistart only optimises node POSITIONS. When --positions-tsv
+        // is supplied, those positions are overwritten further down (the
+        // "[ml-positions] Overrode ..." block), so a multistart on a
+        // positions-tsv round-trip (ML rigid reroute, bbox-target,
+        // cluster-polish) is pure wasted work — its result is discarded.
+        // On the Captain reload this fired ~44× (45 cluster_graph binary
+        // calls, all but the baseline carry --positions-tsv), each running
+        // 4 FMMM layouts whose positions were then thrown away. Gate on an
+        // empty positions-tsv so multistart runs only on the real baseline
+        // layout that actually keeps the positions it computes.
+        if (multistartRuns > 1 && arguments.positionsTsv.empty()) {
           const char* multiSeedEnv = std::getenv("DJERD_MULTISTART_SEED_BASE");
           const int seedBase = multiSeedEnv ? std::atoi(multiSeedEnv) : 42;
 
@@ -9617,49 +9642,190 @@ int main(int argc, char** argv) {
           for (std::size_t i = 0; i < nodes.size(); ++i) {
             mstartIdxByMid[nodes[i].modelId] = i;
           }
-          // Pre-resolve edge endpoint indices (skip edges whose modelIds
-          // don't match any node — e.g., dangling edges).
+          // Carrier-aware multistart (DJERD_MULTISTART_BUNDLE_AWARE=1, default
+          // off): score each layout by the number of distinct CARRIER-PAIRS
+          // that cross, not raw straight-line edge crossings. A carrier groups
+          // edges that render as one line — a LEAF bundle (all edges into one
+          // leaf-matrix), or a cluster-pair BUS (all edges between the same two
+          // Louvain clusters). Parallel edges in one carrier draw as a single
+          // line, so their mutual crossings aren't visible; counting unique
+          // carrier-pairs mirrors the rendered (carrier-grouped) crossing the
+          // user actually sees — so multistart selects the seed with the fewest
+          // VISIBLE crossings rather than the fewest raw ones. (Layout is
+          // unchanged; this only re-scores seeds.)
+          const bool mstartBundleAware = [] {
+            const char* e = std::getenv("DJERD_MULTISTART_BUNDLE_AWARE");
+            return e && std::strcmp(e, "0") != 0;
+          }();
+          std::vector<std::size_t> mstartLeafBundleOf;  // nodeIdx -> bundle+1 (0 = none)
+          std::vector<int> mstartClusterOf;             // nodeIdx -> cluster idx (-1 = none)
+          if (mstartBundleAware) {
+            mstartLeafBundleOf.assign(nodes.size(), 0);
+            for (std::size_t b = 0; b < cg.leafMatrixGroups.size(); ++b) {
+              for (std::size_t leaf : cg.leafMatrixGroups[b].leafIdxs) {
+                if (leaf < nodes.size()) mstartLeafBundleOf[leaf] = b + 1;
+              }
+            }
+            mstartClusterOf.assign(nodes.size(), -1);
+            for (std::size_t c = 0; c < cg.clusters.size(); ++c) {
+              if (cg.clusters[c].rootIdx < nodes.size())
+                mstartClusterOf[cg.clusters[c].rootIdx] = static_cast<int>(c);
+              for (const ClusterMemberInfo& m : cg.clusters[c].members) {
+                if (m.nodeIdx < nodes.size())
+                  mstartClusterOf[m.nodeIdx] = static_cast<int>(c);
+              }
+            }
+          }
+
+          // Edge endpoint indices (skip dangling/self). When carrier-aware,
+          // also tag each edge with a carrier id (leaf-bundle | cluster-pair
+          // bus | individual) used to dedup crossings into carrier-pairs.
           std::vector<std::pair<std::size_t, std::size_t>> mstartEdgePairs;
+          std::vector<unsigned long long> mstartCarrier;
           mstartEdgePairs.reserve(edges.size());
-          for (const EdgeRecord& e : edges) {
-            auto si = mstartIdxByMid.find(e.sourceModelId);
-            auto ti = mstartIdxByMid.find(e.targetModelId);
-            if (si == mstartIdxByMid.end() || ti == mstartIdxByMid.end()) continue;
-            if (si->second == ti->second) continue;
-            mstartEdgePairs.emplace_back(si->second, ti->second);
+          {
+            std::map<std::pair<int, int>, unsigned long long> mstartPairCarrier;
+            const unsigned long long kPairBase = cg.leafMatrixGroups.size() + 2ULL;
+            unsigned long long nextPair = 0;
+            unsigned long long indivCarrier = kPairBase + 2000000ULL;
+            for (const EdgeRecord& e : edges) {
+              auto si = mstartIdxByMid.find(e.sourceModelId);
+              auto ti = mstartIdxByMid.find(e.targetModelId);
+              if (si == mstartIdxByMid.end() || ti == mstartIdxByMid.end()) continue;
+              const std::size_t a = si->second, b = ti->second;
+              if (a == b) continue;
+              mstartEdgePairs.emplace_back(a, b);
+              if (mstartBundleAware) {
+                const std::size_t lb = std::max(mstartLeafBundleOf[a], mstartLeafBundleOf[b]);
+                unsigned long long cid;
+                if (lb > 0) {
+                  cid = lb;  // leaf-bundle carrier (1..B)
+                } else if (mstartClusterOf[a] >= 0 && mstartClusterOf[b] >= 0
+                           && mstartClusterOf[a] != mstartClusterOf[b]) {
+                  const int ca = std::min(mstartClusterOf[a], mstartClusterOf[b]);
+                  const int cb = std::max(mstartClusterOf[a], mstartClusterOf[b]);
+                  auto it = mstartPairCarrier.find({ca, cb});
+                  if (it != mstartPairCarrier.end()) {
+                    cid = it->second;
+                  } else {
+                    cid = kPairBase + (nextPair++);
+                    mstartPairCarrier[{ca, cb}] = cid;
+                  }
+                } else {
+                  cid = indivCarrier++;  // individual (unique) carrier
+                }
+                mstartCarrier.push_back(cid);
+              }
+            }
           }
           auto mstartCountCrossings = [&]() -> std::size_t {
-            std::size_t cnt = 0;
             const std::size_t E = mstartEdgePairs.size();
+            std::size_t cnt = 0;                       // raw crossing count
+            std::set<unsigned long long> carrierPairs; // unique carrier-pairs (bundle-aware)
             for (std::size_t i = 0; i < E; ++i) {
               const std::size_t aIdx = mstartEdgePairs[i].first;
               const std::size_t bIdx = mstartEdgePairs[i].second;
-              const ogdf::node si = nodes[aIdx].handle;
-              const ogdf::node ti = nodes[bIdx].handle;
-              const RoutePoint ai{attributes.x(si), attributes.y(si)};
-              const RoutePoint bi{attributes.x(ti), attributes.y(ti)};
+              const RoutePoint ai{attributes.x(nodes[aIdx].handle), attributes.y(nodes[aIdx].handle)};
+              const RoutePoint bi{attributes.x(nodes[bIdx].handle), attributes.y(nodes[bIdx].handle)};
               for (std::size_t j = i + 1; j < E; ++j) {
                 const std::size_t cIdx = mstartEdgePairs[j].first;
                 const std::size_t dIdx = mstartEdgePairs[j].second;
                 // Edges sharing an endpoint meet, they don't cross.
                 if (aIdx == cIdx || aIdx == dIdx || bIdx == cIdx || bIdx == dIdx) continue;
-                const ogdf::node sj = nodes[cIdx].handle;
-                const ogdf::node tj = nodes[dIdx].handle;
-                const RoutePoint aj{attributes.x(sj), attributes.y(sj)};
-                const RoutePoint bj{attributes.x(tj), attributes.y(tj)};
+                // Same carrier (parallel edges in one bundle/bus) render as one
+                // line — their mutual crossing isn't visible, so skip it.
+                if (mstartBundleAware && mstartCarrier[i] == mstartCarrier[j]) continue;
+                const RoutePoint aj{attributes.x(nodes[cIdx].handle), attributes.y(nodes[cIdx].handle)};
+                const RoutePoint bj{attributes.x(nodes[dIdx].handle), attributes.y(nodes[dIdx].handle)};
                 RoutePoint isect;
-                if (properSegmentIntersection(ai, bi, aj, bj, isect)) ++cnt;
+                if (!properSegmentIntersection(ai, bi, aj, bj, isect)) continue;
+                if (mstartBundleAware) {
+                  const unsigned long long lo = std::min(mstartCarrier[i], mstartCarrier[j]);
+                  const unsigned long long hi = std::max(mstartCarrier[i], mstartCarrier[j]);
+                  carrierPairs.insert((lo << 24) | hi);  // dedup into carrier-pairs
+                } else {
+                  ++cnt;
+                }
               }
             }
-            return cnt;
+            return mstartBundleAware ? carrierPairs.size() : cnt;
+          };
+
+          // Candidate C: env-tunable multistart selection metric. By
+          // default (weight 0) the winner is the layout with the fewest
+          // straight-line crossings — already a strong proxy for the final
+          // visualCrossings (the raw-crossing and visualCrossings winners
+          // coincide across the Captain seed corpus). A positive
+          // DJERD_MULTISTART_BBOX_WEIGHT blends in the bounding-box area
+          // (billions, from node-center spread) so the search can trade a
+          // few crossings for a more compact seed — a Pareto knob, not a
+          // free win. Routing-based metrics (true visualCross/composite)
+          // are unavailable here (positions only, pre-route), so the score
+          // stays a cheap O(N) position proxy. weight 0 ⇒ score == cross
+          // exactly, so the default selection is byte-identical to before.
+          const double mstartBboxWeight = [] {
+            const char* e = std::getenv("DJERD_MULTISTART_BBOX_WEIGHT");
+            return e && *e ? std::strtod(e, nullptr) : 0.0;
+          }();
+          auto mstartBboxAreaB = [&]() -> double {
+            double minX = 1e300, minY = 1e300, maxX = -1e300, maxY = -1e300;
+            for (const NodeRecord& nd : nodes) {
+              const double x = attributes.x(nd.handle);
+              const double y = attributes.y(nd.handle);
+              if (x < minX) minX = x;
+              if (x > maxX) maxX = x;
+              if (y < minY) minY = y;
+              if (y > maxY) maxY = y;
+            }
+            if (maxX <= minX || maxY <= minY) return 0.0;
+            return (maxX - minX) * (maxY - minY) / 1e9;
+          };
+          auto mstartScore = [&](std::size_t cross) -> double {
+            return static_cast<double>(cross)
+              + (mstartBboxWeight != 0.0 ? mstartBboxWeight * mstartBboxAreaB() : 0.0);
+          };
+
+          // Progressive rendering: on each new-best, dump current node
+          // positions to DJERD_PROGRESS_FILE so the extension can stream an
+          // intermediate preview to the webview (straight-edge, pre-route).
+          // Atomic write (.tmp + rename) so the fs.watch never reads a partial
+          // file. No-op when the env var is unset.
+          const char* progressFile = std::getenv("DJERD_PROGRESS_FILE");
+          auto writeProgress = [&](int run, int seed, std::size_t cross) {
+            if (!progressFile || !*progressFile) return;
+            const std::string tmp = std::string(progressFile) + ".tmp";
+            std::FILE* pf = std::fopen(tmp.c_str(), "w");
+            if (!pf) return;
+            std::fprintf(pf,
+              "{\"run\":%d,\"seed\":%d,\"crossings\":%zu,\"positions\":{",
+              run, seed, cross);
+            bool first = true;
+            for (const NodeRecord& nd : nodes) {
+              // modelIds are TSV-derived identifiers ([A-Za-z0-9_.:]) — no
+              // JSON-special chars, so they need no escaping. OGDF attributes
+              // are node CENTRES; emit TOP-LEFT (centre − size/2) to match the
+              // final layout JSON convention (io.cpp:381) so the webview can
+              // use these as basePosition/manualPosition directly.
+              std::fprintf(pf, "%s\"%s\":[%.1f,%.1f]",
+                first ? "" : ",", nd.modelId.c_str(),
+                attributes.x(nd.handle) - nd.width / 2.0,
+                attributes.y(nd.handle) - nd.height / 2.0);
+              first = false;
+            }
+            std::fprintf(pf, "}}");
+            std::fclose(pf);
+            std::rename(tmp.c_str(), progressFile);
           };
 
           std::size_t bestCross = mstartCountCrossings();
+          double bestScore = mstartScore(bestCross);
           auto bestPositions = mstartSavePositions();
           ClusterGraphResult bestCg = cg;
           int bestSeed = -1;  // -1 = initial run (no explicit setSeed)
           std::fprintf(stderr,
-            "[multistart] run 0 (initial) crossings=%zu\n", bestCross);
+            "[multistart] run 0 (initial) crossings=%zu score=%.1f\n",
+            bestCross, bestScore);
+          writeProgress(0, -1, bestCross);
 
           for (int run = 1; run < multistartRuns; ++run) {
             const int seed = seedBase + run;
@@ -9673,15 +9839,18 @@ int main(int argc, char** argv) {
             ClusterGraphResult altCg = runClusterGraphLayout(
               nodes, edges, labels, attributes, arguments.bubble);
             const std::size_t altCross = mstartCountCrossings();
+            const double altScore = mstartScore(altCross);
             std::fprintf(stderr,
-              "[multistart] run %d seed=%d crossings=%zu%s\n",
-              run, seed, altCross,
-              altCross < bestCross ? " (new best)" : "");
-            if (altCross < bestCross) {
+              "[multistart] run %d seed=%d crossings=%zu score=%.1f%s\n",
+              run, seed, altCross, altScore,
+              altScore < bestScore ? " (new best)" : "");
+            if (altScore < bestScore) {
+              bestScore = altScore;
               bestCross = altCross;
               bestPositions = mstartSavePositions();
               bestCg = altCg;
               bestSeed = seed;
+              writeProgress(run, seed, altCross);
             }
           }
           mstartRestorePositions(bestPositions);
@@ -9697,12 +9866,17 @@ int main(int argc, char** argv) {
             ::setenv("DJERD_FMMM_SEED", std::to_string(bestSeed).c_str(), 1);
           }
           std::fprintf(stderr,
-            "[multistart] selected run with crossings=%zu (seed=%d, runs=%d)\n",
-            bestCross, bestSeed, multistartRuns);
+            "[multistart] selected run with crossings=%zu score=%.1f "
+            "(seed=%d, runs=%d, bboxWeight=%.1f)\n",
+            bestCross, bestScore, bestSeed, multistartRuns, mstartBboxWeight);
           if (!metadata.strategyReason.empty()) metadata.strategyReason += "; ";
           metadata.strategyReason +=
             "multistart selected best of "
             + std::to_string(multistartRuns) + " runs";
+        } else if (multistartRuns > 1) {
+          std::fprintf(stderr,
+            "[multistart] skipped (%d runs) — positions-tsv override "
+            "discards computed positions\n", multistartRuns);
         }
         for (const auto& c : cg.clusters) {
           metadata.clusterByModelId[nodes[c.rootIdx].modelId] = c.clusterId;
@@ -18551,6 +18725,168 @@ int main(int argc, char** argv) {
         finalXdEnv && std::strcmp(finalXdEnv, "0") != 0;
       if (finalXd) {
         runXingsDetour();
+      }
+    }
+
+    // === DJERD_PERIPHERY_REROUTE=1 (prototype) ===
+    // For the worst high-crossing edges, try routing them around the layout
+    // bbox periphery (top / bottom / left / right) instead of straight through
+    // the dense centre. Keep the candidate that minimises THAT edge's polyline
+    // crossings, if it beats the current route. Greedy worst-first with a
+    // per-edge lane offset (so peripheral routes don't pile on one line) and a
+    // global revert if total crossings don't improve. Default off.
+    {
+      const char* perEnv = std::getenv("DJERD_PERIPHERY_REROUTE");
+      if (perEnv && std::strcmp(perEnv, "0") != 0
+          && routes.size() == edges.size() && !nodes.empty()) {
+        int topK = 20;
+        if (const char* k = std::getenv("DJERD_PERIPHERY_TOPK")) {
+          topK = std::max(1, std::atoi(k));
+        }
+        // Bound the outward lane offset. Each rerouted edge gets a lane that
+        // pushes its peripheral arc further outside the node bbox; left
+        // unbounded, N reroutes inflate the route bbox by ~N% of the layout
+        // span (196 reroutes ⇒ route bbox ~29× the node bbox). The lane only
+        // needs to separate parallel arcs, so cycling a small fixed number of
+        // lanes keeps the center-avoidance (crossing) win while capping how far
+        // the arcs extend. Default huge = effectively unbounded (byte-identical
+        // to the original behaviour); set DJERD_PERIPHERY_MAX_LANES to cap.
+        std::size_t maxLanes = 1000000;
+        if (const char* ml = std::getenv("DJERD_PERIPHERY_MAX_LANES")) {
+          const int v = std::atoi(ml);
+          if (v > 0) maxLanes = static_cast<std::size_t>(v);
+        }
+        auto polyCrossAB = [&](const std::vector<RoutePoint>& ra,
+                               const std::vector<RoutePoint>& rb) -> bool {
+          if (ra.size() < 2 || rb.size() < 2) return false;
+          for (std::size_t li = 1; li < ra.size(); ++li) {
+            for (std::size_t rj = 1; rj < rb.size(); ++rj) {
+              RoutePoint isect;
+              if (properSegmentIntersection(ra[li - 1], ra[li],
+                                            rb[rj - 1], rb[rj], isect)) {
+                return true;
+              }
+            }
+          }
+          return false;
+        };
+        auto routeCrossCount = [&](std::size_t e,
+                                   const std::vector<RoutePoint>& cand) -> std::size_t {
+          std::size_t t = 0;
+          for (std::size_t e2 = 0; e2 < edges.size(); ++e2) {
+            if (e2 == e) continue;
+            if (sharesEndpoint(edges[e], edges[e2])) continue;
+            if (polyCrossAB(cand, routes[e2])) ++t;
+          }
+          return t;
+        };
+        auto totalCross = [&]() -> std::size_t {
+          std::size_t t = 0;
+          for (std::size_t i = 0; i < edges.size(); ++i) {
+            for (std::size_t j = i + 1; j < edges.size(); ++j) {
+              if (sharesEndpoint(edges[i], edges[j])) continue;
+              if (polyCrossAB(routes[i], routes[j])) ++t;
+            }
+          }
+          return t;
+        };
+
+        double X0 = std::numeric_limits<double>::infinity();
+        double X1 = -X0, Y0 = X0, Y1 = -X0;
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+          const double x = attributes.x(nodes[i].handle);
+          const double y = attributes.y(nodes[i].handle);
+          X0 = std::min(X0, x); X1 = std::max(X1, x);
+          Y0 = std::min(Y0, y); Y1 = std::max(Y1, y);
+        }
+        const double spanX = std::max(1.0, X1 - X0);
+        const double spanY = std::max(1.0, Y1 - Y0);
+        const double baseMargin = 0.04 * std::max(spanX, spanY);
+        const double laneStep = 0.01 * std::max(spanX, spanY);
+        // Edge-node-aware selection. A capped peripheral arc hugs the bbox, so
+        // it can dodge centre crossings yet slice through node boxes near the
+        // edge — trading edge-edge crossings for edge-node intersections. Score
+        // each candidate by crossings + W·(node-box hits) and reroute only when
+        // the COMBINED cost drops, so an arc that clips more boxes than the
+        // crossings it removes is rejected in favour of staying put. W=1 weights
+        // a box-clip like a crossing (the metric's own weighting). env-tunable;
+        // W=0 reproduces the crossings-only behaviour.
+        const double pEdgeNodeWeight = [] {
+          const char* e = std::getenv("DJERD_PERIPHERY_EDGE_NODE_WEIGHT");
+          return e ? std::atof(e) : 1.0;
+        }();
+        const double pNodeMargin = visualNodeMargin();
+
+        std::vector<std::pair<std::size_t, std::size_t>> ranked;
+        for (std::size_t e = 0; e < edges.size(); ++e) {
+          if (routes[e].size() < 2) continue;
+          const std::size_t c = routeCrossCount(e, routes[e]);
+          if (c > 0) ranked.emplace_back(c, e);
+        }
+        std::sort(ranked.rbegin(), ranked.rend());
+
+        const std::size_t before = totalCross();
+        const std::vector<std::vector<RoutePoint>> savedRoutes = routes;
+        std::size_t rerouted = 0, lane = 0;
+        const std::size_t limit =
+          std::min(static_cast<std::size_t>(topK), ranked.size());
+        for (std::size_t r = 0; r < limit; ++r) {
+          const std::size_t e = ranked[r].second;
+          const RoutePoint pA = routes[e].front();
+          const RoutePoint pB = routes[e].back();
+          const std::size_t curC = routeCrossCount(e, routes[e]);
+          // Node-box obstacles for this edge (excludes its own endpoints),
+          // identical to the edgeNodeIntersections metric. Built once per edge,
+          // reused for the current route and all four candidates.
+          const LineIntent pLine = makeLineIntent(edges[e], e, attributes);
+          const std::vector<NodeObstacle> pObs = makeNodeObstacles(
+            nodes, attributes, pNodeMargin, pLine.sourceHandle, pLine.targetHandle);
+          auto nodeHits = [&](const std::vector<RoutePoint>& cand) -> std::size_t {
+            if (cand.size() < 2) return 0;
+            std::size_t h = 0;
+            for (std::size_t li = 1; li < cand.size(); ++li)
+              for (const NodeObstacle& ob : pObs)
+                if (segmentIntersectsRect(cand[li - 1], cand[li], ob.rect)) ++h;
+            return h;
+          };
+          const double m = baseMargin + laneStep * static_cast<double>(lane % maxLanes);
+          const std::vector<std::vector<RoutePoint>> cands = {
+            {pA, {pA.x, Y0 - m}, {pB.x, Y0 - m}, pB},
+            {pA, {pA.x, Y1 + m}, {pB.x, Y1 + m}, pB},
+            {pA, {X0 - m, pA.y}, {X0 - m, pB.y}, pB},
+            {pA, {X1 + m, pA.y}, {X1 + m, pB.y}, pB},
+          };
+          // Only consider candidates that don't INCREASE this edge's crossings
+          // (keeps the global edge-edge total from regressing / tripping the
+          // revert below), then pick the lowest crossings + W·(box hits).
+          const double curScore = static_cast<double>(curC)
+            + pEdgeNodeWeight * static_cast<double>(nodeHits(routes[e]));
+          double bestScore = curScore;
+          int bestI = -1;
+          for (int ci = 0; ci < static_cast<int>(cands.size()); ++ci) {
+            const std::size_t c = routeCrossCount(e, cands[ci]);
+            if (c > curC) continue;
+            const double sc = static_cast<double>(c)
+              + pEdgeNodeWeight * static_cast<double>(nodeHits(cands[ci]));
+            if (sc < bestScore) { bestScore = sc; bestI = ci; }
+          }
+          if (bestI >= 0) {
+            routes[e] = cands[bestI];
+            ++rerouted;
+            ++lane;
+          }
+        }
+        const std::size_t after = totalCross();
+        if (after > before) {
+          routes = savedRoutes;
+          std::fprintf(stderr,
+            "[periphery-reroute] reverted: %zu candidates, total cross %zu -> %zu (worse).\n",
+            limit, before, after);
+        } else {
+          std::fprintf(stderr,
+            "[periphery-reroute] %zu/%zu edges rerouted, total cross %zu -> %zu.\n",
+            rerouted, limit, before, after);
+        }
       }
     }
 

@@ -44,6 +44,7 @@ pub enum RelationKind {
     ReverseForeignKey,
     ReverseManyToMany,
     ReverseOneToOne,
+    Inheritance,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

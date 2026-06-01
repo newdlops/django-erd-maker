@@ -592,6 +592,22 @@ ClusterGraphResult runClusterGraphLayout(
     std::fprintf(stderr, "[cg-time] %ldms %s\n", ms, tag);
   };
 
+  // Performance: when the caller will overwrite every node position from a
+  // --positions-tsv (the ML reroute / bbox-target / polish round-trips), the
+  // cluster_graph POSITIONING is wasted — only the STRUCTURE (clusters,
+  // pruning, super-graph, leaf-bundle membership) it produces is used (for
+  // routing/carriers). Skip the expensive positioning passes (super-graph
+  // FMMM, connector/router untangling); cheap structure code still runs.
+  const bool skipCgPositioning = [] {
+    const char* e = std::getenv("DJERD_CG_SKIP_POSITIONING");
+    return e && std::strcmp(e, "0") != 0;
+  }();
+  if (skipCgPositioning) {
+    std::fprintf(stderr,
+      "[cg-fast] DJERD_CG_SKIP_POSITIONING=1 — positions overwritten downstream; "
+      "skipping super-graph FMMM + connector/router untangling\n");
+  }
+
   // 1. dedup adjacency.
   std::size_t edgeCount = 0;
   std::vector<std::vector<std::size_t>> adj = buildDedupAdjacency(nodes, edges, edgeCount);
@@ -634,6 +650,7 @@ ClusterGraphResult runClusterGraphLayout(
   result.maxPruningLevel = pruneRes.maxLevel;
   result.aloneRootCount = pruneRes.aloneRootCount;
   for (bool b : pruneRes.inCore) if (b) ++result.coreNodeCount;
+  cgCheckpoint("post-§2.5-pruning");
 
   // 2. roots.
   auto rootByCluster = pickRoots(nodes, clusterLabels, adj);
@@ -1389,6 +1406,7 @@ ClusterGraphResult runClusterGraphLayout(
     }
   }
 
+  cgCheckpoint("post-§7b-polar-skeleton");
   // 8. Super-graph: cluster super-nodes + connectors + independents.
   // Build OGDF super-graph for layout.
   ogdf::Graph super;
@@ -1929,6 +1947,7 @@ ClusterGraphResult runClusterGraphLayout(
     }
   }
 
+  cgCheckpoint("post-§8-supergraph-build");
   // 9. Super-graph layout. Strategy:
   //   - With polar anchoring active (≥2 polars + skeleton edges): FMMM with
   //     newInitialPlacement(false). Pre-seed polar cluster super-nodes from
@@ -2062,6 +2081,220 @@ ClusterGraphResult runClusterGraphLayout(
     }
   }
 
+  // === DJERD_TWO_LEVEL_COMMUNITY=1 (prototype) ===
+  // Promote the skel-probe γ 2-level placement into real cluster anchors.
+  // Group the K clusters into S super-communities (top-N degree centers +
+  // multi-source BFS on the cluster-only graph), lay out the super-communities
+  // via FMMM, then lay out each super-community's members locally and place
+  // them around the super-community centre. Inject the resulting positions as
+  // polar anchors (same hand-off as DJERD_CLUSTER_ANCHOR). N is set by
+  // DJERD_TWO_LEVEL_N (default 48 — the skel-probe sweep minimum). By default
+  // ALL clusters (incl. structural polars) are overridden to faithfully match
+  // the probe that produced the -46% cluster-edge-crossing signal; set
+  // DJERD_TWO_LEVEL_KEEP_POLARS=1 to preserve polar-skeleton anchors instead.
+  const char* twoLevelEnv = std::getenv("DJERD_TWO_LEVEL_COMMUNITY");
+  const bool twoLevelMode = twoLevelEnv && std::strcmp(twoLevelEnv, "0") != 0;
+  if (twoLevelMode && result.clusters.size() >= 4) {
+    const int K = static_cast<int>(result.clusters.size());
+    int targetN = 48;
+    if (const char* nEnv = std::getenv("DJERD_TWO_LEVEL_N")) {
+      targetN = std::max(2, std::atoi(nEnv));
+    }
+    const char* keepPolarsEnv = std::getenv("DJERD_TWO_LEVEL_KEEP_POLARS");
+    const bool keepPolars = keepPolarsEnv && std::strcmp(keepPolarsEnv, "0") != 0;
+
+    // Cluster index map + weighted cluster-only adjacency (wsum).
+    std::unordered_map<std::string, int> cidToIdx;
+    for (int i = 0; i < K; ++i) cidToIdx[result.clusters[i].clusterId] = i;
+    std::map<std::pair<int, int>, double> wsum;
+    for (std::size_t i = 0; i < adj.size(); ++i) {
+      auto cIt = nodeCluster.find(i);
+      if (cIt == nodeCluster.end()) continue;
+      auto aIt = cidToIdx.find(cIt->second);
+      if (aIt == cidToIdx.end()) continue;
+      for (std::size_t j : adj[i]) {
+        if (j <= i) continue;
+        auto cJt = nodeCluster.find(j);
+        if (cJt == nodeCluster.end()) continue;
+        auto bIt = cidToIdx.find(cJt->second);
+        if (bIt == cidToIdx.end()) continue;
+        if (aIt->second == bIt->second) continue;
+        wsum[std::minmax(aIt->second, bIt->second)] += 1.0;
+      }
+    }
+    std::vector<std::vector<int>> uwAdj(K);
+    std::vector<double> deg(K, 0.0);
+    for (const auto& [p, w] : wsum) {
+      uwAdj[p.first].push_back(p.second);
+      uwAdj[p.second].push_back(p.first);
+      deg[p.first] += w;
+      deg[p.second] += w;
+    }
+    std::vector<int> degRank(K);
+    for (int i = 0; i < K; ++i) degRank[i] = i;
+    std::sort(degRank.begin(), degRank.end(), [&](int a, int b) {
+      if (deg[a] != deg[b]) return deg[a] > deg[b];
+      return a < b;
+    });
+
+    // Multi-source BFS: top-N degree centers seed super-communities.
+    const int N = std::min(targetN, K - 1);
+    std::vector<int> centerOf(K, -1);
+    std::queue<int> bfsQ;
+    for (int s = 0; s < N; ++s) {
+      centerOf[degRank[s]] = s;
+      bfsQ.push(degRank[s]);
+    }
+    while (!bfsQ.empty()) {
+      const int v = bfsQ.front();
+      bfsQ.pop();
+      for (int u : uwAdj[v]) {
+        if (centerOf[u] < 0) {
+          centerOf[u] = centerOf[v];
+          bfsQ.push(u);
+        }
+      }
+    }
+    int nextS = N;
+    for (int i = 0; i < K; ++i) if (centerOf[i] < 0) centerOf[i] = nextS++;
+    const int S = nextS;
+
+    // Super-community graph + FMMM.
+    ogdf::Graph superSkel;
+    ogdf::GraphAttributes superSkelAttr(superSkel,
+      ogdf::GraphAttributes::nodeGraphics | ogdf::GraphAttributes::edgeGraphics);
+    std::vector<ogdf::node> sIdxToNode(S);
+    for (int s = 0; s < S; ++s) {
+      ogdf::node n = superSkel.newNode();
+      superSkelAttr.width(n) = 80.0;
+      superSkelAttr.height(n) = 80.0;
+      sIdxToNode[s] = n;
+    }
+    std::set<std::pair<int, int>> superEdgeSet;
+    for (const auto& [p, w] : wsum) {
+      const int a = centerOf[p.first], b = centerOf[p.second];
+      if (a != b) superEdgeSet.insert(std::minmax(a, b));
+    }
+    for (const auto& [a, b] : superEdgeSet) {
+      superSkel.newEdge(sIdxToNode[a], sIdxToNode[b]);
+    }
+    if (superSkel.numberOfNodes() >= 2) {
+      ogdf::FMMMLayout fmmm;
+      applyFmmmEnvSeed(fmmm);
+      fmmm.useHighLevelOptions(true);
+      fmmm.unitEdgeLength(120.0);
+      fmmm.qualityVersusSpeed(ogdf::FMMMOptions::QualityVsSpeed::GorgeousAndEfficient);
+      fmmm.call(superSkelAttr);
+    }
+
+    double sxMin = std::numeric_limits<double>::infinity();
+    double syMin = sxMin, sxMax = -sxMin, syMax = -sxMin;
+    for (ogdf::node n : superSkel.nodes) {
+      sxMin = std::min(sxMin, superSkelAttr.x(n));
+      syMin = std::min(syMin, superSkelAttr.y(n));
+      sxMax = std::max(sxMax, superSkelAttr.x(n));
+      syMax = std::max(syMax, superSkelAttr.y(n));
+    }
+    const double superPitchX = std::max(1.0, sxMax - sxMin) / std::max(1.0, std::sqrt((double)S));
+    const double superPitchY = std::max(1.0, syMax - syMin) / std::max(1.0, std::sqrt((double)S));
+    const double superPitch = std::max(superPitchX, superPitchY);
+
+    // Per-super-community local layout, placed around the super-centre.
+    std::vector<std::pair<double, double>> clusterFinalPos(K, {0.0, 0.0});
+    for (int s = 0; s < S; ++s) {
+      std::vector<int> members;
+      for (int i = 0; i < K; ++i) if (centerOf[i] == s) members.push_back(i);
+      if (members.empty()) continue;
+      const double tx = superSkelAttr.x(sIdxToNode[s]);
+      const double ty = superSkelAttr.y(sIdxToNode[s]);
+      if (members.size() == 1) {
+        clusterFinalPos[members[0]] = {tx, ty};
+        continue;
+      }
+      ogdf::Graph local;
+      ogdf::GraphAttributes localAttr(local,
+        ogdf::GraphAttributes::nodeGraphics | ogdf::GraphAttributes::edgeGraphics);
+      std::unordered_map<int, ogdf::node> idxToLocal;
+      for (int i : members) {
+        ogdf::node n = local.newNode();
+        localAttr.width(n) = 60.0;
+        localAttr.height(n) = 60.0;
+        idxToLocal[i] = n;
+      }
+      for (const auto& [p, w] : wsum) {
+        if (centerOf[p.first] != s || centerOf[p.second] != s) continue;
+        local.newEdge(idxToLocal[p.first], idxToLocal[p.second]);
+      }
+      ogdf::FMMMLayout fmmm;
+      applyFmmmEnvSeed(fmmm);
+      fmmm.useHighLevelOptions(true);
+      fmmm.unitEdgeLength(40.0);
+      fmmm.qualityVersusSpeed(ogdf::FMMMOptions::QualityVsSpeed::GorgeousAndEfficient);
+      try { fmmm.call(localAttr); } catch (...) {}
+      double cx = 0.0, cy = 0.0;
+      for (int i : members) {
+        cx += localAttr.x(idxToLocal[i]);
+        cy += localAttr.y(idxToLocal[i]);
+      }
+      cx /= members.size();
+      cy /= members.size();
+      double localRadius = 0.0;
+      for (int i : members) {
+        const double ddx = localAttr.x(idxToLocal[i]) - cx;
+        const double ddy = localAttr.y(idxToLocal[i]) - cy;
+        localRadius = std::max(localRadius, std::sqrt(ddx * ddx + ddy * ddy));
+      }
+      if (localRadius <= 1e-3) localRadius = 1.0;
+      const double localScale = (0.4 * superPitch) / localRadius;
+      for (int i : members) {
+        clusterFinalPos[i] = {
+          (localAttr.x(idxToLocal[i]) - cx) * localScale + tx,
+          (localAttr.y(idxToLocal[i]) - cy) * localScale + ty};
+      }
+    }
+
+    // Scale to polar-anchor spread, then inject as anchors.
+    double cxC = 0.0, cyC = 0.0;
+    for (int i = 0; i < K; ++i) { cxC += clusterFinalPos[i].first; cyC += clusterFinalPos[i].second; }
+    cxC /= std::max(1, K);
+    cyC /= std::max(1, K);
+    double spreadC = 0.0;
+    for (int i = 0; i < K; ++i) {
+      const double dx = clusterFinalPos[i].first - cxC;
+      const double dy = clusterFinalPos[i].second - cyC;
+      spreadC += std::sqrt(dx * dx + dy * dy);
+    }
+    spreadC /= std::max(1, K);
+    double spreadP = 0.0;
+    if (!polarAnchors.empty()) {
+      double cxP = 0.0, cyP = 0.0;
+      for (const auto& kv : polarAnchors) { cxP += kv.second.first; cyP += kv.second.second; }
+      cxP /= polarAnchors.size();
+      cyP /= polarAnchors.size();
+      for (const auto& kv : polarAnchors) {
+        const double dx = kv.second.first - cxP;
+        const double dy = kv.second.second - cyP;
+        spreadP += std::sqrt(dx * dx + dy * dy);
+      }
+      spreadP /= polarAnchors.size();
+    }
+    const double targetSpread = (spreadP > 100.0) ? spreadP : 3500.0;
+    const double scale = (spreadC > 1e-3) ? (targetSpread / spreadC) : 1.0;
+    std::size_t injected = 0;
+    for (const ClusterRecord& c : result.clusters) {
+      if (keepPolars && polarAnchors.count(c.rootIdx)) continue;
+      auto it = cidToIdx.find(c.clusterId);
+      if (it == cidToIdx.end()) continue;
+      const double x = (clusterFinalPos[it->second].first - cxC) * scale;
+      const double y = (clusterFinalPos[it->second].second - cyC) * scale;
+      polarAnchors[c.rootIdx] = {x, y};
+      ++injected;
+    }
+    std::fprintf(stderr,
+      "[two-level] N=%d S=%d injected=%zu anchors (keepPolars=%d, scale=%.3f, target=%.1f).\n",
+      N, S, injected, keepPolars ? 1 : 0, scale, targetSpread);
+  }
+
   const bool polarAnchorActive =
     (polarAnchors.size() >= 2) && (superLayoutChoice != "planarization");
   if (super.numberOfNodes() >= 2) {
@@ -2138,7 +2371,11 @@ ClusterGraphResult runClusterGraphLayout(
       // F: tight component packing so disconnected components don't spread
       // the layout via FMMM's default arrangeCCs (default minDistCC ~100).
       fmmm.minDistCC(50.0);
-      fmmm.call(superAttr);
+      // Skip the super-graph FMMM positioning when positions are overwritten
+      // downstream — super-nodes keep their polar-anchor/centroid pre-seed,
+      // which the similarity-fit below leaves ~unchanged and --positions-tsv
+      // overrides entirely.
+      if (!skipCgPositioning) fmmm.call(superAttr);
 
       // Post-FMMM: similarity-fit (translate + uniform scale) so polar
       // super-nodes land back at their anchor positions. Applies the same
@@ -2397,8 +2634,21 @@ ClusterGraphResult runClusterGraphLayout(
       if (it == routerToSuper.end()) continue;
       hubs.push_back({it->second, adj[r.nodeIdx].size()});
     }
-    constexpr double kBaseGap = 300.0;
-    constexpr double kDegGap = 8.0;
+    // Degree-weighted hub separation. Flagged as "too strong" — the gap
+    // grows 8 units per unit of summed hub degree, which over-spreads
+    // dense high-degree components (memory: high-degree-repulsion).
+    // Env-overridable so the compactness/crossings trade-off can be swept
+    // without a rebuild: DJERD_HUB_REPULSION_BASE_GAP (default 300),
+    // DJERD_HUB_REPULSION_DEG_GAP (default 8). Set DEG_GAP=0 to make hub
+    // separation degree-independent (pack dense components tighter).
+    const double kBaseGap = [] {
+      const char* e = std::getenv("DJERD_HUB_REPULSION_BASE_GAP");
+      return e && *e ? std::strtod(e, nullptr) : 300.0;
+    }();
+    const double kDegGap = [] {
+      const char* e = std::getenv("DJERD_HUB_REPULSION_DEG_GAP");
+      return e && *e ? std::strtod(e, nullptr) : 8.0;
+    }();
     constexpr std::size_t kIters = 16;
     for (std::size_t iter = 0; iter < kIters; ++iter) {
       bool moved = false;
@@ -3042,7 +3292,16 @@ ClusterGraphResult runClusterGraphLayout(
   // Cluster roots are NOT moved — they're anchored by polar/super-polar
   // structure. Only intermediate hubs (connectors, routers) move.
   {
-    constexpr std::size_t kIters = 10;
+    // Skip the positioning iterations when positions are overwritten
+    // downstream (kIters=0); the ringCount structure below still computes.
+    // Iteration count is env-tunable (DJERD_CG_UNTANGLE_ITERS, default 10) so
+    // we can trade connector/router untangling quality for multistart speed —
+    // 9b2 is the dominant per-run cost (~18s × N seeds on the inheritance
+    // super-graph).
+    const std::size_t kIters = skipCgPositioning ? 0 : [] {
+      const char* e = std::getenv("DJERD_CG_UNTANGLE_ITERS");
+      return e ? static_cast<std::size_t>(std::max(0, std::atoi(e))) : std::size_t(10);
+    }();
     constexpr double kPullStrength = 0.5;
     for (std::size_t iter = 0; iter < kIters; ++iter) {
       // Connectors → midpoint of their 2 connected cluster roots.
@@ -3208,7 +3467,13 @@ ClusterGraphResult runClusterGraphLayout(
       superAttr.y(n2) = ty;
     };
 
-    constexpr int kMaxIter = 4;
+    // env-tunable (DJERD_CG_SWAP_ITERS, default 4); the swap pass's
+    // incidentCross is O(super-edges), so on the dense inheritance super-graph
+    // this loop scales ~O(E²) and is a prime multistart-cost suspect.
+    const int kMaxIter = skipCgPositioning ? 0 : [] {
+      const char* e = std::getenv("DJERD_CG_SWAP_ITERS");
+      return e ? std::max(0, std::atoi(e)) : 4;
+    }();
     constexpr int kMaxSwapsPerIter = 80;
     for (int iter = 0; iter < kMaxIter; ++iter) {
       int swaps = 0;
@@ -3253,6 +3518,7 @@ ClusterGraphResult runClusterGraphLayout(
     }
   }
 
+  cgCheckpoint("post-9b2-untangle-swap");
   // 9c. Ring detection (length-3 triangles in the top-level super-graph).
   // Pure topological count — no position modifications. Reported via
   // metadata for downstream visualisation (e.g., highlight ring nodes).
@@ -3260,7 +3526,12 @@ ClusterGraphResult runClusterGraphLayout(
   // dataset it spiked crossings 30%+ because pushing non-ring nodes out of
   // triangle interiors broke FMMM-laid edge bundles. A stable variant
   // would need a force-balanced re-layout pass, not a one-shot push.
-  {
+  // result.ringCount is unused (no reader in the C++/TS/webview — only a log
+  // label), and this O(E·d) triangle count is a large chunk of every
+  // multistart run on the dense inheritance super-graph. Skip it entirely.
+  // (Flip to true to restore the metadata.)
+  constexpr bool kComputeRingCount = false;
+  if (kComputeRingCount) {
     std::unordered_map<ogdf::node, std::vector<ogdf::node>> sAdj;
     for (ogdf::node v : super.nodes) sAdj[v] = {};
     for (ogdf::edge e : super.edges) {

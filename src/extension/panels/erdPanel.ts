@@ -11,6 +11,7 @@ import type { DiagramBootstrapPayload } from "../../shared/protocol/webviewContr
 import { mergePipelineTimings } from "../../shared/protocol/mergePipelineTimings";
 import type { DjangoWorkspaceDiscoveryResult } from "../../shared/protocol/discoveryContract";
 import { getExtensionLogger } from "../services/logging/extensionLogger";
+import { setOgdfProgressListener } from "../services/layout/runOgdfLayout";
 import type {
   DiagramTestAction,
   DiagramTestErrorMessage,
@@ -201,15 +202,34 @@ export class ErdPanel {
     }
 
     const requestId = ++this.latestRefreshRequestId;
-    const liveDiagram = await this.refreshLoader({
-      layoutMode:
-        request?.layoutMode ??
-        this.currentState?.payload.view.layoutMode ??
-        DEFAULT_LAYOUT_MODE,
-      requestId,
-      refreshKind: request?.refreshKind ?? "full",
-      viewState: request?.viewState ?? this.persistedViewState,
+    // Stream intermediate multistart layouts into the (still-live) webview so
+    // the user sees the layout improving instead of staring at logs. The
+    // webview that's currently mounted handles `diagram.progress` and previews
+    // the positions; `this.update()` below replaces it with the fully-routed
+    // final layout when the refresh resolves.
+    setOgdfProgressListener((frame) => {
+      void this.panel.webview.postMessage({
+        type: "diagram.progress",
+        positions: frame.positions,
+        run: frame.run,
+        crossings: frame.crossings,
+        stage: frame.stage,
+      });
     });
+    let liveDiagram: LiveDiagramResult;
+    try {
+      liveDiagram = await this.refreshLoader({
+        layoutMode:
+          request?.layoutMode ??
+          this.currentState?.payload.view.layoutMode ??
+          DEFAULT_LAYOUT_MODE,
+        requestId,
+        refreshKind: request?.refreshKind ?? "full",
+        viewState: request?.viewState ?? this.persistedViewState,
+      });
+    } finally {
+      setOgdfProgressListener(undefined);
+    }
     if (requestId !== this.latestRefreshRequestId) {
       getExtensionLogger().info(
         [

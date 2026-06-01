@@ -637,6 +637,7 @@ function decodeStructuralGraphEdge(value: unknown, context: string): StructuralG
         "reverse_foreign_key",
         "reverse_many_to_many",
         "reverse_one_to_one",
+        "inheritance",
       ],
       context,
     ),
