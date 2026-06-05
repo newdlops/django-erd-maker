@@ -764,7 +764,8 @@ std::vector<int> runLouvainPhase(
   const std::vector<double>& degree,
   double totalWeight2m,
   std::size_t maxPasses,
-  std::size_t& outIterations) {
+  std::size_t& outIterations,
+  double resolution = 1.0) {
   outIterations = 0;
   const std::size_t n = adj.size();
   std::vector<int> comm(n);
@@ -798,7 +799,13 @@ std::vector<int> runLouvainPhase(
       int bestComm = curComm;
       double bestGain = -std::numeric_limits<double>::infinity();
       for (const auto& [c, kIinC] : weightToComm) {
-        const double gain = kIinC - commTotalDegree[c] * degree[i] / totalWeight2m;
+        // Reichardt-Bornholdt resolution γ scales the null-model (degree)
+        // penalty. γ<1 weakens the penalty → nodes join larger communities →
+        // fewer, coarser clusters (and fewer inter-cluster edges); γ>1 → more,
+        // finer clusters. γ=1 is the textbook Louvain modularity (default,
+        // byte-identical to the original behaviour).
+        const double gain =
+          kIinC - resolution * commTotalDegree[c] * degree[i] / totalWeight2m;
         if (gain > bestGain || (gain == bestGain && c < bestComm)) {
           bestGain = gain;
           bestComm = c;
@@ -919,8 +926,77 @@ std::vector<std::string> assignLouvainClusterLabels(
     return assigned;
   }
 
-  std::vector<int> comm = runLouvainPhase(g.adj, g.degree, g.totalWeight2m, maxPasses, outIterations);
+  double resolution = 1.0;
+  if (const char* r = std::getenv("DJERD_LOUVAIN_RESOLUTION")) {
+    const double v = std::atof(r);
+    if (v > 0.0) resolution = v;
+  }
+  std::vector<int> comm =
+    runLouvainPhase(g.adj, g.degree, g.totalWeight2m, maxPasses, outIterations, resolution);
   attachLeavesAndCompress(comm, g.adj);
+
+  // Multi-level coarsening (standard Louvain aggregation). Single-level Louvain
+  // leaves many small communities that resolution alone can't merge (a node
+  // only moves to an ADJACENT community). The textbook fix: collapse each
+  // community into a super-node (super-degree = Σ member degrees; super-edges
+  // carry inter-community weight), re-run modularity on the super-graph, and
+  // fold the result back to the original nodes. Repeating this coarsens the
+  // partition into fewer, larger clusters → fewer inter-cluster edges, which
+  // are the dominant crossing source. DJERD_LOUVAIN_LEVELS=1 (default) keeps
+  // the original single-level result byte-identical.
+  std::size_t levels = 1;
+  if (const char* lv = std::getenv("DJERD_LOUVAIN_LEVELS")) {
+    const int v = std::atoi(lv);
+    if (v >= 1) levels = static_cast<std::size_t>(v);
+  }
+  for (std::size_t lvl = 1; lvl < levels; ++lvl) {
+    int numC = 0;
+    for (int c : comm) if (c + 1 > numC) numC = c + 1;
+    if (numC < 4) break;
+    std::vector<double> sdeg(static_cast<std::size_t>(numC), 0.0);
+    for (std::size_t i = 0; i < n; ++i) sdeg[comm[i]] += g.degree[i];
+    std::map<std::pair<std::size_t, std::size_t>, double> sw;
+    for (std::size_t i = 0; i < n; ++i) {
+      for (const auto& [j, w] : g.adj[i]) {
+        if (j <= i) continue;
+        const int ci = comm[i], cj = comm[j];
+        if (ci == cj) continue;
+        auto key = ci < cj
+          ? std::make_pair(static_cast<std::size_t>(ci), static_cast<std::size_t>(cj))
+          : std::make_pair(static_cast<std::size_t>(cj), static_cast<std::size_t>(ci));
+        sw[key] += w;
+      }
+    }
+    LouvainGraph sg;
+    sg.adj.assign(static_cast<std::size_t>(numC), {});
+    sg.degree = sdeg;
+    sg.totalWeight2m = 0.0;
+    for (double d : sdeg) sg.totalWeight2m += d;
+    for (const auto& [p, w] : sw) {
+      sg.adj[p.first].emplace_back(p.second, w);
+      sg.adj[p.second].emplace_back(p.first, w);
+    }
+    if (sg.totalWeight2m == 0.0) break;
+    std::size_t superIter = 0;
+    std::vector<int> superComm =
+      runLouvainPhase(sg.adj, sg.degree, sg.totalWeight2m, maxPasses, superIter, resolution);
+    outIterations += superIter;
+    bool changed = false;
+    for (std::size_t i = 0; i < n; ++i) {
+      const int nc = superComm[comm[i]];
+      if (nc != comm[i]) changed = true;
+      comm[i] = nc;
+    }
+    std::unordered_map<int, int> rm;
+    int nx = 0;
+    for (std::size_t i = 0; i < n; ++i) {
+      auto it2 = rm.find(comm[i]);
+      if (it2 == rm.end()) { rm[comm[i]] = nx++; }
+      comm[i] = rm[comm[i]];
+    }
+    if (!changed) break;  // super-graph already modularity-optimal → converged
+  }
+
   int maxId = 0;
   for (int c : comm) if (c > maxId) maxId = c;
   outCommunityCount = static_cast<std::size_t>(maxId + 1);

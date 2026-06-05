@@ -112,8 +112,13 @@ function ogdfRenderedCarrierEnv(
     // crossings (more long edges) so the gain may differ; measure real
     // edgeCross on reload, then keep or set to 0. Visual cost: a handful of
     // long arcs around the diagram edge.
+    // EXPERIMENT (2026-06-03): turned OFF to measure the cost of the giant
+    // bbox-periphery arcs the user flagged as visually noisy. With cluster
+    // orientation now aligning inter-cluster members, periphery may no longer
+    // be needed; measure visualCross/bbox on reload, then keep off / restore /
+    // tune TOPK down.
     DJERD_PERIPHERY_REROUTE:
-      process.env.DJERD_PERIPHERY_REROUTE ?? "1",
+      process.env.DJERD_PERIPHERY_REROUTE ?? "0",
     DJERD_PERIPHERY_TOPK:
       process.env.DJERD_PERIPHERY_TOPK ?? "400",
     // Cap the outward lane offset of peripheral arcs. Each rerouted edge was
@@ -152,6 +157,66 @@ function ogdfRenderedCarrierEnv(
     // keep or set to 0.
     DJERD_MULTISTART_BUNDLE_AWARE:
       process.env.DJERD_MULTISTART_BUNDLE_AWARE ?? "1",
+    // Multi-level Louvain coarsening. The single-level Louvain leaves the
+    // cluster graph badly over-fragmented (394 raw communities on the captain
+    // 3435-edge graph; production shows 289 louvainClusters with 68 singletons
+    // + 68 spurious for only 640 core nodes), and ~88% of edge crossings are
+    // INTER-cluster. Coarsening collapses each community into a super-node and
+    // re-runs modularity (standard Louvain aggregation), folding back to a
+    // flat partition: levels=2 → 140 communities (-64%), levels=3 → 104 (-74%,
+    // converged). VALIDATED 2026-06-02: levels=2 REGRESSED everything on the
+    // captain reload — visualCross 991→1672 (+69%), node bbox 2.31B→66.6B
+    // (28×), edgeNode 221→518, and xBetweenClusters 672→786 (cluster count
+    // dropped but inter-cluster crossings ROSE). Cause: coarsening produced 18
+    // giant clusters (+68 singletons); the cluster_graph placement engine
+    // (polar-anchor + super-graph FMMM + radial) assumes many small clusters
+    // and blows up on giant ones. Crossings come from cluster *placement*, not
+    // cluster *count* (matches two-level-community-failed). Reverted to
+    // levels=1 (byte-identical). C++ knob kept for experimentation.
+    DJERD_LOUVAIN_LEVELS:
+      process.env.DJERD_LOUVAIN_LEVELS ?? "1",
+    // Cluster orientation: rotate/reflect each cluster as a rigid body (about
+    // its centroid) so the boundary members carrying inter-cluster edges face
+    // their neighbours, scored by the ACTUAL straight-line crossings of the
+    // cluster's incident edges (a length objective proved a poor proxy — it
+    // shortened edges but left crossings flat). Unlike coarsening this keeps
+    // cluster sizes intact (no placement blow-up). Multi-round greedy until it
+    // converges; global revert if straight-line crossings don't improve. Auto-
+    // skipped on --positions-tsv (ML) runs. Offline (captain 3435-edge graph):
+    // straight-line crossings 13352 → 12698 (-4.9%, converges in 3 rounds). ON
+    // for production validation; measure routed visualCross/edgeCross on reload.
+    DJERD_CLUSTER_ORIENT:
+      process.env.DJERD_CLUSTER_ORIENT ?? "1",
+    // Outer loop: alternate rotate↔swap. After cluster-swap moves cluster
+    // positions, re-running rotation finds better orientations at the new
+    // positions (mutual refinement). Offline: outer 1 added 12577→12564,
+    // outer 2 converged. Production may amplify (cluster-swap was -1% offline
+    // → -82 routed). measure on reload.
+    DJERD_ORIENT_OUTER:
+      process.env.DJERD_ORIENT_OUTER ?? "1",
+    // Outlier node-pull (runs inside the orientation pass, after rotate/swap):
+    // pull abnormally-far LOW-degree nodes (deg<=4, >4% diag from their
+    // neighbour centroid) toward that centroid, but ONLY when it strictly
+    // reduces that node's incident crossings and the target isn't occupied
+    // (overlap guard). Targets the user-flagged "abnormally far nodes". Offline
+    // (captain 3435-edge graph): straight-line crossings 12698 → 10455 (-17.7%,
+    // on top of orientation's -4.9% → combined 13352 → 10455 -21.7%), nodeBBox
+    // unchanged (pulls inward). ON for production validation; measure routed
+    // visualCross on reload.
+    DJERD_NODE_PULL:
+      process.env.DJERD_NODE_PULL ?? "1",
+    // Cluster cohesion: pull nodes scattered from their OWN-cluster body back to
+    // the same-cluster centroid (node-pull uses the NEIGHBOUR centroid, which
+    // keeps e.g. AllocatedSeat by its Stakeholder hub instead of the seat family
+    // it shares a cluster with). For user-flagged scattered related tables.
+    // Trades straight-line cross for (hoped-for) routed cross; measure on reload.
+    DJERD_CLUSTER_COHESION:
+      process.env.DJERD_CLUSTER_COHESION ?? "0",
+    // Cluster-swap (in orientation pass): swap centroids of crossing-heavy
+    // cluster pairs with overlap guard. Offline -1% alone; trying ON in the
+    // full pipeline to squeeze out more inter-cluster crossings.
+    DJERD_CLUSTER_SWAP:
+      process.env.DJERD_CLUSTER_SWAP ?? "1",
     ...overrides,
   };
 }
@@ -1773,7 +1838,22 @@ export async function runOgdfLayout(
           streamIntermediateLayout("reroute", reroutedLayout);
 
           if (usePoststackReroute) {
-            const bboxTargetB = readFloatEnv("DJERD_OPTIMIZED_BBOX_TARGET_B", 1.0);
+            // Squeeze target. Was 1.0B — but with cluster orientation the
+            // reroute layout starts at ~2.94B with a LOW crossing count (816),
+            // so squeezing to 1.0B forces crossings to 1200+ and the quality
+            // gate rejects every candidate (bail-out → bbox stays 2.94B). A
+            // gentler 2.0B target lets the squeeze use orientation's crossing
+            // headroom (816 → still < the 991 baseline) to reach ~2.0B instead
+            // of over-compressing and getting rejected. Tunable for the
+            // crossing↔bbox trade.
+            // Squeeze target (default 1.0B). With cluster orientation the
+            // reroute layout sits at ~2.94B with LOW crossings (816). Squeezing
+            // further spikes crossings straight back to baseline (~997 at 2.46B
+            // — confirmed: crossing↔bbox is a Pareto trade, orientation moves
+            // ALONG the curve, not inward), so the gate bails and keeps 2.94B.
+            // That's the chosen crossing-first operating point: visualCross 816
+            // (−17.7% vs baseline 991), node bbox 2.94B (+27%).
+            const bboxTargetB = readFloatEnv("DJERD_OPTIMIZED_BBOX_TARGET_B", 0.85);
             if (bboxTargetB > 0) {
               const bboxTargetSafeties = readBboxTargetSafeties();
               const bboxTargetVariants = readBboxTargetVariants();
