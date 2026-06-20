@@ -1877,6 +1877,9 @@ function ogdfFinalExportRetouchDebtRepairEnv(): Record<string, string | undefine
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_L_BEND_TOPK
       ?? process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_L_BEND_TOPK
       ?? "960",
+    DJERD_L_BEND_REROUTE_MIN_GAIN:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_L_BEND_MIN_GAIN
+      ?? "0",
     DJERD_L_BEND_REROUTE_EDGE_NODE_WEIGHT:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_L_BEND_EDGE_NODE_WEIGHT
       ?? "4",
@@ -2485,6 +2488,7 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedVisualCrossFinalRetouchDebtRepairTimeoutMs=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_TIMEOUT_MS ?? "120000"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairEdgeDetour=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_EDGE_DETOUR ?? "1"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairLBend=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_L_BEND ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairLBendMinGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_L_BEND_MIN_GAIN ?? "0"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairBundleClear=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BUNDLE_CLEAR ?? "1"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairBundleAfterClear=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BUNDLE_AFTER_CLEAR ?? "1"}`,
     `optimizedVisualCrossFinalRetouchSpacingRepair=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SPACING_REPAIR ?? "1"}`,
@@ -2720,7 +2724,7 @@ export async function runOgdfLayout(
         const key = fnvHash(
           nodesData,
           edgesData,
-          "optimized-layout-cache-v2",
+          "optimized-layout-cache-v3",
           `requested=${normalizedRequestedLayoutMode}`,
           `edgeRouting=${effectiveEdgeRouting}`,
           `clusterGraph=${clusterGraphLayout ? "1" : "0"}`,

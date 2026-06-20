@@ -4588,9 +4588,10 @@ double routeAxisOverlapDebt(
     return 0.0;
   }
 
-  // Fast proxy for segment-overlap risk. Exact pairwise interval overlap is
-  // measured after the candidate run; here we only need a cheap scorer that
-  // discourages piling more route segments onto already-used axis lanes.
+  // Score the same condition used by edgeSegmentOverlaps: an axis-aligned
+  // segment is debt only when its interval overlaps another segment on the
+  // same lane. A lane-presence proxy over-penalizes safe same-lane segments and
+  // can miss the small overlap debts that final repair is trying to clear.
   double debt = 0.0;
   for (const LineSegment& segment : buildLineSegments(
       points,
@@ -4606,9 +4607,22 @@ double routeAxisOverlapDebt(
     if (found == groups.end()) {
       continue;
     }
-    const double span = segment.axisEnd - segment.axisStart;
-    debt += static_cast<double>(found->second.size())
-      * (1.0 + lengthWeight * span);
+    for (const LineSegment& used : found->second) {
+      if (!intervalsOverlap(
+          segment.axisStart,
+          segment.axisEnd,
+          used.axisStart,
+          used.axisEnd)) {
+        continue;
+      }
+      const double overlap =
+        std::min(segment.axisEnd, used.axisEnd)
+        - std::max(segment.axisStart, used.axisStart);
+      if (overlap <= 1.0) {
+        continue;
+      }
+      debt += 1.0 + lengthWeight * overlap;
+    }
   }
 
   return debt;
