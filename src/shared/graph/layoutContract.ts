@@ -476,6 +476,7 @@ export interface LayoutEngineMetadata {
   nodeOverlaps?: number;
   nodeSpacingOverlaps?: number;
   overlappingEdges?: number;
+  rawRouteCrossings?: number;
   requestedAlgorithm?: string;
   requestedMode?: LayoutMode;
   routeSegments?: number;

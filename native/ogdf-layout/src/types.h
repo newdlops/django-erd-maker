@@ -22,6 +22,10 @@ struct CliArguments {
   // face-untangle, etc.) re-run on the externally-provided positions and
   // produce freshly-routed output for evaluation/integration.
   std::string positionsTsv;
+  // Optional: path to a TSV file with rows
+  // "edgeId\tX1\tY1\tX2\tY2..." used by route-only polish stages that
+  // must preserve the previously accepted routed geometry.
+  std::string routesTsv;
   bool clusterGraph = false;
   bool bubble = false;
   // When true together with --positions-tsv, all node-moving post-passes
@@ -160,6 +164,7 @@ struct LayoutRunMetadata {
   int hubCarrierThreshold = 0;
   std::size_t hubCarrierEdgesGrouped = 0;
   std::size_t hubCarrierClusters = 0;
+  std::size_t rawRouteCrossings = 0;
   std::unordered_map<std::string, std::string> clusterByModelId;
   std::vector<LeafBundleRecord> leafBundles;
 };

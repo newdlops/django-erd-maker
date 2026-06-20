@@ -1,4 +1,5 @@
 .zoek-rs
+.codeidx/
 .vscode
 .lh
 node_modules
@@ -9,3 +10,13 @@ analyzer/target
 .venv-ml/
 .venv*/
 scripts/__pycache__/
+
+# Local diagnostics and generated layout exports
+log*.txt
+codeidx-log-analysis.*
+erd-layout-final.json
+erd-topology-diagnostics.json
+erdmaker-topology-result.json
+handover.md
+/.codeidx/
+/log.txt

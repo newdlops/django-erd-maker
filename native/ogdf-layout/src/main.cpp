@@ -3739,6 +3739,108 @@ std::vector<RoutePoint> compressRoutePoints(std::vector<RoutePoint> points) {
   return compressed;
 }
 
+std::size_t applyPositionsTsvOverride(
+  const std::string& positionsTsv,
+  const std::vector<NodeRecord>& nodes,
+  ogdf::GraphAttributes& attributes) {
+  if (positionsTsv.empty()) {
+    return 0;
+  }
+  std::ifstream pf(positionsTsv);
+  if (!pf) {
+    throw std::runtime_error("failed to open --positions-tsv file: " + positionsTsv);
+  }
+  std::unordered_map<std::string, std::size_t> idIdx;
+  idIdx.reserve(nodes.size());
+  for (std::size_t i = 0; i < nodes.size(); ++i) {
+    idIdx[nodes[i].modelId] = i;
+  }
+  std::string line;
+  std::size_t applied = 0;
+  while (std::getline(pf, line)) {
+    if (line.empty()) continue;
+    const auto t1 = line.find('\t');
+    if (t1 == std::string::npos) continue;
+    const auto t2 = line.find('\t', t1 + 1);
+    if (t2 == std::string::npos) continue;
+    const std::string mid = line.substr(0, t1);
+    const std::string sx = line.substr(t1 + 1, t2 - t1 - 1);
+    const std::string sy = line.substr(t2 + 1);
+    auto it = idIdx.find(mid);
+    if (it == idIdx.end()) continue;
+    try {
+      const double cx = std::stod(sx);
+      const double cy = std::stod(sy);
+      attributes.x(nodes[it->second].handle) = cx;
+      attributes.y(nodes[it->second].handle) = cy;
+      ++applied;
+    } catch (const std::exception&) {
+      continue;
+    }
+  }
+  return applied;
+}
+
+std::size_t applyRoutesTsvOverride(
+  const std::string& routesTsv,
+  const std::vector<EdgeRecord>& edges,
+  std::vector<std::vector<RoutePoint>>& routes) {
+  if (routesTsv.empty()) {
+    return 0;
+  }
+  std::unordered_map<std::string, std::size_t> edgeIndexById;
+  edgeIndexById.reserve(edges.size());
+  for (std::size_t e = 0; e < edges.size(); ++e) {
+    edgeIndexById[edges[e].edgeId] = e;
+  }
+  std::ifstream rf(routesTsv);
+  if (!rf) {
+    throw std::runtime_error("failed to open --routes-tsv file: " + routesTsv);
+  }
+  std::size_t appliedRoutes = 0;
+  std::string line;
+  while (std::getline(rf, line)) {
+    if (line.empty()) continue;
+    std::vector<std::string> cols;
+    std::stringstream ss(line);
+    std::string cell;
+    while (std::getline(ss, cell, '\t')) {
+      cols.push_back(cell);
+    }
+    if (cols.size() < 5 || cols.size() % 2 == 0) {
+      continue;
+    }
+    auto edgeIt = edgeIndexById.find(cols[0]);
+    if (edgeIt == edgeIndexById.end() || edgeIt->second >= routes.size()) {
+      continue;
+    }
+    std::vector<RoutePoint> route;
+    route.reserve((cols.size() - 1) / 2);
+    bool ok = true;
+    for (std::size_t i = 1; i + 1 < cols.size(); i += 2) {
+      char* xEnd = nullptr;
+      char* yEnd = nullptr;
+      const double x = std::strtod(cols[i].c_str(), &xEnd);
+      const double y = std::strtod(cols[i + 1].c_str(), &yEnd);
+      if (
+          xEnd == cols[i].c_str()
+          || yEnd == cols[i + 1].c_str()
+          || !std::isfinite(x)
+          || !std::isfinite(y)) {
+        ok = false;
+        break;
+      }
+      route.push_back({x, y});
+    }
+    if (!ok || route.size() < 2) {
+      continue;
+    }
+    routes[edgeIt->second] = compressRoutePoints(std::move(route));
+    ++appliedRoutes;
+  }
+  return appliedRoutes;
+}
+
 bool segmentIntersectsRect(const RoutePoint& start, const RoutePoint& end, const Rect& rect) {
   if (std::abs(start.x - end.x) < 0.01) {
     const double minY = std::min(start.y, end.y);
@@ -4478,6 +4580,40 @@ double routeOccupancyPenalty(
   return penalty;
 }
 
+double routeAxisOverlapDebt(
+  const std::vector<RoutePoint>& points,
+  const RouteOccupancy* occupancy,
+  double lengthWeight) {
+  if (occupancy == nullptr) {
+    return 0.0;
+  }
+
+  // Fast proxy for segment-overlap risk. Exact pairwise interval overlap is
+  // measured after the candidate run; here we only need a cheap scorer that
+  // discourages piling more route segments onto already-used axis lanes.
+  double debt = 0.0;
+  for (const LineSegment& segment : buildLineSegments(
+      points,
+      std::numeric_limits<std::size_t>::max(),
+      "")) {
+    if (!segment.horizontal && !segment.vertical) {
+      continue;
+    }
+    const auto& groups = segment.horizontal
+      ? occupancy->horizontalSegmentsByLane
+      : occupancy->verticalSegmentsByLane;
+    const auto found = groups.find(segment.laneKey);
+    if (found == groups.end()) {
+      continue;
+    }
+    const double span = segment.axisEnd - segment.axisStart;
+    debt += static_cast<double>(found->second.size())
+      * (1.0 + lengthWeight * span);
+  }
+
+  return debt;
+}
+
 double routeScore(
   const std::vector<RoutePoint>& points,
   const std::vector<NodeObstacle>& obstacles,
@@ -4509,6 +4645,36 @@ void recordRouteOccupancy(
       occupancy.horizontalSegmentsByLane[segment.laneKey].push_back(segment);
     } else if (segment.vertical) {
       occupancy.verticalSegmentsByLane[segment.laneKey].push_back(segment);
+    }
+  }
+}
+
+void removeRouteOccupancy(
+  const std::vector<RoutePoint>& points,
+  const LineIntent& line,
+  RouteOccupancy& occupancy) {
+  for (const LineSegment& segment : buildLineSegments(points, line.lineIndex, line.lineId)) {
+    if (!segment.horizontal && !segment.vertical) {
+      continue;
+    }
+    auto& groups = segment.horizontal
+      ? occupancy.horizontalSegmentsByLane
+      : occupancy.verticalSegmentsByLane;
+    auto found = groups.find(segment.laneKey);
+    if (found == groups.end()) {
+      continue;
+    }
+    auto& laneSegments = found->second;
+    laneSegments.erase(
+      std::remove_if(
+        laneSegments.begin(),
+        laneSegments.end(),
+        [&](const LineSegment& used) {
+          return used.lineIndex == line.lineIndex;
+        }),
+      laneSegments.end());
+    if (laneSegments.empty()) {
+      groups.erase(found);
     }
   }
 }
@@ -9099,7 +9265,8 @@ bool applyRenderedCarrierMetricsIfRequested(
   const std::unordered_map<std::string, std::string>& clusterByModelIdFull,
   LayoutRunMetadata& metadata,
   LayoutQualityMetrics& quality,
-  std::size_t totalRouteCrossings) {
+  std::size_t totalRouteCrossings,
+  bool quiet = false) {
   const char* renderedCarrierMetricsEnv =
     std::getenv("DJERD_RENDERED_CARRIER_METRICS_FINAL");
   const bool renderedCarrierMetrics =
@@ -9536,17 +9703,19 @@ bool applyRenderedCarrierMetricsIfRequested(
     }
   }
 
-  std::fprintf(stderr,
-    "[rendered-carrier-metrics-final] rawCross=%zu visibleEdges=%zu "
-    "edgeCross=%zu edgeNode=%zu bundleEdge=%zu routeSegments=%zu "
-    "(occluded=%zu).\n",
-    totalRouteCrossings,
-    renderedPaths.size(),
-    renderedEdgeCrossings,
-    renderedEdgeNodeIntersections,
-    renderedBundleEdgeIntersections,
-    renderedRouteSegments,
-    renderedOccludedCrossings);
+  if (!quiet) {
+    std::fprintf(stderr,
+      "[rendered-carrier-metrics-final] rawCross=%zu visibleEdges=%zu "
+      "edgeCross=%zu edgeNode=%zu bundleEdge=%zu routeSegments=%zu "
+      "(occluded=%zu).\n",
+      totalRouteCrossings,
+      renderedPaths.size(),
+      renderedEdgeCrossings,
+      renderedEdgeNodeIntersections,
+      renderedBundleEdgeIntersections,
+      renderedRouteSegments,
+      renderedOccludedCrossings);
+  }
 
   quality.edgeCrossings = renderedEdgeCrossings;
   quality.edgeNodeIntersections = renderedEdgeNodeIntersections;
@@ -9558,6 +9727,266 @@ bool applyRenderedCarrierMetricsIfRequested(
     + quality.nodeOverlaps
     + quality.bundleEdgeIntersections
     + quality.bundleNodeOverlaps;
+  return true;
+}
+
+bool applyFinalCarrierMetricsIfRequested(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  const std::vector<std::vector<RoutePoint>>& routes,
+  ogdf::GraphAttributes& attributes,
+  const std::unordered_map<std::string, std::string>& clusterByModelIdFull,
+  LayoutRunMetadata& metadata,
+  LayoutQualityMetrics& quality,
+  std::size_t totalRouteCrossings,
+  bool quiet = false) {
+  const char* skipCarrierEnv = std::getenv("DJERD_NO_CARRIER_CROSS");
+  const bool skipCarrier =
+    skipCarrierEnv && std::strcmp(skipCarrierEnv, "0") != 0;
+  if (skipCarrier || metadata.leafBundles.empty()) {
+    return false;
+  }
+
+  std::unordered_map<std::string, std::size_t> leafToBundleIdx;
+  for (std::size_t bi = 0; bi < metadata.leafBundles.size(); ++bi) {
+    for (const std::string& leaf : metadata.leafBundles[bi].leafModelIds) {
+      leafToBundleIdx[leaf] = bi;
+    }
+  }
+
+  std::unordered_map<std::string, std::size_t> nodeIndexByModelId;
+  nodeIndexByModelId.reserve(nodes.size());
+  for (std::size_t i = 0; i < nodes.size(); ++i) {
+    nodeIndexByModelId[nodes[i].modelId] = i;
+  }
+
+  std::unordered_map<std::string, std::pair<double, double>> sumByCluster;
+  std::unordered_map<std::string, std::size_t> cntByCluster;
+  for (const auto& kv : clusterByModelIdFull) {
+    auto idIt = nodeIndexByModelId.find(kv.first);
+    if (idIt == nodeIndexByModelId.end()) continue;
+    const NodeRecord& node = nodes[idIt->second];
+    sumByCluster[kv.second].first += attributes.x(node.handle);
+    sumByCluster[kv.second].second += attributes.y(node.handle);
+    cntByCluster[kv.second] += 1;
+  }
+  std::unordered_map<std::string, std::pair<double, double>> clusterCentroids;
+  for (const auto& kv : sumByCluster) {
+    const std::size_t c = cntByCluster[kv.first];
+    if (c == 0) continue;
+    clusterCentroids[kv.first] = {
+      kv.second.first / static_cast<double>(c),
+      kv.second.second / static_cast<double>(c),
+    };
+  }
+  auto nearestClusterFinal = [&](const std::string& mid) {
+    auto idIt = nodeIndexByModelId.find(mid);
+    if (idIt == nodeIndexByModelId.end()) return std::string{};
+    const NodeRecord& node = nodes[idIt->second];
+    const double mx = attributes.x(node.handle);
+    const double my = attributes.y(node.handle);
+    std::string best;
+    double bestD2 = std::numeric_limits<double>::infinity();
+    for (const auto& kv : clusterCentroids) {
+      const double dx = mx - kv.second.first;
+      const double dy = my - kv.second.second;
+      const double d2 = dx * dx + dy * dy;
+      if (d2 < bestD2) {
+        bestD2 = d2;
+        best = kv.first;
+      }
+    }
+    return best;
+  };
+
+  std::vector<std::string> carrierIdByEdge(edges.size());
+  std::vector<std::pair<std::string, std::string>> carrierClustersByEdge(edges.size());
+  for (std::size_t e = 0; e < edges.size(); ++e) {
+    const std::string& s = edges[e].sourceModelId;
+    const std::string& t = edges[e].targetModelId;
+    auto sBI = leafToBundleIdx.find(s);
+    auto tBI = leafToBundleIdx.find(t);
+    if (sBI != leafToBundleIdx.end()) {
+      const auto& bundle = metadata.leafBundles[sBI->second];
+      const auto& roots = bundle.sharedRootModelIds.empty()
+        ? std::vector<std::string>{bundle.parentModelId}
+        : bundle.sharedRootModelIds;
+      if (std::find(roots.begin(), roots.end(), t) != roots.end()) {
+        carrierIdByEdge[e] =
+          "B" + std::to_string(sBI->second) + "|" + t;
+        continue;
+      }
+    }
+    if (tBI != leafToBundleIdx.end()) {
+      const auto& bundle = metadata.leafBundles[tBI->second];
+      const auto& roots = bundle.sharedRootModelIds.empty()
+        ? std::vector<std::string>{bundle.parentModelId}
+        : bundle.sharedRootModelIds;
+      if (std::find(roots.begin(), roots.end(), s) != roots.end()) {
+        carrierIdByEdge[e] =
+          "B" + std::to_string(tBI->second) + "|" + s;
+        continue;
+      }
+    }
+
+    auto sCit = clusterByModelIdFull.find(s);
+    auto tCit = clusterByModelIdFull.find(t);
+    std::string sCluster = sCit != clusterByModelIdFull.end()
+      ? sCit->second
+      : std::string{};
+    std::string tCluster = tCit != clusterByModelIdFull.end()
+      ? tCit->second
+      : std::string{};
+    if (sCluster.empty()) sCluster = nearestClusterFinal(s);
+    if (tCluster.empty()) tCluster = nearestClusterFinal(t);
+    if (!sCluster.empty() && !tCluster.empty()) {
+      carrierClustersByEdge[e] = {sCluster, tCluster};
+      carrierIdByEdge[e] = (sCluster == tCluster)
+        ? "Cself|" + sCluster
+        : (sCluster < tCluster
+            ? "C|" + sCluster + "|" + tCluster
+            : "C|" + tCluster + "|" + sCluster);
+    } else {
+      carrierIdByEdge[e] = edges[e].edgeId;
+    }
+  }
+
+  const char* hubCarrierEnv = std::getenv("DJERD_HUB_CARRIER_CROSS_FINAL");
+  const bool hubCarrier =
+    hubCarrierEnv && std::strcmp(hubCarrierEnv, "0") != 0;
+  if (hubCarrier) {
+    const char* thresholdEnv =
+      std::getenv("DJERD_HUB_CARRIER_CROSS_FINAL_THRESHOLD");
+    const int threshold = thresholdEnv
+      ? std::max(2, std::atoi(thresholdEnv))
+      : 16;
+    std::unordered_map<std::string, int> incidentCarrierCount;
+    for (std::size_t e = 0; e < carrierClustersByEdge.size(); ++e) {
+      const auto& [leftCluster, rightCluster] = carrierClustersByEdge[e];
+      if (leftCluster.empty() || rightCluster.empty() || leftCluster == rightCluster) {
+        continue;
+      }
+      incidentCarrierCount[leftCluster] += 1;
+      incidentCarrierCount[rightCluster] += 1;
+    }
+    std::size_t hubEdges = 0;
+    std::unordered_set<std::string> hubClusters;
+    for (std::size_t e = 0; e < carrierClustersByEdge.size(); ++e) {
+      const auto& [leftCluster, rightCluster] = carrierClustersByEdge[e];
+      if (leftCluster.empty() || rightCluster.empty() || leftCluster == rightCluster) {
+        continue;
+      }
+      const int leftCount = incidentCarrierCount[leftCluster];
+      const int rightCount = incidentCarrierCount[rightCluster];
+      if (leftCount < threshold && rightCount < threshold) {
+        continue;
+      }
+      const std::string& hub =
+        (leftCount > rightCount || (leftCount == rightCount && leftCluster < rightCluster))
+          ? leftCluster
+          : rightCluster;
+      carrierIdByEdge[e] = "H|" + hub;
+      hubClusters.insert(hub);
+      ++hubEdges;
+    }
+    if (!quiet) {
+      std::fprintf(stderr,
+        "[hub-carrier-cross-final] grouped %zu edges through %zu hubs "
+        "(threshold=%d).\n",
+        hubEdges,
+        hubClusters.size(),
+        threshold);
+    }
+    metadata.hubCarrierThreshold = threshold;
+    metadata.hubCarrierEdgesGrouped = hubEdges;
+    metadata.hubCarrierClusters = hubClusters.size();
+  }
+
+  const char* occMarginFinalEnv = std::getenv("DJERD_CARRIER_CROSS_OCCLUSION_MARGIN");
+  const double occMarginFinal = occMarginFinalEnv
+    ? std::max(0.0, std::atof(occMarginFinalEnv))
+    : 0.0;
+  std::unordered_set<std::string> bundleAbsorbedOccFinal;
+  for (const LeafBundleRecord& bundle : metadata.leafBundles) {
+    bundleAbsorbedOccFinal.insert(bundle.parentModelId);
+    for (const std::string& leaf : bundle.leafModelIds) {
+      bundleAbsorbedOccFinal.insert(leaf);
+    }
+  }
+  std::vector<Rect> carrierOcclusionRectsFinal;
+  carrierOcclusionRectsFinal.reserve(nodes.size() + metadata.leafBundles.size());
+  for (const NodeRecord& node : nodes) {
+    if (bundleAbsorbedOccFinal.count(node.modelId)) continue;
+    carrierOcclusionRectsFinal.push_back(nodeRect(node, attributes, occMarginFinal));
+  }
+  for (const LeafBundleRecord& bundle : metadata.leafBundles) {
+    carrierOcclusionRectsFinal.push_back(renderedLeafBundleRect(bundle, occMarginFinal));
+  }
+  auto pointInCarrierOcclusionFinal = [&](const RoutePoint& point) {
+    if (occMarginFinal <= 0.0) return false;
+    for (const Rect& rect : carrierOcclusionRectsFinal) {
+      if (
+          point.x >= rect.left && point.x <= rect.right
+          && point.y >= rect.top && point.y <= rect.bottom) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  std::set<std::pair<std::string, std::string>> seenCarrierPairs;
+  std::size_t carrierGroupedCross = 0;
+  std::size_t carrierOccludedCross = 0;
+  for (std::size_t i = 0; i < edges.size(); ++i) {
+    if (i >= routes.size() || routes[i].size() < 2) continue;
+    for (std::size_t j = i + 1; j < edges.size(); ++j) {
+      if (j >= routes.size() || routes[j].size() < 2) continue;
+      if (sharesEndpoint(edges[i], edges[j])) continue;
+      if (carrierIdByEdge[i] == carrierIdByEdge[j]) continue;
+      bool anyCross = false;
+      for (std::size_t li = 1; li < routes[i].size() && !anyCross; ++li) {
+        for (std::size_t rj = 1; rj < routes[j].size() && !anyCross; ++rj) {
+          RoutePoint isect;
+          if (properSegmentIntersection(
+              routes[i][li - 1], routes[i][li],
+              routes[j][rj - 1], routes[j][rj], isect)) {
+            if (pointInCarrierOcclusionFinal(isect)) {
+              ++carrierOccludedCross;
+            } else {
+              anyCross = true;
+            }
+          }
+        }
+      }
+      if (!anyCross) continue;
+      auto pk = carrierIdByEdge[i] < carrierIdByEdge[j]
+        ? std::make_pair(carrierIdByEdge[i], carrierIdByEdge[j])
+        : std::make_pair(carrierIdByEdge[j], carrierIdByEdge[i]);
+      if (seenCarrierPairs.insert(pk).second) {
+        ++carrierGroupedCross;
+      }
+    }
+  }
+  if (!quiet) {
+    std::fprintf(stderr,
+      "[carrier-cross-final] segment %zu -> carrier-grouped %zu "
+      "(occluded=%zu, margin=%.1f).\n",
+      totalRouteCrossings, carrierGroupedCross, carrierOccludedCross,
+      occMarginFinal);
+  }
+
+  if (!applyRenderedCarrierMetricsIfRequested(
+      nodes,
+      edges,
+      routes,
+      attributes,
+      clusterByModelIdFull,
+      metadata,
+      quality,
+      totalRouteCrossings,
+      quiet)) {
+    quality.edgeCrossings = carrierGroupedCross;
+  }
   return true;
 }
 
@@ -11874,6 +12303,14 @@ int main(int argc, char** argv) {
           : routeAllEdgesStraight(edges, attributes))
         : routeAllEdges(nodes, edges, attributes, true));
 
+    if (!arguments.routesTsv.empty()) {
+      const std::size_t appliedRoutes =
+        applyRoutesTsvOverride(arguments.routesTsv, edges, routes);
+      std::fprintf(stderr,
+        "[routes-tsv] Overrode %zu/%zu routes from %s.\n",
+        appliedRoutes, edges.size(), arguments.routesTsv.c_str());
+    }
+
     // Edge detour pass — straight-line edges cross through unrelated
     // nodes ("edgeNodeIntersections" metric). For each edge segment,
     // detect non-endpoint nodes whose rect the segment passes through
@@ -13803,6 +14240,7 @@ int main(int argc, char** argv) {
     std::size_t totalRouteCrossings = 0;
     std::vector<EdgeCrossingRecord> crossings =
       detectRouteCrossings(edges, routes, crossingIdsByEdge, totalRouteCrossings);
+    metadata.rawRouteCrossings = totalRouteCrossings;
     LayoutQualityMetrics quality =
       measureLayoutQuality(nodes, edges, routes, attributes, &metadata.leafBundles);
     quality.edgeCrossings = totalRouteCrossings;
@@ -18804,6 +19242,182 @@ int main(int argc, char** argv) {
       }
     }
 
+    // === DJERD_L_BEND_REROUTE=1 ===
+    // Route-only crossing polish for long straight-ish offenders. Periphery
+    // routing helps edges that need to leave the dense center, but a smaller
+    // class only needs one orthogonal bend between the same endpoints. For the
+    // worst crossing edges, try straight / horizontal-then-vertical /
+    // vertical-then-horizontal and accept only candidates that reduce this
+    // edge's crossings without increasing the global edge-edge total.
+    {
+      const char* lBendEnv = std::getenv("DJERD_L_BEND_REROUTE");
+      if (lBendEnv && std::strcmp(lBendEnv, "0") != 0
+          && routes.size() == edges.size() && !nodes.empty()) {
+        int topK = 120;
+        if (const char* k = std::getenv("DJERD_L_BEND_REROUTE_TOPK")) {
+          topK = std::max(1, std::atoi(k));
+        }
+        int minGain = 1;
+        if (const char* g = std::getenv("DJERD_L_BEND_REROUTE_MIN_GAIN")) {
+          minGain = std::max(0, std::atoi(g));
+        }
+        const double nodeWeight = readDoubleEnv(
+          "DJERD_L_BEND_REROUTE_EDGE_NODE_WEIGHT", 1.0, 0.0, 1000.0);
+        const double overlapWeight = readDoubleEnv(
+          "DJERD_L_BEND_REROUTE_SEGMENT_OVERLAP_WEIGHT", 1.0, 0.0, 1000.0);
+        const double overlapLengthWeight = readDoubleEnv(
+          "DJERD_L_BEND_REROUTE_SEGMENT_OVERLAP_LENGTH_WEIGHT",
+          0.0001, 0.0, 1.0);
+        const double lengthWeight = readDoubleEnv(
+          "DJERD_L_BEND_REROUTE_LENGTH_WEIGHT", 0.0, 0.0, 1000.0);
+        const double nodeMargin = visualNodeMargin();
+
+        auto normalizeRoute = [](std::vector<RoutePoint> route) {
+          return compressRoutePoints(std::move(route));
+        };
+        auto polyCrossAB = [&](const std::vector<RoutePoint>& ra,
+                               const std::vector<RoutePoint>& rb) -> bool {
+          if (ra.size() < 2 || rb.size() < 2) return false;
+          for (std::size_t li = 1; li < ra.size(); ++li) {
+            for (std::size_t rj = 1; rj < rb.size(); ++rj) {
+              RoutePoint isect;
+              if (properSegmentIntersection(
+                  ra[li - 1], ra[li], rb[rj - 1], rb[rj], isect)) {
+                return true;
+              }
+            }
+          }
+          return false;
+        };
+        auto routeCrossCount = [&](std::size_t e,
+                                   const std::vector<RoutePoint>& cand) -> std::size_t {
+          std::size_t t = 0;
+          for (std::size_t e2 = 0; e2 < edges.size(); ++e2) {
+            if (e2 == e) continue;
+            if (sharesEndpoint(edges[e], edges[e2])) continue;
+            if (polyCrossAB(cand, routes[e2])) ++t;
+          }
+          return t;
+        };
+        auto totalCross = [&]() -> std::size_t {
+          std::size_t t = 0;
+          for (std::size_t i = 0; i < edges.size(); ++i) {
+            for (std::size_t j = i + 1; j < edges.size(); ++j) {
+              if (sharesEndpoint(edges[i], edges[j])) continue;
+              if (polyCrossAB(routes[i], routes[j])) ++t;
+            }
+          }
+          return t;
+        };
+
+        std::vector<std::pair<std::size_t, std::size_t>> ranked;
+        for (std::size_t e = 0; e < edges.size(); ++e) {
+          if (routes[e].size() < 2) continue;
+          const std::size_t c = routeCrossCount(e, routes[e]);
+          if (c > 0) ranked.emplace_back(c, e);
+        }
+        std::sort(ranked.rbegin(), ranked.rend());
+
+        const std::size_t before = totalCross();
+        const std::vector<std::vector<RoutePoint>> savedRoutes = routes;
+        RouteOccupancy occupancy;
+        if (overlapWeight > 0.0) {
+          for (std::size_t e = 0; e < routes.size(); ++e) {
+            if (routes[e].size() < 2) continue;
+            const LineIntent line = makeLineIntent(edges[e], e, attributes);
+            recordRouteOccupancy(routes[e], line, occupancy);
+          }
+        }
+
+        std::size_t rerouted = 0;
+        std::size_t rejected = 0;
+        const std::size_t limit =
+          std::min(static_cast<std::size_t>(topK), ranked.size());
+        for (std::size_t r = 0; r < limit; ++r) {
+          const std::size_t e = ranked[r].second;
+          if (routes[e].size() < 2) continue;
+          const LineIntent line = makeLineIntent(edges[e], e, attributes);
+          const std::vector<NodeObstacle> obstacles = makeNodeObstacles(
+            nodes, attributes, nodeMargin, line.sourceHandle, line.targetHandle);
+          if (overlapWeight > 0.0) {
+            removeRouteOccupancy(routes[e], line, occupancy);
+          }
+          auto nodeHits = [&](const std::vector<RoutePoint>& cand) -> std::size_t {
+            if (cand.size() < 2) return 0;
+            std::size_t hits = 0;
+            for (std::size_t i = 1; i < cand.size(); ++i) {
+              for (const NodeObstacle& obstacle : obstacles) {
+                if (segmentIntersectsRect(cand[i - 1], cand[i], obstacle.rect)) {
+                  ++hits;
+                }
+              }
+            }
+            return hits;
+          };
+          auto overlapDebt = [&](const std::vector<RoutePoint>& cand) -> double {
+            if (overlapWeight <= 0.0 || cand.size() < 2) return 0.0;
+            return routeAxisOverlapDebt(cand, &occupancy, overlapLengthWeight);
+          };
+          auto score = [&](std::size_t crossings,
+                           const std::vector<RoutePoint>& cand) -> double {
+            return static_cast<double>(crossings)
+              + nodeWeight * static_cast<double>(nodeHits(cand))
+              + overlapWeight * overlapDebt(cand)
+              + lengthWeight * routeLength(cand);
+          };
+
+          const RoutePoint pA = routes[e].front();
+          const RoutePoint pB = routes[e].back();
+          const std::vector<std::vector<RoutePoint>> candidates = {
+            normalizeRoute({pA, pB}),
+            normalizeRoute({pA, {pB.x, pA.y}, pB}),
+            normalizeRoute({pA, {pA.x, pB.y}, pB}),
+          };
+          const std::size_t currentCross = routeCrossCount(e, routes[e]);
+          const double currentScore = score(currentCross, routes[e]);
+          double bestScore = currentScore;
+          std::size_t bestCross = currentCross;
+          int bestIndex = -1;
+          for (int ci = 0; ci < static_cast<int>(candidates.size()); ++ci) {
+            if (candidates[ci].size() < 2) continue;
+            const std::size_t c = routeCrossCount(e, candidates[ci]);
+            if (c + static_cast<std::size_t>(minGain) > currentCross) {
+              continue;
+            }
+            const double s = score(c, candidates[ci]);
+            if (s < bestScore
+                || (std::abs(s - bestScore) < 1e-9 && c < bestCross)) {
+              bestScore = s;
+              bestCross = c;
+              bestIndex = ci;
+            }
+          }
+          if (bestIndex >= 0) {
+            routes[e] = candidates[bestIndex];
+            ++rerouted;
+          } else {
+            ++rejected;
+          }
+          if (overlapWeight > 0.0) {
+            recordRouteOccupancy(routes[e], line, occupancy);
+          }
+        }
+
+        const std::size_t after = totalCross();
+        if (after > before) {
+          routes = savedRoutes;
+          std::fprintf(stderr,
+            "[l-bend-reroute] reverted: %zu candidates, total cross %zu -> %zu (worse).\n",
+            limit, before, after);
+        } else {
+          std::fprintf(stderr,
+            "[l-bend-reroute] %zu/%zu edges rerouted, total cross %zu -> %zu "
+            "(rejected=%zu, nodeWeight=%.3f, overlapWeight=%.3f).\n",
+            rerouted, limit, before, after, rejected, nodeWeight, overlapWeight);
+        }
+      }
+    }
+
     // === DJERD_PERIPHERY_REROUTE=1 (prototype) ===
     // For the worst high-crossing edges, try routing them around the layout
     // bbox periphery (top / bottom / left / right) instead of straight through
@@ -18891,6 +19505,10 @@ int main(int argc, char** argv) {
           const char* e = std::getenv("DJERD_PERIPHERY_EDGE_NODE_WEIGHT");
           return e ? std::atof(e) : 1.0;
         }();
+        const double pSegmentOverlapWeight = readDoubleEnv(
+          "DJERD_PERIPHERY_SEGMENT_OVERLAP_WEIGHT", 0.0, 0.0, 1000.0);
+        const double pSegmentOverlapLengthWeight = readDoubleEnv(
+          "DJERD_PERIPHERY_SEGMENT_OVERLAP_LENGTH_WEIGHT", 0.0, 0.0, 1.0);
         const double pNodeMargin = visualNodeMargin();
 
         std::vector<std::pair<std::size_t, std::size_t>> ranked;
@@ -18906,6 +19524,14 @@ int main(int argc, char** argv) {
         std::size_t rerouted = 0, lane = 0;
         const std::size_t limit =
           std::min(static_cast<std::size_t>(topK), ranked.size());
+        RouteOccupancy pOccupancy;
+        if (pSegmentOverlapWeight > 0.0) {
+          for (std::size_t e2 = 0; e2 < edges.size(); ++e2) {
+            if (routes[e2].size() < 2) continue;
+            const LineIntent occLine = makeLineIntent(edges[e2], e2, attributes);
+            recordRouteOccupancy(routes[e2], occLine, pOccupancy);
+          }
+        }
         for (std::size_t r = 0; r < limit; ++r) {
           const std::size_t e = ranked[r].second;
           const RoutePoint pA = routes[e].front();
@@ -18917,6 +19543,9 @@ int main(int argc, char** argv) {
           const LineIntent pLine = makeLineIntent(edges[e], e, attributes);
           const std::vector<NodeObstacle> pObs = makeNodeObstacles(
             nodes, attributes, pNodeMargin, pLine.sourceHandle, pLine.targetHandle);
+          if (pSegmentOverlapWeight > 0.0) {
+            removeRouteOccupancy(routes[e], pLine, pOccupancy);
+          }
           auto nodeHits = [&](const std::vector<RoutePoint>& cand) -> std::size_t {
             if (cand.size() < 2) return 0;
             std::size_t h = 0;
@@ -18925,6 +19554,11 @@ int main(int argc, char** argv) {
                 if (segmentIntersectsRect(cand[li - 1], cand[li], ob.rect)) ++h;
             return h;
           };
+          auto segmentOverlapDebt =
+            [&](const std::vector<RoutePoint>& cand) -> double {
+              if (pSegmentOverlapWeight <= 0.0 || cand.size() < 2) return 0.0;
+              return routeAxisOverlapDebt(cand, &pOccupancy, pSegmentOverlapLengthWeight);
+            };
           const double m = baseMargin + laneStep * static_cast<double>(lane % maxLanes);
           const std::vector<std::vector<RoutePoint>> cands = {
             {pA, {pA.x, Y0 - m}, {pB.x, Y0 - m}, pB},
@@ -18936,20 +19570,25 @@ int main(int argc, char** argv) {
           // (keeps the global edge-edge total from regressing / tripping the
           // revert below), then pick the lowest crossings + W·(box hits).
           const double curScore = static_cast<double>(curC)
-            + pEdgeNodeWeight * static_cast<double>(nodeHits(routes[e]));
+            + pEdgeNodeWeight * static_cast<double>(nodeHits(routes[e]))
+            + pSegmentOverlapWeight * segmentOverlapDebt(routes[e]);
           double bestScore = curScore;
           int bestI = -1;
           for (int ci = 0; ci < static_cast<int>(cands.size()); ++ci) {
             const std::size_t c = routeCrossCount(e, cands[ci]);
             if (c > curC) continue;
             const double sc = static_cast<double>(c)
-              + pEdgeNodeWeight * static_cast<double>(nodeHits(cands[ci]));
+              + pEdgeNodeWeight * static_cast<double>(nodeHits(cands[ci]))
+              + pSegmentOverlapWeight * segmentOverlapDebt(cands[ci]);
             if (sc < bestScore) { bestScore = sc; bestI = ci; }
           }
           if (bestI >= 0) {
             routes[e] = cands[bestI];
             ++rerouted;
             ++lane;
+          }
+          if (pSegmentOverlapWeight > 0.0) {
+            recordRouteOccupancy(routes[e], pLine, pOccupancy);
           }
         }
         const std::size_t after = totalCross();
@@ -18966,6 +19605,1959 @@ int main(int argc, char** argv) {
       }
     }
 
+    // Independent final retouch consumes the settled emitted layout, not the
+    // intermediate state produced by this replay run. Restore both nodes and
+    // routes immediately before retouch so earlier post-passes cannot shift
+    // node coordinates away from the supplied route geometry.
+    if (
+        readBoolEnv("DJERD_RESTORE_LAYOUT_TSV_BEFORE_RETOUCH", false)
+        && !arguments.positionsTsv.empty()
+        && !arguments.routesTsv.empty()) {
+      const std::size_t restoredNodes =
+        applyPositionsTsvOverride(arguments.positionsTsv, nodes, attributes);
+      const std::size_t restoredRoutes =
+        applyRoutesTsvOverride(arguments.routesTsv, edges, routes);
+      recomputeLeafBundleBboxesFromNodes(metadata.leafBundles, nodes, attributes);
+      std::fprintf(stderr,
+        "[retouch-input-restore] Restored %zu/%zu nodes and %zu/%zu routes "
+        "from layout TSVs before diagonal retouch.\n",
+        restoredNodes, nodes.size(), restoredRoutes, edges.size());
+    }
+
+    // === DJERD_DIAGONAL_RETOUCH=1 ===
+    // Retouch-only route polish after the best node placement / broad reroute
+    // candidates have settled. It targets long diagonal segments that visually
+    // cut through the diagram: replace one segment at a time with the two
+    // possible one-bend orthogonal doglegs, accepting only local crossing-score
+    // improvements and reverting if the global edge-edge total regresses.
+    {
+      const char* retouchEnv = std::getenv("DJERD_DIAGONAL_RETOUCH");
+      if (retouchEnv && std::strcmp(retouchEnv, "0") != 0
+          && routes.size() == edges.size() && !nodes.empty()) {
+        int topK = 160;
+        if (const char* k = std::getenv("DJERD_DIAGONAL_RETOUCH_TOPK")) {
+          topK = std::max(1, std::atoi(k));
+        }
+        int segmentsPerEdge = 3;
+        if (const char* s = std::getenv("DJERD_DIAGONAL_RETOUCH_SEGMENTS_PER_EDGE")) {
+          segmentsPerEdge = std::max(1, std::atoi(s));
+        }
+        int minGain = 1;
+        if (const char* g = std::getenv("DJERD_DIAGONAL_RETOUCH_MIN_GAIN")) {
+          minGain = std::max(0, std::atoi(g));
+        }
+        const std::size_t minGainU = static_cast<std::size_t>(minGain);
+        const double minSpan = readDoubleEnv(
+          "DJERD_DIAGONAL_RETOUCH_MIN_SPAN", 80.0, 0.0, 1'000'000.0);
+        const double nodeWeight = readDoubleEnv(
+          "DJERD_DIAGONAL_RETOUCH_EDGE_NODE_WEIGHT", 1.0, 0.0, 1000.0);
+        const double overlapWeight = readDoubleEnv(
+          "DJERD_DIAGONAL_RETOUCH_SEGMENT_OVERLAP_WEIGHT", 1.0, 0.0, 1000.0);
+        const double overlapLengthWeight = readDoubleEnv(
+          "DJERD_DIAGONAL_RETOUCH_SEGMENT_OVERLAP_LENGTH_WEIGHT",
+          0.0001, 0.0, 1.0);
+        const double lengthWeight = readDoubleEnv(
+          "DJERD_DIAGONAL_RETOUCH_LENGTH_WEIGHT", 0.0, 0.0, 1000.0);
+        const double nodeMargin = visualNodeMargin();
+        const bool allowNodeHitDebt = readBoolEnv(
+          "DJERD_DIAGONAL_RETOUCH_ALLOW_NODE_HIT_DEBT", false);
+        const bool useBundleObstacles = readBoolEnv(
+          "DJERD_DIAGONAL_RETOUCH_BUNDLE_OBSTACLES", true);
+        int retouchRounds = 2;
+        if (const char* r = std::getenv("DJERD_DIAGONAL_RETOUCH_ROUNDS")) {
+          retouchRounds = std::max(1, std::atoi(r));
+        }
+        const bool useTwoBend = readBoolEnv(
+          "DJERD_DIAGONAL_RETOUCH_TWO_BEND", true);
+
+        std::unordered_set<std::string> bundleAbsorbedRetouch;
+        std::vector<std::unordered_set<std::string>> bundleExemptRetouch;
+        std::vector<Rect> bundleRectsRetouch;
+        if (!metadata.leafBundles.empty()) {
+          if (useBundleObstacles) {
+            bundleExemptRetouch.reserve(metadata.leafBundles.size());
+            bundleRectsRetouch.reserve(metadata.leafBundles.size());
+          }
+          const double bundleMargin = leafBundleVisualMargin();
+          for (const LeafBundleRecord& bundle : metadata.leafBundles) {
+            std::unordered_set<std::string> exempt;
+            exempt.insert(bundle.parentModelId);
+            bundleAbsorbedRetouch.insert(bundle.parentModelId);
+            for (const std::string& leaf : bundle.leafModelIds) {
+                exempt.insert(leaf);
+              bundleAbsorbedRetouch.insert(leaf);
+            }
+            if (useBundleObstacles) {
+              bundleExemptRetouch.push_back(std::move(exempt));
+              bundleRectsRetouch.push_back(renderedLeafBundleRect(bundle, bundleMargin));
+            }
+          }
+        }
+        auto retouchBundleNodeOverlapCount = [&]() {
+          std::size_t count = 0;
+          const double bundleMargin = leafBundleVisualMargin();
+          const double nodeMarginForBundle = visualNodeMargin();
+          for (const LeafBundleRecord& bundle : metadata.leafBundles) {
+            const Rect bundleRect = renderedLeafBundleRect(bundle, bundleMargin);
+            for (const NodeRecord& node : nodes) {
+              if (bundleAbsorbedRetouch.count(node.modelId)) continue;
+              if (rectsOverlap(
+                  bundleRect,
+                  nodeRect(node, attributes, nodeMarginForBundle))) {
+                ++count;
+              }
+            }
+          }
+          return count;
+        };
+	        auto retouchNodeOverlapCount = [&]() {
+	          std::vector<std::pair<Rect, std::size_t>> rects;
+	          rects.reserve(nodes.size());
+	          const double nodeMarginForOverlap = visualNodeMargin();
+          for (std::size_t i = 0; i < nodes.size(); ++i) {
+            if (bundleAbsorbedRetouch.count(nodes[i].modelId)) continue;
+            rects.emplace_back(
+              nodeRect(nodes[i], attributes, nodeMarginForOverlap),
+              i);
+          }
+          std::sort(
+            rects.begin(),
+            rects.end(),
+            [](const auto& left, const auto& right) {
+              return left.first.left < right.first.left;
+            });
+          std::size_t count = 0;
+          for (std::size_t i = 0; i < rects.size(); ++i) {
+            for (std::size_t j = i + 1; j < rects.size(); ++j) {
+              if (rects[j].first.left >= rects[i].first.right) break;
+              if (rectsOverlap(rects[i].first, rects[j].first)) {
+                ++count;
+              }
+            }
+	          }
+	          return count;
+	        };
+	        auto retouchNodeSpacingOverlapCount = [&]() {
+	          return countNodeRectOverlaps(nodes, attributes, true);
+	        };
+
+        auto isDiagonalSegment = [&](const RoutePoint& a, const RoutePoint& b) {
+          return std::abs(a.x - b.x) >= minSpan
+            && std::abs(a.y - b.y) >= minSpan;
+        };
+        auto polyCrossCountAB = [&](const std::vector<RoutePoint>& ra,
+                                    const std::vector<RoutePoint>& rb) -> std::size_t {
+          if (ra.size() < 2 || rb.size() < 2) return 0;
+          std::size_t count = 0;
+          for (std::size_t li = 1; li < ra.size(); ++li) {
+            for (std::size_t rj = 1; rj < rb.size(); ++rj) {
+              RoutePoint isect;
+              if (properSegmentIntersection(
+                  ra[li - 1], ra[li], rb[rj - 1], rb[rj], isect)) {
+                ++count;
+              }
+            }
+          }
+          return count;
+        };
+        auto routeCrossCount = [&](std::size_t e,
+                                   const std::vector<RoutePoint>& cand) -> std::size_t {
+          std::size_t t = 0;
+          for (std::size_t e2 = 0; e2 < edges.size(); ++e2) {
+            if (e2 == e) continue;
+            if (sharesEndpoint(edges[e], edges[e2])) continue;
+            t += polyCrossCountAB(cand, routes[e2]);
+          }
+          return t;
+        };
+        auto totalCross = [&]() -> std::size_t {
+          std::size_t t = 0;
+          for (std::size_t i = 0; i < edges.size(); ++i) {
+            for (std::size_t j = i + 1; j < edges.size(); ++j) {
+              if (sharesEndpoint(edges[i], edges[j])) continue;
+              t += polyCrossCountAB(routes[i], routes[j]);
+            }
+          }
+          return t;
+        };
+        auto segmentCrossCount = [&](std::size_t e, std::size_t segmentIndex) {
+          std::size_t t = 0;
+          if (e >= routes.size() || segmentIndex == 0
+              || segmentIndex >= routes[e].size()) {
+            return t;
+          }
+          const RoutePoint a = routes[e][segmentIndex - 1];
+          const RoutePoint b = routes[e][segmentIndex];
+          for (std::size_t e2 = 0; e2 < routes.size(); ++e2) {
+            if (e2 == e) continue;
+            if (sharesEndpoint(edges[e], edges[e2])) continue;
+            for (std::size_t rj = 1; rj < routes[e2].size(); ++rj) {
+              RoutePoint isect;
+              if (properSegmentIntersection(
+                  a, b, routes[e2][rj - 1], routes[e2][rj], isect)) {
+                ++t;
+              }
+            }
+          }
+          return t;
+        };
+
+        const std::size_t before = totalCross();
+        const std::vector<std::vector<RoutePoint>> savedRoutes = routes;
+        const std::vector<LeafBundleRecord> savedLeafBundles = metadata.leafBundles;
+        std::vector<std::pair<double, double>> savedNodePositions;
+        savedNodePositions.reserve(nodes.size());
+        for (const NodeRecord& node : nodes) {
+          savedNodePositions.emplace_back(
+            attributes.x(node.handle),
+            attributes.y(node.handle));
+        }
+
+        const bool runNodePairRetouch = readBoolEnv("DJERD_NODE_PAIR_RETOUCH", true);
+        const bool pairRawAccept = readBoolEnv(
+          "DJERD_NODE_PAIR_RETOUCH_RAW_ACCEPT", true);
+        std::size_t nodePairMoved = 0;
+        std::size_t nodePairConsidered = 0;
+        std::size_t nodePairRejected = 0;
+        std::size_t nodePairGainTotal = 0;
+        int nodePairCompletedRounds = 0;
+        bool useReportedCarrierScoring = false;
+        std::size_t currentReportedEdgeCross = 0;
+        std::size_t initialReportedEdgeCross = 0;
+        std::size_t currentExactFinalEdgeCross = 0;
+        std::size_t initialExactFinalEdgeCross = 0;
+        std::size_t currentRawRouteCross = before;
+        const std::size_t initialRawRouteCross = before;
+        auto finalReportedEdgeCrossQuiet = [&](std::size_t rawCross) {
+          LayoutQualityMetrics metricQuality{};
+          metricQuality.edgeCrossings = rawCross;
+          LayoutRunMetadata metricMetadata = metadata;
+          applyFinalCarrierMetricsIfRequested(
+            nodes,
+            edges,
+            routes,
+            attributes,
+            clusterByModelIdFull,
+            metricMetadata,
+            metricQuality,
+            rawCross,
+            true);
+          return metricQuality.edgeCrossings;
+        };
+        auto retouchQualityForCurrent = [&](std::size_t rawCross) {
+          LayoutQualityMetrics metricQuality = measureLayoutQuality(
+            nodes, edges, routes, attributes, &metadata.leafBundles,
+            &metadata.clusterByModelId);
+          metricQuality.edgeCrossings = rawCross;
+          LayoutRunMetadata metricMetadata = metadata;
+          applyFinalCarrierMetricsIfRequested(
+            nodes,
+            edges,
+            routes,
+            attributes,
+            clusterByModelIdFull,
+            metricMetadata,
+            metricQuality,
+            rawCross,
+            true);
+          metricQuality.visualCrossings =
+            metricQuality.edgeCrossings
+            + metricQuality.edgeNodeIntersections
+            + metricQuality.nodeOverlaps
+            + metricQuality.bundleEdgeIntersections
+            + metricQuality.bundleNodeOverlaps;
+          return metricQuality;
+        };
+        const LayoutQualityMetrics initialRetouchQuality =
+          retouchQualityForCurrent(before);
+
+        if (runNodePairRetouch) {
+          int pairTopK = 96;
+          if (const char* k = std::getenv("DJERD_NODE_PAIR_RETOUCH_TOPK")) {
+            pairTopK = std::max(1, std::atoi(k));
+          }
+          int pairRounds = 3;
+          if (const char* r = std::getenv("DJERD_NODE_PAIR_RETOUCH_ROUNDS")) {
+            pairRounds = std::max(1, std::atoi(r));
+          }
+          int pairSteps = 3;
+          if (const char* s = std::getenv("DJERD_NODE_PAIR_RETOUCH_STEPS")) {
+            pairSteps = std::max(1, std::atoi(s));
+          }
+          int maxIncident = 28;
+          if (const char* m = std::getenv("DJERD_NODE_PAIR_RETOUCH_MAX_INCIDENT")) {
+            maxIncident = std::max(1, std::atoi(m));
+          }
+          const double pairMinSpan = readDoubleEnv(
+            "DJERD_NODE_PAIR_RETOUCH_MIN_SPAN", 1200.0, 0.0, 1'000'000.0);
+          const double pairLeafMinSpan = readDoubleEnv(
+            "DJERD_NODE_PAIR_RETOUCH_LEAF_MIN_SPAN", pairMinSpan, 0.0, 1'000'000.0);
+          const double pairBaseStep = readDoubleEnv(
+            "DJERD_NODE_PAIR_RETOUCH_STEP", 320.0, 1.0, 100'000.0);
+          const double pairMaxShift = readDoubleEnv(
+            "DJERD_NODE_PAIR_RETOUCH_MAX_SHIFT", 1600.0, 1.0, 1'000'000.0);
+          const double pairNodeMargin = readDoubleEnv(
+            "DJERD_NODE_PAIR_RETOUCH_NODE_MARGIN", 0.0, 0.0, 480.0);
+          const bool allowNodeOverlap = readBoolEnv(
+            "DJERD_NODE_PAIR_RETOUCH_ALLOW_NODE_OVERLAP", false);
+          const bool pairLeafSnap = readBoolEnv(
+            "DJERD_NODE_PAIR_RETOUCH_LEAF_SNAP", true);
+          const bool pairLeafOnly = readBoolEnv(
+            "DJERD_NODE_PAIR_RETOUCH_LEAF_ONLY", true);
+          const bool pairCompactRelocate = readBoolEnv(
+            "DJERD_NODE_PAIR_RETOUCH_COMPACT_RELOCATE", false);
+          int pairSlotRings = 2;
+          if (const char* r = std::getenv("DJERD_NODE_PAIR_RETOUCH_SLOT_RINGS")) {
+            pairSlotRings = std::max(0, std::atoi(r));
+          }
+          const double pairGap = readDoubleEnv(
+            "DJERD_NODE_PAIR_RETOUCH_PAIR_GAP", 24.0, 0.0, 10'000.0);
+          const double leafSnapGap = readDoubleEnv(
+            "DJERD_NODE_PAIR_RETOUCH_LEAF_GAP", pairGap, 0.0, 10'000.0);
+
+          std::unordered_map<std::string, std::size_t> nodeIndexById;
+          nodeIndexById.reserve(nodes.size());
+          for (std::size_t i = 0; i < nodes.size(); ++i) {
+            nodeIndexById[nodes[i].modelId] = i;
+          }
+
+	          std::vector<std::vector<std::size_t>> incidentEdges(nodes.size());
+	          for (std::size_t e = 0; e < edges.size(); ++e) {
+	            auto sIt = nodeIndexById.find(edges[e].sourceModelId);
+            auto tIt = nodeIndexById.find(edges[e].targetModelId);
+            if (sIt == nodeIndexById.end() || tIt == nodeIndexById.end()) {
+              continue;
+            }
+            incidentEdges[sIt->second].push_back(e);
+            if (tIt->second != sIt->second) {
+	              incidentEdges[tIt->second].push_back(e);
+	            }
+	          }
+
+	          std::unordered_map<std::string, std::size_t> leafBundleIndexById;
+	          leafBundleIndexById.reserve(nodes.size());
+	          for (std::size_t bi = 0; bi < metadata.leafBundles.size(); ++bi) {
+	            for (const std::string& leaf : metadata.leafBundles[bi].leafModelIds) {
+	              leafBundleIndexById[leaf] = bi;
+	            }
+	          }
+
+	          auto isEffectiveBundleId = [](const std::string& effectiveId) {
+	            return effectiveId.rfind("B|", 0) == 0;
+	          };
+	          auto effectiveNodeId = [&](const std::string& modelId) {
+	            auto bundleIt = leafBundleIndexById.find(modelId);
+	            if (bundleIt != leafBundleIndexById.end()) {
+	              return std::string("B|") + std::to_string(bundleIt->second);
+	            }
+	            return std::string("N|") + modelId;
+	          };
+
+	          std::unordered_map<std::string, std::vector<std::size_t>> effectiveMembers;
+	          effectiveMembers.reserve(nodes.size());
+	          for (std::size_t i = 0; i < nodes.size(); ++i) {
+	            effectiveMembers[effectiveNodeId(nodes[i].modelId)].push_back(i);
+	          }
+
+	          std::vector<std::string> effectiveSourceByEdge(edges.size());
+	          std::vector<std::string> effectiveTargetByEdge(edges.size());
+	          std::map<std::pair<std::string, std::string>, std::vector<std::size_t>>
+	            rawEdgesByEffectiveEdge;
+	          std::unordered_map<std::string, std::set<std::string>> effectiveNeighbors;
+	          std::unordered_map<std::string, std::vector<std::size_t>> effectiveIncidentEdges;
+	          for (std::size_t e = 0; e < edges.size(); ++e) {
+	            const std::string sourceEffective = effectiveNodeId(edges[e].sourceModelId);
+	            const std::string targetEffective = effectiveNodeId(edges[e].targetModelId);
+	            effectiveSourceByEdge[e] = sourceEffective;
+	            effectiveTargetByEdge[e] = targetEffective;
+	            if (sourceEffective == targetEffective) {
+	              continue;
+	            }
+	            const auto key = sourceEffective < targetEffective
+	              ? std::make_pair(sourceEffective, targetEffective)
+	              : std::make_pair(targetEffective, sourceEffective);
+	            rawEdgesByEffectiveEdge[key].push_back(e);
+	            effectiveNeighbors[sourceEffective].insert(targetEffective);
+	            effectiveNeighbors[targetEffective].insert(sourceEffective);
+	            effectiveIncidentEdges[sourceEffective].push_back(e);
+	            effectiveIncidentEdges[targetEffective].push_back(e);
+	          }
+	          for (auto& kv : effectiveIncidentEdges) {
+	            auto& incident = kv.second;
+	            std::sort(incident.begin(), incident.end());
+	            incident.erase(std::unique(incident.begin(), incident.end()), incident.end());
+	          }
+	          auto effectiveDegree = [&](const std::string& effectiveId) {
+	            auto it = effectiveNeighbors.find(effectiveId);
+	            return it == effectiveNeighbors.end()
+	              ? std::size_t{0}
+	              : it->second.size();
+	          };
+	          auto effectiveIncident = [&](const std::string& effectiveId)
+	              -> const std::vector<std::size_t>& {
+	            static const std::vector<std::size_t> kEmpty;
+	            auto it = effectiveIncidentEdges.find(effectiveId);
+	            return it == effectiveIncidentEdges.end() ? kEmpty : it->second;
+	          };
+
+	          const auto routePointDist2 = [](const RoutePoint& a, const RoutePoint& b) {
+	            const double dx = a.x - b.x;
+            const double dy = a.y - b.y;
+            return dx * dx + dy * dy;
+          };
+
+          auto syncRouteEndpointsForEdge = [&](std::size_t e) {
+            if (e >= edges.size() || e >= routes.size() || routes[e].size() < 2) {
+              return;
+            }
+            const EdgeRecord& edge = edges[e];
+            auto sIt = nodeIndexById.find(edge.sourceModelId);
+            auto tIt = nodeIndexById.find(edge.targetModelId);
+            if (sIt == nodeIndexById.end() || tIt == nodeIndexById.end()) {
+              return;
+            }
+            const NodeRecord& sNode = nodes[sIt->second];
+            const NodeRecord& tNode = nodes[tIt->second];
+            const Rect sourceRect = handleRect(sNode.handle, attributes);
+            const Rect targetRect = handleRect(tNode.handle, attributes);
+            const RoutePoint sourcePort = straightPortOnRect(sourceRect, targetRect);
+            const RoutePoint targetPort = straightPortOnRect(targetRect, sourceRect);
+            const double oriented =
+              routePointDist2(routes[e].front(), sourcePort)
+              + routePointDist2(routes[e].back(), targetPort);
+            const double reversed =
+              routePointDist2(routes[e].front(), targetPort)
+              + routePointDist2(routes[e].back(), sourcePort);
+            if (oriented <= reversed) {
+              routes[e].front() = sourcePort;
+              routes[e].back() = targetPort;
+            } else {
+              routes[e].front() = targetPort;
+              routes[e].back() = sourcePort;
+            }
+            routes[e] = compressRoutePoints(std::move(routes[e]));
+          };
+          auto straightenRouteForEdge = [&](std::size_t e) {
+            if (e >= edges.size() || e >= routes.size()) {
+              return;
+            }
+            const EdgeRecord& edge = edges[e];
+            auto sIt = nodeIndexById.find(edge.sourceModelId);
+            auto tIt = nodeIndexById.find(edge.targetModelId);
+            if (sIt == nodeIndexById.end() || tIt == nodeIndexById.end()) {
+              return;
+            }
+            const NodeRecord& sNode = nodes[sIt->second];
+            const NodeRecord& tNode = nodes[tIt->second];
+            const Rect sourceRect = handleRect(sNode.handle, attributes);
+            const Rect targetRect = handleRect(tNode.handle, attributes);
+            routes[e] = {
+              straightPortOnRect(sourceRect, targetRect),
+              straightPortOnRect(targetRect, sourceRect),
+            };
+          };
+
+          auto uniqueIncident = [&](std::size_t sIdx,
+                                    bool moveS,
+                                    std::size_t tIdx,
+                                    bool moveT) {
+            std::vector<std::size_t> affected;
+            if (moveS) {
+              affected.insert(affected.end(), incidentEdges[sIdx].begin(), incidentEdges[sIdx].end());
+            }
+            if (moveT) {
+              affected.insert(affected.end(), incidentEdges[tIdx].begin(), incidentEdges[tIdx].end());
+            }
+            std::sort(affected.begin(), affected.end());
+            affected.erase(std::unique(affected.begin(), affected.end()), affected.end());
+            return affected;
+          };
+
+          auto localCrossForAffected = [&](const std::vector<std::size_t>& affected) {
+            std::vector<char> isAffected(edges.size(), 0);
+            for (const std::size_t e : affected) {
+              if (e < isAffected.size()) {
+                isAffected[e] = 1;
+              }
+            }
+            std::size_t t = 0;
+            for (std::size_t i = 0; i < edges.size(); ++i) {
+              if (i >= routes.size() || routes[i].size() < 2) continue;
+              for (std::size_t j = i + 1; j < edges.size(); ++j) {
+                if (!isAffected[i] && !isAffected[j]) continue;
+                if (j >= routes.size() || routes[j].size() < 2) continue;
+                if (sharesEndpoint(edges[i], edges[j])) continue;
+                t += polyCrossCountAB(routes[i], routes[j]);
+              }
+            }
+            return t;
+          };
+
+          auto rectAtCenter = [&](const NodeRecord& node, double x, double y) {
+            const double width = sanitizeNodeWidth(node, attributes);
+            const double height = sanitizeNodeHeight(node, attributes);
+            return Rect{
+              y + height / 2.0 + pairNodeMargin,
+              x - width / 2.0 - pairNodeMargin,
+              x + width / 2.0 + pairNodeMargin,
+              y - height / 2.0 - pairNodeMargin,
+            };
+          };
+
+	          auto moveFits = [&](std::size_t sIdx,
+	                              bool moveS,
+	                              double sx,
+                              double sy,
+                              std::size_t tIdx,
+                              bool moveT,
+                              double tx,
+                              double ty) {
+            if (allowNodeOverlap) {
+              return true;
+            }
+            const Rect sRect = moveS
+              ? rectAtCenter(nodes[sIdx], sx, sy)
+              : nodeRect(nodes[sIdx], attributes, pairNodeMargin);
+            const Rect tRect = moveT
+              ? rectAtCenter(nodes[tIdx], tx, ty)
+              : nodeRect(nodes[tIdx], attributes, pairNodeMargin);
+            if (rectsOverlap(sRect, tRect)) {
+              return false;
+            }
+            for (std::size_t i = 0; i < nodes.size(); ++i) {
+              if ((moveS && i == sIdx) || (moveT && i == tIdx)) {
+                continue;
+              }
+              const Rect other = nodeRect(nodes[i], attributes, pairNodeMargin);
+              if ((moveS && rectsOverlap(sRect, other))
+                  || (moveT && rectsOverlap(tRect, other))) {
+                return false;
+              }
+	            }
+	            return true;
+	          };
+
+	          auto effectiveCenter = [&](const std::string& effectiveId,
+	                                     std::size_t fallbackIdx) {
+	            if (isEffectiveBundleId(effectiveId)) {
+	              try {
+	                const std::size_t bi =
+	                  static_cast<std::size_t>(std::stoull(effectiveId.substr(2)));
+	                if (bi < metadata.leafBundles.size()) {
+	                  const Rect rect = renderedLeafBundleRect(metadata.leafBundles[bi], 0.0);
+	                  return std::make_pair(
+	                    (rect.left + rect.right) * 0.5,
+	                    (rect.top + rect.bottom) * 0.5);
+	                }
+	              } catch (const std::exception&) {
+	              }
+	            }
+	            if (fallbackIdx < nodes.size()) {
+	              return std::make_pair(
+	                attributes.x(nodes[fallbackIdx].handle),
+	                attributes.y(nodes[fallbackIdx].handle));
+	            }
+	            return std::make_pair(0.0, 0.0);
+	          };
+
+	          auto effectiveSize = [&](const std::string& effectiveId,
+	                                   std::size_t fallbackIdx) {
+	            if (isEffectiveBundleId(effectiveId)) {
+	              try {
+	                const std::size_t bi =
+	                  static_cast<std::size_t>(std::stoull(effectiveId.substr(2)));
+	                if (bi < metadata.leafBundles.size()) {
+	                  const Rect rect = renderedLeafBundleRect(metadata.leafBundles[bi], 0.0);
+	                  return std::make_pair(rectWidth(rect), rectHeight(rect));
+	                }
+	              } catch (const std::exception&) {
+	              }
+	            }
+	            if (fallbackIdx < nodes.size()) {
+	              return std::make_pair(
+	                sanitizeNodeWidth(nodes[fallbackIdx], attributes),
+	                sanitizeNodeHeight(nodes[fallbackIdx], attributes));
+	            }
+	            return std::make_pair(0.0, 0.0);
+	          };
+
+	          auto effectiveMemberIndices = [&](const std::string& effectiveId)
+	              -> const std::vector<std::size_t>& {
+	            static const std::vector<std::size_t> kEmpty;
+	            auto it = effectiveMembers.find(effectiveId);
+	            return it == effectiveMembers.end() ? kEmpty : it->second;
+	          };
+
+	          auto collectMoveNodeIndices = [&](const std::string& sEffective,
+	                                            bool moveS,
+	                                            const std::string& tEffective,
+	                                            bool moveT) {
+	            std::vector<std::size_t> moved;
+	            auto append = [&](const std::string& effectiveId) {
+	              const auto& members = effectiveMemberIndices(effectiveId);
+	              moved.insert(moved.end(), members.begin(), members.end());
+	            };
+	            if (moveS) append(sEffective);
+	            if (moveT && tEffective != sEffective) append(tEffective);
+	            std::sort(moved.begin(), moved.end());
+	            moved.erase(std::unique(moved.begin(), moved.end()), moved.end());
+	            return moved;
+	          };
+
+	          auto effectiveMoveFits = [&](const std::string& sEffective,
+	                                       bool moveS,
+	                                       double sdx,
+	                                       double sdy,
+	                                       const std::string& tEffective,
+	                                       bool moveT,
+	                                       double tdx,
+	                                       double tdy) {
+	            if (allowNodeOverlap) {
+	              return true;
+	            }
+	            const std::vector<std::size_t> moved =
+	              collectMoveNodeIndices(sEffective, moveS, tEffective, moveT);
+	            if (moved.empty()) {
+	              return false;
+	            }
+	            std::unordered_set<std::size_t> movedSet(moved.begin(), moved.end());
+	            std::vector<std::string> movedEffectiveIds;
+	            if (moveS) movedEffectiveIds.push_back(sEffective);
+	            if (moveT && tEffective != sEffective) movedEffectiveIds.push_back(tEffective);
+	            std::sort(movedEffectiveIds.begin(), movedEffectiveIds.end());
+	            movedEffectiveIds.erase(
+	              std::unique(movedEffectiveIds.begin(), movedEffectiveIds.end()),
+	              movedEffectiveIds.end());
+	            std::vector<Rect> movedRects;
+	            movedRects.reserve(movedEffectiveIds.size());
+	            for (const std::string& effectiveId : movedEffectiveIds) {
+	              const double dx = effectiveId == sEffective
+	                ? sdx
+	                : (effectiveId == tEffective ? tdx : 0.0);
+	              const double dy = effectiveId == sEffective
+	                ? sdy
+	                : (effectiveId == tEffective ? tdy : 0.0);
+	              if (isEffectiveBundleId(effectiveId)) {
+	                try {
+	                  const std::size_t bi =
+	                    static_cast<std::size_t>(std::stoull(effectiveId.substr(2)));
+	                  if (bi < metadata.leafBundles.size()) {
+	                    Rect rect = renderedLeafBundleRect(metadata.leafBundles[bi], pairNodeMargin);
+	                    rect.left += dx;
+	                    rect.right += dx;
+	                    rect.top += dy;
+	                    rect.bottom += dy;
+	                    movedRects.push_back(rect);
+	                    continue;
+	                  }
+	                } catch (const std::exception&) {
+	                }
+	              }
+	              const auto& members = effectiveMemberIndices(effectiveId);
+	              for (const std::size_t idx : members) {
+	                if (idx >= nodes.size()) continue;
+	                movedRects.push_back(rectAtCenter(
+	                  nodes[idx],
+	                  attributes.x(nodes[idx].handle) + dx,
+	                  attributes.y(nodes[idx].handle) + dy));
+	              }
+	            }
+	            for (std::size_t i = 0; i < nodes.size(); ++i) {
+	              if (movedSet.count(i)) {
+	                continue;
+	              }
+	              const Rect other = nodeRect(nodes[i], attributes, pairNodeMargin);
+	              for (const Rect& movedRect : movedRects) {
+	                if (rectsOverlap(movedRect, other)) {
+	                  return false;
+	                }
+	              }
+	            }
+	            return true;
+	          };
+
+	          auto collectAffectedForMove = [&](const std::string& sEffective,
+	                                            bool moveS,
+	                                            const std::string& tEffective,
+	                                            bool moveT) {
+	            std::vector<std::size_t> affected;
+	            auto append = [&](const std::string& effectiveId) {
+	              const auto& incident = effectiveIncident(effectiveId);
+	              affected.insert(affected.end(), incident.begin(), incident.end());
+	            };
+	            if (moveS) append(sEffective);
+	            if (moveT && tEffective != sEffective) append(tEffective);
+	            std::sort(affected.begin(), affected.end());
+	            affected.erase(std::unique(affected.begin(), affected.end()), affected.end());
+	            return affected;
+	          };
+
+	          auto snapshotMovedPositions = [&](const std::string& sEffective,
+	                                           bool moveS,
+	                                           const std::string& tEffective,
+	                                           bool moveT) {
+	            std::vector<std::pair<std::size_t, std::pair<double, double>>> snapshot;
+	            const std::vector<std::size_t> moved =
+	              collectMoveNodeIndices(sEffective, moveS, tEffective, moveT);
+	            snapshot.reserve(moved.size());
+	            for (const std::size_t idx : moved) {
+	              if (idx >= nodes.size()) continue;
+	              snapshot.push_back({
+	                idx,
+	                {attributes.x(nodes[idx].handle), attributes.y(nodes[idx].handle)}
+	              });
+	            }
+	            return snapshot;
+	          };
+
+	          auto restoreMovedPositions = [&](
+	              const std::vector<std::pair<std::size_t, std::pair<double, double>>>& snapshot) {
+	            for (const auto& entry : snapshot) {
+	              const std::size_t idx = entry.first;
+	              if (idx >= nodes.size()) continue;
+	              attributes.x(nodes[idx].handle) = entry.second.first;
+	              attributes.y(nodes[idx].handle) = entry.second.second;
+	            }
+	          };
+
+	          auto applyEffectiveDelta = [&](const std::string& effectiveId,
+	                                         double dx,
+	                                         double dy) {
+	            const auto& members = effectiveMemberIndices(effectiveId);
+	            for (const std::size_t idx : members) {
+	              if (idx >= nodes.size()) continue;
+	              attributes.x(nodes[idx].handle) += dx;
+	              attributes.y(nodes[idx].handle) += dy;
+	            }
+	          };
+
+          auto currentNodeBBoxArea = [&]() {
+            bool any = false;
+            double minX = std::numeric_limits<double>::infinity();
+            double minY = std::numeric_limits<double>::infinity();
+            double maxX = -std::numeric_limits<double>::infinity();
+            double maxY = -std::numeric_limits<double>::infinity();
+            for (const NodeRecord& node : nodes) {
+              const double x = attributes.x(node.handle);
+              const double y = attributes.y(node.handle);
+              const double width = sanitizeNodeWidth(node, attributes);
+              const double height = sanitizeNodeHeight(node, attributes);
+              if (!std::isfinite(x) || !std::isfinite(y)
+                  || !std::isfinite(width) || !std::isfinite(height)) {
+                continue;
+              }
+              minX = std::min(minX, x - width / 2.0);
+              maxX = std::max(maxX, x + width / 2.0);
+              minY = std::min(minY, y - height / 2.0);
+              maxY = std::max(maxY, y + height / 2.0);
+              any = true;
+            }
+            if (!any || maxX <= minX || maxY <= minY) {
+              return 0.0;
+            }
+            return (maxX - minX) * (maxY - minY);
+          };
+
+          auto currentRouteBBoxArea = [&]() {
+            bool any = false;
+            double minX = std::numeric_limits<double>::infinity();
+            double minY = std::numeric_limits<double>::infinity();
+            double maxX = -std::numeric_limits<double>::infinity();
+            double maxY = -std::numeric_limits<double>::infinity();
+            for (const std::vector<RoutePoint>& route : routes) {
+              for (const RoutePoint& point : route) {
+                if (!std::isfinite(point.x) || !std::isfinite(point.y)) {
+                  continue;
+                }
+                minX = std::min(minX, point.x);
+                maxX = std::max(maxX, point.x);
+                minY = std::min(minY, point.y);
+                maxY = std::max(maxY, point.y);
+                any = true;
+              }
+            }
+            if (!any || maxX <= minX || maxY <= minY) {
+              return 0.0;
+            }
+            return (maxX - minX) * (maxY - minY);
+          };
+
+          using CarrierPairKey = std::pair<std::string, std::string>;
+          using CarrierSupportMap = std::map<CarrierPairKey, std::size_t>;
+
+          const char* skipCarrierRetouchEnv = std::getenv("DJERD_NO_CARRIER_CROSS");
+          useReportedCarrierScoring =
+            !metadata.leafBundles.empty()
+            && !(skipCarrierRetouchEnv && std::strcmp(skipCarrierRetouchEnv, "0") != 0);
+          std::vector<std::string> carrierIdByEdgeRetouch(edges.size());
+          for (std::size_t e = 0; e < edges.size(); ++e) {
+            if (
+                e < carrierIdByEdgePre.size()
+                && !carrierIdByEdgePre[e].empty()) {
+              carrierIdByEdgeRetouch[e] = carrierIdByEdgePre[e];
+            } else {
+              carrierIdByEdgeRetouch[e] = edges[e].edgeId;
+            }
+          }
+
+          const double carrierOccMargin = readDoubleEnv(
+            "DJERD_CARRIER_CROSS_OCCLUSION_MARGIN", 0.0, 0.0, 480.0);
+          auto pointInRetouchCarrierOcclusion = [&](const RoutePoint& point) {
+            if (carrierOccMargin <= 0.0) {
+              return false;
+            }
+            for (const NodeRecord& node : nodes) {
+              if (bundleAbsorbedRetouch.count(node.modelId)) continue;
+              const Rect rect = nodeRect(node, attributes, carrierOccMargin);
+              if (
+                  point.x >= rect.left && point.x <= rect.right
+                  && point.y >= rect.top && point.y <= rect.bottom) {
+                return true;
+              }
+            }
+            for (const LeafBundleRecord& bundle : metadata.leafBundles) {
+              const Rect rect = renderedLeafBundleRect(bundle, carrierOccMargin);
+              if (
+                  point.x >= rect.left && point.x <= rect.right
+                  && point.y >= rect.top && point.y <= rect.bottom) {
+                return true;
+              }
+            }
+            return false;
+          };
+
+          auto carrierPairKey = [&](std::size_t left,
+                                    std::size_t right,
+                                    CarrierPairKey& key) {
+            if (left >= edges.size() || right >= edges.size()) {
+              return false;
+            }
+            if (left >= routes.size() || right >= routes.size()) {
+              return false;
+            }
+            if (routes[left].size() < 2 || routes[right].size() < 2) {
+              return false;
+            }
+            if (sharesEndpoint(edges[left], edges[right])) {
+              return false;
+            }
+            const std::string& leftCarrier = carrierIdByEdgeRetouch[left];
+            const std::string& rightCarrier = carrierIdByEdgeRetouch[right];
+            if (leftCarrier.empty() || rightCarrier.empty() || leftCarrier == rightCarrier) {
+              return false;
+            }
+            key = leftCarrier < rightCarrier
+              ? std::make_pair(leftCarrier, rightCarrier)
+              : std::make_pair(rightCarrier, leftCarrier);
+            return true;
+          };
+
+          auto edgePairHasReportedCross = [&](std::size_t left, std::size_t right) {
+            if (left >= routes.size() || right >= routes.size()) {
+              return false;
+            }
+            const std::vector<RoutePoint>& leftRoute = routes[left];
+            const std::vector<RoutePoint>& rightRoute = routes[right];
+            if (leftRoute.size() < 2 || rightRoute.size() < 2) {
+              return false;
+            }
+            for (std::size_t li = 1; li < leftRoute.size(); ++li) {
+              for (std::size_t ri = 1; ri < rightRoute.size(); ++ri) {
+                RoutePoint isect;
+                if (properSegmentIntersection(
+                    leftRoute[li - 1], leftRoute[li],
+                    rightRoute[ri - 1], rightRoute[ri],
+                    isect)) {
+                  if (!pointInRetouchCarrierOcclusion(isect)) {
+                    return true;
+                  }
+                }
+              }
+            }
+            return false;
+          };
+
+          auto collectCarrierSupport = [&](const std::vector<std::size_t>* affected) {
+            if (affected != nullptr) {
+              CarrierSupportMap support;
+              std::set<std::pair<std::size_t, std::size_t>> visitedEdgePairs;
+              for (const std::size_t affectedEdge : *affected) {
+                if (affectedEdge >= edges.size()) {
+                  continue;
+                }
+                for (std::size_t other = 0; other < edges.size(); ++other) {
+                  if (other == affectedEdge) {
+                    continue;
+                  }
+                  const std::size_t left = std::min(affectedEdge, other);
+                  const std::size_t right = std::max(affectedEdge, other);
+                  if (!visitedEdgePairs.insert({left, right}).second) {
+                    continue;
+                  }
+                  CarrierPairKey key;
+                  if (!carrierPairKey(left, right, key)) {
+                    continue;
+                  }
+                  if (edgePairHasReportedCross(left, right)) {
+                    support[key] += 1;
+                  }
+                }
+              }
+              return support;
+            }
+
+            CarrierSupportMap support;
+            for (std::size_t left = 0; left < edges.size(); ++left) {
+              if (left >= routes.size() || routes[left].size() < 2) continue;
+              for (std::size_t right = left + 1; right < edges.size(); ++right) {
+                if (right >= routes.size() || routes[right].size() < 2) continue;
+                CarrierPairKey key;
+                if (!carrierPairKey(left, right, key)) {
+                  continue;
+                }
+                if (edgePairHasReportedCross(left, right)) {
+                  support[key] += 1;
+                }
+              }
+            }
+            return support;
+          };
+
+          auto supportValue = [](const CarrierSupportMap& support, const CarrierPairKey& key) {
+            auto it = support.find(key);
+            return it == support.end() ? std::size_t{0} : it->second;
+          };
+
+          CarrierSupportMap carrierSupport = useReportedCarrierScoring
+            ? collectCarrierSupport(nullptr)
+            : CarrierSupportMap{};
+          currentReportedEdgeCross = carrierSupport.size();
+          initialReportedEdgeCross = currentReportedEdgeCross;
+          if (useReportedCarrierScoring) {
+            initialExactFinalEdgeCross = finalReportedEdgeCrossQuiet(0);
+            currentExactFinalEdgeCross = initialExactFinalEdgeCross;
+          } else {
+            currentReportedEdgeCross = before;
+            initialReportedEdgeCross = before;
+            initialExactFinalEdgeCross = before;
+            currentExactFinalEdgeCross = before;
+          }
+
+          auto effectiveReportedCrossForAffected =
+            [&](const CarrierSupportMap& beforeAffected,
+                const CarrierSupportMap& afterAffected) {
+            long long next = static_cast<long long>(currentReportedEdgeCross);
+            std::set<CarrierPairKey> touched;
+            for (const auto& kv : beforeAffected) touched.insert(kv.first);
+            for (const auto& kv : afterAffected) touched.insert(kv.first);
+            for (const CarrierPairKey& key : touched) {
+              const std::size_t current = supportValue(carrierSupport, key);
+              const std::size_t before = supportValue(beforeAffected, key);
+              const std::size_t after = supportValue(afterAffected, key);
+              const std::size_t unaffected = current > before ? current - before : 0;
+              const bool wasPresent = current > 0;
+              const bool willBePresent = unaffected + after > 0;
+              if (wasPresent && !willBePresent) {
+                --next;
+              } else if (!wasPresent && willBePresent) {
+                ++next;
+              }
+            }
+            return static_cast<std::size_t>(std::max<long long>(0, next));
+          };
+
+          auto applyCarrierSupportChange =
+            [&](const CarrierSupportMap& beforeAffected,
+                const CarrierSupportMap& afterAffected) {
+            std::set<CarrierPairKey> touched;
+            for (const auto& kv : beforeAffected) touched.insert(kv.first);
+            for (const auto& kv : afterAffected) touched.insert(kv.first);
+            for (const CarrierPairKey& key : touched) {
+              const std::size_t current = supportValue(carrierSupport, key);
+              const std::size_t before = supportValue(beforeAffected, key);
+              const std::size_t after = supportValue(afterAffected, key);
+              const std::size_t unaffected = current > before ? current - before : 0;
+              const std::size_t next = unaffected + after;
+              if (next == 0) {
+                carrierSupport.erase(key);
+              } else {
+                carrierSupport[key] = next;
+              }
+            }
+            currentReportedEdgeCross = carrierSupport.size();
+          };
+
+          auto removableReportedCarrierPairs =
+            [&](const std::vector<std::size_t>& affected) {
+            if (!useReportedCarrierScoring) {
+              return std::size_t{0};
+            }
+            const CarrierSupportMap affectedSupport = collectCarrierSupport(&affected);
+            std::size_t removable = 0;
+            for (const auto& kv : affectedSupport) {
+              if (supportValue(carrierSupport, kv.first) <= kv.second) {
+                ++removable;
+              }
+            }
+            return removable;
+          };
+
+	          struct PairRank {
+	            std::size_t crosses;
+	            std::size_t edgeIndex;
+	            std::vector<std::size_t> effectiveEdgeMembers;
+	            std::string sourceEffectiveId;
+	            std::string targetEffectiveId;
+	            double span;
+	            std::size_t incidentCount;
+	            std::size_t sourceDegree;
+	            std::size_t targetDegree;
+	            bool leafSnapEligible;
+	          };
+
+          struct PairMove {
+            double sdx;
+            double sdy;
+            double tdx;
+            double tdy;
+            std::size_t straightEdge;
+          };
+
+	          for (int round = 1; round <= pairRounds; ++round) {
+	            std::vector<PairRank> rankedPairs;
+	            std::set<std::pair<std::string, std::string>> visitedEffectiveEdges;
+	            for (std::size_t e = 0; e < edges.size(); ++e) {
+	              if (e >= routes.size() || routes[e].size() < 2) continue;
+	              const EdgeRecord& edge = edges[e];
+	              auto sIt = nodeIndexById.find(edge.sourceModelId);
+	              auto tIt = nodeIndexById.find(edge.targetModelId);
+	              if (sIt == nodeIndexById.end() || tIt == nodeIndexById.end()) {
+                continue;
+              }
+              const std::size_t sIdx = sIt->second;
+              const std::size_t tIdx = tIt->second;
+	              if (sIdx == tIdx) {
+	                continue;
+	              }
+	              const std::string& sEffective = effectiveSourceByEdge[e];
+	              const std::string& tEffective = effectiveTargetByEdge[e];
+	              if (sEffective.empty()
+	                  || tEffective.empty()
+	                  || sEffective == tEffective) {
+	                continue;
+	              }
+	              const auto effectiveEdgeKey = sEffective < tEffective
+	                ? std::make_pair(sEffective, tEffective)
+	                : std::make_pair(tEffective, sEffective);
+	              if (!visitedEffectiveEdges.insert(effectiveEdgeKey).second) {
+	                continue;
+	              }
+	              auto membersIt = rawEdgesByEffectiveEdge.find(effectiveEdgeKey);
+	              if (membersIt == rawEdgesByEffectiveEdge.end()
+	                  || membersIt->second.empty()) {
+	                continue;
+	              }
+	              const auto sourceCenter = effectiveCenter(sEffective, sIdx);
+	              const auto targetCenter = effectiveCenter(tEffective, tIdx);
+	              const double sx = sourceCenter.first;
+	              const double sy = sourceCenter.second;
+	              const double tx = targetCenter.first;
+	              const double ty = targetCenter.second;
+	              const double span = std::hypot(tx - sx, ty - sy);
+	              const std::size_t sDegree = effectiveDegree(sEffective);
+	              const std::size_t tDegree = effectiveDegree(tEffective);
+	              const bool leafSnapEligible =
+	                pairLeafSnap
+	                && ((sDegree == 1 && tDegree >= 2)
+	                    || (tDegree == 1 && sDegree >= 2));
+	              if (pairLeafOnly && !leafSnapEligible) {
+	                continue;
+	              }
+              const double effectiveMinSpan =
+                leafSnapEligible ? pairLeafMinSpan : pairMinSpan;
+              if (!std::isfinite(span) || span < effectiveMinSpan) {
+                continue;
+              }
+              const std::size_t incidentCount = sDegree + tDegree;
+	              if (!leafSnapEligible
+	                  && incidentCount > static_cast<std::size_t>(maxIncident)) {
+	                continue;
+	              }
+	              std::vector<std::size_t> scoreAffected;
+	              if (leafSnapEligible) {
+	                const std::string& leafEffective =
+	                  sDegree == 1 ? sEffective : tEffective;
+	                const auto& incident = effectiveIncident(leafEffective);
+	                scoreAffected.assign(incident.begin(), incident.end());
+	              } else {
+	                scoreAffected = membersIt->second;
+	              }
+	              std::size_t c = 0;
+	              if (useReportedCarrierScoring) {
+	                const std::size_t reportedCross =
+	                  removableReportedCarrierPairs(scoreAffected);
+	                if (leafSnapEligible) {
+	                  const std::size_t rawCross =
+	                    localCrossForAffected(scoreAffected);
+	                  c = std::max(reportedCross, rawCross);
+	                } else {
+	                  c = reportedCross;
+	                }
+	              } else {
+	                c = localCrossForAffected(scoreAffected);
+	              }
+	              if (c == 0) {
+	                continue;
+	              }
+	              rankedPairs.push_back({
+	                c,
+	                e,
+	                membersIt->second,
+	                sEffective,
+	                tEffective,
+	                span,
+	                leafSnapEligible ? std::size_t{1} : incidentCount,
+	                sDegree,
+	                tDegree,
+	                leafSnapEligible,
+	              });
+	            }
+
+            std::sort(
+              rankedPairs.begin(),
+              rankedPairs.end(),
+              [](const PairRank& left, const PairRank& right) {
+                if (left.leafSnapEligible != right.leafSnapEligible) {
+                  return left.leafSnapEligible;
+                }
+                if (left.crosses != right.crosses) return left.crosses > right.crosses;
+                if (std::abs(left.span - right.span) > 0.01) return left.span > right.span;
+                return left.incidentCount < right.incidentCount;
+              });
+
+            const std::size_t limit =
+              std::min(static_cast<std::size_t>(pairTopK), rankedPairs.size());
+            if (limit == 0) {
+              break;
+            }
+
+            std::size_t movedThisRound = 0;
+            const std::size_t roundStartMoved = nodePairMoved;
+            const std::size_t roundStartGain = nodePairGainTotal;
+            const std::size_t roundStartRawRouteCross = currentRawRouteCross;
+            const std::size_t roundStartReportedEdgeCross = currentReportedEdgeCross;
+	            const std::size_t roundStartExactFinalEdgeCross = currentExactFinalEdgeCross;
+	            CarrierSupportMap roundStartCarrierSupport;
+	            std::vector<std::vector<RoutePoint>> roundStartRoutes;
+	            std::vector<std::pair<double, double>> roundStartNodePositions;
+	            std::vector<LeafBundleRecord> roundStartLeafBundles;
+	            if (useReportedCarrierScoring) {
+	              roundStartCarrierSupport = carrierSupport;
+	              roundStartRoutes = routes;
+	              roundStartLeafBundles = metadata.leafBundles;
+	              roundStartNodePositions.reserve(nodes.size());
+              for (const NodeRecord& node : nodes) {
+                roundStartNodePositions.emplace_back(
+                  attributes.x(node.handle),
+                  attributes.y(node.handle));
+              }
+            }
+	            for (std::size_t r = 0; r < limit; ++r) {
+	              const PairRank& rankedPair = rankedPairs[r];
+	              const std::size_t pairEdgeIndex = rankedPair.edgeIndex;
+	              const EdgeRecord& edge = edges[pairEdgeIndex];
+	              auto sIt = nodeIndexById.find(edge.sourceModelId);
+	              auto tIt = nodeIndexById.find(edge.targetModelId);
+              if (sIt == nodeIndexById.end() || tIt == nodeIndexById.end()) {
+	                continue;
+	              }
+	              const std::size_t sIdx = sIt->second;
+	              const std::size_t tIdx = tIt->second;
+	              const std::string& sEffective = rankedPair.sourceEffectiveId;
+	              const std::string& tEffective = rankedPair.targetEffectiveId;
+	              const auto sourceCenter0 = effectiveCenter(sEffective, sIdx);
+	              const auto targetCenter0 = effectiveCenter(tEffective, tIdx);
+	              const double sx0 = sourceCenter0.first;
+	              const double sy0 = sourceCenter0.second;
+	              const double tx0 = targetCenter0.first;
+	              const double ty0 = targetCenter0.second;
+	              const double dx = tx0 - sx0;
+	              const double dy = ty0 - sy0;
+	              const double span = std::hypot(dx, dy);
+              if (!std::isfinite(span) || span < 1.0) {
+                continue;
+              }
+              const double ux = dx / span;
+              const double uy = dy / span;
+              const double px = -uy;
+              const double py = ux;
+
+              std::vector<PairMove> moves;
+              constexpr std::size_t kNoStraightEdge =
+                std::numeric_limits<std::size_t>::max();
+              auto addMove = [&](
+                  double sdx,
+                  double sdy,
+                  double tdx,
+                  double tdy,
+                  std::size_t straightEdge = kNoStraightEdge) {
+                if (std::abs(sdx) + std::abs(sdy) + std::abs(tdx) + std::abs(tdy) < 0.01) {
+                  return;
+                }
+	                moves.push_back({sdx, sdy, tdx, tdy, straightEdge});
+	              };
+
+	              const std::size_t sDegree = rankedPair.sourceDegree;
+	              const std::size_t tDegree = rankedPair.targetDegree;
+	              const bool leafSnapEligible =
+	                pairLeafSnap
+	                && ((sDegree == 1 && tDegree >= 2)
+	                    || (tDegree == 1 && sDegree >= 2));
+	              if (!pairLeafOnly || !leafSnapEligible) {
+                for (int stepIndex = 1; stepIndex <= pairSteps; ++stepIndex) {
+                  const double shift = std::min(pairMaxShift, pairBaseStep * stepIndex);
+                  const double inward = std::min(shift, span * 0.35);
+                  addMove(ux * inward, uy * inward, -ux * inward, -uy * inward);
+                  addMove(ux * shift, uy * shift, 0.0, 0.0);
+                  addMove(0.0, 0.0, -ux * shift, -uy * shift);
+                  addMove(px * shift, py * shift, px * shift, py * shift);
+                  addMove(-px * shift, -py * shift, -px * shift, -py * shift);
+                  addMove(shift, 0.0, shift, 0.0);
+                  addMove(-shift, 0.0, -shift, 0.0);
+                  addMove(0.0, shift, 0.0, shift);
+                  addMove(0.0, -shift, 0.0, -shift);
+                }
+              }
+	              if (pairLeafSnap) {
+	                auto addLeafSnapAroundHub =
+	                  [&](bool sourceIsLeaf,
+	                      std::size_t leafIdx,
+	                      std::size_t hubIdx,
+	                      const std::string& leafEffective,
+	                      const std::string& hubEffective,
+	                      double leafX,
+	                      double leafY,
+	                      double hubX,
+	                      double hubY) {
+	                  const auto leafSize = effectiveSize(leafEffective, leafIdx);
+	                  const auto hubSize = effectiveSize(hubEffective, hubIdx);
+	                  const double leafW = leafSize.first;
+	                  const double leafH = leafSize.second;
+	                  const double hubW = hubSize.first;
+	                  const double hubH = hubSize.second;
+	                  const double dxGap = (hubW + leafW) / 2.0 + leafSnapGap;
+	                  const double dyGap = (hubH + leafH) / 2.0 + leafSnapGap;
+	                  auto addLeafCenter = [&](double nx, double ny) {
+	                    if (sourceIsLeaf) {
+	                      if (effectiveMoveFits(
+	                          sEffective, true, nx - leafX, ny - leafY,
+	                          tEffective, false, 0.0, 0.0)) {
+	                        addMove(nx - leafX, ny - leafY, 0.0, 0.0, pairEdgeIndex);
+	                      }
+	                    } else if (effectiveMoveFits(
+	                        sEffective, false, 0.0, 0.0,
+	                        tEffective, true, nx - leafX, ny - leafY)) {
+	                      addMove(0.0, 0.0, nx - leafX, ny - leafY, pairEdgeIndex);
+	                    }
+	                  };
+                  for (int ring = 0; ring <= pairSlotRings; ++ring) {
+                    const double extra = ring == 0
+                      ? 0.0
+                      : std::min(pairMaxShift, pairBaseStep * ring);
+                    const double xOff = dxGap + extra;
+                    const double yOff = dyGap + extra;
+                    addLeafCenter(hubX + xOff, hubY);
+                    addLeafCenter(hubX - xOff, hubY);
+                    addLeafCenter(hubX, hubY + yOff);
+                    addLeafCenter(hubX, hubY - yOff);
+                    addLeafCenter(hubX + xOff, hubY + yOff);
+                    addLeafCenter(hubX + xOff, hubY - yOff);
+                    addLeafCenter(hubX - xOff, hubY + yOff);
+                    addLeafCenter(hubX - xOff, hubY - yOff);
+                  }
+	                };
+	                if (sDegree == 1 && tDegree > sDegree) {
+	                  addLeafSnapAroundHub(
+	                    true,
+	                    sIdx,
+	                    tIdx,
+	                    sEffective,
+	                    tEffective,
+	                    sx0,
+	                    sy0,
+	                    tx0,
+	                    ty0);
+	                }
+	                if (tDegree == 1 && sDegree > tDegree) {
+	                  addLeafSnapAroundHub(
+	                    false,
+	                    tIdx,
+	                    sIdx,
+	                    tEffective,
+	                    sEffective,
+	                    tx0,
+	                    ty0,
+	                    sx0,
+	                    sy0);
+	                }
+	              }
+              if (pairCompactRelocate) {
+                const double sw = sanitizeNodeWidth(nodes[sIdx], attributes);
+                const double sh = sanitizeNodeHeight(nodes[sIdx], attributes);
+                const double tw = sanitizeNodeWidth(nodes[tIdx], attributes);
+                const double th = sanitizeNodeHeight(nodes[tIdx], attributes);
+                const std::vector<std::pair<double, double>> anchors = {
+                  {(sx0 + tx0) / 2.0, (sy0 + ty0) / 2.0},
+                  {sx0, sy0},
+                  {tx0, ty0},
+                };
+                auto addCompactCenters =
+                  [&](double nsx, double nsy, double ntx, double nty) {
+                  if (moveFits(sIdx, true, nsx, nsy, tIdx, true, ntx, nty)) {
+                    addMove(nsx - sx0, nsy - sy0, ntx - tx0, nty - ty0);
+                  }
+                };
+                auto addCompactAt = [&](double cx, double cy) {
+                  addCompactCenters(
+                    cx - (tw + pairGap) / 2.0,
+                    cy,
+                    cx + (sw + pairGap) / 2.0,
+                    cy);
+                  addCompactCenters(
+                    cx + (tw + pairGap) / 2.0,
+                    cy,
+                    cx - (sw + pairGap) / 2.0,
+                    cy);
+                  addCompactCenters(
+                    cx,
+                    cy - (th + pairGap) / 2.0,
+                    cx,
+                    cy + (sh + pairGap) / 2.0);
+                  addCompactCenters(
+                    cx,
+                    cy + (th + pairGap) / 2.0,
+                    cx,
+                    cy - (sh + pairGap) / 2.0);
+                };
+                for (const auto& anchor : anchors) {
+                  addCompactAt(anchor.first, anchor.second);
+                  for (int ring = 1; ring <= pairSlotRings; ++ring) {
+                    const double shift = std::min(pairMaxShift, pairBaseStep * ring);
+                    addCompactAt(anchor.first + shift, anchor.second);
+                    addCompactAt(anchor.first - shift, anchor.second);
+                    addCompactAt(anchor.first, anchor.second + shift);
+                    addCompactAt(anchor.first, anchor.second - shift);
+                    addCompactAt(anchor.first + shift, anchor.second + shift);
+                    addCompactAt(anchor.first + shift, anchor.second - shift);
+                    addCompactAt(anchor.first - shift, anchor.second + shift);
+                    addCompactAt(anchor.first - shift, anchor.second - shift);
+                  }
+                }
+              }
+
+              constexpr double kRetouchBBoxEpsilon = 1.0;
+              const double bboxBefore =
+                currentNodeBBoxArea() + currentRouteBBoxArea();
+	              const std::size_t bundleNodeBefore =
+	                retouchBundleNodeOverlapCount();
+	              const std::size_t nodeOverlapBefore =
+	                retouchNodeOverlapCount();
+	              const std::size_t nodeSpacingBefore =
+	                retouchNodeSpacingOverlapCount();
+	              std::size_t bestGain = 0;
+              double bestBBoxAfter = std::numeric_limits<double>::infinity();
+              std::size_t bestReportedAfter = currentReportedEdgeCross;
+              CarrierSupportMap bestBeforeCarrierSupport;
+              CarrierSupportMap bestAfterCarrierSupport;
+              PairMove bestMove{0.0, 0.0, 0.0, 0.0, kNoStraightEdge};
+              bool found = false;
+
+              for (const PairMove& move : moves) {
+                const bool moveS =
+                  std::abs(move.sdx) + std::abs(move.sdy) >= 0.01;
+                const bool moveT =
+                  std::abs(move.tdx) + std::abs(move.tdy) >= 0.01;
+                const std::vector<std::size_t> affected =
+                  collectAffectedForMove(sEffective, moveS, tEffective, moveT);
+                if (affected.empty()) {
+                  continue;
+                }
+                const bool fits = effectiveMoveFits(
+                  sEffective, moveS, move.sdx, move.sdy,
+                  tEffective, moveT, move.tdx, move.tdy);
+                if (!fits) {
+                  continue;
+                }
+                const bool useRawLeafSnapScore =
+                  useReportedCarrierScoring
+                  && move.straightEdge != kNoStraightEdge;
+                const std::size_t localBefore = useRawLeafSnapScore
+                  ? localCrossForAffected(affected)
+                  : (useReportedCarrierScoring
+                  ? currentReportedEdgeCross
+                  : localCrossForAffected(affected));
+                if (localBefore == 0) {
+                  continue;
+                }
+                const CarrierSupportMap beforeCarrierSupport = useReportedCarrierScoring
+                  ? collectCarrierSupport(&affected)
+                  : CarrierSupportMap{};
+
+                std::vector<std::vector<RoutePoint>> routeSnapshot;
+                routeSnapshot.reserve(affected.size());
+                for (const std::size_t e : affected) {
+                  routeSnapshot.push_back(routes[e]);
+                }
+                const auto positionSnapshot =
+                  snapshotMovedPositions(sEffective, moveS, tEffective, moveT);
+                const bool movesBundle =
+                  (moveS && isEffectiveBundleId(sEffective))
+                  || (moveT && isEffectiveBundleId(tEffective));
+
+                if (moveS) {
+                  applyEffectiveDelta(sEffective, move.sdx, move.sdy);
+                }
+                if (moveT) {
+                  applyEffectiveDelta(tEffective, move.tdx, move.tdy);
+                }
+                if (movesBundle) {
+                  recomputeLeafBundleBboxesFromNodes(metadata.leafBundles, nodes, attributes);
+                }
+                for (const std::size_t e : affected) {
+                  syncRouteEndpointsForEdge(e);
+                }
+                if (move.straightEdge != kNoStraightEdge) {
+                  for (const std::size_t e : rankedPair.effectiveEdgeMembers) {
+                    straightenRouteForEdge(e);
+                  }
+                }
+                const CarrierSupportMap afterCarrierSupport =
+                  useReportedCarrierScoring && fits
+                    ? collectCarrierSupport(&affected)
+                    : CarrierSupportMap{};
+                const std::size_t localAfter = fits
+                  ? (
+                      useRawLeafSnapScore
+                        ? localCrossForAffected(affected)
+                        : (useReportedCarrierScoring
+                        ? effectiveReportedCrossForAffected(
+                            beforeCarrierSupport,
+                            afterCarrierSupport)
+                        : localCrossForAffected(affected)))
+                  : localBefore;
+                const std::size_t reportedAfter =
+                  useReportedCarrierScoring
+                    ? effectiveReportedCrossForAffected(
+                        beforeCarrierSupport,
+                        afterCarrierSupport)
+                    : localAfter;
+                const double bboxAfter = fits
+                  ? currentNodeBBoxArea() + currentRouteBBoxArea()
+                  : bboxBefore;
+                const bool bboxNotWorse =
+                  bboxAfter <= bboxBefore + kRetouchBBoxEpsilon;
+                const std::size_t bundleNodeAfter = fits
+                  ? retouchBundleNodeOverlapCount()
+                  : bundleNodeBefore;
+	                const std::size_t nodeOverlapAfter = fits
+	                  ? retouchNodeOverlapCount()
+	                  : nodeOverlapBefore;
+	                const std::size_t nodeSpacingAfter = fits
+	                  ? retouchNodeSpacingOverlapCount()
+	                  : nodeSpacingBefore;
+	                const bool shapeNotWorse =
+	                  bundleNodeAfter <= bundleNodeBefore
+	                  && nodeOverlapAfter <= nodeOverlapBefore
+	                  && nodeSpacingAfter <= nodeSpacingBefore;
+
+                restoreMovedPositions(positionSnapshot);
+                if (movesBundle) {
+                  recomputeLeafBundleBboxesFromNodes(metadata.leafBundles, nodes, attributes);
+                }
+                for (std::size_t i = 0; i < affected.size(); ++i) {
+                  routes[affected[i]] = std::move(routeSnapshot[i]);
+                }
+
+                if (!fits
+                    || localAfter + minGainU > localBefore
+                    || !bboxNotWorse
+                    || !shapeNotWorse) {
+                  continue;
+                }
+                const std::size_t gain = localBefore - localAfter;
+                const bool better =
+                  !found
+                  || gain > bestGain
+                  || (
+                    gain == bestGain
+                    && bboxAfter + kRetouchBBoxEpsilon < bestBBoxAfter);
+                if (better) {
+                  bestGain = gain;
+                  bestBBoxAfter = bboxAfter;
+                  bestReportedAfter = reportedAfter;
+                  bestBeforeCarrierSupport = beforeCarrierSupport;
+                  bestAfterCarrierSupport = afterCarrierSupport;
+                  bestMove = move;
+                  found = true;
+                }
+              }
+
+              ++nodePairConsidered;
+              if (!found) {
+                ++nodePairRejected;
+                continue;
+              }
+
+              const bool bestMoveS =
+                std::abs(bestMove.sdx) + std::abs(bestMove.sdy) >= 0.01;
+	              const bool bestMoveT =
+	                std::abs(bestMove.tdx) + std::abs(bestMove.tdy) >= 0.01;
+		              const std::vector<std::size_t> affected =
+		                collectAffectedForMove(sEffective, bestMoveS, tEffective, bestMoveT);
+		              const bool bestMovesBundle =
+		                (bestMoveS && isEffectiveBundleId(sEffective))
+		                || (bestMoveT && isEffectiveBundleId(tEffective));
+              std::vector<std::vector<RoutePoint>> commitRouteSnapshot;
+              commitRouteSnapshot.reserve(affected.size());
+              for (const std::size_t e : affected) {
+                commitRouteSnapshot.push_back(routes[e]);
+              }
+              const auto commitPositionSnapshot =
+                snapshotMovedPositions(sEffective, bestMoveS, tEffective, bestMoveT);
+              const std::vector<LeafBundleRecord> commitLeafBundles =
+                metadata.leafBundles;
+              const CarrierSupportMap commitCarrierSupport = carrierSupport;
+              const std::size_t commitReportedEdgeCross = currentReportedEdgeCross;
+              const LayoutQualityMetrics pairBaseQuality =
+                retouchQualityForCurrent(currentRawRouteCross);
+		              if (bestMoveS) {
+		                applyEffectiveDelta(sEffective, bestMove.sdx, bestMove.sdy);
+		              }
+	              if (bestMoveT) {
+	                applyEffectiveDelta(tEffective, bestMove.tdx, bestMove.tdy);
+	              }
+	              if (bestMovesBundle) {
+	                recomputeLeafBundleBboxesFromNodes(metadata.leafBundles, nodes, attributes);
+	              }
+	              for (const std::size_t e : affected) {
+	                syncRouteEndpointsForEdge(e);
+	              }
+	              if (bestMove.straightEdge != kNoStraightEdge) {
+		                for (const std::size_t e : rankedPair.effectiveEdgeMembers) {
+		                  straightenRouteForEdge(e);
+		                }
+		              }
+              const LayoutQualityMetrics pairAfterQuality =
+                retouchQualityForCurrent(currentRawRouteCross);
+              const bool pairVisualOk =
+                pairAfterQuality.visualCrossings + minGainU
+                <= pairBaseQuality.visualCrossings
+	                && pairAfterQuality.nodeOverlaps <= pairBaseQuality.nodeOverlaps
+	                && pairAfterQuality.nodeSpacingOverlaps
+	                   <= pairBaseQuality.nodeSpacingOverlaps
+	                && pairAfterQuality.bundleNodeOverlaps
+	                   <= pairBaseQuality.bundleNodeOverlaps
+                && pairAfterQuality.overlappingEdges
+                   <= pairBaseQuality.overlappingEdges
+                && pairAfterQuality.edgeSegmentOverlaps
+                   <= pairBaseQuality.edgeSegmentOverlaps;
+              if (!pairVisualOk) {
+                restoreMovedPositions(commitPositionSnapshot);
+                metadata.leafBundles = commitLeafBundles;
+                for (std::size_t i = 0; i < affected.size(); ++i) {
+                  routes[affected[i]] = std::move(commitRouteSnapshot[i]);
+                }
+                carrierSupport = commitCarrierSupport;
+                currentReportedEdgeCross = commitReportedEdgeCross;
+                ++nodePairRejected;
+                continue;
+              }
+		              if (useReportedCarrierScoring) {
+		                applyCarrierSupportChange(bestBeforeCarrierSupport, bestAfterCarrierSupport);
+		                currentReportedEdgeCross = bestReportedAfter;
+	              }
+	              ++nodePairMoved;
+	              ++movedThisRound;
+	              nodePairGainTotal += bestGain;
+	            }
+
+            if (useReportedCarrierScoring && movedThisRound > 0) {
+              const std::size_t roundAfterRawRouteCross = totalCross();
+              const std::size_t roundAfterExactFinalEdgeCross =
+                finalReportedEdgeCrossQuiet(roundAfterRawRouteCross);
+              const bool finalImproved =
+                roundAfterExactFinalEdgeCross + minGainU
+                <= roundStartExactFinalEdgeCross
+                && roundAfterRawRouteCross <= roundStartRawRouteCross;
+              const bool rawImproved =
+                pairRawAccept
+                && roundAfterRawRouteCross + minGainU <= roundStartRawRouteCross;
+	              if (!finalImproved && !rawImproved) {
+	                routes = std::move(roundStartRoutes);
+	                for (std::size_t i = 0;
+	                     i < nodes.size() && i < roundStartNodePositions.size();
+	                     ++i) {
+	                  attributes.x(nodes[i].handle) = roundStartNodePositions[i].first;
+	                  attributes.y(nodes[i].handle) = roundStartNodePositions[i].second;
+	                }
+	                metadata.leafBundles = std::move(roundStartLeafBundles);
+	                carrierSupport = std::move(roundStartCarrierSupport);
+                currentReportedEdgeCross = roundStartReportedEdgeCross;
+                currentExactFinalEdgeCross = roundStartExactFinalEdgeCross;
+                currentRawRouteCross = roundStartRawRouteCross;
+                nodePairMoved = roundStartMoved;
+                nodePairRejected += movedThisRound;
+                nodePairGainTotal = roundStartGain;
+                movedThisRound = 0;
+              } else {
+                currentExactFinalEdgeCross = roundAfterExactFinalEdgeCross;
+                currentRawRouteCross = roundAfterRawRouteCross;
+              }
+            }
+
+            ++nodePairCompletedRounds;
+            if (movedThisRound == 0) {
+              break;
+            }
+          }
+
+	          if (nodePairConsidered > 0) {
+	            const std::size_t afterNodePair = totalCross();
+	            currentRawRouteCross = afterNodePair;
+	            if (!useReportedCarrierScoring) {
+	              currentReportedEdgeCross = afterNodePair;
+	              currentExactFinalEdgeCross = afterNodePair;
+	            }
+	            const LayoutQualityMetrics afterNodePairQuality =
+	              retouchQualityForCurrent(afterNodePair);
+	            std::fprintf(stderr,
+	              "[node-pair-retouch] moved=%zu/%zu, rejected=%zu, "
+	              "localGain=%zu, scoreEdgeCross=%zu -> %zu, "
+	              "finalEdgeCross=%zu -> %zu, rawRouteCross=%zu -> %zu, total cross %zu -> %zu "
+	              "nodeSpacing=%zu -> %zu "
+	              "(rounds=%d/%d, topK=%d, minSpan=%.0f, leafMinSpan=%.0f, "
+              "step=%.0f, maxShift=%.0f, "
+              "maxIncident=%d, nodeMargin=%.0f, leafSnap=%d, leafOnly=%d, rawAccept=%d, "
+              "compactRelocate=%d, scoring=%s).\n",
+              nodePairMoved, nodePairConsidered, nodePairRejected,
+              nodePairGainTotal, initialReportedEdgeCross, currentReportedEdgeCross,
+	              initialExactFinalEdgeCross, currentExactFinalEdgeCross,
+	              initialRawRouteCross, currentRawRouteCross,
+	              before, afterNodePair,
+	              initialRetouchQuality.nodeSpacingOverlaps,
+	              afterNodePairQuality.nodeSpacingOverlaps,
+	              nodePairCompletedRounds, pairRounds, pairTopK, pairMinSpan,
+              pairLeafMinSpan, pairBaseStep, pairMaxShift, maxIncident, pairNodeMargin,
+              pairLeafSnap ? 1 : 0, pairLeafOnly ? 1 : 0, pairRawAccept ? 1 : 0,
+              pairCompactRelocate ? 1 : 0,
+              useReportedCarrierScoring ? "reported-carrier" : "raw-route");
+          }
+        }
+
+        const bool runRouteSegmentRetouch =
+          readBoolEnv("DJERD_DIAGONAL_RETOUCH_ROUTE_SEGMENTS", false);
+        std::size_t totalRetouched = 0;
+        std::size_t totalRejected = 0;
+        std::size_t totalDiagonalSegments = 0;
+        std::size_t totalLimit = 0;
+        int completedRounds = 0;
+        for (int retouchRound = 1;
+             runRouteSegmentRetouch && retouchRound <= retouchRounds;
+             ++retouchRound) {
+          std::vector<std::pair<std::size_t, std::size_t>> ranked;
+          for (std::size_t e = 0; e < routes.size(); ++e) {
+            if (routes[e].size() < 2) continue;
+            bool hasDiagonal = false;
+            for (std::size_t i = 1; i < routes[e].size(); ++i) {
+              if (isDiagonalSegment(routes[e][i - 1], routes[e][i])) {
+                hasDiagonal = true;
+                break;
+              }
+            }
+            if (!hasDiagonal) continue;
+            const std::size_t c = routeCrossCount(e, routes[e]);
+            if (c > 0) ranked.emplace_back(c, e);
+          }
+          std::sort(ranked.rbegin(), ranked.rend());
+
+          RouteOccupancy occupancy;
+          if (overlapWeight > 0.0) {
+            for (std::size_t e = 0; e < routes.size(); ++e) {
+              if (routes[e].size() < 2) continue;
+              const LineIntent line = makeLineIntent(edges[e], e, attributes);
+              recordRouteOccupancy(routes[e], line, occupancy);
+            }
+          }
+
+          std::size_t retouched = 0;
+          std::size_t rejected = 0;
+          std::size_t diagonalSegments = 0;
+          const std::size_t limit =
+            std::min(static_cast<std::size_t>(topK), ranked.size());
+          totalLimit += limit;
+          if (limit == 0) {
+            break;
+          }
+          for (std::size_t r = 0; r < limit; ++r) {
+            const std::size_t e = ranked[r].second;
+            if (routes[e].size() < 2) continue;
+            const LineIntent line = makeLineIntent(edges[e], e, attributes);
+            const std::vector<NodeObstacle> obstacles = makeNodeObstacles(
+              nodes, attributes, nodeMargin, line.sourceHandle, line.targetHandle);
+            const std::string& srcId = edges[e].sourceModelId;
+            const std::string& tgtId = edges[e].targetModelId;
+            if (overlapWeight > 0.0) {
+              removeRouteOccupancy(routes[e], line, occupancy);
+            }
+
+            struct SegmentCandidate {
+              std::size_t crosses;
+              std::size_t index;
+              double length;
+            };
+            std::vector<SegmentCandidate> segmentCandidates;
+            for (std::size_t i = 1; i < routes[e].size(); ++i) {
+              const RoutePoint a = routes[e][i - 1];
+              const RoutePoint b = routes[e][i];
+              if (!isDiagonalSegment(a, b)) continue;
+              const std::size_t c = segmentCrossCount(e, i);
+              if (c == 0) continue;
+              const double length = std::hypot(b.x - a.x, b.y - a.y);
+              segmentCandidates.push_back({c, i, length});
+            }
+            diagonalSegments += segmentCandidates.size();
+            std::sort(
+              segmentCandidates.begin(),
+              segmentCandidates.end(),
+              [](const SegmentCandidate& left, const SegmentCandidate& right) {
+                if (left.crosses != right.crosses) return left.crosses > right.crosses;
+                return left.length > right.length;
+              });
+            if (segmentCandidates.size() > static_cast<std::size_t>(segmentsPerEdge)) {
+              segmentCandidates.resize(static_cast<std::size_t>(segmentsPerEdge));
+            }
+
+            auto nodeHits = [&](const std::vector<RoutePoint>& cand) -> std::size_t {
+              if (cand.size() < 2) return 0;
+              std::size_t hits = 0;
+              for (std::size_t i = 1; i < cand.size(); ++i) {
+                for (const NodeObstacle& obstacle : obstacles) {
+                  if (bundleAbsorbedRetouch.count(obstacle.nodeId)) continue;
+                  if (segmentIntersectsRect(cand[i - 1], cand[i], obstacle.rect)) {
+                    ++hits;
+                  }
+                }
+                for (std::size_t bi = 0; bi < bundleRectsRetouch.size(); ++bi) {
+                  if (bundleExemptRetouch[bi].count(srcId)
+                      || bundleExemptRetouch[bi].count(tgtId)) {
+                    continue;
+                  }
+                  if (segmentIntersectsRect(cand[i - 1], cand[i], bundleRectsRetouch[bi])) {
+                    ++hits;
+                  }
+                }
+              }
+              return hits;
+            };
+            auto overlapDebt = [&](const std::vector<RoutePoint>& cand) -> double {
+              if (overlapWeight <= 0.0 || cand.size() < 2) return 0.0;
+              return routeAxisOverlapDebt(cand, &occupancy, overlapLengthWeight);
+            };
+            auto score = [&](std::size_t crossings,
+                             std::size_t hits,
+                             const std::vector<RoutePoint>& cand) -> double {
+              return static_cast<double>(crossings)
+                + nodeWeight * static_cast<double>(hits)
+                + overlapWeight * overlapDebt(cand)
+                + lengthWeight * routeLength(cand);
+            };
+            auto replaceSegment =
+              [&](std::size_t segmentIndex, const std::vector<RoutePoint>& mids) {
+              std::vector<RoutePoint> cand;
+              cand.reserve(routes[e].size() + mids.size());
+              for (std::size_t i = 0; i < segmentIndex; ++i) {
+                cand.push_back(routes[e][i]);
+              }
+              for (const RoutePoint& mid : mids) {
+                cand.push_back(mid);
+              }
+              for (std::size_t i = segmentIndex; i < routes[e].size(); ++i) {
+                cand.push_back(routes[e][i]);
+              }
+              return compressRoutePoints(std::move(cand));
+            };
+
+            const std::size_t currentCross = routeCrossCount(e, routes[e]);
+            const std::size_t currentNodeHits = nodeHits(routes[e]);
+            const double currentScore = score(currentCross, currentNodeHits, routes[e]);
+            std::size_t bestCross = currentCross;
+            double bestScore = currentScore;
+            std::vector<RoutePoint> bestRoute;
+            bool found = false;
+            for (const SegmentCandidate& segment : segmentCandidates) {
+              const RoutePoint a = routes[e][segment.index - 1];
+              const RoutePoint b = routes[e][segment.index];
+              std::vector<std::vector<RoutePoint>> midSets = {
+                {{b.x, a.y}},
+                {{a.x, b.y}},
+              };
+              if (useTwoBend) {
+                const double midX = (a.x + b.x) / 2.0;
+                const double midY = (a.y + b.y) / 2.0;
+                midSets.push_back({{midX, a.y}, {midX, b.y}});
+                midSets.push_back({{a.x, midY}, {b.x, midY}});
+              }
+              for (const std::vector<RoutePoint>& mids : midSets) {
+                bool degenerate = true;
+                for (const RoutePoint& mid : mids) {
+                  if (!almostSamePoint(a, mid) && !almostSamePoint(b, mid)) {
+                    degenerate = false;
+                    break;
+                  }
+                }
+                if (degenerate) {
+                  continue;
+                }
+                const std::vector<RoutePoint> cand = replaceSegment(segment.index, mids);
+                if (cand.size() < 2) continue;
+                const std::size_t c = routeCrossCount(e, cand);
+                if (c + minGainU > currentCross) {
+                  continue;
+                }
+                const std::size_t candidateNodeHits = nodeHits(cand);
+                if (!allowNodeHitDebt && candidateNodeHits > currentNodeHits) {
+                  continue;
+                }
+                const double s = score(c, candidateNodeHits, cand);
+                if (s < bestScore
+                    || (std::abs(s - bestScore) < 1e-9 && c < bestCross)) {
+                  bestScore = s;
+                  bestCross = c;
+                  bestRoute = cand;
+                  found = true;
+                }
+              }
+            }
+            if (found) {
+              routes[e] = std::move(bestRoute);
+              ++retouched;
+            } else {
+              ++rejected;
+            }
+            if (overlapWeight > 0.0) {
+              recordRouteOccupancy(routes[e], line, occupancy);
+            }
+          }
+          ++completedRounds;
+          totalRetouched += retouched;
+          totalRejected += rejected;
+          totalDiagonalSegments += diagonalSegments;
+          if (retouched == 0) {
+            break;
+          }
+        }
+
+        const std::size_t after = totalCross();
+        const LayoutQualityMetrics afterRetouchQuality =
+          retouchQualityForCurrent(after);
+        const std::size_t initialFinalEdgeCross = useReportedCarrierScoring
+          ? initialExactFinalEdgeCross
+          : before;
+        const std::size_t afterFinalEdgeCross = useReportedCarrierScoring
+          ? finalReportedEdgeCrossQuiet(after)
+          : after;
+        const bool anyRetouchChange = nodePairMoved > 0 || totalRetouched > 0;
+        const bool finalRetouchImproved =
+          afterFinalEdgeCross + minGainU <= initialFinalEdgeCross;
+        const bool rawRetouchImproved =
+          pairRawAccept && after + minGainU <= before;
+        const bool scoreRetouchImproved =
+          useReportedCarrierScoring
+          && currentReportedEdgeCross + minGainU <= initialReportedEdgeCross;
+        const bool visualRetouchImproved =
+          afterRetouchQuality.visualCrossings + minGainU
+          <= initialRetouchQuality.visualCrossings;
+        const bool visualShapeDebtOk =
+          afterRetouchQuality.nodeOverlaps <= initialRetouchQuality.nodeOverlaps
+          && afterRetouchQuality.bundleNodeOverlaps
+             <= initialRetouchQuality.bundleNodeOverlaps
+          && afterRetouchQuality.overlappingEdges
+             <= initialRetouchQuality.overlappingEdges
+          && afterRetouchQuality.edgeSegmentOverlaps
+             <= initialRetouchQuality.edgeSegmentOverlaps;
+        const bool retouchAccepted =
+          !anyRetouchChange || (visualRetouchImproved && visualShapeDebtOk);
+        const char* retouchAcceptMode =
+          visualRetouchImproved && visualShapeDebtOk ? "visual" : "none";
+        const bool retouchRegressed =
+          anyRetouchChange
+          && !retouchAccepted;
+        if (retouchRegressed) {
+          routes = savedRoutes;
+          for (std::size_t i = 0; i < nodes.size() && i < savedNodePositions.size(); ++i) {
+            attributes.x(nodes[i].handle) = savedNodePositions[i].first;
+            attributes.y(nodes[i].handle) = savedNodePositions[i].second;
+          }
+          metadata.leafBundles = savedLeafBundles;
+          if (useReportedCarrierScoring) {
+            currentReportedEdgeCross = initialReportedEdgeCross;
+            currentExactFinalEdgeCross = initialExactFinalEdgeCross;
+          }
+          currentRawRouteCross = initialRawRouteCross;
+          std::fprintf(stderr,
+            "[diagonal-retouch] reverted: %zu candidates, finalEdgeCross %zu -> %zu, "
+            "scoreEdgeCross %zu -> %zu, rawRouteCross %zu -> %zu, "
+            "visualCross %zu -> %zu, edgeNode %zu -> %zu, bundleNode %zu -> %zu, "
+            "overlappingEdges %zu -> %zu, edgeSegmentOverlaps %zu -> %zu "
+            "(edgeImproved=%d/%d/%d, acceptedBy=none).\n",
+            totalLimit, initialFinalEdgeCross, afterFinalEdgeCross,
+            initialReportedEdgeCross, currentReportedEdgeCross,
+            initialRawRouteCross, after,
+            initialRetouchQuality.visualCrossings,
+            afterRetouchQuality.visualCrossings,
+            initialRetouchQuality.edgeNodeIntersections,
+            afterRetouchQuality.edgeNodeIntersections,
+            initialRetouchQuality.bundleNodeOverlaps,
+            afterRetouchQuality.bundleNodeOverlaps,
+            initialRetouchQuality.overlappingEdges,
+            afterRetouchQuality.overlappingEdges,
+            initialRetouchQuality.edgeSegmentOverlaps,
+            afterRetouchQuality.edgeSegmentOverlaps,
+            finalRetouchImproved ? 1 : 0,
+            rawRetouchImproved ? 1 : 0,
+            scoreRetouchImproved ? 1 : 0);
+        } else {
+            std::fprintf(stderr,
+              "[diagonal-retouch] nodePairs=%zu/%zu, routeSegments=%zu/%zu, "
+              "finalEdgeCross=%zu -> %zu, scoreEdgeCross=%zu -> %zu, "
+              "rawRouteCross=%zu -> %zu, visualCross=%zu -> %zu, "
+              "edgeNode=%zu -> %zu, bundleNode=%zu -> %zu, "
+              "overlappingEdges=%zu -> %zu, edgeSegmentOverlaps=%zu -> %zu "
+              "(acceptedBy=%s, rounds=%d/%d, diagonalSegments=%zu, rejected=%zu, nodeWeight=%.3f, "
+              "overlapWeight=%.3f, allowNodeHitDebt=%d, bundleObstacles=%d, twoBend=%d, "
+              "routeSegmentsEnabled=%d).\n",
+              nodePairMoved, nodePairConsidered, totalRetouched, totalLimit,
+              initialFinalEdgeCross, afterFinalEdgeCross,
+              initialReportedEdgeCross, currentReportedEdgeCross,
+              initialRawRouteCross, after,
+              initialRetouchQuality.visualCrossings,
+              afterRetouchQuality.visualCrossings,
+              initialRetouchQuality.edgeNodeIntersections,
+              afterRetouchQuality.edgeNodeIntersections,
+              initialRetouchQuality.bundleNodeOverlaps,
+              afterRetouchQuality.bundleNodeOverlaps,
+              initialRetouchQuality.overlappingEdges,
+              afterRetouchQuality.overlappingEdges,
+              initialRetouchQuality.edgeSegmentOverlaps,
+              afterRetouchQuality.edgeSegmentOverlaps,
+              retouchAcceptMode, completedRounds, retouchRounds, totalDiagonalSegments, totalRejected,
+              nodeWeight, overlapWeight, allowNodeHitDebt ? 1 : 0,
+              useBundleObstacles ? 1 : 0, useTwoBend ? 1 : 0,
+              runRouteSegmentRetouch ? 1 : 0);
+          }
+        }
+      }
+
     // Final route/bundle quality recompute. Several late visual passes move
     // nodes or sync route endpoints after the earlier quality snapshot, and
     // the emitted routedEdges must be scored exactly as rendered.
@@ -18974,260 +21566,21 @@ int main(int argc, char** argv) {
       totalRouteCrossings = 0;
       crossings =
         detectRouteCrossings(edges, routes, crossingIdsByEdge, totalRouteCrossings);
+      metadata.rawRouteCrossings = totalRouteCrossings;
       quality = measureLayoutQuality(
         nodes, edges, routes, attributes, &metadata.leafBundles,
         &metadata.clusterByModelId);
       quality.edgeCrossings = totalRouteCrossings;
 
-      const char* skipCarrierEnv = std::getenv("DJERD_NO_CARRIER_CROSS");
-      const bool skipCarrier =
-        skipCarrierEnv && std::strcmp(skipCarrierEnv, "0") != 0;
-      if (!skipCarrier && !metadata.leafBundles.empty()) {
-        std::unordered_map<std::string, std::size_t> leafToBundleIdx;
-        for (std::size_t bi = 0; bi < metadata.leafBundles.size(); ++bi) {
-          for (const std::string& leaf : metadata.leafBundles[bi].leafModelIds) {
-            leafToBundleIdx[leaf] = bi;
-          }
-        }
-
-        std::unordered_map<std::string, std::pair<double, double>> sumByCluster;
-        std::unordered_map<std::string, std::size_t> cntByCluster;
-        for (const auto& kv : clusterByModelIdFull) {
-          auto idIt = std::find_if(nodes.begin(), nodes.end(),
-            [&](const NodeRecord& n) { return n.modelId == kv.first; });
-          if (idIt == nodes.end()) continue;
-          sumByCluster[kv.second].first += attributes.x(idIt->handle);
-          sumByCluster[kv.second].second += attributes.y(idIt->handle);
-          cntByCluster[kv.second] += 1;
-        }
-        std::unordered_map<std::string, std::pair<double, double>> clusterCentroids;
-        for (const auto& kv : sumByCluster) {
-          const std::size_t c = cntByCluster[kv.first];
-          if (c == 0) continue;
-          clusterCentroids[kv.first] = {
-            kv.second.first / static_cast<double>(c),
-            kv.second.second / static_cast<double>(c),
-          };
-        }
-        auto nearestClusterFinal = [&](const std::string& mid) {
-          auto idIt = std::find_if(nodes.begin(), nodes.end(),
-            [&](const NodeRecord& n) { return n.modelId == mid; });
-          if (idIt == nodes.end()) return std::string{};
-          const double mx = attributes.x(idIt->handle);
-          const double my = attributes.y(idIt->handle);
-          std::string best;
-          double bestD2 = std::numeric_limits<double>::infinity();
-          for (const auto& kv : clusterCentroids) {
-            const double dx = mx - kv.second.first;
-            const double dy = my - kv.second.second;
-            const double d2 = dx * dx + dy * dy;
-            if (d2 < bestD2) {
-              bestD2 = d2;
-              best = kv.first;
-            }
-          }
-          return best;
-        };
-
-        std::vector<std::string> carrierIdByEdge(edges.size());
-        std::vector<std::string> renderedCarrierIdByEdge(edges.size());
-        std::vector<bool> renderedEdgeVisible(edges.size(), true);
-        std::vector<int> renderedBundleIndexByEdge(edges.size(), -1);
-        std::vector<std::string> renderedBundleRootByEdge(edges.size());
-        std::vector<std::pair<std::string, std::string>> carrierClustersByEdge(edges.size());
-        for (std::size_t e = 0; e < edges.size(); ++e) {
-          const std::string& s = edges[e].sourceModelId;
-          const std::string& t = edges[e].targetModelId;
-          auto sBI = leafToBundleIdx.find(s);
-          auto tBI = leafToBundleIdx.find(t);
-          if (sBI != leafToBundleIdx.end()) {
-            const auto& bundle = metadata.leafBundles[sBI->second];
-            const auto& roots = bundle.sharedRootModelIds.empty()
-              ? std::vector<std::string>{bundle.parentModelId}
-              : bundle.sharedRootModelIds;
-            if (std::find(roots.begin(), roots.end(), t) != roots.end()) {
-              carrierIdByEdge[e] =
-                "B" + std::to_string(sBI->second) + "|" + t;
-              renderedCarrierIdByEdge[e] = carrierIdByEdge[e];
-              renderedBundleIndexByEdge[e] = static_cast<int>(sBI->second);
-              renderedBundleRootByEdge[e] = t;
-              continue;
-            }
-          }
-          if (tBI != leafToBundleIdx.end()) {
-            const auto& bundle = metadata.leafBundles[tBI->second];
-            const auto& roots = bundle.sharedRootModelIds.empty()
-              ? std::vector<std::string>{bundle.parentModelId}
-              : bundle.sharedRootModelIds;
-            if (std::find(roots.begin(), roots.end(), s) != roots.end()) {
-              carrierIdByEdge[e] =
-                "B" + std::to_string(tBI->second) + "|" + s;
-              renderedCarrierIdByEdge[e] = carrierIdByEdge[e];
-              renderedBundleIndexByEdge[e] = static_cast<int>(tBI->second);
-              renderedBundleRootByEdge[e] = s;
-              continue;
-            }
-          }
-          if (sBI != leafToBundleIdx.end() || tBI != leafToBundleIdx.end()) {
-            renderedEdgeVisible[e] = false;
-          }
-          auto sCit = clusterByModelIdFull.find(s);
-          auto tCit = clusterByModelIdFull.find(t);
-          std::string sCluster = sCit != clusterByModelIdFull.end()
-            ? sCit->second
-            : std::string{};
-          std::string tCluster = tCit != clusterByModelIdFull.end()
-            ? tCit->second
-            : std::string{};
-          if (sCluster.empty()) sCluster = nearestClusterFinal(s);
-          if (tCluster.empty()) tCluster = nearestClusterFinal(t);
-          if (!sCluster.empty() && !tCluster.empty()) {
-            carrierClustersByEdge[e] = {sCluster, tCluster};
-            carrierIdByEdge[e] = (sCluster == tCluster)
-              ? "Cself|" + sCluster
-              : (sCluster < tCluster
-                  ? "C|" + sCluster + "|" + tCluster
-                  : "C|" + tCluster + "|" + sCluster);
-            renderedCarrierIdByEdge[e] = edges[e].edgeId;
-          } else {
-            carrierIdByEdge[e] = edges[e].edgeId;
-            renderedCarrierIdByEdge[e] = edges[e].edgeId;
-          }
-        }
-
-        const char* hubCarrierEnv = std::getenv("DJERD_HUB_CARRIER_CROSS_FINAL");
-        const bool hubCarrier =
-          hubCarrierEnv && std::strcmp(hubCarrierEnv, "0") != 0;
-        if (hubCarrier) {
-          const char* thresholdEnv =
-            std::getenv("DJERD_HUB_CARRIER_CROSS_FINAL_THRESHOLD");
-          const int threshold = thresholdEnv
-            ? std::max(2, std::atoi(thresholdEnv))
-            : 16;
-          std::unordered_map<std::string, int> incidentCarrierCount;
-          for (std::size_t e = 0; e < carrierClustersByEdge.size(); ++e) {
-            const auto& [leftCluster, rightCluster] = carrierClustersByEdge[e];
-            if (leftCluster.empty() || rightCluster.empty() || leftCluster == rightCluster) {
-              continue;
-            }
-            incidentCarrierCount[leftCluster] += 1;
-            incidentCarrierCount[rightCluster] += 1;
-          }
-          std::size_t hubEdges = 0;
-          std::unordered_set<std::string> hubClusters;
-          for (std::size_t e = 0; e < carrierClustersByEdge.size(); ++e) {
-            const auto& [leftCluster, rightCluster] = carrierClustersByEdge[e];
-            if (leftCluster.empty() || rightCluster.empty() || leftCluster == rightCluster) {
-              continue;
-            }
-            const int leftCount = incidentCarrierCount[leftCluster];
-            const int rightCount = incidentCarrierCount[rightCluster];
-            if (leftCount < threshold && rightCount < threshold) {
-              continue;
-            }
-            const std::string& hub =
-              (leftCount > rightCount || (leftCount == rightCount && leftCluster < rightCluster))
-                ? leftCluster
-                : rightCluster;
-            carrierIdByEdge[e] = "H|" + hub;
-            renderedCarrierIdByEdge[e] = "H|" + hub;
-            hubClusters.insert(hub);
-            ++hubEdges;
-          }
-          std::fprintf(stderr,
-            "[hub-carrier-cross-final] grouped %zu edges through %zu hubs "
-            "(threshold=%d).\n",
-            hubEdges,
-            hubClusters.size(),
-            threshold);
-          metadata.hubCarrierThreshold = threshold;
-          metadata.hubCarrierEdgesGrouped = hubEdges;
-          metadata.hubCarrierClusters = hubClusters.size();
-        }
-
-        const char* occMarginFinalEnv = std::getenv("DJERD_CARRIER_CROSS_OCCLUSION_MARGIN");
-        const double occMarginFinal = occMarginFinalEnv
-          ? std::max(0.0, std::atof(occMarginFinalEnv))
-          : 0.0;
-        std::unordered_set<std::string> bundleAbsorbedOccFinal;
-        for (const LeafBundleRecord& bundle : metadata.leafBundles) {
-          bundleAbsorbedOccFinal.insert(bundle.parentModelId);
-          for (const std::string& leaf : bundle.leafModelIds) {
-            bundleAbsorbedOccFinal.insert(leaf);
-          }
-        }
-        std::vector<Rect> carrierOcclusionRectsFinal;
-        carrierOcclusionRectsFinal.reserve(nodes.size() + metadata.leafBundles.size());
-        for (const NodeRecord& node : nodes) {
-          if (bundleAbsorbedOccFinal.count(node.modelId)) continue;
-          carrierOcclusionRectsFinal.push_back(nodeRect(node, attributes, occMarginFinal));
-        }
-        for (const LeafBundleRecord& bundle : metadata.leafBundles) {
-          carrierOcclusionRectsFinal.push_back(renderedLeafBundleRect(bundle, occMarginFinal));
-        }
-        auto pointInCarrierOcclusionFinal = [&](const RoutePoint& point) {
-          if (occMarginFinal <= 0.0) return false;
-          for (const Rect& rect : carrierOcclusionRectsFinal) {
-            if (
-                point.x >= rect.left && point.x <= rect.right
-                && point.y >= rect.top && point.y <= rect.bottom) {
-              return true;
-            }
-          }
-          return false;
-        };
-
-        std::set<std::pair<std::string, std::string>> seenCarrierPairs;
-        std::size_t carrierGroupedCross = 0;
-        std::size_t carrierOccludedCross = 0;
-        for (std::size_t i = 0; i < edges.size(); ++i) {
-          if (i >= routes.size() || routes[i].size() < 2) continue;
-          for (std::size_t j = i + 1; j < edges.size(); ++j) {
-            if (j >= routes.size() || routes[j].size() < 2) continue;
-            if (sharesEndpoint(edges[i], edges[j])) continue;
-            if (carrierIdByEdge[i] == carrierIdByEdge[j]) continue;
-            bool anyCross = false;
-            for (std::size_t li = 1; li < routes[i].size() && !anyCross; ++li) {
-              for (std::size_t rj = 1; rj < routes[j].size() && !anyCross; ++rj) {
-                RoutePoint isect;
-                if (properSegmentIntersection(
-                    routes[i][li - 1], routes[i][li],
-                    routes[j][rj - 1], routes[j][rj], isect)) {
-                  if (pointInCarrierOcclusionFinal(isect)) {
-                    ++carrierOccludedCross;
-                  } else {
-                    anyCross = true;
-                  }
-                }
-              }
-            }
-            if (!anyCross) continue;
-            auto pk = carrierIdByEdge[i] < carrierIdByEdge[j]
-              ? std::make_pair(carrierIdByEdge[i], carrierIdByEdge[j])
-              : std::make_pair(carrierIdByEdge[j], carrierIdByEdge[i]);
-            if (seenCarrierPairs.insert(pk).second) {
-              ++carrierGroupedCross;
-            }
-          }
-        }
-        std::fprintf(stderr,
-          "[carrier-cross-final] segment %zu -> carrier-grouped %zu "
-          "(occluded=%zu, margin=%.1f).\n",
-          totalRouteCrossings, carrierGroupedCross, carrierOccludedCross,
-          occMarginFinal);
-
-        if (!applyRenderedCarrierMetricsIfRequested(
-            nodes,
-            edges,
-            routes,
-            attributes,
-            clusterByModelIdFull,
-            metadata,
-            quality,
-            totalRouteCrossings)) {
-          quality.edgeCrossings = carrierGroupedCross;
-        }
-      }
+      applyFinalCarrierMetricsIfRequested(
+        nodes,
+        edges,
+        routes,
+        attributes,
+        clusterByModelIdFull,
+        metadata,
+        quality,
+        totalRouteCrossings);
 
       quality.visualCrossings =
         quality.edgeCrossings

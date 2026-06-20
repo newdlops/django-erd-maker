@@ -10,6 +10,7 @@ import { relayoutLiveDiagram } from "../services/diagram/loadLiveDiagram";
 import type { LiveDiagramResult } from "../services/diagram/loadLiveDiagram";
 import { restoreRefreshViewState } from "../services/diagram/restoreRefreshViewState";
 import { ensureOgdfBinaryInstalled } from "../services/layout/ensureOgdfBinaryInstalled";
+import { exportDiagramAnalysisArtifacts } from "../services/diagram/exportDiagramAnalysisArtifacts";
 import { getExtensionLogger, showExtensionLog } from "../services/logging/extensionLogger";
 import type { Logger } from "../services/logging/logger";
 import { timeAsync } from "../services/metrics/timeAsync";
@@ -113,6 +114,19 @@ export async function openDiagram(
           return cachedDiagram ?? liveDiagram;
         }
 
+        await exportDiagramAnalysisArtifacts(
+          context.extensionUri.fsPath,
+          liveDiagram.payload,
+          logger,
+          {
+            acceptedBy: "extension.refreshLoader",
+            bubbleLayout,
+            clusterGraphLayout,
+            optimizedLayout,
+            refreshKind,
+            requestId: refreshRunId,
+          },
+        );
         logLiveDiagramResult(liveDiagram, logger, refreshRunId);
         cachedDiagram = liveDiagram;
         return liveDiagram;

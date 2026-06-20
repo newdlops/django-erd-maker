@@ -48,7 +48,8 @@
     "verify:release": "npm run build && node scripts/verify-release-artifacts.mjs",
     "test:e2e": "npm run build && node test/e2e/run-e2e.mjs",
     "test": "npm run typecheck && cargo test --manifest-path analyzer/Cargo.toml",
-    "analyzer:run": "cargo run --manifest-path analyzer/Cargo.toml"
+    "analyzer:run": "cargo run --manifest-path analyzer/Cargo.toml",
+    "analyze:codeidx-log": "node scripts/analyze-codeidx-log.mjs log.txt"
   },
   "devDependencies": {
     "onnxruntime-node": "^1.26.0",

@@ -14,8 +14,6 @@ import { runAnalyzerBootstrap } from "../analyzer/runAnalyzerBootstrap";
 import { runOgdfLayout } from "../layout/runOgdfLayout";
 import type { Logger } from "../logging/logger";
 import { createEmptyDiagramPayload } from "./createEmptyDiagramPayload";
-import { writeFile } from "node:fs/promises";
-import path from "node:path";
 
 export interface LiveDiagramResult {
   basePayload: DiagramBootstrapPayload;
@@ -52,20 +50,6 @@ export async function relayoutLiveDiagram(
     requestId,
     edgeRouting,
   );
-
-  // [export] Dump the final layout for offline analysis (Claude reads this to
-  // render an analysis image + auto-detect crossing patterns). Includes node
-  // coordinates/sizes + routedEdges points (layout) and app/kind (graph).
-  try {
-    await writeFile(
-      path.join(extensionRootPath, "erd-layout-final.json"),
-      JSON.stringify({ layout: payload.layout, graph: payload.graph }),
-      "utf8",
-    );
-    logger?.info("[export] final layout dumped → erd-layout-final.json");
-  } catch {
-    // best-effort; ignore write failures
-  }
 
   return {
     basePayload: current.basePayload,

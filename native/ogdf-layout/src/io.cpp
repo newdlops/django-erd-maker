@@ -92,6 +92,7 @@ void writeLayoutEngineMetadata(
            << ",\"hubCarrierClusters\":" << metadata.hubCarrierClusters;
   }
   stream << ",\"nodeOverlaps\":" << quality.nodeOverlaps
+         << ",\"rawRouteCrossings\":" << metadata.rawRouteCrossings
          << ",\"nodeSpacingOverlaps\":" << quality.nodeSpacingOverlaps
          << ",\"edgeCrossings\":" << quality.edgeCrossings
          << ",\"edgeNodeIntersections\":" << quality.edgeNodeIntersections
@@ -212,6 +213,8 @@ CliArguments parseArguments(int argc, char** argv) {
       arguments.bubble = (value == "1" || value == "true");
     } else if (flag == "--positions-tsv") {
       arguments.positionsTsv = value;
+    } else if (flag == "--routes-tsv") {
+      arguments.routesTsv = value;
     } else if (flag == "--rigid-positions") {
       arguments.rigidPositions = (value == "1" || value == "true");
     } else {
