@@ -51,7 +51,7 @@ export interface LayoutExecutionSnapshot {
   engineMetadata?: LayoutEngineMetadata;
   reason?: string;
   requestedMode: LayoutMode;
-  status: "applied" | "empty" | "fallback";
+  status: "applied" | "empty" | "fallback" | "quality-degraded";
 }
 
 export interface DiagramBootstrapPayload {

@@ -14,7 +14,13 @@ import type {
   DiagramBootstrapPayload,
   TableViewOptions,
 } from "../../shared/protocol/webviewContract";
-import type { EdgeCrossing, LeafBundle, Point, RoutedEdgePath } from "../../shared/graph/layoutContract";
+import type {
+  CanonicalCrossingMetadata,
+  EdgeCrossing,
+  LeafBundle,
+  Point,
+  RoutedEdgePath,
+} from "../../shared/graph/layoutContract";
 import type { StructuralGraphEdge, MethodAssociation } from "../../shared/graph/diagramGraph";
 
 const MODEL_CATALOG_MODE_THRESHOLD = 500;
@@ -45,7 +51,7 @@ export interface LayoutExecutionRenderModel {
   reason?: string;
   requestedLabel: string;
   requestedMode: LayoutMode;
-  status: "applied" | "empty" | "fallback";
+  status: "applied" | "empty" | "fallback" | "quality-degraded";
 }
 
 export interface LayoutFailureRenderModel {
@@ -122,10 +128,21 @@ export interface ClusterOutline {
   memberCount: number;
 }
 
+export interface CanonicalCrossingRenderModel {
+  boundViolation: boolean;
+  completeRoutes: boolean;
+  gap?: number;
+  lowerBound: number;
+  optimality?: number;
+  properDrawing: boolean;
+  routeCrossingPairs: number;
+}
+
 export interface DiagramRenderModel {
   bundleLeafTiles: BundleLeafTile[];
   bundleLeavesByFakeId: Record<string, ModelId[]>;
   canvas: { height: number; width: number };
+  canonicalCrossing?: CanonicalCrossingRenderModel;
   clusterOutlines: ClusterOutline[];
   crossings: EdgeCrossing[];
   edges: EdgeRenderModel[];
@@ -138,6 +155,7 @@ export interface DiagramRenderModel {
   overlays: MethodOverlayRenderModel[];
   timings: DiagramBootstrapPayload["timings"];
   tables: TableRenderModel[];
+  visualCrossings?: number;
 }
 
 export function createDiagramRenderModel(
@@ -328,6 +346,9 @@ export function createDiagramRenderModel(
     bundleLeafTiles,
     bundleLeavesByFakeId,
     canvas: canvasSize(payload, renderedTables, modelCatalogMode && routedEdges.length === 0),
+    canonicalCrossing: createCanonicalCrossingRenderModel(
+      payload.layout.engineMetadata?.canonicalCrossing,
+    ),
     clusterOutlines,
     crossings: modelCatalogMode ? [] : payload.layout.crossings,
     edges: renderedEdges,
@@ -345,6 +366,25 @@ export function createDiagramRenderModel(
     overlays,
     timings: payload.timings,
     tables: renderedTables,
+    visualCrossings: payload.layout.engineMetadata?.visualCrossings,
+  };
+}
+
+function createCanonicalCrossingRenderModel(
+  metadata: CanonicalCrossingMetadata | undefined,
+): CanonicalCrossingRenderModel | undefined {
+  if (!metadata) {
+    return undefined;
+  }
+
+  return {
+    boundViolation: metadata.boundViolation,
+    completeRoutes: metadata.completeRoutes,
+    gap: metadata.gap,
+    lowerBound: metadata.lowerBound,
+    optimality: metadata.optimality,
+    properDrawing: metadata.properDrawing,
+    routeCrossingPairs: metadata.routeCrossingPairs,
   };
 }
 
@@ -718,6 +758,17 @@ function createDiagnostics(payload: DiagramBootstrapPayload): InspectorRenderMod
               `Requested ${layoutExecution.requestedLabel} but applied ${layoutExecution.appliedLabel}.`,
               layoutExecution.reason,
             ].filter(Boolean).join(" "),
+            severity: "warning",
+          },
+        ]
+      : []),
+    ...(layoutExecution.status === "quality-degraded"
+      ? [
+          {
+            code: "layout_quality_degraded",
+            message:
+              layoutExecution.reason
+              ?? "The optimized layout was applied but did not meet its quality target.",
             severity: "warning",
           },
         ]

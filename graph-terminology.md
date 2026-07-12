@@ -130,6 +130,22 @@ deg = 0 인 노드. 다른 어떤 노드와도 연결되지 않은 isolated node
 
 **arc 폭 cap**: 빈 arc가 매우 클 때(고립된 parent 등) 자식들이 너무 퍼지지 않게 max 120°로 제한 → 트리 spread를 압축.
 
+## 2.6 Certified crossing lower bound
+
+Crossing 하한은 §1.1의 edge dedup을 적용하고 self-loop를 제외한 **canonical simple undirected graph**에서만 계산한다.
+
+인증기는 서로 edge-disjoint한 다음 subgraph certificate를 합산한다.
+
+- degree-2 chain을 suppress한 kernel의 `K₃,n` subdivision:
+  `⌊n/2⌋ × ⌊(n-1)/2⌋`을 기여
+- 남은 graph의 `K₅` 또는 `K₃,₃` Kuratowski subdivision: 각각 1을 기여
+- 한 certificate에서 사용한 원본 edge는 다른 certificate에서 재사용하지 않는다.
+- certificate를 모두 제거한 잔여 graph가 planar인지 별도로 확인한다.
+
+이 값은 classical crossing number와 pair-crossing number의 엄밀한 하한이다. 반면 leaf bundle, hub carrier, edge-node 충돌을 합성한 renderer의 `edgeCrossings`/`visualCrossings`는 topology가 다르므로 이 하한을 적용하지 않는다.
+
+현재 route와 비교할 때도 canonical edge마다 대표 route 하나를 골라야 한다. 모든 route가 존재하고, non-incident node 관통·collinear overlap·T-junction·self-intersection이 없는 proper drawing일 때만 `canonical crossing pairs - lower bound`를 gap으로 보고한다. 조건을 만족하지 않으면 하한 자체는 유효하지만 gap은 diagnostic-only이다.
+
 ---
 
 ## 3. Cluster (Louvain Community)
@@ -529,4 +545,3 @@ while members remain:
   - Cluster-graph: 도메인 backbone, bus, polar 분석 (방향성 있음)
   - Bubble: 클러스터 자체를 닫힌 단위로 보고 클러스터 간 관계만 살펴보고 싶을 때 (= bubble들이 어떻게 위치하고 겹치는지)
 - 둘은 같은 cluster 분류를 공유하므로 토글 시 클러스터 멤버는 그대로, 배치만 변경됨
-

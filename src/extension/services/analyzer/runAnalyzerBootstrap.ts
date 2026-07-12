@@ -87,6 +87,12 @@ export async function runAnalyzerBootstrap(
       [
         `Analyzer bootstrap completed in ${Date.now() - started}ms`,
         `models=${payload.analyzer.models.length}`,
+        ...(payload.analyzer.summary.canonicalModelIdCollisionCount !== undefined
+          ? [
+              `canonicalModelIdCollisions=`
+              + `${payload.analyzer.summary.canonicalModelIdCollisionCount}`,
+            ]
+          : []),
         `diagnostics=${payload.analyzer.diagnostics.length}`,
         `nodes=${payload.graph.nodes.length}`,
         `structuralEdges=${payload.graph.structuralEdges.length}`,
@@ -135,7 +141,7 @@ function logModulePreview(
     return;
   }
 
-  const previewLimit = 200;
+  const previewLimit = 25;
   for (const module of modules.slice(0, previewLimit)) {
     logger.info(`Analyzer module: ${module.appLabel}:${module.filePath}`);
   }

@@ -58,6 +58,7 @@ pub enum ResolutionState {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnalysisSummary {
+    pub canonical_model_id_collision_count: usize,
     pub diagnostic_count: usize,
     pub discovered_app_count: usize,
     pub discovered_model_count: usize,
@@ -144,6 +145,8 @@ pub struct ExtractedModel {
     pub identity: ModelIdentity,
     pub methods: Vec<UserMethod>,
     pub properties: Vec<PropertyAttribute>,
+    #[serde(skip)]
+    pub source_file_path: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -162,6 +165,7 @@ impl AnalyzerOutput {
             diagnostics: Vec::new(),
             models: Vec::new(),
             summary: AnalysisSummary {
+                canonical_model_id_collision_count: 0,
                 diagnostic_count: 0,
                 discovered_app_count: 0,
                 discovered_model_count: 0,

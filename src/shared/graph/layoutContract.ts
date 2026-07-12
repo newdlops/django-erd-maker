@@ -457,6 +457,27 @@ export interface TopCrossEdge {
   crossings: number;
 }
 
+export interface CanonicalCrossingMetadata {
+  boundViolation: boolean;
+  certifierVersion: string;
+  completeRoutes: boolean;
+  domain: "canonical-simple-v1";
+  edgeCount: number;
+  gap?: number;
+  k3nCertificates: number;
+  k3nContribution: number;
+  kuratowskiCertificates: number;
+  kuratowskiContribution: number;
+  lowerBound: number;
+  method: string;
+  nodeCount: number;
+  nonProperContacts: number;
+  optimality?: number;
+  properDrawing: boolean;
+  routeCrossingPairs: number;
+  routeCrossingPoints: number;
+}
+
 export interface LayoutEngineMetadata {
   actualAlgorithm?: string;
   actualMode?: LayoutMode;
@@ -464,6 +485,7 @@ export interface LayoutEngineMetadata {
   boundingBoxArea?: number;
   bundleEdgeIntersections?: number;
   bundleNodeOverlaps?: number;
+  canonicalCrossing?: CanonicalCrossingMetadata;
   edgeCrossings?: number;
   edgeLengthStddev?: number;
   edgeNodeIntersections?: number;

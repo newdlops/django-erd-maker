@@ -12,17 +12,21 @@ pub struct ModelRegistry {
 
 impl ModelRegistry {
     pub fn new(models: &[ExtractedModel]) -> Self {
-        let models = models
-            .iter()
-            .map(|model| {
-                (
-                    model.identity.id.as_str().to_string(),
-                    model.identity.clone(),
-                )
-            })
-            .collect();
+        let mut identities_by_id = BTreeMap::new();
 
-        Self { models }
+        // Keep the historical last-definition-wins behavior, but make the
+        // overwrite explicit. Extraction reports every collision before the
+        // registry is created so this data loss is no longer silent.
+        for model in models {
+            identities_by_id.insert(
+                model.identity.id.as_str().to_string(),
+                model.identity.clone(),
+            );
+        }
+
+        Self {
+            models: identities_by_id,
+        }
     }
 
     pub fn contains(&self, model_id: &CanonicalModelId) -> bool {

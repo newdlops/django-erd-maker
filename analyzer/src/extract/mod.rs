@@ -8,8 +8,10 @@ mod module_context;
 
 use crate::parser::python_module_parser::parse_python_module_file;
 use crate::protocol::analysis::AnalyzerOutput;
+use diagnostics::canonical_model_id_collision_diagnostic;
 use model_catalog::discover_project_model_ids;
 use model_extractor::extract_models_from_module;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::time::Instant;
 
@@ -85,6 +87,22 @@ pub fn analyze_request_with_metrics(
 }
 
 fn finalize_output(output: &mut AnalyzerOutput) {
+    let mut latest_model_index_by_id = BTreeMap::<String, usize>::new();
+    let mut collision_diagnostics = Vec::new();
+
+    for (model_index, model) in output.models.iter().enumerate() {
+        if let Some(overwritten_index) =
+            latest_model_index_by_id.insert(model.identity.id.as_str().to_string(), model_index)
+        {
+            collision_diagnostics.push(canonical_model_id_collision_diagnostic(
+                &output.models[overwritten_index],
+                model,
+            ));
+        }
+    }
+
+    output.summary.canonical_model_id_collision_count = collision_diagnostics.len();
+    output.diagnostics.extend(collision_diagnostics);
     output
         .models
         .sort_by(|left, right| left.identity.id.as_str().cmp(right.identity.id.as_str()));
@@ -575,9 +593,100 @@ class AuditEvent(models.Model):
 
         assert!(json.contains("\"contractVersion\": \"1.0\""));
         assert!(json.contains("\"declaredBaseClasses\": ["));
+        assert!(json.contains("\"canonicalModelIdCollisionCount\": 0"));
         assert!(json.contains("\"databaseTableName\": \"blog_post\""));
         assert!(json.contains("\"discoveredModelCount\": 1"));
         assert!(json.contains("\"fieldType\": \"CharField\""));
+        assert!(!json.contains("sourceFilePath"));
+    }
+
+    #[test]
+    fn reports_canonical_model_id_collisions_with_provenance() {
+        let workspace_root = PathBuf::from("/virtual/workspace");
+        let output = analyze_sources(
+            &workspace_root,
+            vec![
+                (
+                    ModuleInput {
+                        app_label: "blog".to_string(),
+                        file_path: workspace_root.join("blog/legacy_models.py"),
+                    },
+                    r#"
+from django.db import models
+
+class Post(models.Model):
+    legacy_title = models.CharField(max_length=100)
+"#,
+                ),
+                (
+                    ModuleInput {
+                        app_label: "blog".to_string(),
+                        file_path: workspace_root.join("blog/models.py"),
+                    },
+                    r#"
+from django.db import models
+
+class Post(models.Model):
+    title = models.CharField(max_length=200)
+"#,
+                ),
+            ],
+        );
+
+        assert_eq!(output.models.len(), 2);
+        assert_eq!(output.summary.discovered_model_count, 2);
+        assert_eq!(output.summary.canonical_model_id_collision_count, 1);
+        assert_eq!(output.summary.diagnostic_count, 1);
+
+        let diagnostic = &output.diagnostics[0];
+        assert_eq!(diagnostic.code, DiagnosticCode::PartialInference);
+        assert_eq!(
+            diagnostic
+                .related_model_id
+                .as_ref()
+                .map(CanonicalModelId::as_str),
+            Some("blog.Post")
+        );
+        assert_eq!(
+            diagnostic
+                .location
+                .as_ref()
+                .map(|location| location.file_path.as_str()),
+            Some("/virtual/workspace/blog/models.py")
+        );
+        assert_eq!(
+            diagnostic
+                .location
+                .as_ref()
+                .and_then(|location| location.symbol_name.as_deref()),
+            Some("Post")
+        );
+        assert!(
+            diagnostic
+                .message
+                .contains("Canonical model ID 'blog.Post'")
+        );
+        assert!(diagnostic.message.contains("module='blog.legacy_models'"));
+        assert!(
+            diagnostic
+                .message
+                .contains("source='/virtual/workspace/blog/legacy_models.py'")
+        );
+        assert!(diagnostic.message.contains("module='blog.models'"));
+        assert!(
+            diagnostic
+                .message
+                .contains("source='/virtual/workspace/blog/models.py'")
+        );
+        assert!(
+            diagnostic
+                .message
+                .contains("remove the duplicate module input")
+        );
+
+        let graph = crate::resolve::build_diagram_graph(&output);
+        assert_eq!(graph.nodes.len(), 1);
+        assert_eq!(graph.diagnostics, output.diagnostics);
     }
 
     fn analyze_source(

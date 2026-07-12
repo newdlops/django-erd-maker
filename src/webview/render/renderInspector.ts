@@ -25,6 +25,7 @@ export function renderInspector(
           · <span data-hidden-count>${viewModel.tables.filter((table) => table.hidden).length}</span> hidden
           · ${viewModel.crossings.length} crossings
         </p>
+        ${renderCrossingReadouts(viewModel)}
         ${layoutExecution.status === "fallback"
           ? `
             <p class="erd-summary__meta">
@@ -38,7 +39,18 @@ export function renderInspector(
                 : ""
             }
           `
-          : ""}
+          : layoutExecution.status === "quality-degraded"
+            ? `
+              <p class="erd-summary__meta">
+                Optimized layout applied · Quality target missed
+              </p>
+              ${
+                layoutExecution.reason
+                  ? `<p class="erd-summary__meta">${escapeHtml(layoutExecution.reason)}</p>`
+                  : ""
+              }
+            `
+            : ""}
         ${viewModel.modelCatalogMode ? "<p class=\"erd-summary__meta\">Model catalog mode: model and DB table names only.</p>" : ""}
         ${renderTimingSummary(viewModel)}
       </section>
@@ -52,6 +64,46 @@ export function renderInspector(
       ${renderDiagnostics(viewModel)}
     </aside>
   `;
+}
+
+function renderCrossingReadouts(viewModel: DiagramRenderModel): string {
+  const visualReadout = viewModel.visualCrossings === undefined
+    ? ""
+    : `
+      <p class="erd-summary__meta" data-visual-crossing-readout>
+        Visual conflicts: ${escapeHtml(formatMetricNumber(viewModel.visualCrossings))}
+      </p>
+    `;
+  const canonical = viewModel.canonicalCrossing;
+  if (!canonical) {
+    return visualReadout;
+  }
+
+  const canonicalParts = [
+    `Canonical crossings: pairs ${formatMetricNumber(canonical.routeCrossingPairs)}`,
+    `certified lower bound ≥ ${formatMetricNumber(canonical.lowerBound)}`,
+    canonical.gap === undefined
+      ? "gap unavailable"
+      : `gap ${formatMetricNumber(canonical.gap)}`,
+    canonical.optimality === undefined
+      ? undefined
+      : `optimality ${formatMetricNumber(canonical.optimality * 100)}%`,
+    canonical.boundViolation
+      ? "bound mismatch"
+      : !canonical.completeRoutes || !canonical.properDrawing
+        ? "diagnostic only"
+        : undefined,
+  ].filter((part): part is string => part !== undefined);
+
+  return `${visualReadout}
+    <p class="erd-summary__meta" data-canonical-crossing-readout>
+      ${escapeHtml(canonicalParts.join(" · "))}
+    </p>
+  `;
+}
+
+function formatMetricNumber(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(3);
 }
 
 function renderSetupSection(initialState: DiagramInteractionState): string {

@@ -42,5 +42,10 @@ export interface DjangoWorkspaceDiscoveryResult {
   diagnostics: DiscoveryDiagnostic[];
   selectedRoot: string;
   strategy: WorkspaceRootStrategy;
+  timings?: {
+    appDiscoveryMs: number;
+    candidateModulesMs: number;
+    rootSelectionMs: number;
+  };
   workspacePath: string;
 }

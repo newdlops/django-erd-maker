@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -15,6 +15,15 @@ function fnvHash(...parts: string[]): string {
     }
   }
   return h1.toString(16).padStart(8, "0") + h2.toString(16).padStart(8, "0");
+}
+
+async function fileStatFingerprint(filePath: string): Promise<string> {
+  try {
+    const fileStat = await stat(filePath);
+    return `${filePath}:${fileStat.size}:${Math.trunc(fileStat.mtimeMs)}`;
+  } catch {
+    return `${filePath}:missing`;
+  }
 }
 
 const LAYOUT_ENV_CACHE_BLOCKLIST = new Set([
@@ -57,9 +66,10 @@ import { resolveOgdfLayoutBinaryPath } from "./resolveOgdfLayoutBinaryPath";
 
 const OGDF_LAYOUT_TIMEOUT_MS = 600_000;
 const V35_SCORER_TIMEOUT_MS = 180_000;
-const DEFAULT_RENDERED_CARRIER_THRESHOLD = "14";
+const DEFAULT_POST_REROUTE_POLISH_BUDGET_MS = 90_000;
+const DEFAULT_RENDERED_CARRIER_THRESHOLD = "12";
 const DEFAULT_OPTIMIZED_BBOX_TARGET_B = 1.0;
-const DEFAULT_VISUAL_CROSS_TARGET = 400;
+const DEFAULT_VISUAL_CROSS_TARGET = 500;
 const DEFAULT_VISUAL_CROSS_POLISH_VARIANTS = [
   "route",
   "route-clear",
@@ -95,6 +105,17 @@ type VisualCrossPolishVariant =
   | "knot-clear";
 type BboxTargetVariant = "local" | "holistic";
 type BboxTargetPositionStrategy = "gap" | "scale" | "density-scale";
+
+type PostReroutePolishDeadline = {
+  budgetMs: number;
+  deadlineMs: number;
+  startedMs: number;
+};
+
+type BudgetedCandidateTimeout = {
+  budgetLimited: boolean;
+  timeoutMs: number;
+};
 
 function resolveV36CkptPath(extensionRootPath: string): string {
   return process.env.DJERD_V36_CKPT_PATH
@@ -1826,6 +1847,57 @@ function ogdfFinalExportRetouchSpacingRepairEnv(): Record<string, string | undef
 function ogdfFinalExportRetouchDebtRepairEnv(): Record<string, string | undefined> {
   return {
     ...ogdfFinalExportRetouchSpacingRepairEnv(),
+    DJERD_BBOX_AXIS_SCALE_FINAL:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BBOX_AXIS_SCALE
+      ?? "1",
+    DJERD_BBOX_Y_SCALE_FINAL_SCALES:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BBOX_Y_SCALES
+      ?? "0.98,0.95,0.92,0.88,0.84",
+    DJERD_BBOX_AXIS_SCALE_FINAL_MIN_GAIN:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BBOX_MIN_GAIN
+      ?? "0.01",
+    DJERD_BBOX_AXIS_SCALE_FINAL_VISUAL_SLACK:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BBOX_VISUAL_SLACK
+      ?? "64",
+    DJERD_BBOX_AXIS_SCALE_FINAL_BUNDLE_NODE_SLACK:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BBOX_BUNDLE_NODE_SLACK
+      ?? "2",
+    DJERD_BBOX_AXIS_SCALE_FINAL_MAX_ASPECT:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BBOX_MAX_ASPECT
+      ?? "2.4",
+    DJERD_DENSITY_PACK_FINAL:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK
+      ?? "1",
+    DJERD_DENSITY_PACK_SCALES:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_SCALES
+      ?? "0.94,0.90,0.86,0.82,0.78,0.72,0.68",
+    DJERD_DENSITY_PACK_MIN_GAIN:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_MIN_GAIN
+      ?? "0.03",
+    DJERD_DENSITY_PACK_TOP:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_TOP
+      ?? "0",
+    DJERD_DENSITY_PACK_EMPTY_BAND_KEEP:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_EMPTY_BAND_KEEP
+      ?? "480",
+    DJERD_DENSITY_PACK_VISUAL_SLACK:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_VISUAL_SLACK
+      ?? "64",
+    DJERD_DENSITY_PACK_EDGE_NODE_SLACK:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_EDGE_NODE_SLACK
+      ?? "96",
+    DJERD_DENSITY_PACK_SPACING_SLACK:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_SPACING_SLACK
+      ?? "83",
+    DJERD_DENSITY_PACK_BUNDLE_NODE_SLACK:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_BUNDLE_NODE_SLACK
+      ?? "2",
+    DJERD_DENSITY_PACK_NODE_OVERLAP_SLACK:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_NODE_OVERLAP_SLACK
+      ?? "0",
+    DJERD_DENSITY_PACK_CLEANUP:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_CLEANUP
+      ?? "1",
     DJERD_NODE_OVERLAP_CLEAR_FINAL:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_NODE_OVERLAP_CLEAR
       ?? "1",
@@ -1853,6 +1925,35 @@ function ogdfFinalExportRetouchDebtRepairEnv(): Record<string, string | undefine
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_NODE_OVERLAP_BBOX_LIMIT
       ?? process.env.DJERD_NODE_OVERLAP_CLEAR_FINAL_BBOX_LIMIT
       ?? "1.02",
+
+    DJERD_NODE_EDGE_RELIEF_FINAL:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF
+      ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL
+      ?? "1",
+    DJERD_NODE_EDGE_RELIEF_FINAL_PASSES:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_PASSES
+      ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_PASSES
+      ?? "4",
+    DJERD_NODE_EDGE_RELIEF_FINAL_MAX_SHIFT:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_MAX_SHIFT
+      ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_MAX_SHIFT
+      ?? "220",
+    DJERD_NODE_EDGE_RELIEF_FINAL_STRENGTH:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_STRENGTH
+      ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_STRENGTH
+      ?? "0.95",
+    DJERD_NODE_EDGE_RELIEF_FINAL_ENDPOINTS:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_ENDPOINTS
+      ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_ENDPOINTS
+      ?? "1",
+    DJERD_NODE_EDGE_RELIEF_FINAL_ENDPOINT_TOP:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_ENDPOINT_TOP
+      ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_ENDPOINT_TOP
+      ?? "80",
+    DJERD_NODE_EDGE_RELIEF_FINAL_ENDPOINT_STEPS:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_ENDPOINT_STEPS
+      ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_ENDPOINT_STEPS
+      ?? "80,160,300,600",
 
     DJERD_EDGE_DETOUR_FINAL:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_EDGE_DETOUR
@@ -1954,6 +2055,136 @@ function ogdfFinalExportRetouchDebtRepairEnv(): Record<string, string | undefine
     DJERD_LEAF_BUNDLE_NODE_CLEAR_AFTER_RELOCATE_FINAL_BBOX_LIMIT:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BUNDLE_AFTER_CLEAR_BBOX_LIMIT
       ?? "1.02",
+  };
+}
+
+function ogdfFinalExportRetouchDebtRepairHubCorridorEnv(): Record<string, string | undefined> {
+  return {
+    ...ogdfFinalExportRetouchEnv(),
+    DJERD_RESTORE_LAYOUT_TSV_BEFORE_RETOUCH:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_RESTORE_LAYOUT
+      ?? "0",
+    DJERD_L_BEND_REROUTE:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND
+      ?? "1",
+    DJERD_L_BEND_REROUTE_TOPK:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_TOPK
+      ?? "960",
+    DJERD_L_BEND_REROUTE_MIN_GAIN:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_MIN_GAIN
+      ?? "0",
+    DJERD_L_BEND_REROUTE_EDGE_NODE_WEIGHT:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_EDGE_NODE_WEIGHT
+      ?? "6",
+    DJERD_L_BEND_REROUTE_SEGMENT_OVERLAP_WEIGHT:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_SEGMENT_OVERLAP_WEIGHT
+      ?? "12",
+    DJERD_L_BEND_REROUTE_SEGMENT_OVERLAP_LENGTH_WEIGHT:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_SEGMENT_OVERLAP_LENGTH_WEIGHT
+      ?? "0.001",
+    DJERD_L_BEND_REROUTE_LENGTH_WEIGHT:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_LENGTH_WEIGHT
+      ?? "0.0001",
+    DJERD_PERIPHERY_REROUTE:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY
+      ?? "1",
+    DJERD_PERIPHERY_TOPK:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_TOPK
+      ?? "96",
+    DJERD_PERIPHERY_MAX_LANES:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_MAX_LANES
+      ?? "4",
+    DJERD_PERIPHERY_EDGE_NODE_WEIGHT:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_EDGE_NODE_WEIGHT
+      ?? "6",
+    DJERD_PERIPHERY_SEGMENT_OVERLAP_WEIGHT:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_SEGMENT_OVERLAP_WEIGHT
+      ?? "12",
+    DJERD_PERIPHERY_SEGMENT_OVERLAP_LENGTH_WEIGHT:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_SEGMENT_OVERLAP_LENGTH_WEIGHT
+      ?? "0.001",
+    DJERD_DIAGONAL_RETOUCH:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_DIAGONAL_RETOUCH
+      ?? "1",
+    DJERD_NODE_PAIR_RETOUCH:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_RETOUCH
+      ?? "1",
+    DJERD_NODE_PAIR_RETOUCH_TOPK:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_TOPK
+      ?? "768",
+    DJERD_NODE_PAIR_RETOUCH_ROUNDS:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_ROUNDS
+      ?? "4",
+    DJERD_NODE_PAIR_RETOUCH_STEPS:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_STEPS
+      ?? "4",
+    DJERD_NODE_PAIR_RETOUCH_MIN_SPAN:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_MIN_SPAN
+      ?? "420",
+    DJERD_NODE_PAIR_RETOUCH_LEAF_MIN_SPAN:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_LEAF_MIN_SPAN
+      ?? "360",
+    DJERD_NODE_PAIR_RETOUCH_STEP:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_STEP
+      ?? "180",
+    DJERD_NODE_PAIR_RETOUCH_MAX_SHIFT:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_MAX_SHIFT
+      ?? "2400",
+    DJERD_NODE_PAIR_RETOUCH_MAX_INCIDENT:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_MAX_INCIDENT
+      ?? "512",
+    DJERD_NODE_PAIR_RETOUCH_NODE_MARGIN:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_NODE_MARGIN
+      ?? "16",
+    DJERD_NODE_PAIR_RETOUCH_LEAF_ONLY:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_LEAF_ONLY
+      ?? "0",
+    DJERD_NODE_PAIR_RETOUCH_LEAF_GAP:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_LEAF_GAP
+      ?? "48",
+    DJERD_NODE_PAIR_RETOUCH_PAIR_GAP:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_PAIR_GAP
+      ?? "48",
+    DJERD_NODE_PAIR_RETOUCH_RAW_ACCEPT:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_RAW_ACCEPT
+      ?? "0",
+    DJERD_NODE_PAIR_RETOUCH_COMPACT_RELOCATE:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_COMPACT_RELOCATE
+      ?? "0",
+    DJERD_NODE_PAIR_RETOUCH_SLOT_RINGS:
+      process.env
+        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_SLOT_RINGS
+      ?? "8",
   };
 }
 
@@ -2239,7 +2470,7 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedBboxTargetPartialMinGain=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_PARTIAL_MIN_GAIN ?? "0.025"}`,
     `optimizedBboxTargetPartialMaxQualityDebt=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_PARTIAL_MAX_QUALITY_DEBT ?? "0.04"}`,
     `optimizedBboxTargetPartialMaxSpacingDebt=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_PARTIAL_MAX_SPACING_DEBT ?? "0.01"}`,
-    `optimizedBboxTargetMaxVisualDebt=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_MAX_VISUAL_DEBT_RATIO ?? "0.20"}`,
+    `optimizedBboxTargetMaxVisualDebt=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_MAX_VISUAL_DEBT_RATIO ?? "0.05"}`,
     `optimizedBboxTargetStageBailAfter=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_STAGE_BAIL_AFTER ?? "6"}`,
     `optimizedBboxTargetStageBailQualityRatio=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_STAGE_BAIL_QUALITY_RATIO ?? "5.0"}`,
     `optimizedBboxTargetStageBailSpacingRatio=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_STAGE_BAIL_SPACING_RATIO ?? "10.0"}`,
@@ -2287,6 +2518,7 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedBboxTargetReliefPasses=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_RELIEF_PASSES ?? "1"}`,
     `optimizedBboxTargetReliefMaxShift=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_RELIEF_MAX_SHIFT ?? "220"}`,
     `optimizedBboxTargetReliefStrength=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_RELIEF_STRENGTH ?? "0.95"}`,
+    `optimizedPostReroutePolishBudgetMs=${process.env.DJERD_OPTIMIZED_POST_REROUTE_POLISH_BUDGET_MS ?? DEFAULT_POST_REROUTE_POLISH_BUDGET_MS.toString()}`,
     `optimizedEdgeNodePolish=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH ?? "1"}`,
     `optimizedEdgeNodePolishVariants=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH_VARIANTS ?? "cheap,local,holistic"}`,
     `optimizedEdgeNodePolishMinGain=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH_MIN_GAIN_RATIO ?? "0.08"}`,
@@ -2318,6 +2550,8 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedVisualCrossPolishRouteBboxGrowth=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_ROUTE_BBOX_GROWTH_LIMIT ?? "1.08"}`,
     `optimizedVisualCrossPolishRouteBboxTieVisualSlack=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_ROUTE_BBOX_TIE_VISUAL_SLACK ?? "8"}`,
     `optimizedVisualCrossPolishRouteBboxTieRatio=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_ROUTE_BBOX_TIE_RATIO ?? "0.92"}`,
+    `optimizedVisualCrossPolishTopologyTieVisualSlack=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_TOPOLOGY_TIE_VISUAL_SLACK ?? "64"}`,
+    `optimizedVisualCrossPolishTopologyTieEdgeNodeSlack=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_TOPOLOGY_TIE_EDGE_NODE_SLACK ?? "32"}`,
     `optimizedVisualCrossPolishMaxRouteBboxDebtPerGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_MAX_ROUTE_BBOX_DEBT_PER_GAIN ?? "0.05"}`,
     `optimizedVisualCrossPolishMaxSpacingDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_MAX_SPACING_DEBT ?? "0"}`,
     `optimizedVisualCrossPolishMaxSpacingDebtPerGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_MAX_SPACING_DEBT_PER_GAIN ?? "0.00"}`,
@@ -2357,9 +2591,9 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedVisualCrossRecompactSafetyLimit=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_RECOMPACT_SAFETY_LIMIT ?? "1"}`,
     `optimizedVisualCrossRecompactStrategyLimit=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_RECOMPACT_STRATEGY_LIMIT ?? "1"}`,
     `optimizedVisualCrossRecompactVariantLimit=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_RECOMPACT_VARIANT_LIMIT ?? "2"}`,
-    `optimizedVisualCrossPolishMaxOverlappingEdgeDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_MAX_OVERLAPPING_EDGE_DEBT ?? "18"}`,
+    `optimizedVisualCrossPolishMaxOverlappingEdgeDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_MAX_OVERLAPPING_EDGE_DEBT ?? "0"}`,
     `optimizedVisualCrossPolishMaxOverlappingEdgeDebtPerGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_MAX_OVERLAPPING_EDGE_DEBT_PER_GAIN ?? "0.25"}`,
-    `optimizedVisualCrossPolishMaxSegmentOverlapDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_MAX_SEGMENT_OVERLAP_DEBT ?? "20"}`,
+    `optimizedVisualCrossPolishMaxSegmentOverlapDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_MAX_SEGMENT_OVERLAP_DEBT ?? "0"}`,
     `optimizedVisualCrossPolishMaxSegmentOverlapDebtPerGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_MAX_SEGMENT_OVERLAP_DEBT_PER_GAIN ?? "0.25"}`,
     `optimizedVisualCrossPolishMaxBundleNode=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_MAX_BUNDLE_NODE ?? "6"}`,
     `optimizedVisualCrossPolishBundleClear=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_BUNDLE_CLEAR ?? "1"}`,
@@ -2439,9 +2673,9 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedVisualCrossFinalRetouchMinGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_MIN_GAIN ?? "1"}`,
     `optimizedVisualCrossFinalRetouchMaxSpacingDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_MAX_SPACING_DEBT ?? "0"}`,
     `optimizedVisualCrossFinalRetouchMaxSpacingDebtPerGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_MAX_SPACING_DEBT_PER_GAIN ?? "0"}`,
-    `optimizedVisualCrossFinalRetouchMaxOverlappingEdgeDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_MAX_OVERLAPPING_EDGE_DEBT ?? "4"}`,
+    `optimizedVisualCrossFinalRetouchMaxOverlappingEdgeDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_MAX_OVERLAPPING_EDGE_DEBT ?? "0"}`,
     `optimizedVisualCrossFinalRetouchMaxOverlappingEdgeDebtPerGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_MAX_OVERLAPPING_EDGE_DEBT_PER_GAIN ?? "0.5"}`,
-    `optimizedVisualCrossFinalRetouchMaxSegmentOverlapDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_MAX_SEGMENT_OVERLAP_DEBT ?? "2"}`,
+    `optimizedVisualCrossFinalRetouchMaxSegmentOverlapDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_MAX_SEGMENT_OVERLAP_DEBT ?? "0"}`,
     `optimizedVisualCrossFinalRetouchMaxSegmentOverlapDebtPerGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_MAX_SEGMENT_OVERLAP_DEBT_PER_GAIN ?? "0.5"}`,
     `optimizedVisualCrossFinalRetouchNodeBboxGrowth=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_NODE_BBOX_GROWTH_LIMIT ?? "1.01"}`,
     `optimizedVisualCrossFinalRetouchRouteBboxGrowth=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_ROUTE_BBOX_GROWTH_LIMIT ?? "1.01"}`,
@@ -2477,20 +2711,97 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedVisualCrossFinalRetouchDebtRepairMaxBundleNodeDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_MAX_BUNDLE_NODE_DEBT ?? "8"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairMaxOverlappingEdgeDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_MAX_OVERLAPPING_EDGE_DEBT ?? "18"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairMaxSegmentOverlapDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_MAX_SEGMENT_OVERLAP_DEBT ?? "12"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairSalvageAccept=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_SALVAGE_ACCEPT ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairSalvageAcceptMinVisualGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_SALVAGE_ACCEPT_MIN_VISUAL_GAIN ?? "80"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairSalvageAcceptNodeBboxGrowth=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_SALVAGE_ACCEPT_NODE_BBOX_GROWTH_LIMIT ?? "1.35"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairSalvageAcceptRouteBboxGrowth=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_SALVAGE_ACCEPT_ROUTE_BBOX_GROWTH_LIMIT ?? "1.20"}`,
     `optimizedVisualCrossFinalRetouchSalvage=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE ?? "1"}`,
     `optimizedVisualCrossFinalRetouchSalvageMinGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE_MIN_GAIN ?? "40"}`,
     `optimizedVisualCrossFinalRetouchSalvageRepairMaxBundleNodeDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE_REPAIR_MAX_BUNDLE_NODE_DEBT ?? "16"}`,
     `optimizedVisualCrossFinalRetouchSalvageRepairMaxOverlappingEdgeDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE_REPAIR_MAX_OVERLAPPING_EDGE_DEBT ?? "12"}`,
     `optimizedVisualCrossFinalRetouchSalvageRepairMaxSegmentOverlapDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE_REPAIR_MAX_SEGMENT_OVERLAP_DEBT ?? "8"}`,
+    `optimizedVisualCrossFinalRetouchSalvageRepairNodeBboxGrowth=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE_REPAIR_NODE_BBOX_GROWTH_LIMIT ?? "1.35"}`,
+    `optimizedVisualCrossFinalRetouchSalvageRepairRouteBboxGrowth=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE_REPAIR_ROUTE_BBOX_GROWTH_LIMIT ?? "1.08"}`,
     `optimizedVisualCrossFinalRetouchSalvageAcceptMaxBundleNodeDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE_ACCEPT_MAX_BUNDLE_NODE_DEBT ?? "2"}`,
-    `optimizedVisualCrossFinalRetouchSalvageAcceptMaxOverlappingEdgeDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE_ACCEPT_MAX_OVERLAPPING_EDGE_DEBT ?? "8"}`,
-    `optimizedVisualCrossFinalRetouchSalvageAcceptMaxSegmentOverlapDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE_ACCEPT_MAX_SEGMENT_OVERLAP_DEBT ?? "4"}`,
+    `optimizedVisualCrossFinalRetouchSalvageAcceptMaxOverlappingEdgeDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE_ACCEPT_MAX_OVERLAPPING_EDGE_DEBT ?? "0"}`,
+    `optimizedVisualCrossFinalRetouchSalvageAcceptMaxSegmentOverlapDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE_ACCEPT_MAX_SEGMENT_OVERLAP_DEBT ?? "0"}`,
+    `optimizedVisualCrossFinalRetouchCrossRepair=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchCrossRepairMinEdgeCrossGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR_MIN_EDGE_CROSS_GAIN ?? "80"}`,
+    `optimizedVisualCrossFinalRetouchCrossRepairMinRawRouteGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR_MIN_RAW_ROUTE_GAIN ?? "200"}`,
+    `optimizedVisualCrossFinalRetouchCrossRepairMaxVisualDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR_MAX_VISUAL_DEBT ?? "96"}`,
+    `optimizedVisualCrossFinalRetouchCrossRepairMaxEdgeNodeDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR_MAX_EDGE_NODE_DEBT ?? "220"}`,
+    `optimizedVisualCrossFinalRetouchCrossRepairMaxBundleEdgeDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR_MAX_BUNDLE_EDGE_DEBT ?? "16"}`,
+    `optimizedVisualCrossFinalRetouchCrossRepairMaxBundleNodeDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR_MAX_BUNDLE_NODE_DEBT ?? "8"}`,
+    `optimizedVisualCrossFinalRetouchCrossRepairMaxOverlappingEdgeDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR_MAX_OVERLAPPING_EDGE_DEBT ?? "8"}`,
+    `optimizedVisualCrossFinalRetouchCrossRepairMaxSegmentOverlapDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR_MAX_SEGMENT_OVERLAP_DEBT ?? "4"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairTimeoutMs=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_TIMEOUT_MS ?? "120000"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairRelief=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairReliefPasses=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_PASSES ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_PASSES ?? "4"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairReliefMaxShift=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_MAX_SHIFT ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_MAX_SHIFT ?? "220"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairReliefStrength=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_STRENGTH ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_STRENGTH ?? "0.95"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairReliefEndpoints=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_ENDPOINTS ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_ENDPOINTS ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairReliefEndpointTop=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_ENDPOINT_TOP ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_ENDPOINT_TOP ?? "80"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairReliefEndpointSteps=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_ENDPOINT_STEPS ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_ENDPOINT_STEPS ?? "80,160,300,600"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairEdgeDetour=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_EDGE_DETOUR ?? "1"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairLBend=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_L_BEND ?? "1"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairLBendMinGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_L_BEND_MIN_GAIN ?? "0"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairBundleClear=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BUNDLE_CLEAR ?? "1"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairBundleAfterClear=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BUNDLE_AFTER_CLEAR ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairBboxAxisScale=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BBOX_AXIS_SCALE ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairBboxYScales=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BBOX_Y_SCALES ?? "0.98,0.95,0.92,0.88,0.84"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairBboxMinGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BBOX_MIN_GAIN ?? "0.01"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairBboxVisualSlack=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BBOX_VISUAL_SLACK ?? "64"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairBboxBundleNodeSlack=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BBOX_BUNDLE_NODE_SLACK ?? "2"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairBboxMaxAspect=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BBOX_MAX_ASPECT ?? "2.4"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairDensityPack=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairDensityPackScales=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_SCALES ?? "0.94,0.90,0.86,0.82,0.78,0.72,0.68"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairDensityPackMinGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_MIN_GAIN ?? "0.03"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairDensityPackTop=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_TOP ?? "0"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairDensityPackEmptyBandKeep=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_EMPTY_BAND_KEEP ?? "480"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairDensityPackVisualSlack=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_VISUAL_SLACK ?? "64"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairDensityPackEdgeNodeSlack=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_EDGE_NODE_SLACK ?? "96"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairDensityPackSpacingSlack=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_SPACING_SLACK ?? "83"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairDensityPackBundleNodeSlack=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_BUNDLE_NODE_SLACK ?? "2"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairDensityPackNodeOverlapSlack=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_NODE_OVERLAP_SLACK ?? "0"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairDensityPackCleanup=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_DENSITY_PACK_CLEANUP ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairSpacingRepair=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_SPACING_REPAIR ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairSpacingRepairTimeoutMs=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_SPACING_REPAIR_TIMEOUT_MS ?? process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SPACING_REPAIR_TIMEOUT_MS ?? "120000"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridor=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorMinAdditionalVisualGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_MIN_ADDITIONAL_VISUAL_GAIN ?? "32"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodeBboxGrowth=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_BBOX_GROWTH_LIMIT ?? "1.45"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorRouteBboxGrowth=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_ROUTE_BBOX_GROWTH_LIMIT ?? "1.35"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorTimeoutMs=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_TIMEOUT_MS ?? "120000"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorRestoreLayout=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_RESTORE_LAYOUT ?? "0"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBend=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendTopK=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_TOPK ?? "960"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendMinGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_MIN_GAIN ?? "0"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendEdgeNodeWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_EDGE_NODE_WEIGHT ?? "6"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendSegmentOverlapWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_SEGMENT_OVERLAP_WEIGHT ?? "12"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendSegmentOverlapLengthWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_SEGMENT_OVERLAP_LENGTH_WEIGHT ?? "0.001"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendLengthWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_LENGTH_WEIGHT ?? "0.0001"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorPeriphery=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorPeripheryTopK=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_TOPK ?? "96"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorPeripheryMaxLanes=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_MAX_LANES ?? "4"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorPeripheryEdgeNodeWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_EDGE_NODE_WEIGHT ?? "6"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorPeripherySegmentOverlapWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_SEGMENT_OVERLAP_WEIGHT ?? "12"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorPeripherySegmentOverlapLengthWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_SEGMENT_OVERLAP_LENGTH_WEIGHT ?? "0.001"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorDiagonalRetouch=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_DIAGONAL_RETOUCH ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairRetouch=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_RETOUCH ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairTopK=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_TOPK ?? "768"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairRounds=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_ROUNDS ?? "4"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairSteps=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_STEPS ?? "4"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairMinSpan=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_MIN_SPAN ?? "420"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairLeafMinSpan=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_LEAF_MIN_SPAN ?? "360"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairStep=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_STEP ?? "180"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairMaxShift=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_MAX_SHIFT ?? "2400"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairMaxIncident=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_MAX_INCIDENT ?? "512"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairNodeMargin=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_NODE_MARGIN ?? "16"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairLeafOnly=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_LEAF_ONLY ?? "0"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairLeafGap=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_LEAF_GAP ?? "48"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairPairGap=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_PAIR_GAP ?? "48"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairRawAccept=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_RAW_ACCEPT ?? "0"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairCompactRelocate=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_COMPACT_RELOCATE ?? "0"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairSlotRings=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_SLOT_RINGS ?? "8"}`,
     `optimizedVisualCrossFinalRetouchSpacingRepair=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SPACING_REPAIR ?? "1"}`,
     `optimizedVisualCrossFinalRetouchSpacingRepairPasses=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SPACING_REPAIR_PASSES ?? process.env.DJERD_NODE_SPACING_CLEAR_FINAL_PASSES ?? "8"}`,
     `optimizedVisualCrossFinalRetouchSpacingRepairMaxShift=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SPACING_REPAIR_MAX_SHIFT ?? process.env.DJERD_NODE_SPACING_CLEAR_FINAL_MAX_SHIFT ?? "480"}`,
@@ -2507,6 +2818,7 @@ export interface OgdfLayoutResult {
   durationMs: number;
   layout: LayoutSnapshot;
   engineMetadata?: LayoutEngineMetadata;
+  qualityDegraded?: boolean;
   reason?: string;
   requestedLayoutMode: LayoutMode;
 }
@@ -2615,12 +2927,22 @@ export async function runOgdfLayout(
     };
   }
 
+  const binaryFingerprint = await fileStatFingerprint(binaryPath);
+
   const requestDirectory = await mkdtemp(
     path.join(os.tmpdir(), `django-erd-ogdf-${normalizedRequestedLayoutMode}-`),
   );
   const nodesPath = path.join(requestDirectory, "nodes.tsv");
   const edgesPath = path.join(requestDirectory, "edges.tsv");
-  const preserveInputs = Boolean(process.env.DJANGO_ERD_PRESERVE_LAYOUT_INPUTS);
+  const transientPaths = new Set<string>();
+  const trackTransientPath = (filePath: string): string => {
+    transientPaths.add(filePath);
+    return filePath;
+  };
+  const preserveInputs = readBoolEnv(
+    "DJANGO_ERD_PRESERVE_LAYOUT_INPUTS",
+    false,
+  );
   let preserveRequestDirectory = preserveInputs;
 
   // Edge consolidation (DJERD_CONSOLIDATE_EDGES=1, default off):
@@ -2636,6 +2958,9 @@ export async function runOgdfLayout(
   const layoutEdges: readonly StructuralGraphEdge[] = consolidateActive
     ? consolidateEdges(payload.graph.structuralEdges).layoutEdges
     : payload.graph.structuralEdges;
+  const selfLoopEdgeCount = layoutEdges.filter(
+    (edge) => edge.sourceModelId === edge.targetModelId,
+  ).length;
 
   try {
     await writeFile(nodesPath, serializeNodes(payload), "utf8");
@@ -2663,6 +2988,7 @@ export async function runOgdfLayout(
           + (consolidateActive
             ? ` (consolidated from ${payload.graph.structuralEdges.length})`
             : ""),
+        `selfLoopEdges=${selfLoopEdgeCount}`,
       ].join(" · "),
     );
 
@@ -2692,6 +3018,7 @@ export async function runOgdfLayout(
     let loadedFromFile = false;
     let optimizedCachePath: string | undefined;
     let loadedOptimizedFinalFromCache = false;
+    let postReroutePolishDeadline: PostReroutePolishDeadline | undefined;
     if (layoutFromFile) {
       try {
         stdout = await readFile(layoutFromFile, "utf8");
@@ -2721,15 +3048,34 @@ export async function runOgdfLayout(
         const ckptPathForCache = resolveV36CkptPath(extensionRootPath);
         const familyPriorPathForCache =
           resolveV37FamilyPriorPath(extensionRootPath);
+        const scorerScriptPathForCache = path.join(
+          extensionRootPath,
+          "scripts/erd-poc/eval_v35_scorer_filter.py",
+        );
+        const [
+          ckptFingerprint,
+          familyPriorFingerprint,
+          scorerScriptFingerprint,
+        ] = await Promise.all([
+          fileStatFingerprint(ckptPathForCache),
+          fileStatFingerprint(familyPriorPathForCache),
+          fileStatFingerprint(scorerScriptPathForCache),
+        ]);
         const key = fnvHash(
           nodesData,
           edgesData,
-          "optimized-layout-cache-v3",
+          "optimized-layout-cache-v10",
+          `binary=${binaryFingerprint}`,
+          `scorer=${scorerScriptFingerprint}`,
+          `checkpoint=${ckptFingerprint}`,
+          `familyPrior=${familyPriorFingerprint}`,
           `requested=${normalizedRequestedLayoutMode}`,
           `edgeRouting=${effectiveEdgeRouting}`,
           `clusterGraph=${clusterGraphLayout ? "1" : "0"}`,
           `bubble=${bubbleLayout ? "1" : "0"}`,
           ...renderedCarrierCacheKeyParts(),
+          ...layoutEnvCacheKeyParts(ogdfRenderedCarrierEnv()),
+          ...layoutEnvCacheKeyParts(ogdfOptimizedRerouteEnv()),
           ...buildV36ScorerArgs(
             "eval_v35_scorer_filter.py",
             "baseline.json",
@@ -2744,14 +3090,21 @@ export async function runOgdfLayout(
           `django-erd-optimized-layout-cache-${key}.json`,
         );
         try {
-          stdout = await readFile(optimizedCachePath, "utf8");
+          const cachedLayout = await readFile(optimizedCachePath, "utf8");
+          decodeLayoutSnapshot(
+            JSON.parse(cachedLayout),
+            "ogdfOptimizedLayoutCache",
+          );
+          stdout = cachedLayout;
           stderr = "";
           loadedFromFile = true;
           loadedOptimizedFinalFromCache = true;
           logger?.info(`OGDF optimized layout cache hit: ${optimizedCachePath}`);
-        } catch {
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : String(error);
           logger?.info(
-            `OGDF optimized layout cache miss; will save to ${optimizedCachePath}`,
+            `OGDF optimized layout cache miss or invalid; `
+            + `will save to ${optimizedCachePath} · reason=${reason}`,
           );
         }
       } catch (err) {
@@ -2771,20 +3124,29 @@ export async function runOgdfLayout(
         const key = fnvHash(
           nodesData,
           edgesData,
+          "layout-cache-v2",
+          `binary=${binaryFingerprint}`,
           normalizedRequestedLayoutMode,
           effectiveEdgeRouting,
           clusterGraphLayout ? "cg=1" : "cg=0",
           bubbleLayout ? "b=1" : "b=0",
           ...renderedCarrierCacheKeyParts(),
+          ...layoutEnvCacheKeyParts(ogdfRenderedCarrierEnv()),
         );
         cachePath = path.join(os.tmpdir(), `django-erd-layout-cache-${key}.json`);
         try {
-          stdout = await readFile(cachePath, "utf8");
+          const cachedLayout = await readFile(cachePath, "utf8");
+          decodeLayoutSnapshot(JSON.parse(cachedLayout), "ogdfLayoutCache");
+          stdout = cachedLayout;
           stderr = "";
           loadedFromFile = true;
           logger?.info(`OGDF layout cache hit: ${cachePath}`);
-        } catch {
-          logger?.info(`OGDF layout cache miss; will save to ${cachePath}`);
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : String(error);
+          logger?.info(
+            `OGDF layout cache miss or invalid; will save to ${cachePath} · `
+            + `reason=${reason}`,
+          );
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -2866,6 +3228,7 @@ export async function runOgdfLayout(
       }
       if (cachePath) {
         try {
+          decodeLayoutSnapshot(JSON.parse(stdout), "ogdfLayoutCacheWrite");
           await writeFile(cachePath, stdout, "utf8");
           logger?.info(`OGDF layout cached to ${cachePath}`);
         } catch (err) {
@@ -2876,7 +3239,7 @@ export async function runOgdfLayout(
     }
 
     if (stderr.trim().length > 0) {
-      logger?.warn(`OGDF stderr: ${stderr.trim()}`);
+      logger?.info(`OGDF stderr: ${stderr.trim()}`);
     }
 
     // === Optimized layout: v36 pure action scorer pipeline ===
@@ -2925,7 +3288,8 @@ export async function runOgdfLayout(
               const key = fnvHash(
                 nodesData,
                 edgesData,
-                "optimized-cluster-baseline-cache-v1",
+                "optimized-cluster-baseline-cache-v2",
+                `binary=${binaryFingerprint}`,
                 "mode=hierarchical_barycenter",
                 `edgeRouting=${effectiveEdgeRouting}`,
                 "clusterGraph=1",
@@ -2937,14 +3301,26 @@ export async function runOgdfLayout(
                 `django-erd-optimized-baseline-cache-${key}.json`,
               );
               try {
-                stdout = await readFile(clusterBaselineCachePath, "utf8");
+                const cachedBaseline = await readFile(
+                  clusterBaselineCachePath,
+                  "utf8",
+                );
+                decodeLayoutSnapshot(
+                  JSON.parse(cachedBaseline),
+                  "ogdfOptimizedBaselineCache",
+                );
+                stdout = cachedBaseline;
                 baselineLoadedFromCache = true;
                 logger?.info(
                   `[ML] cluster_graph baseline cache hit: ${clusterBaselineCachePath}`,
                 );
-              } catch {
+              } catch (error) {
+                const reason = error instanceof Error
+                  ? error.message
+                  : String(error);
                 logger?.info(
-                  `[ML] cluster_graph baseline cache miss; will save to ${clusterBaselineCachePath}`,
+                  `[ML] cluster_graph baseline cache miss or invalid; `
+                  + `will save to ${clusterBaselineCachePath} · reason=${reason}`,
                 );
               }
             } catch (err) {
@@ -2971,11 +3347,15 @@ export async function runOgdfLayout(
               },
             );
             if (clusterBaseline.stderr.trim().length > 0) {
-              logger?.warn(`[ML] cluster_graph baseline stderr: ${clusterBaseline.stderr.trim()}`);
+              logger?.info(`[ML] cluster_graph baseline stderr: ${clusterBaseline.stderr.trim()}`);
             }
             stdout = clusterBaseline.stdout;
             if (clusterBaselineCachePath) {
               try {
+                decodeLayoutSnapshot(
+                  JSON.parse(stdout),
+                  "ogdfOptimizedBaselineCacheWrite",
+                );
                 await writeFile(clusterBaselineCachePath, stdout, "utf8");
                 logger?.info(
                   `[ML] cluster_graph baseline cached to ${clusterBaselineCachePath}`,
@@ -2993,18 +3373,18 @@ export async function runOgdfLayout(
           );
         }
       }
-      const baselinePath = path.join(
+      const baselinePath = trackTransientPath(path.join(
         os.tmpdir(),
         `django-erd-ml-baseline-${Date.now()}.json`,
-      );
-      const positionsPath = path.join(
+      ));
+      const positionsPath = trackTransientPath(path.join(
         os.tmpdir(),
         `django-erd-v36-positions-${Date.now()}.tsv`,
-      );
-      const baselinePositionsPath = path.join(
+      ));
+      const baselinePositionsPath = trackTransientPath(path.join(
         os.tmpdir(),
         `django-erd-v36-baseline-positions-${Date.now()}.tsv`,
-      );
+      ));
       const venvPython = path.join(extensionRootPath, ".venv-ml/bin/python");
       const scorerScript = path.join(
         extensionRootPath,
@@ -3088,7 +3468,7 @@ export async function runOgdfLayout(
             `[ML] v36 scorer done in ${Date.now() - mlStart}ms · ${mlLines}`,
           );
           if (mlRun.stderr.trim().length > 0) {
-            logger?.warn(`[ML] v36 python stderr: ${mlRun.stderr.trim()}`);
+            logger?.info(`[ML] v36 python stderr: ${mlRun.stderr.trim()}`);
           }
           mlOk = true;
         }
@@ -3137,7 +3517,7 @@ export async function runOgdfLayout(
             },
           );
           if (reroute.stderr.trim().length > 0) {
-            logger?.warn(`[ML] OGDF stderr: ${reroute.stderr.trim()}`);
+            logger?.info(`[ML] OGDF stderr: ${reroute.stderr.trim()}`);
           }
           logger?.info(`[ML] reroute done in ${Date.now() - rerouteStart}ms`);
           const reroutedLayout = JSON.parse(reroute.stdout);
@@ -3250,7 +3630,7 @@ export async function runOgdfLayout(
               );
               const bboxMaxVisualDebtRatio = readFloatEnv(
                 "DJERD_OPTIMIZED_BBOX_TARGET_MAX_VISUAL_DEBT_RATIO",
-                0.20,
+                0.05,
               );
               const bboxStageBailAfter = readNonNegativeIntEnv(
                 "DJERD_OPTIMIZED_BBOX_TARGET_STAGE_BAIL_AFTER",
@@ -3290,11 +3670,13 @@ export async function runOgdfLayout(
                 let bboxStageBestAreaB = bboxStageBaseAreaB;
                 let bboxStageBailed = false;
                 let bboxStageBadStreak = 0;
+                const bboxStageSeenPositionCandidates = new Set<string>();
                 for (const bboxSafety of bboxTargetSafeties) {
                   const stageTag = String(Math.round(bboxStageTargetB * 100));
                   const safetyTag = String(Math.round(bboxSafety * 1000));
                   for (const bboxPositionStrategy of bboxTargetPositionStrategies) {
                     const bboxStart = Date.now();
+                    let bboxTargetPositionsPath: string | undefined;
                     try {
                       const bboxTarget = await writePositionsTsvForBBoxTarget(
                         acceptedLayout,
@@ -3309,6 +3691,21 @@ export async function runOgdfLayout(
                       if (bboxTarget === undefined) {
                         continue;
                       }
+                      bboxTargetPositionsPath = bboxTarget.positionsPath;
+                      const bboxPositionCandidate = await readFile(
+                        bboxTarget.positionsPath,
+                        "utf8",
+                      );
+                      if (bboxStageSeenPositionCandidates.has(bboxPositionCandidate)) {
+                        logger?.info(
+                          `[bbox target] stage=${bboxStageTargetB.toFixed(2)}B `
+                          + `safety=${bboxSafety.toFixed(3)} `
+                          + `strategy=${bboxPositionStrategy} skipped; `
+                          + "generated positions duplicate an earlier candidate",
+                        );
+                        continue;
+                      }
+                      bboxStageSeenPositionCandidates.add(bboxPositionCandidate);
                       bboxTried = true;
                       logger?.info(
                         `[bbox target] stage=${bboxStageTargetB.toFixed(2)}B `
@@ -3340,7 +3737,7 @@ export async function runOgdfLayout(
                           },
                         );
                         if (bboxReroute.stderr.trim().length > 0) {
-                          logger?.warn(
+                          logger?.info(
                             `[bbox target:${bboxVariant}] OGDF stderr: `
                             + bboxReroute.stderr.trim(),
                           );
@@ -3563,7 +3960,11 @@ export async function runOgdfLayout(
                           const nearAcceptance =
                             qualityPerGainOverLimit <= bboxStageBailNearRatio
                             && spacingPerGainOverLimit <= bboxStageBailNearRatio
-                            && bboxCandidateNodeOverlaps === 0;
+                            && bboxCandidateNodeOverlaps === 0
+                            && bboxAbsoluteVisualOk
+                            && bboxVisualDebtOk
+                            && bboxBundleNodeOk
+                            && bboxAbsoluteSpacingOk;
                           if (nearAcceptance) {
                             bboxStageBadStreak = 0;
                           } else if (farFromAcceptance) {
@@ -3604,6 +4005,10 @@ export async function runOgdfLayout(
                         + `safety=${bboxSafety.toFixed(3)} · `
                         + `strategy=${bboxPositionStrategy} · trying next candidate: ${msg}`,
                       );
+                    } finally {
+                      if (bboxTargetPositionsPath) {
+                        await rm(bboxTargetPositionsPath, { force: true });
+                      }
                     }
                   }
                   if (bboxStageAccepted || bboxStageBailed) {
@@ -3630,6 +4035,9 @@ export async function runOgdfLayout(
               }
             }
 
+            postReroutePolishDeadline ??=
+              startPostReroutePolishDeadline(logger);
+
             if (readBoolEnv("DJERD_OPTIMIZED_EDGE_NODE_POLISH", true)) {
               const polishVariants = readEdgeNodePolishVariants();
               const polishSkipOnVisualBlowup = readFloatEnv(
@@ -3638,6 +4046,19 @@ export async function runOgdfLayout(
               );
               let polishSkipRemaining = false;
               for (const polishVariant of polishVariants) {
+                if (
+                  remainingPostReroutePolishBudgetMs(
+                    postReroutePolishDeadline,
+                  ) <= 0
+                ) {
+                  logger?.info(
+                    `[post-reroute polish budget] edge-node polish stopped; `
+                    + `budget exhausted after `
+                    + `${Date.now() - postReroutePolishDeadline.startedMs}ms`
+                    + `/${postReroutePolishDeadline.budgetMs}ms`,
+                  );
+                  break;
+                }
                 if (polishSkipRemaining) {
                   logger?.info(
                     `[edge-node polish:${polishVariant}] skipped; `
@@ -3660,10 +4081,12 @@ export async function runOgdfLayout(
                 }
 
                 const polishStart = Date.now();
-                const polishPositionsPath = path.join(
+                const polishPositionsPath = trackTransientPath(path.join(
                   os.tmpdir(),
                   `django-erd-edge-node-polish-${polishVariant}-${Date.now()}.tsv`,
-                );
+                ));
+                let polishBudgetedTimeout:
+                  BudgetedCandidateTimeout | undefined;
                 try {
                   await writePositionsTsvFromLayoutJson(
                     JSON.stringify(acceptedLayout),
@@ -3673,6 +4096,15 @@ export async function runOgdfLayout(
                     "DJERD_OPTIMIZED_EDGE_NODE_POLISH_TIMEOUT_MS",
                     60_000,
                   );
+                  polishBudgetedTimeout = budgetCandidateTimeout(
+                    postReroutePolishDeadline,
+                    polishTimeoutMs,
+                    `edge-node polish:${polishVariant}`,
+                    logger,
+                  );
+                  if (!polishBudgetedTimeout) {
+                    break;
+                  }
                   const polishReroute = await execFileAsync(
                     binaryPath,
                     [
@@ -3689,11 +4121,11 @@ export async function runOgdfLayout(
                       env: ogdfOptimizedEdgeNodePolishEnv(polishVariant),
                       killSignal: "SIGKILL",
                       maxBuffer: 100 * 1024 * 1024,
-                      timeout: polishTimeoutMs,
+                      timeout: polishBudgetedTimeout.timeoutMs,
                     },
                   );
                   if (polishReroute.stderr.trim().length > 0) {
-                    logger?.warn(
+                    logger?.info(
                       `[edge-node polish:${polishVariant}] OGDF stderr: `
                       + polishReroute.stderr.trim(),
                     );
@@ -3876,6 +4308,18 @@ export async function runOgdfLayout(
                     }
                   }
                 } catch (err) {
+                  const budgetFailure = isBudgetCausedCandidateFailure(
+                    err,
+                    polishBudgetedTimeout,
+                  );
+                  if (budgetFailure) {
+                    logger?.info(
+                      `[post-reroute polish budget] edge-node polish stopped; `
+                      + `budget-limited candidate timed out · `
+                      + `variant=${polishVariant}`,
+                    );
+                    break;
+                  }
                   const msg = err instanceof Error ? err.message : String(err);
                   logger?.warn(
                     `[edge-node polish:${polishVariant}] candidate failed in `
@@ -3911,7 +4355,23 @@ export async function runOgdfLayout(
                 "DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_ROUNDS",
                 4,
               );
+              let visualPolishBudgetStopped = false;
               for (let visualRound = 1; visualRound <= visualRounds; visualRound++) {
+                if (
+                  visualPolishBudgetStopped
+                  || remainingPostReroutePolishBudgetMs(
+                    postReroutePolishDeadline,
+                  ) <= 0
+                ) {
+                  logger?.info(
+                    `[post-reroute polish budget] visual-cross polish stopped; `
+                    + `round=${visualRound}/${visualRounds} · `
+                    + `budget exhausted after `
+                    + `${Date.now() - postReroutePolishDeadline.startedMs}ms`
+                    + `/${postReroutePolishDeadline.budgetMs}ms`,
+                  );
+                  break;
+                }
                 const visualBaseLayout =
                   decodeLayoutSnapshot(acceptedLayout, "ogdfLayout");
                 const visualBaseSummary = summarizeLayout(visualBaseLayout);
@@ -3962,6 +4422,14 @@ export async function runOgdfLayout(
                   "DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_ROUTE_BBOX_TIE_RATIO",
                   0.92,
                 );
+                const visualTopologyTieVisualSlack = readNonNegativeIntEnv(
+                  "DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_TOPOLOGY_TIE_VISUAL_SLACK",
+                  64,
+                );
+                const visualTopologyTieEdgeNodeSlack = readNonNegativeIntEnv(
+                  "DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_TOPOLOGY_TIE_EDGE_NODE_SLACK",
+                  32,
+                );
                 const visualRouteBboxTieWins = (
                   candidate: VisualCrossPolishCandidate,
                   current: VisualCrossPolishCandidate,
@@ -3972,11 +4440,31 @@ export async function runOgdfLayout(
                     <= current.visual + visualRouteBboxTieVisualSlack
                   && candidate.routeAreaB
                     < current.routeAreaB * visualRouteBboxTieRatio;
+                const visualTopologyDebt = (
+                  candidate: VisualCrossPolishCandidate,
+                ): number =>
+                  candidate.edgeSegmentOverlap + candidate.overlappingEdges;
+                const visualTopologyTieWins = (
+                  candidate: VisualCrossPolishCandidate,
+                  current: VisualCrossPolishCandidate,
+                ): boolean =>
+                  visualTopologyDebt(candidate) < visualTopologyDebt(current)
+                  && candidate.visual
+                    <= current.visual + visualTopologyTieVisualSlack
+                  && candidate.edgeNode
+                    <= current.edgeNode + visualTopologyTieEdgeNodeSlack
+                  && candidate.bundleNode <= current.bundleNode;
                 const visualCandidateBeatsBest = (
                   candidate: VisualCrossPolishCandidate,
                 ): boolean => {
                   if (visualBest === undefined) {
                     return true;
+                  }
+                  if (visualTopologyTieWins(candidate, visualBest)) {
+                    return true;
+                  }
+                  if (visualTopologyTieWins(visualBest, candidate)) {
+                    return false;
                   }
                   if (visualRouteBboxTieWins(candidate, visualBest)) {
                     return true;
@@ -4028,17 +4516,32 @@ export async function runOgdfLayout(
                     );
                 };
                 for (const visualVariant of visualVariants) {
+                  if (
+                    remainingPostReroutePolishBudgetMs(
+                      postReroutePolishDeadline,
+                    ) <= 0
+                  ) {
+                    visualPolishBudgetStopped = true;
+                    logger?.info(
+                      `[post-reroute polish budget] visual-cross polish stopped; `
+                      + `round=${visualRound}/${visualRounds} · `
+                      + `nextVariant=${visualVariant} · budget exhausted`,
+                    );
+                    break;
+                  }
                   const visualStart = Date.now();
-                  const visualPositionsPath = path.join(
+                  const visualPositionsPath = trackTransientPath(path.join(
                     os.tmpdir(),
                     `django-erd-visual-cross-polish-${visualVariant}-r${visualRound}-${Date.now()}.tsv`,
-                  );
+                  ));
                   const visualRoutesPath = visualVariant === "route-retouch"
-                    ? path.join(
+                    ? trackTransientPath(path.join(
                       os.tmpdir(),
                       `django-erd-visual-cross-polish-${visualVariant}-r${visualRound}-${Date.now()}-routes.tsv`,
-                    )
+                    ))
                     : undefined;
+                  let visualBudgetedTimeout:
+                    BudgetedCandidateTimeout | undefined;
                   try {
                     await writePositionsTsvFromLayoutJson(
                       JSON.stringify(acceptedLayout),
@@ -4054,6 +4557,16 @@ export async function runOgdfLayout(
                       "DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_TIMEOUT_MS",
                       60_000,
                     );
+                    visualBudgetedTimeout = budgetCandidateTimeout(
+                      postReroutePolishDeadline,
+                      visualTimeoutMs,
+                      `visual-cross polish:${visualVariant}`,
+                      logger,
+                    );
+                    if (!visualBudgetedTimeout) {
+                      visualPolishBudgetStopped = true;
+                      break;
+                    }
                     const visualArgs = [
                       "layout",
                       "--mode", normalizedRequestedLayoutMode,
@@ -4074,11 +4587,11 @@ export async function runOgdfLayout(
                         env: ogdfOptimizedVisualCrossPolishEnv(visualVariant),
                         killSignal: "SIGKILL",
                         maxBuffer: 100 * 1024 * 1024,
-                        timeout: visualTimeoutMs,
+                        timeout: visualBudgetedTimeout.timeoutMs,
                       },
                     );
                     if (visualReroute.stderr.trim().length > 0) {
-                      logger?.warn(
+                      logger?.info(
                         `[visual-cross polish:${visualVariant}] OGDF stderr: `
                         + visualReroute.stderr.trim(),
                       );
@@ -4184,7 +4697,7 @@ export async function runOgdfLayout(
                     );
                     const visualMaxOverlappingEdgeDebt = readFloatEnv(
                       "DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_MAX_OVERLAPPING_EDGE_DEBT",
-                      18,
+                      0,
                     );
                     const visualMaxOverlappingEdgeDebtPerGain = readFloatEnv(
                       "DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_MAX_OVERLAPPING_EDGE_DEBT_PER_GAIN",
@@ -4192,7 +4705,7 @@ export async function runOgdfLayout(
                     );
                     const visualMaxSegmentOverlapDebt = readFloatEnv(
                       "DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_MAX_SEGMENT_OVERLAP_DEBT",
-                      20,
+                      0,
                     );
                     const visualMaxSegmentOverlapDebtPerGain = readFloatEnv(
                       "DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_MAX_SEGMENT_OVERLAP_DEBT_PER_GAIN",
@@ -4426,14 +4939,16 @@ export async function runOgdfLayout(
                       const visualRepairStart = Date.now();
                       const visualRepairId =
                         `${visualVariant}-r${visualRound}-${Date.now()}`;
-                      const visualRepairPositionsPath = path.join(
+                      const visualRepairPositionsPath = trackTransientPath(path.join(
                         os.tmpdir(),
                         `django-erd-visual-cross-polish-spacing-repair-${visualRepairId}.tsv`,
-                      );
-                      const visualRepairRoutesPath = path.join(
+                      ));
+                      const visualRepairRoutesPath = trackTransientPath(path.join(
                         os.tmpdir(),
                         `django-erd-visual-cross-polish-spacing-repair-${visualRepairId}-routes.tsv`,
-                      );
+                      ));
+                      let visualRepairBudgetedTimeout:
+                        BudgetedCandidateTimeout | undefined;
                       try {
                         await writePositionsTsvFromLayoutJson(
                           visualReroute.stdout,
@@ -4447,6 +4962,16 @@ export async function runOgdfLayout(
                           "DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_SPACING_REPAIR_TIMEOUT_MS",
                           60_000,
                         );
+                        visualRepairBudgetedTimeout = budgetCandidateTimeout(
+                          postReroutePolishDeadline,
+                          visualRepairTimeoutMs,
+                          `visual-cross polish:${visualVariant}:spacing-repair`,
+                          logger,
+                        );
+                        if (!visualRepairBudgetedTimeout) {
+                          visualPolishBudgetStopped = true;
+                          continue;
+                        }
                         const visualRepair = await execFileAsync(
                           binaryPath,
                           [
@@ -4464,11 +4989,11 @@ export async function runOgdfLayout(
                             env: ogdfOptimizedVisualCrossPolishSpacingRepairEnv(),
                             killSignal: "SIGKILL",
                             maxBuffer: 100 * 1024 * 1024,
-                            timeout: visualRepairTimeoutMs,
+                            timeout: visualRepairBudgetedTimeout.timeoutMs,
                           },
                         );
                         if (visualRepair.stderr.trim().length > 0) {
-                          logger?.warn(
+                          logger?.info(
                             `[visual-cross polish:${visualVariant}:spacing-repair] `
                             + `OGDF stderr: ${visualRepair.stderr.trim()}`,
                           );
@@ -4677,15 +5202,43 @@ export async function runOgdfLayout(
                           visualBest = visualRepairCandidateForBest;
                         }
                       } catch (err) {
-                        const msg = err instanceof Error ? err.message : String(err);
-                        logger?.warn(
-                          `[visual-cross polish:${visualVariant}:spacing-repair] `
-                          + `candidate failed in `
-                          + `${Date.now() - visualRepairStart}ms: ${msg}`,
+                        const budgetFailure = isBudgetCausedCandidateFailure(
+                          err,
+                          visualRepairBudgetedTimeout,
                         );
+                        if (budgetFailure) {
+                          visualPolishBudgetStopped = true;
+                          logger?.info(
+                            `[post-reroute polish budget] visual-cross polish `
+                            + `stopped; budget-limited spacing-repair timed out · `
+                            + `variant=${visualVariant}`,
+                          );
+                        } else {
+                          const msg = err instanceof Error
+                            ? err.message
+                            : String(err);
+                          logger?.warn(
+                            `[visual-cross polish:${visualVariant}:spacing-repair] `
+                            + `candidate failed in `
+                            + `${Date.now() - visualRepairStart}ms: ${msg}`,
+                          );
+                        }
                       }
                     }
                   } catch (err) {
+                    const budgetFailure = isBudgetCausedCandidateFailure(
+                      err,
+                      visualBudgetedTimeout,
+                    );
+                    if (budgetFailure) {
+                      visualPolishBudgetStopped = true;
+                      logger?.info(
+                        `[post-reroute polish budget] visual-cross polish stopped; `
+                        + `budget-limited candidate timed out · `
+                        + `variant=${visualVariant}`,
+                      );
+                      break;
+                    }
                     const msg = err instanceof Error ? err.message : String(err);
                     logger?.warn(
                       `[visual-cross polish:${visualVariant}] candidate failed in `
@@ -4697,7 +5250,9 @@ export async function runOgdfLayout(
                 if (!visualBest) {
                   logger?.info(
                     `[visual-cross polish] round ${visualRound}/${visualRounds} `
-                    + `no eligible candidate from visual=${visualBaseVisual}`,
+                    + (visualPolishBudgetStopped
+                      ? `stopped by post-reroute budget from visual=${visualBaseVisual}`
+                      : `no eligible candidate from visual=${visualBaseVisual}`),
                   );
                   break;
                 }
@@ -4916,6 +5471,8 @@ export async function runOgdfLayout(
                   + `routeBbox=${preVisualPolishRouteAreaB.toFixed(2)}B->`
                   + `${recompactBaseRouteAreaB.toFixed(2)}B`,
                 );
+                let recompactBudgetStopped = false;
+                recompactSearch:
                 for (const recompactTargetB of recompactTargetsB) {
                   for (const recompactSafety of recompactSafeties) {
                     for (const recompactStrategy of recompactStrategies) {
@@ -4932,50 +5489,68 @@ export async function runOgdfLayout(
                               + `-${recompactStrategy}.tsv`,
                             ),
                             recompactTargetB,
-	                            recompactSafety,
-	                            recompactStrategy,
-	                          );
-	                        if (recompactTarget === undefined) {
-	                          continue;
-	                        }
-	                        const recompactSpecs: Array<{
-	                          env: Record<string, string | undefined>;
-	                          routesPath?: string;
-	                          variant: string;
-	                        }> = [];
-	                        if (
-	                          recompactPreserveRoutes
-	                          && recompactTarget.transformPoint
-	                        ) {
-	                          const recompactRoutesPath = path.join(
-	                            os.tmpdir(),
-	                            `django-erd-visual-cross-recompact-${Date.now()}`
-	                            + `-${Math.round(recompactTargetB * 1000)}b`
-	                            + `-${Math.round(recompactSafety * 1000)}`
-	                            + `-${recompactStrategy}-routes.tsv`,
-	                          );
-                        await writeTransformedRoutesTsvFromLayoutJson(
-                          JSON.stringify(acceptedLayout),
-                          recompactRoutesPath,
-                          recompactTarget.transformPoint,
-                        );
-                        recompactSpecs.push({
-                          env: ogdfOptimizedVisualCrossRecompactPreserveEnv(),
-                          routesPath: recompactRoutesPath,
-                          variant: "preserve-routes",
-                        });
-                      }
-                      for (const recompactVariant of recompactVariants) {
-                        recompactSpecs.push({
-                          env:
-                            ogdfOptimizedBboxTargetEnvForVariant(
-                              recompactVariant,
+                            recompactSafety,
+                            recompactStrategy,
+                          );
+                        if (recompactTarget === undefined) {
+                          continue;
+                        }
+                        transientPaths.add(recompactTarget.positionsPath);
+                        const recompactSpecs: Array<{
+                          env: Record<string, string | undefined>;
+                          routesPath?: string;
+                          variant: string;
+                        }> = [];
+                        if (
+                          recompactPreserveRoutes
+                          && recompactTarget.transformPoint
+                        ) {
+                          const recompactRoutesPath = trackTransientPath(
+                            path.join(
+                              os.tmpdir(),
+                              `django-erd-visual-cross-recompact-${Date.now()}`
+                              + `-${Math.round(recompactTargetB * 1000)}b`
+                              + `-${Math.round(recompactSafety * 1000)}`
+                              + `-${recompactStrategy}-routes.tsv`,
                             ),
-                          variant: recompactVariant,
-                        });
-                      }
-                      for (const recompactSpec of recompactSpecs) {
+                          );
+                          await writeTransformedRoutesTsvFromLayoutJson(
+                            JSON.stringify(acceptedLayout),
+                            recompactRoutesPath,
+                            recompactTarget.transformPoint,
+                          );
+                          recompactSpecs.push({
+                            env: ogdfOptimizedVisualCrossRecompactPreserveEnv(),
+                            routesPath: recompactRoutesPath,
+                            variant: "preserve-routes",
+                          });
+                        }
+                        for (const recompactVariant of recompactVariants) {
+                          recompactSpecs.push({
+                            env:
+                              ogdfOptimizedBboxTargetEnvForVariant(
+                                recompactVariant,
+                              ),
+                            variant: recompactVariant,
+                          });
+                        }
+                        for (const recompactSpec of recompactSpecs) {
+                        if (
+                          remainingPostReroutePolishBudgetMs(
+                            postReroutePolishDeadline,
+                          ) <= 0
+                        ) {
+                          recompactBudgetStopped = true;
+                          logger?.info(
+                            `[post-reroute polish budget] visual-cross `
+                            + `recompact stopped; budget exhausted · `
+                            + `nextVariant=${recompactSpec.variant}`,
+                          );
+                          break recompactSearch;
+                        }
                         const recompactVariantStart = Date.now();
+                        let recompactBudgetedTimeout:
+                          BudgetedCandidateTimeout | undefined;
                         try {
                           const recompactArgs = [
                             "layout",
@@ -4992,6 +5567,16 @@ export async function runOgdfLayout(
                               recompactSpec.routesPath,
                             );
                           }
+                          recompactBudgetedTimeout = budgetCandidateTimeout(
+                            postReroutePolishDeadline,
+                            recompactTimeoutMs,
+                            `visual-cross recompact:${recompactSpec.variant}`,
+                            logger,
+                          );
+                          if (!recompactBudgetedTimeout) {
+                            recompactBudgetStopped = true;
+                            break recompactSearch;
+                          }
                           const recompactReroute = await execFileAsync(
                             binaryPath,
                             recompactArgs,
@@ -5000,11 +5585,11 @@ export async function runOgdfLayout(
                               env: recompactSpec.env,
                               killSignal: "SIGKILL",
                               maxBuffer: 100 * 1024 * 1024,
-                              timeout: recompactTimeoutMs,
+                              timeout: recompactBudgetedTimeout.timeoutMs,
                             },
                           );
                           if (recompactReroute.stderr.trim().length > 0) {
-                            logger?.warn(
+                            logger?.info(
                               `[visual-cross recompact:${recompactSpec.variant}] `
                               + `OGDF stderr: `
                               + recompactReroute.stderr.trim(),
@@ -5190,16 +5775,30 @@ export async function runOgdfLayout(
                             recompactBest = recompactCandidateForBest;
                           }
                         } catch (err) {
-                          const msg =
-                            err instanceof Error ? err.message : String(err);
+                          const budgetFailure = isBudgetCausedCandidateFailure(
+                            err,
+                            recompactBudgetedTimeout,
+                          );
+                          if (budgetFailure) {
+                            recompactBudgetStopped = true;
+                            logger?.info(
+                              `[post-reroute polish budget] visual-cross `
+                              + `recompact stopped; budget-limited candidate `
+                              + `timed out · variant=${recompactSpec.variant}`,
+                            );
+                            break recompactSearch;
+                          }
+                          const msg = err instanceof Error
+                            ? err.message
+                            : String(err);
                           logger?.warn(
-	                            `[visual-cross recompact:${recompactSpec.variant}] `
-	                            + `candidate failed in `
-	                            + `${Date.now() - recompactVariantStart}ms · `
-	                            + `target=${recompactTargetB.toFixed(2)}B · `
-	                            + `safety=${recompactSafety.toFixed(3)} · `
-	                            + `strategy=${recompactStrategy}: ${msg}`,
-	                          );
+                            `[visual-cross recompact:${recompactSpec.variant}] `
+                            + `candidate failed in `
+                            + `${Date.now() - recompactVariantStart}ms · `
+                            + `target=${recompactTargetB.toFixed(2)}B · `
+                            + `safety=${recompactSafety.toFixed(3)} · `
+                            + `strategy=${recompactStrategy}: ${msg}`,
+                          );
                         }
                       }
                     } catch (err) {
@@ -5216,7 +5815,7 @@ export async function runOgdfLayout(
 	                  }
 	                }
 	                }
-	                if (recompactBest) {
+                if (recompactBest) {
 	                  acceptedStdout = recompactBest.stdout;
 	                  acceptedLayout = recompactBest.layout;
 	                  logger?.info(
@@ -5241,7 +5840,8 @@ export async function runOgdfLayout(
                   logger?.info(
                     `[visual-cross recompact] no eligible candidate from `
                     + `visual=${recompactBaseVisual} · `
-                    + `nodeBbox=${recompactBaseNodeAreaB.toFixed(2)}B`,
+                    + `nodeBbox=${recompactBaseNodeAreaB.toFixed(2)}B`
+                    + (recompactBudgetStopped ? " · stoppedByBudget=true" : ""),
                   );
                 }
               }
@@ -5294,10 +5894,10 @@ export async function runOgdfLayout(
               const ny = cy + (n.position.y + (n.size?.height ?? 0) / 2 - cy) * Y_SCALE;
               tsvLines.push(`${n.modelId}\t${cx.toFixed(3)}\t${ny.toFixed(3)}`);
             }
-            const tsvPath = path.join(
+            const tsvPath = trackTransientPath(path.join(
               os.tmpdir(),
               `django-erd-optimized-positions-${Date.now()}.tsv`,
-            );
+            ));
             await writeFile(tsvPath, tsvLines.join("\n"), "utf8");
             logger?.info(
               `[optimized fallback] Y-scale=${Y_SCALE} applied to ${ndArr.length} nodes; rerouting via positions-tsv`,
@@ -5322,7 +5922,7 @@ export async function runOgdfLayout(
               },
             );
             if (reroute.stderr.trim().length > 0) {
-              logger?.warn(`[optimized fallback] OGDF stderr: ${reroute.stderr.trim()}`);
+              logger?.info(`[optimized fallback] OGDF stderr: ${reroute.stderr.trim()}`);
             }
             stdout = reroute.stdout;
           }
@@ -5333,27 +5933,66 @@ export async function runOgdfLayout(
       }
     }
 
+    if (optimizedLayout && !loadedOptimizedFinalFromCache) {
+      postReroutePolishDeadline ??=
+        startPostReroutePolishDeadline(logger);
+    }
+
+    const visualCrossTarget =
+      readOptionalPositiveIntEnv("DJERD_OPTIMIZED_VISUAL_CROSS_TARGET")
+      ?? DEFAULT_VISUAL_CROSS_TARGET;
+    const preFinalVisualCrossings = readVisualCrossingsFromLayoutJson(stdout);
     const runExplicitFinalExportRetouch =
       readBoolEnv("DJERD_FINAL_EXPORT_RETOUCH", false);
-    if (
+    const skipTargetSatisfiedFinalRetouch =
+      optimizedLayout
+      && !loadedOptimizedFinalFromCache
+      && !runExplicitFinalExportRetouch
+      && preFinalVisualCrossings !== undefined
+      && preFinalVisualCrossings <= visualCrossTarget;
+    if (skipTargetSatisfiedFinalRetouch) {
+      logger?.info(
+        `[final-export retouch] skipped because visualCrossings=${preFinalVisualCrossings}`
+        + ` <= target=${visualCrossTarget}`,
+      );
+    } else if (
       (optimizedLayout && !loadedOptimizedFinalFromCache)
       || runExplicitFinalExportRetouch
     ) {
-      stdout = await runFinalExportRetouch({
-        binaryPath,
-        clusterGraphLayout,
-        cwd: extensionRootPath,
-        edgeRouting: effectiveEdgeRouting,
-        edgesPath,
-        logger,
-        mode: normalizedRequestedLayoutMode,
-        nodesPath,
-        stdout,
-      });
+      if (
+        postReroutePolishDeadline
+        && remainingPostReroutePolishBudgetMs(
+          postReroutePolishDeadline,
+        ) <= 0
+      ) {
+        logger?.info(
+          `[post-reroute polish budget] final-export retouch skipped; `
+          + `budget exhausted after `
+          + `${Date.now() - postReroutePolishDeadline.startedMs}ms`
+          + `/${postReroutePolishDeadline.budgetMs}ms`,
+        );
+      } else {
+        stdout = await runFinalExportRetouch({
+          binaryPath,
+          clusterGraphLayout,
+          cwd: extensionRootPath,
+          edgeRouting: effectiveEdgeRouting,
+          edgesPath,
+          logger,
+          mode: normalizedRequestedLayoutMode,
+          nodesPath,
+          polishDeadline: postReroutePolishDeadline,
+          stdout,
+        });
+      }
     }
 
     if (optimizedCachePath && optimizedLayout && !loadedOptimizedFinalFromCache) {
       try {
+        decodeLayoutSnapshot(
+          JSON.parse(stdout),
+          "ogdfOptimizedLayoutCacheWrite",
+        );
         await writeFile(optimizedCachePath, stdout, "utf8");
         logger?.info(`OGDF optimized layout cached to ${optimizedCachePath}`);
       } catch (err) {
@@ -5372,6 +6011,24 @@ export async function runOgdfLayout(
 
     const summary = summarizeLayout(layout);
     const metadata = layout.engineMetadata;
+    const visualCrossings = metadata?.visualCrossings;
+    const visualCrossStatus =
+      optimizedLayout
+      && typeof visualCrossings === "number"
+      && Number.isFinite(visualCrossings)
+        ? visualCrossings <= visualCrossTarget ? "pass" : "miss"
+        : undefined;
+    const visualCrossOver =
+      visualCrossStatus !== undefined
+      && typeof visualCrossings === "number"
+        ? Math.max(0, Math.ceil(visualCrossings - visualCrossTarget))
+        : undefined;
+    const qualityDegraded = visualCrossStatus === "miss";
+    const qualityReason =
+      qualityDegraded && visualCrossOver !== undefined
+        ? `Optimized visual crossings ${visualCrossings} exceed target `
+          + `${visualCrossTarget} by ${visualCrossOver}.`
+        : undefined;
     logger?.info(
       [
         `OGDF layout completed in ${Date.now() - started}ms`,
@@ -5386,10 +6043,12 @@ export async function runOgdfLayout(
         ...(metadata?.strategyReason ? [`strategyReason=${metadata.strategyReason}`] : []),
         `nodes=${layout.nodes.length}`,
         `routedEdges=${layout.routedEdges.length}`,
+        `unroutedInputEdges=${Math.max(0, layoutEdges.length - layout.routedEdges.length)}`,
         `routePoints=${summary.routePointCount}`,
         ...(metadata?.routeSegments !== undefined ? [`routeSegments=${metadata.routeSegments}`] : []),
         ...(metadata?.nodeOverlaps !== undefined ? [`nodeOverlaps=${metadata.nodeOverlaps}`] : []),
         ...(metadata?.nodeSpacingOverlaps !== undefined ? [`nodeSpacingOverlaps=${metadata.nodeSpacingOverlaps}`] : []),
+        ...(metadata?.rawRouteCrossings !== undefined ? [`rawRouteCrossings=${metadata.rawRouteCrossings}`] : []),
         ...(metadata?.edgeCrossings !== undefined ? [`edgeCrossings=${metadata.edgeCrossings}`] : []),
         ...(metadata?.edgeNodeIntersections !== undefined ? [`edgeNodeIntersections=${metadata.edgeNodeIntersections}`] : []),
         ...(metadata?.overlappingEdges !== undefined ? [`overlappingEdges=${metadata.overlappingEdges}`] : []),
@@ -5397,6 +6056,23 @@ export async function runOgdfLayout(
         ...(metadata?.bundleEdgeIntersections !== undefined ? [`bundleEdgeIntersections=${metadata.bundleEdgeIntersections}`] : []),
         ...(metadata?.bundleNodeOverlaps !== undefined ? [`bundleNodeOverlaps=${metadata.bundleNodeOverlaps}`] : []),
         ...(metadata?.visualCrossings !== undefined ? [`visualCrossings=${metadata.visualCrossings}`] : []),
+        ...(metadata?.canonicalCrossing
+          ? [
+              `canonicalCrossingPairs=${metadata.canonicalCrossing.routeCrossingPairs}`,
+              `canonicalCrossingLowerBound=${metadata.canonicalCrossing.lowerBound}`,
+              `canonicalCrossingProper=${metadata.canonicalCrossing.properDrawing}`,
+              ...(metadata.canonicalCrossing.gap !== undefined
+                ? [`canonicalCrossingGap=${metadata.canonicalCrossing.gap}`]
+                : []),
+            ]
+          : []),
+        ...(visualCrossStatus !== undefined
+          ? [
+              `visualCrossTarget=${visualCrossTarget}`,
+              `visualCrossStatus=${visualCrossStatus}`,
+              `visualCrossOver=${visualCrossOver}`,
+            ]
+          : []),
         ...(metadata?.stressScore !== undefined ? [`stress=${metadata.stressScore.toFixed(4)}`] : []),
         ...(metadata?.edgeLengthCv !== undefined ? [`edgeLenCv=${metadata.edgeLengthCv.toFixed(3)}`] : []),
         ...(metadata?.crossingAngleMean !== undefined ? [`xAngMean=${(metadata.crossingAngleMean * 180 / Math.PI).toFixed(1)}`] : []),
@@ -5432,12 +6108,20 @@ export async function runOgdfLayout(
         `bboxHeight=${summary.bboxHeight.toFixed(1)}`,
       ].join(" · "),
     );
+    if (visualCrossStatus === "miss" && visualCrossOver !== undefined) {
+      logger?.warn(
+        `OGDF visual crossing target missed · visualCrossings=${visualCrossings} · `
+        + `target=${visualCrossTarget} · overBy=${visualCrossOver}`,
+      );
+    }
 
     return {
       applied: true,
       durationMs: Date.now() - started,
       engineMetadata: metadata,
       layout,
+      qualityDegraded,
+      reason: qualityReason,
       requestedLayoutMode: normalizedRequestedLayoutMode,
     };
   } catch (error) {
@@ -5476,9 +6160,91 @@ export async function runOgdfLayout(
       requestedLayoutMode: normalizedRequestedLayoutMode,
     };
   } finally {
+    await Promise.all(
+      [...transientPaths].map((filePath) => rm(filePath, { force: true })),
+    );
     if (!preserveRequestDirectory) {
       await rm(requestDirectory, { force: true, recursive: true });
     }
+  }
+}
+
+function startPostReroutePolishDeadline(
+  logger?: Logger,
+): PostReroutePolishDeadline {
+  const budgetMs = readPositiveIntEnv(
+    "DJERD_OPTIMIZED_POST_REROUTE_POLISH_BUDGET_MS",
+    DEFAULT_POST_REROUTE_POLISH_BUDGET_MS,
+  );
+  const startedMs = Date.now();
+  const deadline = {
+    budgetMs,
+    deadlineMs: startedMs + budgetMs,
+    startedMs,
+  };
+  logger?.info(
+    `[post-reroute polish budget] started · budget=${budgetMs}ms · `
+    + "covers=edge-node,visual-cross,recompact,final-export-retouch",
+  );
+  return deadline;
+}
+
+function remainingPostReroutePolishBudgetMs(
+  deadline: PostReroutePolishDeadline,
+): number {
+  return Math.max(0, deadline.deadlineMs - Date.now());
+}
+
+function budgetCandidateTimeout(
+  deadline: PostReroutePolishDeadline | undefined,
+  configuredTimeoutMs: number,
+  stage: string,
+  logger?: Logger,
+): BudgetedCandidateTimeout | undefined {
+  if (!deadline) {
+    return { budgetLimited: false, timeoutMs: configuredTimeoutMs };
+  }
+  const remainingMs = remainingPostReroutePolishBudgetMs(deadline);
+  if (remainingMs <= 0) {
+    logger?.info(
+      `[post-reroute polish budget] ${stage} skipped; `
+      + `budget exhausted after ${Date.now() - deadline.startedMs}ms`
+      + `/${deadline.budgetMs}ms`,
+    );
+    return undefined;
+  }
+  const timeoutMs = Math.max(1, Math.min(configuredTimeoutMs, remainingMs));
+  const budgetLimited = timeoutMs < configuredTimeoutMs;
+  if (budgetLimited) {
+    logger?.info(
+      `[post-reroute polish budget] ${stage} timeout capped · `
+      + `configured=${configuredTimeoutMs}ms · timeout=${timeoutMs}ms · `
+      + `remaining=${remainingMs}ms`,
+    );
+  }
+  return { budgetLimited, timeoutMs };
+}
+
+function isBudgetCausedCandidateFailure(
+  error: unknown,
+  timeout: BudgetedCandidateTimeout | undefined,
+): boolean {
+  return timeout?.budgetLimited === true
+    && error instanceof OgdfExecError
+    && error.details.timedOut;
+}
+
+function readVisualCrossingsFromLayoutJson(layoutJson: string): number | undefined {
+  try {
+    const parsed = JSON.parse(layoutJson) as {
+      engineMetadata?: { visualCrossings?: unknown };
+    };
+    const visualCrossings = parsed.engineMetadata?.visualCrossings;
+    return typeof visualCrossings === "number" && Number.isFinite(visualCrossings)
+      ? visualCrossings
+      : undefined;
+  } catch {
+    return undefined;
   }
 }
 
@@ -5491,6 +6257,7 @@ async function runFinalExportRetouch(options: {
   logger?: Logger;
   mode: LayoutMode;
   nodesPath: string;
+  polishDeadline?: PostReroutePolishDeadline;
   stdout: string;
 }): Promise<string> {
   if (!readBoolEnv("DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH", true)) {
@@ -5498,6 +6265,11 @@ async function runFinalExportRetouch(options: {
   }
 
   const retouchStart = Date.now();
+  const retouchTempPaths: string[] = [];
+  const trackRetouchTempPath = (filePath: string): string => {
+    retouchTempPaths.push(filePath);
+    return filePath;
+  };
   try {
     const baseJson = JSON.parse(options.stdout);
     const baseLayout = decodeLayoutSnapshot(baseJson, "ogdfLayout");
@@ -5523,14 +6295,14 @@ async function runFinalExportRetouch(options: {
       return options.stdout;
     }
 
-    const retouchPositionsPath = path.join(
+    const retouchPositionsPath = trackRetouchTempPath(path.join(
       os.tmpdir(),
       `django-erd-final-export-retouch-${Date.now()}.tsv`,
-    );
-    const retouchRoutesPath = path.join(
+    ));
+    const retouchRoutesPath = trackRetouchTempPath(path.join(
       os.tmpdir(),
       `django-erd-final-export-retouch-${Date.now()}-routes.tsv`,
-    );
+    ));
     await writePositionsTsvFromLayoutJson(options.stdout, retouchPositionsPath);
     await writeRoutesTsvFromLayoutJson(options.stdout, retouchRoutesPath);
 
@@ -5538,6 +6310,15 @@ async function runFinalExportRetouch(options: {
       "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_TIMEOUT_MS",
       180_000,
     );
+    const retouchBudgetedTimeout = budgetCandidateTimeout(
+      options.polishDeadline,
+      retouchTimeoutMs,
+      "final-export retouch",
+      options.logger,
+    );
+    if (!retouchBudgetedTimeout) {
+      return options.stdout;
+    }
     const retouchReroute = await execFileAsync(
       options.binaryPath,
       [
@@ -5555,11 +6336,11 @@ async function runFinalExportRetouch(options: {
         env: ogdfFinalExportRetouchEnv(),
         killSignal: "SIGKILL",
         maxBuffer: 100 * 1024 * 1024,
-        timeout: retouchTimeoutMs,
+        timeout: retouchBudgetedTimeout.timeoutMs,
       },
     );
     if (retouchReroute.stderr.trim().length > 0) {
-      options.logger?.warn(
+      options.logger?.info(
         `[final-export retouch] OGDF stderr: `
         + retouchReroute.stderr.trim(),
       );
@@ -5591,7 +6372,7 @@ async function runFinalExportRetouch(options: {
     );
     const retouchMaxOverlappingEdgeDebt = readFloatEnv(
       "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_MAX_OVERLAPPING_EDGE_DEBT",
-      4,
+      0,
     );
     const retouchMaxOverlappingEdgeDebtPerGain = readFloatEnv(
       "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_MAX_OVERLAPPING_EDGE_DEBT_PER_GAIN",
@@ -5599,7 +6380,7 @@ async function runFinalExportRetouch(options: {
     );
     const retouchMaxSegmentOverlapDebt = readFloatEnv(
       "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_MAX_SEGMENT_OVERLAP_DEBT",
-      2,
+      0,
     );
     const retouchMaxSegmentOverlapDebtPerGain = readFloatEnv(
       "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_MAX_SEGMENT_OVERLAP_DEBT_PER_GAIN",
@@ -5619,11 +6400,11 @@ async function runFinalExportRetouch(options: {
     );
     const retouchSalvageAcceptMaxOverlappingEdgeDebt = readFloatEnv(
       "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE_ACCEPT_MAX_OVERLAPPING_EDGE_DEBT",
-      8,
+      0,
     );
     const retouchSalvageAcceptMaxSegmentOverlapDebt = readFloatEnv(
       "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE_ACCEPT_MAX_SEGMENT_OVERLAP_DEBT",
-      4,
+      0,
     );
 
     const evaluateRetouchCandidate = (
@@ -5697,6 +6478,14 @@ async function runFinalExportRetouch(options: {
       const retouchBundleNodeDebt = Math.max(
         0,
         candidateBundleNode - baseBundleNode,
+      );
+      const retouchBundleEdgeDebt = Math.max(
+        0,
+        candidateBundleEdge - baseBundleEdge,
+      );
+      const retouchEdgeNodeDebt = Math.max(
+        0,
+        candidateEdgeNode - baseEdgeNode,
       );
       const retouchBundleNodeOk = candidateBundleNode <= baseBundleNode;
       const retouchSpacingOk =
@@ -5827,19 +6616,26 @@ async function runFinalExportRetouch(options: {
 
       return {
         accepted: retouchAccept,
+        bundleEdgeDebt: retouchBundleEdgeDebt,
         bundleNodeDebt: retouchBundleNodeDebt,
         bundleNodeOk: retouchBundleNodeOk,
+        edgeCrossGain,
+        edgeNodeDebt: retouchEdgeNodeDebt,
         gainOk: retouchGainOk,
+        nodeBboxGrowth: retouchNodeBboxGrowth,
         nodeBboxOk: retouchNodeBboxOk,
         nodeOverlapOk: retouchNodeOverlapOk,
         overlappingEdgeDebt: retouchOverlappingEdgeDebt,
         overlappingEdgeOk: retouchOverlappingEdgeOk,
+        routeBboxGrowth: retouchRouteBboxGrowth,
         routeBboxOk: retouchRouteBboxOk,
         salvageAccepted: retouchSalvageAccept,
         segmentOverlapDebt: retouchSegmentOverlapDebt,
         segmentOverlapOk: retouchSegmentOverlapOk,
         spacingDebt: retouchSpacingDebt,
         spacingOk: retouchSpacingOk,
+        rawRouteGain,
+        visualDelta,
         visualGain,
       };
     };
@@ -5877,6 +6673,40 @@ async function runFinalExportRetouch(options: {
       "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_MAX_SEGMENT_OVERLAP_DEBT",
       12,
     );
+    const retouchDebtRepairSalvageAccept = readBoolEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_SALVAGE_ACCEPT",
+      true,
+    );
+    const retouchDebtRepairSalvageAcceptMinVisualGain =
+      readNonNegativeIntEnv(
+        "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_SALVAGE_ACCEPT_MIN_VISUAL_GAIN",
+        80,
+      );
+    const retouchDebtRepairSalvageAcceptNodeBboxGrowthLimit = readFloatEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_SALVAGE_ACCEPT_NODE_BBOX_GROWTH_LIMIT",
+      1.35,
+    );
+    const retouchDebtRepairSalvageAcceptRouteBboxGrowthLimit = readFloatEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_SALVAGE_ACCEPT_ROUTE_BBOX_GROWTH_LIMIT",
+      1.20,
+    );
+    const retouchDebtRepairHubCorridor = readBoolEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR",
+      true,
+    );
+    const retouchDebtRepairHubCorridorMinAdditionalVisualGain =
+      readNonNegativeIntEnv(
+        "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_MIN_ADDITIONAL_VISUAL_GAIN",
+        32,
+      );
+    const retouchDebtRepairHubCorridorNodeBboxGrowthLimit = readFloatEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_BBOX_GROWTH_LIMIT",
+      1.45,
+    );
+    const retouchDebtRepairHubCorridorRouteBboxGrowthLimit = readFloatEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_ROUTE_BBOX_GROWTH_LIMIT",
+      1.35,
+    );
     const retouchSalvageRepairMaxBundleNodeDebt = readNonNegativeIntEnv(
       "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE_REPAIR_MAX_BUNDLE_NODE_DEBT",
       16,
@@ -5889,39 +6719,278 @@ async function runFinalExportRetouch(options: {
       "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE_REPAIR_MAX_SEGMENT_OVERLAP_DEBT",
       8,
     );
+    const retouchSalvageRepairNodeBboxGrowthLimit = readFloatEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE_REPAIR_NODE_BBOX_GROWTH_LIMIT",
+      1.35,
+    );
+    const retouchSalvageRepairRouteBboxGrowthLimit = readFloatEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SALVAGE_REPAIR_ROUTE_BBOX_GROWTH_LIMIT",
+      1.08,
+    );
+    const retouchCrossRepair = readBoolEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR",
+      true,
+    );
+    const retouchCrossRepairMinEdgeCrossGain = readNonNegativeIntEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR_MIN_EDGE_CROSS_GAIN",
+      80,
+    );
+    const retouchCrossRepairMinRawRouteGain = readNonNegativeIntEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR_MIN_RAW_ROUTE_GAIN",
+      200,
+    );
+    const retouchCrossRepairMaxVisualDebt = readNonNegativeIntEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR_MAX_VISUAL_DEBT",
+      96,
+    );
+    const retouchCrossRepairMaxEdgeNodeDebt = readNonNegativeIntEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR_MAX_EDGE_NODE_DEBT",
+      220,
+    );
+    const retouchCrossRepairMaxBundleEdgeDebt = readNonNegativeIntEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR_MAX_BUNDLE_EDGE_DEBT",
+      16,
+    );
+    const retouchCrossRepairMaxBundleNodeDebt = readNonNegativeIntEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR_MAX_BUNDLE_NODE_DEBT",
+      8,
+    );
+    const retouchCrossRepairMaxOverlappingEdgeDebt = readFloatEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR_MAX_OVERLAPPING_EDGE_DEBT",
+      8,
+    );
+    const retouchCrossRepairMaxSegmentOverlapDebt = readFloatEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CROSS_REPAIR_MAX_SEGMENT_OVERLAP_DEBT",
+      4,
+    );
+    const isCrossReductionRepairableRetouchFailure = (
+      evaluation: RetouchEvaluation,
+    ) => {
+      const visualDebt = Math.max(0, evaluation.visualDelta);
+      const crossGainOk =
+        evaluation.edgeCrossGain >= retouchCrossRepairMinEdgeCrossGain
+        || evaluation.rawRouteGain >= retouchCrossRepairMinRawRouteGain;
+      return (
+        retouchCrossRepair
+        && crossGainOk
+        && visualDebt <= retouchCrossRepairMaxVisualDebt
+        && evaluation.edgeNodeDebt <= retouchCrossRepairMaxEdgeNodeDebt
+        && evaluation.bundleEdgeDebt <= retouchCrossRepairMaxBundleEdgeDebt
+        && evaluation.bundleNodeDebt <= retouchCrossRepairMaxBundleNodeDebt
+        && evaluation.overlappingEdgeDebt
+        <= retouchCrossRepairMaxOverlappingEdgeDebt
+        && evaluation.segmentOverlapDebt
+        <= retouchCrossRepairMaxSegmentOverlapDebt
+        && evaluation.nodeBboxOk
+        && evaluation.routeBboxOk
+        && evaluation.nodeOverlapOk
+        && evaluation.spacingOk
+      );
+    };
     const isDebtRepairableRetouchFailure = (
       evaluation: RetouchEvaluation,
     ) => {
-      const hasRepairableDebt =
+      const hasRepairableTopologyDebt =
         !evaluation.bundleNodeOk
         || !evaluation.overlappingEdgeOk
         || !evaluation.segmentOverlapOk;
+      const hasRepairableBboxDebt =
+        !evaluation.nodeBboxOk || !evaluation.routeBboxOk;
+      const crossRepairable =
+        isCrossReductionRepairableRetouchFailure(evaluation);
       if (
-        !evaluation.gainOk
-        || !evaluation.nodeBboxOk
-        || !evaluation.routeBboxOk
+        (!evaluation.gainOk && !crossRepairable)
         || !evaluation.nodeOverlapOk
         || !evaluation.spacingOk
-        || !hasRepairableDebt
+        || (!hasRepairableTopologyDebt && !hasRepairableBboxDebt
+          && !crossRepairable)
       ) {
         return false;
       }
       const standardRepairable =
-        evaluation.bundleNodeDebt <= retouchDebtRepairMaxBundleNodeDebt
+        evaluation.nodeBboxOk
+        && evaluation.routeBboxOk
+        && hasRepairableTopologyDebt
+        && evaluation.bundleNodeDebt <= retouchDebtRepairMaxBundleNodeDebt
         && evaluation.overlappingEdgeDebt
         <= retouchDebtRepairMaxOverlappingEdgeDebt
         && evaluation.segmentOverlapDebt
         <= retouchDebtRepairMaxSegmentOverlapDebt;
+      const salvageNodeBboxRepairable =
+        evaluation.nodeBboxOk
+        || evaluation.nodeBboxGrowth
+        <= retouchSalvageRepairNodeBboxGrowthLimit;
+      const salvageRouteBboxRepairable =
+        evaluation.routeBboxOk
+        || evaluation.routeBboxGrowth
+        <= retouchSalvageRepairRouteBboxGrowthLimit;
       const salvageRepairable =
         retouchSalvage
         && evaluation.visualGain >= retouchSalvageMinGain
+        && salvageNodeBboxRepairable
+        && salvageRouteBboxRepairable
         && evaluation.bundleNodeDebt
         <= retouchSalvageRepairMaxBundleNodeDebt
         && evaluation.overlappingEdgeDebt
         <= retouchSalvageRepairMaxOverlappingEdgeDebt
         && evaluation.segmentOverlapDebt
         <= retouchSalvageRepairMaxSegmentOverlapDebt;
-      return standardRepairable || salvageRepairable;
+      return standardRepairable || salvageRepairable || crossRepairable;
+    };
+    const isDebtRepairSalvageAcceptable = (
+      evaluation: RetouchEvaluation,
+    ) =>
+      retouchDebtRepairSalvageAccept
+      && !evaluation.accepted
+      && evaluation.visualGain
+        >= retouchDebtRepairSalvageAcceptMinVisualGain
+      && evaluation.nodeBboxGrowth
+        <= retouchDebtRepairSalvageAcceptNodeBboxGrowthLimit
+      && evaluation.routeBboxGrowth
+        <= retouchDebtRepairSalvageAcceptRouteBboxGrowthLimit
+      && evaluation.nodeOverlapOk
+      && evaluation.bundleNodeDebt <= 0
+      && evaluation.overlappingEdgeDebt <= 0
+      && evaluation.segmentOverlapDebt <= 0
+      && evaluation.spacingDebt <= 0
+      && evaluation.edgeNodeDebt <= 0
+      && evaluation.bundleEdgeDebt <= 0;
+    const isDebtRepairHubCorridorAcceptable = (
+      evaluation: RetouchEvaluation,
+      sourceEvaluation: RetouchEvaluation,
+    ) =>
+      retouchDebtRepairHubCorridor
+      && evaluation.visualGain
+        >= sourceEvaluation.visualGain
+          + retouchDebtRepairHubCorridorMinAdditionalVisualGain
+      && evaluation.nodeBboxGrowth
+        <= retouchDebtRepairHubCorridorNodeBboxGrowthLimit
+      && evaluation.routeBboxGrowth
+        <= retouchDebtRepairHubCorridorRouteBboxGrowthLimit
+      && evaluation.nodeOverlapOk
+      && evaluation.bundleNodeDebt <= 0
+      && evaluation.overlappingEdgeDebt <= 0
+      && evaluation.segmentOverlapDebt <= 0
+      && evaluation.spacingDebt <= 0
+      && evaluation.edgeNodeDebt <= 0
+      && evaluation.bundleEdgeDebt <= 0;
+    const tryDebtRepairHubCorridor = async (
+      sourceStdout: string,
+      sourceEvaluation: RetouchEvaluation,
+    ): Promise<string | undefined> => {
+      if (!retouchDebtRepairHubCorridor) {
+        return undefined;
+      }
+      const corridorStart = Date.now();
+      const corridorId = `${Date.now()}-debt-repair-hub-corridor`;
+      const corridorPositionsPath = trackRetouchTempPath(path.join(
+        os.tmpdir(),
+        `django-erd-final-export-retouch-debt-hub-corridor-${corridorId}.tsv`,
+      ));
+      const corridorRoutesPath = trackRetouchTempPath(path.join(
+        os.tmpdir(),
+        `django-erd-final-export-retouch-debt-hub-corridor-${corridorId}-routes.tsv`,
+      ));
+      options.logger?.info(
+        `[final-export retouch:debt-repair-hub-corridor] `
+        + `retrying accepted debt-repair source · `
+        + `sourceVisualGain=${sourceEvaluation.visualGain} · `
+        + `targetAdditionalVisualGain=`
+        + `${retouchDebtRepairHubCorridorMinAdditionalVisualGain} · `
+        + `nodeBboxLimit=`
+        + `${retouchDebtRepairHubCorridorNodeBboxGrowthLimit.toFixed(3)} · `
+        + `routeBboxLimit=`
+        + `${retouchDebtRepairHubCorridorRouteBboxGrowthLimit.toFixed(3)}`,
+      );
+      await writePositionsTsvFromLayoutJson(
+        sourceStdout,
+        corridorPositionsPath,
+      );
+      await writeRoutesTsvFromLayoutJson(
+        sourceStdout,
+        corridorRoutesPath,
+      );
+      const corridorTimeoutMs = readPositiveIntEnv(
+        "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_TIMEOUT_MS",
+        120_000,
+      );
+      const corridorBudgetedTimeout = budgetCandidateTimeout(
+        options.polishDeadline,
+        corridorTimeoutMs,
+        "final-export retouch:debt-repair-hub-corridor",
+        options.logger,
+      );
+      if (!corridorBudgetedTimeout) {
+        return undefined;
+      }
+      const hubCorridor = await execFileAsync(
+        options.binaryPath,
+        [
+          "layout",
+          "--mode", options.mode,
+          "--nodes-file", options.nodesPath,
+          "--edges-file", options.edgesPath,
+          "--edge-routing", options.edgeRouting,
+          ...(retouchClusterGraph ? ["--cluster-graph", "1"] : []),
+          "--positions-tsv", corridorPositionsPath,
+          "--routes-tsv", corridorRoutesPath,
+        ],
+        {
+          cwd: options.cwd,
+          env: ogdfFinalExportRetouchDebtRepairHubCorridorEnv(),
+          killSignal: "SIGKILL",
+          maxBuffer: 100 * 1024 * 1024,
+          timeout: corridorBudgetedTimeout.timeoutMs,
+        },
+      );
+      if (hubCorridor.stderr.trim().length > 0) {
+        options.logger?.info(
+          `[final-export retouch:debt-repair-hub-corridor] OGDF stderr: `
+          + hubCorridor.stderr.trim(),
+        );
+      }
+      const corridorEvaluation = evaluateRetouchCandidate(
+        "final-export retouch:debt-repair-hub-corridor",
+        hubCorridor.stdout,
+        Date.now() - corridorStart,
+      );
+      const additionalVisualGain =
+        corridorEvaluation.visualGain - sourceEvaluation.visualGain;
+      if (isDebtRepairHubCorridorAcceptable(
+        corridorEvaluation,
+        sourceEvaluation,
+      )) {
+        options.logger?.info(
+          `[final-export retouch:debt-repair-hub-corridor] accepted · `
+          + `visualGain=${corridorEvaluation.visualGain} · `
+          + `additionalVisualGain=${additionalVisualGain}`
+          + `/${retouchDebtRepairHubCorridorMinAdditionalVisualGain} · `
+          + `nodeBboxGrowth=${corridorEvaluation.nodeBboxGrowth.toFixed(3)}`
+          + `/${retouchDebtRepairHubCorridorNodeBboxGrowthLimit.toFixed(3)} · `
+          + `routeBboxGrowth=${corridorEvaluation.routeBboxGrowth.toFixed(3)}`
+          + `/${retouchDebtRepairHubCorridorRouteBboxGrowthLimit.toFixed(3)}`,
+        );
+        return hubCorridor.stdout;
+      }
+      options.logger?.info(
+        `[final-export retouch:debt-repair-hub-corridor] rejected · `
+        + `visualGain=${corridorEvaluation.visualGain} · `
+        + `additionalVisualGain=${additionalVisualGain}`
+        + `/${retouchDebtRepairHubCorridorMinAdditionalVisualGain} · `
+        + `nodeBboxGrowth=${corridorEvaluation.nodeBboxGrowth.toFixed(3)}`
+        + `/${retouchDebtRepairHubCorridorNodeBboxGrowthLimit.toFixed(3)} · `
+        + `routeBboxGrowth=${corridorEvaluation.routeBboxGrowth.toFixed(3)}`
+        + `/${retouchDebtRepairHubCorridorRouteBboxGrowthLimit.toFixed(3)} · `
+        + `edgeNodeDebt=${corridorEvaluation.edgeNodeDebt} · `
+        + `bundleEdgeDebt=${corridorEvaluation.bundleEdgeDebt} · `
+        + `bundleNodeDebt=${corridorEvaluation.bundleNodeDebt} · `
+        + `spacingDebt=${corridorEvaluation.spacingDebt.toFixed(1)} · `
+        + `overlappingEdgeDebt=`
+        + `${corridorEvaluation.overlappingEdgeDebt.toFixed(1)} · `
+        + `segmentOverlapDebt=`
+        + `${corridorEvaluation.segmentOverlapDebt.toFixed(1)}`,
+      );
+      return undefined;
     };
 
     let spacingRepairSourceStdout = retouchReroute.stdout;
@@ -5938,6 +7007,15 @@ async function runFinalExportRetouch(options: {
         "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CLEARANCE_RETRY_TIMEOUT_MS",
         120_000,
       );
+      const retryBudgetedTimeout = budgetCandidateTimeout(
+        options.polishDeadline,
+        retryTimeoutMs,
+        "final-export retouch:clearance-retry",
+        options.logger,
+      );
+      if (!retryBudgetedTimeout) {
+        return options.stdout;
+      }
       const clearanceRetry = await execFileAsync(
         options.binaryPath,
         [
@@ -5955,11 +7033,11 @@ async function runFinalExportRetouch(options: {
           env: ogdfFinalExportRetouchClearanceRetryEnv(),
           killSignal: "SIGKILL",
           maxBuffer: 100 * 1024 * 1024,
-          timeout: retryTimeoutMs,
+          timeout: retryBudgetedTimeout.timeoutMs,
         },
       );
       if (clearanceRetry.stderr.trim().length > 0) {
-        options.logger?.warn(
+        options.logger?.info(
           `[final-export retouch:clearance-retry] OGDF stderr: `
           + clearanceRetry.stderr.trim(),
         );
@@ -5987,14 +7065,14 @@ async function runFinalExportRetouch(options: {
     if (shouldTrySpacingRepair) {
       const repairStart = Date.now();
       const repairId = `${Date.now()}-repair`;
-      const repairPositionsPath = path.join(
+      const repairPositionsPath = trackRetouchTempPath(path.join(
         os.tmpdir(),
         `django-erd-final-export-retouch-spacing-repair-${repairId}.tsv`,
-      );
-      const repairRoutesPath = path.join(
+      ));
+      const repairRoutesPath = trackRetouchTempPath(path.join(
         os.tmpdir(),
         `django-erd-final-export-retouch-spacing-repair-${repairId}-routes.tsv`,
-      );
+      ));
       await writePositionsTsvFromLayoutJson(
         spacingRepairSourceStdout,
         repairPositionsPath,
@@ -6007,6 +7085,15 @@ async function runFinalExportRetouch(options: {
         "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SPACING_REPAIR_TIMEOUT_MS",
         120_000,
       );
+      const repairBudgetedTimeout = budgetCandidateTimeout(
+        options.polishDeadline,
+        repairTimeoutMs,
+        "final-export retouch:spacing-repair",
+        options.logger,
+      );
+      if (!repairBudgetedTimeout) {
+        return options.stdout;
+      }
       const spacingRepair = await execFileAsync(
         options.binaryPath,
         [
@@ -6024,11 +7111,11 @@ async function runFinalExportRetouch(options: {
           env: ogdfFinalExportRetouchSpacingRepairEnv(),
           killSignal: "SIGKILL",
           maxBuffer: 100 * 1024 * 1024,
-          timeout: repairTimeoutMs,
+          timeout: repairBudgetedTimeout.timeoutMs,
         },
       );
       if (spacingRepair.stderr.trim().length > 0) {
-        options.logger?.warn(
+        options.logger?.info(
           `[final-export retouch:spacing-repair] OGDF stderr: `
           + spacingRepair.stderr.trim(),
         );
@@ -6052,14 +7139,40 @@ async function runFinalExportRetouch(options: {
     if (shouldTryDebtRepair) {
       const repairStart = Date.now();
       const repairId = `${Date.now()}-debt-repair`;
-      const repairPositionsPath = path.join(
+      const crossRepairable =
+        isCrossReductionRepairableRetouchFailure(retouchEvaluation);
+      options.logger?.info(
+        `[final-export retouch:debt-repair] retrying repairable source · `
+        + `reason=${crossRepairable ? "cross-reduction" : "visual-debt"} · `
+        + `visualGain=${retouchEvaluation.visualGain} · `
+        + `visualDelta=${retouchEvaluation.visualDelta} · `
+        + `edgeCrossGain=${retouchEvaluation.edgeCrossGain}`
+        + `/${retouchCrossRepairMinEdgeCrossGain} · `
+        + `rawRouteGain=${retouchEvaluation.rawRouteGain}`
+        + `/${retouchCrossRepairMinRawRouteGain} · `
+        + `edgeNodeDebt=${retouchEvaluation.edgeNodeDebt}`
+        + `/${retouchCrossRepairMaxEdgeNodeDebt} · `
+        + `bundleEdgeDebt=${retouchEvaluation.bundleEdgeDebt}`
+        + `/${retouchCrossRepairMaxBundleEdgeDebt} · `
+        + `nodeBboxGrowth=${retouchEvaluation.nodeBboxGrowth.toFixed(3)}`
+        + `/${retouchSalvageRepairNodeBboxGrowthLimit.toFixed(3)} · `
+        + `routeBboxGrowth=${retouchEvaluation.routeBboxGrowth.toFixed(3)}`
+        + `/${retouchSalvageRepairRouteBboxGrowthLimit.toFixed(3)} · `
+        + `bundleNodeDebt=${retouchEvaluation.bundleNodeDebt}`
+        + `/${retouchSalvageRepairMaxBundleNodeDebt} · `
+        + `overlappingEdgeDebt=${retouchEvaluation.overlappingEdgeDebt.toFixed(1)}`
+        + `/${retouchSalvageRepairMaxOverlappingEdgeDebt.toFixed(1)} · `
+        + `segmentOverlapDebt=${retouchEvaluation.segmentOverlapDebt.toFixed(1)}`
+        + `/${retouchSalvageRepairMaxSegmentOverlapDebt.toFixed(1)}`,
+      );
+      const repairPositionsPath = trackRetouchTempPath(path.join(
         os.tmpdir(),
         `django-erd-final-export-retouch-debt-repair-${repairId}.tsv`,
-      );
-      const repairRoutesPath = path.join(
+      ));
+      const repairRoutesPath = trackRetouchTempPath(path.join(
         os.tmpdir(),
         `django-erd-final-export-retouch-debt-repair-${repairId}-routes.tsv`,
-      );
+      ));
       await writePositionsTsvFromLayoutJson(
         retouchReroute.stdout,
         repairPositionsPath,
@@ -6072,6 +7185,15 @@ async function runFinalExportRetouch(options: {
         "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_TIMEOUT_MS",
         120_000,
       );
+      const repairBudgetedTimeout = budgetCandidateTimeout(
+        options.polishDeadline,
+        repairTimeoutMs,
+        "final-export retouch:debt-repair",
+        options.logger,
+      );
+      if (!repairBudgetedTimeout) {
+        return options.stdout;
+      }
       const debtRepair = await execFileAsync(
         options.binaryPath,
         [
@@ -6089,11 +7211,11 @@ async function runFinalExportRetouch(options: {
           env: ogdfFinalExportRetouchDebtRepairEnv(),
           killSignal: "SIGKILL",
           maxBuffer: 100 * 1024 * 1024,
-          timeout: repairTimeoutMs,
+          timeout: repairBudgetedTimeout.timeoutMs,
         },
       );
       if (debtRepair.stderr.trim().length > 0) {
-        options.logger?.warn(
+        options.logger?.info(
           `[final-export retouch:debt-repair] OGDF stderr: `
           + debtRepair.stderr.trim(),
         );
@@ -6103,18 +7225,149 @@ async function runFinalExportRetouch(options: {
         debtRepair.stdout,
         Date.now() - repairStart,
       );
-      if (repairEvaluation.accepted) {
-        return debtRepair.stdout;
+      const repairSalvageAccepted =
+        isDebtRepairSalvageAcceptable(repairEvaluation);
+      if (repairEvaluation.accepted || repairSalvageAccepted) {
+        if (repairSalvageAccepted) {
+          options.logger?.info(
+            `[final-export retouch:debt-repair] salvage accepted · `
+            + `visualGain=${repairEvaluation.visualGain}`
+            + `/${retouchDebtRepairSalvageAcceptMinVisualGain} · `
+            + `nodeBboxGrowth=${repairEvaluation.nodeBboxGrowth.toFixed(3)}`
+            + `/${retouchDebtRepairSalvageAcceptNodeBboxGrowthLimit.toFixed(3)} · `
+            + `routeBboxGrowth=${repairEvaluation.routeBboxGrowth.toFixed(3)}`
+            + `/${retouchDebtRepairSalvageAcceptRouteBboxGrowthLimit.toFixed(3)} · `
+            + `edgeNodeDebt=${repairEvaluation.edgeNodeDebt} · `
+            + `bundleEdgeDebt=${repairEvaluation.bundleEdgeDebt} · `
+            + `bundleNodeDebt=${repairEvaluation.bundleNodeDebt} · `
+            + `spacingDebt=${repairEvaluation.spacingDebt.toFixed(1)} · `
+            + `overlappingEdgeDebt=`
+            + `${repairEvaluation.overlappingEdgeDebt.toFixed(1)} · `
+            + `segmentOverlapDebt=`
+            + `${repairEvaluation.segmentOverlapDebt.toFixed(1)}`,
+          );
+        }
+        try {
+          const hubCorridorStdout = await tryDebtRepairHubCorridor(
+            debtRepair.stdout,
+            repairEvaluation,
+          );
+          return hubCorridorStdout ?? debtRepair.stdout;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          options.logger?.warn(
+            `[final-export retouch:debt-repair-hub-corridor] failed; `
+            + `keeping accepted debt-repair candidate: ${msg}`,
+          );
+          return debtRepair.stdout;
+        }
+      }
+      const shouldTryDebtSpacingRepair =
+        readBoolEnv(
+          "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_SPACING_REPAIR",
+          true,
+        )
+        && isSpacingOnlyRetouchFailure(repairEvaluation);
+      if (shouldTryDebtSpacingRepair) {
+        const spacingRepairStart = Date.now();
+        const spacingRepairId = `${Date.now()}-debt-spacing-repair`;
+        options.logger?.info(
+          `[final-export retouch:debt-repair-spacing-repair] `
+          + `retrying spacing-only debt-repair result · `
+          + `visualGain=${repairEvaluation.visualGain} · `
+          + `spacingDebt=${repairEvaluation.spacingDebt.toFixed(1)}`,
+        );
+        const spacingRepairPositionsPath = trackRetouchTempPath(path.join(
+          os.tmpdir(),
+          `django-erd-final-export-retouch-debt-spacing-repair-${spacingRepairId}.tsv`,
+        ));
+        const spacingRepairRoutesPath = trackRetouchTempPath(path.join(
+          os.tmpdir(),
+          `django-erd-final-export-retouch-debt-spacing-repair-${spacingRepairId}-routes.tsv`,
+        ));
+        await writePositionsTsvFromLayoutJson(
+          debtRepair.stdout,
+          spacingRepairPositionsPath,
+        );
+        await writeRoutesTsvFromLayoutJson(
+          debtRepair.stdout,
+          spacingRepairRoutesPath,
+        );
+        const spacingRepairTimeoutMs = readPositiveIntEnv(
+          "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_SPACING_REPAIR_TIMEOUT_MS",
+          readPositiveIntEnv(
+            "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_SPACING_REPAIR_TIMEOUT_MS",
+            120_000,
+          ),
+        );
+        const spacingRepairBudgetedTimeout = budgetCandidateTimeout(
+          options.polishDeadline,
+          spacingRepairTimeoutMs,
+          "final-export retouch:debt-repair-spacing-repair",
+          options.logger,
+        );
+        if (!spacingRepairBudgetedTimeout) {
+          return options.stdout;
+        }
+        const debtSpacingRepair = await execFileAsync(
+          options.binaryPath,
+          [
+            "layout",
+            "--mode", options.mode,
+            "--nodes-file", options.nodesPath,
+            "--edges-file", options.edgesPath,
+            "--edge-routing", options.edgeRouting,
+            ...(retouchClusterGraph ? ["--cluster-graph", "1"] : []),
+            "--positions-tsv", spacingRepairPositionsPath,
+            "--routes-tsv", spacingRepairRoutesPath,
+          ],
+          {
+            cwd: options.cwd,
+            env: ogdfFinalExportRetouchSpacingRepairEnv(),
+            killSignal: "SIGKILL",
+            maxBuffer: 100 * 1024 * 1024,
+            timeout: spacingRepairBudgetedTimeout.timeoutMs,
+          },
+        );
+        if (debtSpacingRepair.stderr.trim().length > 0) {
+          options.logger?.info(
+            `[final-export retouch:debt-repair-spacing-repair] OGDF stderr: `
+            + debtSpacingRepair.stderr.trim(),
+          );
+        }
+        const spacingRepairEvaluation = evaluateRetouchCandidate(
+          "final-export retouch:debt-repair-spacing-repair",
+          debtSpacingRepair.stdout,
+          Date.now() - spacingRepairStart,
+        );
+        if (spacingRepairEvaluation.accepted) {
+          return debtSpacingRepair.stdout;
+        }
       }
     }
 
     return options.stdout;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    options.logger?.warn(
-      `[final-export retouch] failed in ${Date.now() - retouchStart}ms: ${msg}`,
-    );
+    const budgetExhausted =
+      options.polishDeadline
+      && remainingPostReroutePolishBudgetMs(options.polishDeadline) <= 0;
+    if (budgetExhausted) {
+      options.logger?.info(
+        `[post-reroute polish budget] final-export retouch stopped; `
+        + "budget-limited candidate consumed the remaining deadline; "
+        + "skipping sibling repairs",
+      );
+    } else {
+      options.logger?.warn(
+        `[final-export retouch] failed in ${Date.now() - retouchStart}ms: ${msg}`,
+      );
+    }
     return options.stdout;
+  } finally {
+    await Promise.all(
+      retouchTempPaths.map((filePath) => rm(filePath, { force: true })),
+    );
   }
 }
 

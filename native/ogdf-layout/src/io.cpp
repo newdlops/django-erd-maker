@@ -91,6 +91,31 @@ void writeLayoutEngineMetadata(
            << ",\"hubCarrierEdgesGrouped\":" << metadata.hubCarrierEdgesGrouped
            << ",\"hubCarrierClusters\":" << metadata.hubCarrierClusters;
   }
+  if (metadata.canonicalCrossing.available) {
+    const CanonicalCrossingMetadata& canonical = metadata.canonicalCrossing;
+    stream << ",\"canonicalCrossing\":{"
+           << "\"domain\":\"" << escapeJson(canonical.domain)
+           << "\",\"certifierVersion\":\"" << escapeJson(canonical.certifierVersion)
+           << "\",\"method\":\"" << escapeJson(canonical.method)
+           << "\",\"nodeCount\":" << canonical.nodeCount
+           << ",\"edgeCount\":" << canonical.edgeCount
+           << ",\"lowerBound\":" << canonical.lowerBound
+           << ",\"k3nContribution\":" << canonical.k3nContribution
+           << ",\"k3nCertificates\":" << canonical.k3nCertificates
+           << ",\"kuratowskiContribution\":" << canonical.kuratowskiContribution
+           << ",\"kuratowskiCertificates\":" << canonical.kuratowskiCertificates
+           << ",\"routeCrossingPoints\":" << canonical.routeCrossingPoints
+           << ",\"routeCrossingPairs\":" << canonical.routeCrossingPairs
+           << ",\"properDrawing\":" << (canonical.properDrawing ? "true" : "false")
+           << ",\"completeRoutes\":" << (canonical.completeRoutes ? "true" : "false")
+           << ",\"nonProperContacts\":" << canonical.nonProperContacts
+           << ",\"boundViolation\":" << (canonical.boundViolation ? "true" : "false");
+    if (canonical.properDrawing && !canonical.boundViolation) {
+      stream << ",\"gap\":" << canonical.gap
+             << ",\"optimality\":" << canonical.optimality;
+    }
+    stream << "}";
+  }
   stream << ",\"nodeOverlaps\":" << quality.nodeOverlaps
          << ",\"rawRouteCrossings\":" << metadata.rawRouteCrossings
          << ",\"nodeSpacingOverlaps\":" << quality.nodeSpacingOverlaps

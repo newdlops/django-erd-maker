@@ -114,19 +114,21 @@ export async function openDiagram(
           return cachedDiagram ?? liveDiagram;
         }
 
-        await exportDiagramAnalysisArtifacts(
-          context.extensionUri.fsPath,
-          liveDiagram.payload,
-          logger,
-          {
-            acceptedBy: "extension.refreshLoader",
-            bubbleLayout,
-            clusterGraphLayout,
-            optimizedLayout,
-            refreshKind,
-            requestId: refreshRunId,
-          },
-        );
+        if (readBoolEnv("DJANGO_ERD_EXPORT_ANALYSIS_ARTIFACTS", false)) {
+          await exportDiagramAnalysisArtifacts(
+            context.extensionUri.fsPath,
+            liveDiagram.payload,
+            logger,
+            {
+              acceptedBy: "extension.refreshLoader",
+              bubbleLayout,
+              clusterGraphLayout,
+              optimizedLayout,
+              refreshKind,
+              requestId: refreshRunId,
+            },
+          );
+        }
         logLiveDiagramResult(liveDiagram, logger, refreshRunId);
         cachedDiagram = liveDiagram;
         return liveDiagram;
@@ -164,6 +166,13 @@ function logDiscoveryResult(
       `candidateModelFiles=${discovery.candidateModelFiles.length}`,
       `candidateModules=${discovery.candidateModules.length}`,
       `diagnostics=${discovery.diagnostics.length}`,
+      ...(discovery.timings
+        ? [
+            `rootSelectionMs=${discovery.timings.rootSelectionMs.toFixed(1)}`,
+            `appDiscoveryMs=${discovery.timings.appDiscoveryMs.toFixed(1)}`,
+            `candidateModulesMs=${discovery.timings.candidateModulesMs.toFixed(1)}`,
+          ]
+        : []),
     ].join(" · "),
   );
 
@@ -181,10 +190,28 @@ function logDiscoveryResult(
   );
 
   for (const diagnostic of discovery.diagnostics) {
-    logger.warn(
-      `Discovery diagnostic [${diagnostic.code}] ${diagnostic.message}`,
-    );
+    const message =
+      `Discovery diagnostic [${diagnostic.code}] ${diagnostic.message}`;
+    if (diagnostic.severity === "warning") {
+      logger.warn(message);
+    } else {
+      logger.info(message);
+    }
   }
+}
+
+function readBoolEnv(name: string, fallback: boolean): boolean {
+  const value = process.env[name]?.trim().toLowerCase();
+  if (!value) {
+    return fallback;
+  }
+  if (["1", "true", "yes", "on"].includes(value)) {
+    return true;
+  }
+  if (["0", "false", "no", "off"].includes(value)) {
+    return false;
+  }
+  return fallback;
 }
 
 function logLiveDiagramResult(
@@ -200,7 +227,15 @@ function logLiveDiagramResult(
       `Diagram payload ready`,
       ...(requestId !== undefined ? [`requestId=${requestId}`] : []),
       `models=${payload.analyzer.models.length}`,
+      `graphNodes=${payload.graph.nodes.length}`,
+      ...(payload.analyzer.summary.canonicalModelIdCollisionCount !== undefined
+        ? [
+            `canonicalModelIdCollisions=`
+            + `${payload.analyzer.summary.canonicalModelIdCollisionCount}`,
+          ]
+        : []),
       `structuralEdges=${payload.graph.structuralEdges.length}`,
+      `routedEdges=${payload.layout.routedEdges.length}`,
       `methodAssociations=${payload.graph.methodAssociations.length}`,
       `requestedLayout=${execution?.requestedMode ?? payload.view.layoutMode}`,
       `appliedLayout=${execution?.appliedMode ?? payload.layout.mode}`,
@@ -213,7 +248,25 @@ function logLiveDiagramResult(
       `payloadLeafBundles=${payload.layout.engineMetadata?.leafBundles?.length ?? "absent"}`,
       `executionLeafBundles=${execution?.engineMetadata?.leafBundles?.length ?? "absent"}`,
       ...(metadata?.nodeOverlaps !== undefined ? [`nodeOverlaps=${metadata.nodeOverlaps}`] : []),
+      ...(metadata?.rawRouteCrossings !== undefined
+        ? [`rawRouteCrossings=${metadata.rawRouteCrossings}`]
+        : []),
+      ...(metadata?.routeSegments !== undefined
+        ? [`routeSegments=${metadata.routeSegments}`]
+        : []),
+      ...(metadata?.edgeCrossings !== undefined
+        ? [`edgeCrossings=${metadata.edgeCrossings}`]
+        : []),
       ...(metadata?.edgeNodeIntersections !== undefined ? [`edgeNodeIntersections=${metadata.edgeNodeIntersections}`] : []),
+      ...(metadata?.bundleEdgeIntersections !== undefined
+        ? [`bundleEdgeIntersections=${metadata.bundleEdgeIntersections}`]
+        : []),
+      ...(metadata?.bundleNodeOverlaps !== undefined
+        ? [`bundleNodeOverlaps=${metadata.bundleNodeOverlaps}`]
+        : []),
+      ...(metadata?.visualCrossings !== undefined
+        ? [`visualCrossings=${metadata.visualCrossings}`]
+        : []),
       ...(metadata?.overlappingEdges !== undefined ? [`overlappingEdges=${metadata.overlappingEdges}`] : []),
       ...(execution?.reason ? [`layoutReason=${execution.reason}`] : []),
       `disabledLayouts=${Object.keys(payload.layoutFailures ?? {}).length}`,
@@ -231,7 +284,14 @@ function logLiveDiagramResult(
   );
 
   for (const diagnostic of payload.analyzer.diagnostics) {
-    logger.warn(`Analyzer diagnostic [${diagnostic.code}] ${diagnostic.message}`);
+    const message = `Analyzer diagnostic [${diagnostic.code}] ${diagnostic.message}`;
+    if (diagnostic.severity === "error") {
+      logger.error(message);
+    } else if (diagnostic.severity === "warning") {
+      logger.warn(message);
+    } else {
+      logger.info(message);
+    }
   }
 }
 
@@ -241,7 +301,7 @@ function logPreview(logger: Logger, label: string, values: string[]): void {
     return;
   }
 
-  const previewLimit = 200;
+  const previewLimit = 25;
   for (const value of values.slice(0, previewLimit)) {
     logger.info(`${label}: ${value}`);
   }

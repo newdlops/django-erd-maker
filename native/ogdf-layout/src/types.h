@@ -154,6 +154,32 @@ struct CrossingEdgeRecord {
   std::size_t crossings = 0;
 };
 
+// Certified lower bound and like-for-like route measurements for the
+// canonical simple undirected model graph. This deliberately does not describe
+// the rendered carrier quotient: carrier edgeCrossings/visualCrossings use a
+// different topology and therefore cannot inherit this lower bound.
+struct CanonicalCrossingMetadata {
+  bool available = false;
+  bool boundViolation = false;
+  bool completeRoutes = false;
+  bool properDrawing = false;
+  std::string domain = "canonical-simple-v1";
+  std::string certifierVersion;
+  std::string method;
+  std::size_t edgeCount = 0;
+  std::size_t gap = 0;
+  std::size_t k3nCertificates = 0;
+  std::size_t k3nContribution = 0;
+  std::size_t kuratowskiCertificates = 0;
+  std::size_t kuratowskiContribution = 0;
+  std::size_t lowerBound = 0;
+  std::size_t nodeCount = 0;
+  std::size_t nonProperContacts = 0;
+  double optimality = 0.0;
+  std::size_t routeCrossingPairs = 0;
+  std::size_t routeCrossingPoints = 0;
+};
+
 struct LayoutRunMetadata {
   std::string requestedMode;
   std::string actualMode;
@@ -165,6 +191,7 @@ struct LayoutRunMetadata {
   std::size_t hubCarrierEdgesGrouped = 0;
   std::size_t hubCarrierClusters = 0;
   std::size_t rawRouteCrossings = 0;
+  CanonicalCrossingMetadata canonicalCrossing;
   std::unordered_map<std::string, std::string> clusterByModelId;
   std::vector<LeafBundleRecord> leafBundles;
 };

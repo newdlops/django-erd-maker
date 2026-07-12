@@ -136,6 +136,10 @@ test("phase10 live diagram service applies OGDF layout from a platform binary pr
       result.payload.layout.routedEdges.length,
       result.payload.graph.structuralEdges.length,
     );
+    assert.equal(
+      result.payload.layout.engineMetadata?.canonicalCrossing?.lowerBound,
+      0,
+    );
   } finally {
     restoreEnvValue("DJANGO_ERD_OGDF_LAYOUT_BIN", previousBinary);
     restoreEnvValue("NODE_OPTIONS", previousNodeOptions);
@@ -303,7 +307,33 @@ const routedEdges = fs.readFileSync(edgesFile, "utf8")
     };
   });
 
-process.stdout.write(JSON.stringify({ crossings: [], mode, nodes, routedEdges }));
+const canonicalCrossing = {
+  boundViolation: false,
+  certifierVersion: "fake-native-v1",
+  completeRoutes: true,
+  domain: "canonical-simple-v1",
+  edgeCount: routedEdges.length,
+  gap: 0,
+  k3nCertificates: 0,
+  k3nContribution: 0,
+  kuratowskiCertificates: 0,
+  kuratowskiContribution: 0,
+  lowerBound: 0,
+  method: "fake-native",
+  nodeCount: nodes.length,
+  nonProperContacts: 0,
+  optimality: 1,
+  properDrawing: true,
+  routeCrossingPairs: 0,
+  routeCrossingPoints: 0,
+};
+process.stdout.write(JSON.stringify({
+  crossings: [],
+  engineMetadata: { canonicalCrossing },
+  mode,
+  nodes,
+  routedEdges,
+}));
 process.exit(0);
 `;
 }

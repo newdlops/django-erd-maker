@@ -13,6 +13,10 @@ declare module "node:fs/promises" {
     path: string,
     options?: { force?: boolean; recursive?: boolean },
   ): Promise<void>;
+  export function stat(path: string): Promise<{
+    mtimeMs: number;
+    size: number;
+  }>;
   export function writeFile(
     path: string,
     data: string,

@@ -192,8 +192,9 @@ async function applyRequestedLayout(
       durationMs: ogdfResult.durationMs,
       engine: "ogdf",
       engineMetadata: ogdfResult.engineMetadata,
+      reason: ogdfResult.reason,
       requestedMode: ogdfResult.requestedLayoutMode,
-      status: "applied",
+      status: ogdfResult.qualityDegraded ? "quality-degraded" : "applied",
     });
     payload.view.layoutMode = normalizeLayoutMode(ogdfResult.layout.mode);
     delete nextLayoutFailures[ogdfResult.requestedLayoutMode];

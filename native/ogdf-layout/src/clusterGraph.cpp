@@ -3422,8 +3422,26 @@ ClusterGraphResult runClusterGraphLayout(
       incidentE[sEdges[i].second].push_back(i);
     }
 
-    auto segCross = [](double ax, double ay, double bx, double by,
+    const bool useSwapAabb = [] {
+      const char* value = std::getenv("DJERD_CG_SWAP_AABB");
+      return !value || std::strcmp(value, "0") != 0;
+    }();
+    const bool useSwapCache = [] {
+      const char* value = std::getenv("DJERD_CG_SWAP_CACHE");
+      return !value || std::strcmp(value, "0") != 0;
+    }();
+    auto segCross = [useSwapAabb](
+                       double ax, double ay, double bx, double by,
                        double cx, double cy, double dx, double dy) -> bool {
+      // Exact broad phase: disjoint inclusive AABBs cannot cross. Keep `<`
+      // (not `<=`) so touching bounds still reach the orientation test.
+      if (useSwapAabb
+          && (std::max(ax, bx) < std::min(cx, dx)
+              || std::max(cx, dx) < std::min(ax, bx)
+              || std::max(ay, by) < std::min(cy, dy)
+              || std::max(cy, dy) < std::min(ay, by))) {
+        return false;
+      }
       auto ccw = [](double Ax, double Ay, double Bx, double By,
                     double Cx, double Cy) -> double {
         return (Cy - Ay) * (Bx - Ax) - (By - Ay) * (Cx - Ax);
@@ -3436,7 +3454,7 @@ ClusterGraphResult runClusterGraphLayout(
              ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
     };
 
-    auto incidentCross = [&](ogdf::node n) -> int {
+    auto incidentCrossRaw = [&](ogdf::node n) -> int {
       int total = 0;
       auto it = incidentE.find(n);
       if (it == incidentE.end()) return 0;
@@ -3456,6 +3474,33 @@ ClusterGraphResult runClusterGraphLayout(
         }
       }
       return total;
+    };
+    std::unordered_map<ogdf::node, int> incidentCrossCache;
+    incidentCrossCache.reserve(clusterSnSet.size());
+    auto incidentCross = [&](ogdf::node n) -> int {
+      if (!useSwapCache) return incidentCrossRaw(n);
+      auto cached = incidentCrossCache.find(n);
+      if (cached != incidentCrossCache.end()) return cached->second;
+      const int total = incidentCrossRaw(n);
+      incidentCrossCache.emplace(n, total);
+      return total;
+    };
+
+    struct NodePairHash {
+      std::size_t operator()(
+          const std::pair<ogdf::node, ogdf::node>& value) const noexcept {
+        const std::size_t left = std::hash<ogdf::node>{}(value.first);
+        const std::size_t right = std::hash<ogdf::node>{}(value.second);
+        return left ^ (right + 0x9e3779b9U + (left << 6U) + (left >> 2U));
+      }
+    };
+    std::unordered_map<std::pair<ogdf::node, ogdf::node>, int, NodePairHash>
+      swapGainCache;
+    swapGainCache.reserve(clusterSnSet.size() * 4);
+    auto orderedNodePair = [](ogdf::node left, ogdf::node right) {
+      return left->index() <= right->index()
+        ? std::make_pair(left, right)
+        : std::make_pair(right, left);
     };
 
     auto swapPos = [&](ogdf::node n1, ogdf::node n2) {
@@ -3499,15 +3544,32 @@ ClusterGraphResult runClusterGraphLayout(
           int bestK = -1;
           for (int k = 0; k < 4; ++k) {
             if (!clusterSnSet.count(candA[k]) || !clusterSnSet.count(candB[k])) continue;
-            const int oldCnt = incidentCross(candA[k]) + incidentCross(candB[k]);
-            swapPos(candA[k], candB[k]);
-            const int newCnt = incidentCross(candA[k]) + incidentCross(candB[k]);
-            swapPos(candA[k], candB[k]);  // revert (involutive)
-            const int save = oldCnt - newCnt;
+            const auto pairKey = orderedNodePair(candA[k], candB[k]);
+            auto cachedGain = useSwapCache
+              ? swapGainCache.find(pairKey)
+              : swapGainCache.end();
+            int save = 0;
+            if (cachedGain != swapGainCache.end()) {
+              save = cachedGain->second;
+            } else {
+              const int oldCnt =
+                incidentCross(candA[k]) + incidentCross(candB[k]);
+              swapPos(candA[k], candB[k]);
+              // Trial coordinates differ from the cached current layout.
+              const int newCnt =
+                incidentCrossRaw(candA[k]) + incidentCrossRaw(candB[k]);
+              swapPos(candA[k], candB[k]);  // revert (involutive)
+              save = oldCnt - newCnt;
+              if (useSwapCache) swapGainCache.emplace(pairKey, save);
+            }
             if (save > bestSave) { bestSave = save; bestK = k; }
           }
           if (bestK >= 0) {
             swapPos(candA[bestK], candB[bestK]);
+            // Any accepted swap changes crossing counts globally; the next
+            // greedy decision must be evaluated against the new layout.
+            incidentCrossCache.clear();
+            swapGainCache.clear();
             ++swaps;
             anyImproved = true;
             break;  // restart i scan (positions changed)

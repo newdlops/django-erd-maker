@@ -3,6 +3,7 @@ import type { AnalyzerDiagnostic, SourceLocation, SourceRange } from "../diagnos
 import type { DiagramGraph, GraphNode, MethodAssociation, StructuralGraphEdge } from "../graph/diagramGraph";
 import {
   OGDF_LAYOUT_MODES,
+  type CanonicalCrossingMetadata,
   type EdgeCrossing,
   type LayoutEngineMetadata,
   type LayoutMode,
@@ -95,6 +96,11 @@ function decodeAnalyzerOutput(record: JsonRecord): AnalyzerOutput {
 
 function decodeAnalysisSummary(record: JsonRecord): AnalysisSummary {
   return {
+    canonicalModelIdCollisionCount: readOptionalNumber(
+      record,
+      "canonicalModelIdCollisionCount",
+      "diagramBootstrapPayload.analyzer.summary",
+    ),
     diagnosticCount: readNumber(record, "diagnosticCount", "diagramBootstrapPayload.analyzer.summary"),
     discoveredAppCount: readNumber(record, "discoveredAppCount", "diagramBootstrapPayload.analyzer.summary"),
     discoveredModelCount: readNumber(record, "discoveredModelCount", "diagramBootstrapPayload.analyzer.summary"),
@@ -261,6 +267,7 @@ function decodeLayoutEngineMetadata(
     boundingBoxArea: readOptionalNumber(metadata, "boundingBoxArea", `${context}.engineMetadata`),
     bundleEdgeIntersections: readOptionalNumber(metadata, "bundleEdgeIntersections", `${context}.engineMetadata`),
     bundleNodeOverlaps: readOptionalNumber(metadata, "bundleNodeOverlaps", `${context}.engineMetadata`),
+    canonicalCrossing: decodeCanonicalCrossing(metadata, `${context}.engineMetadata`),
     edgeCrossings: readOptionalNumber(metadata, "edgeCrossings", `${context}.engineMetadata`),
     edgeLengthStddev: readOptionalNumber(metadata, "edgeLengthStddev", `${context}.engineMetadata`),
     edgeNodeIntersections: readOptionalNumber(metadata, "edgeNodeIntersections", `${context}.engineMetadata`),
@@ -273,6 +280,7 @@ function decodeLayoutEngineMetadata(
     nodeOverlaps: readOptionalNumber(metadata, "nodeOverlaps", `${context}.engineMetadata`),
     nodeSpacingOverlaps: readOptionalNumber(metadata, "nodeSpacingOverlaps", `${context}.engineMetadata`),
     overlappingEdges: readOptionalNumber(metadata, "overlappingEdges", `${context}.engineMetadata`),
+    rawRouteCrossings: readOptionalNumber(metadata, "rawRouteCrossings", `${context}.engineMetadata`),
     requestedAlgorithm: readOptionalString(metadata, "requestedAlgorithm", `${context}.engineMetadata`),
     requestedMode: readOptionalLayoutMode(metadata, "requestedMode", `${context}.engineMetadata`),
     routeSegments: readOptionalNumber(metadata, "routeSegments", `${context}.engineMetadata`),
@@ -302,6 +310,99 @@ function decodeLayoutEngineMetadata(
     subSpreadQuality: readOptionalNumber(metadata, "subSpreadQuality", `${context}.engineMetadata`),
     topCrossEdges: decodeTopCrossEdges(metadata, `${context}.engineMetadata`),
     clusterByModelId: decodeClusterByModelId(metadata, `${context}.engineMetadata`),
+  };
+}
+
+function decodeCanonicalCrossing(
+  record: JsonRecord,
+  context: string,
+): CanonicalCrossingMetadata | undefined {
+  const canonicalCrossing = readOptionalObject(
+    record,
+    "canonicalCrossing",
+    context,
+  );
+  if (!canonicalCrossing) {
+    return undefined;
+  }
+
+  const canonicalContext = `${context}.canonicalCrossing`;
+  return {
+    boundViolation: readBoolean(
+      canonicalCrossing,
+      "boundViolation",
+      canonicalContext,
+    ),
+    certifierVersion: readString(
+      canonicalCrossing,
+      "certifierVersion",
+      canonicalContext,
+    ),
+    completeRoutes: readBoolean(
+      canonicalCrossing,
+      "completeRoutes",
+      canonicalContext,
+    ),
+    domain: readLiteral(
+      canonicalCrossing,
+      "domain",
+      ["canonical-simple-v1"],
+      canonicalContext,
+    ),
+    edgeCount: readNumber(canonicalCrossing, "edgeCount", canonicalContext),
+    gap: readOptionalNumber(canonicalCrossing, "gap", canonicalContext),
+    k3nCertificates: readNumber(
+      canonicalCrossing,
+      "k3nCertificates",
+      canonicalContext,
+    ),
+    k3nContribution: readNumber(
+      canonicalCrossing,
+      "k3nContribution",
+      canonicalContext,
+    ),
+    kuratowskiCertificates: readNumber(
+      canonicalCrossing,
+      "kuratowskiCertificates",
+      canonicalContext,
+    ),
+    kuratowskiContribution: readNumber(
+      canonicalCrossing,
+      "kuratowskiContribution",
+      canonicalContext,
+    ),
+    lowerBound: readNumber(
+      canonicalCrossing,
+      "lowerBound",
+      canonicalContext,
+    ),
+    method: readString(canonicalCrossing, "method", canonicalContext),
+    nodeCount: readNumber(canonicalCrossing, "nodeCount", canonicalContext),
+    nonProperContacts: readNumber(
+      canonicalCrossing,
+      "nonProperContacts",
+      canonicalContext,
+    ),
+    optimality: readOptionalNumber(
+      canonicalCrossing,
+      "optimality",
+      canonicalContext,
+    ),
+    properDrawing: readBoolean(
+      canonicalCrossing,
+      "properDrawing",
+      canonicalContext,
+    ),
+    routeCrossingPairs: readNumber(
+      canonicalCrossing,
+      "routeCrossingPairs",
+      canonicalContext,
+    ),
+    routeCrossingPoints: readNumber(
+      canonicalCrossing,
+      "routeCrossingPoints",
+      canonicalContext,
+    ),
   };
 }
 
@@ -422,7 +523,12 @@ function decodeLayoutExecution(record: JsonRecord): LayoutExecutionSnapshot | un
     engineMetadata: decodeLayoutEngineMetadata(layoutExecution, "diagramBootstrapPayload.layoutExecution"),
     reason: readOptionalString(layoutExecution, "reason", "diagramBootstrapPayload.layoutExecution"),
     requestedMode: readLiteral(layoutExecution, "requestedMode", OGDF_LAYOUT_MODES, "diagramBootstrapPayload.layoutExecution"),
-    status: readLiteral(layoutExecution, "status", ["applied", "empty", "fallback"], "diagramBootstrapPayload.layoutExecution"),
+    status: readLiteral(
+      layoutExecution,
+      "status",
+      ["applied", "empty", "fallback", "quality-degraded"],
+      "diagramBootstrapPayload.layoutExecution",
+    ),
   };
 }
 

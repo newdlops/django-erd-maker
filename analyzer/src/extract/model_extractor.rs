@@ -156,6 +156,7 @@ fn extract_model_from_class(
             identity,
             methods,
             properties,
+            source_file_path: Some(module.file_path.to_string_lossy().to_string()),
         },
         diagnostics,
     )

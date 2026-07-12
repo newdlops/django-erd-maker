@@ -7,6 +7,8 @@ import type {
 } from "./discoveryTypes";
 import { collectPythonFiles, scanDirectories, scanImmediateChildren } from "./pathScanner";
 
+const APP_DISCOVERY_CONCURRENCY = 32;
+
 export interface DiscoverAppsResult {
   apps: DiscoveredDjangoApp[];
   diagnostics: DiscoveryDiagnostic[];
@@ -19,17 +21,36 @@ export async function discoverApps(
   const apps: DiscoveredDjangoApp[] = [];
   const directories = await scanDirectories(selectedRoot);
 
-  for (const directoryPath of directories) {
-    const baseName = path.basename(directoryPath);
+  const candidateDirectories = directories.filter(
+    (directoryPath) => path.basename(directoryPath) !== "models",
+  );
 
-    if (baseName === "models") {
-      continue;
-    }
+  for (
+    let batchStart = 0;
+    batchStart < candidateDirectories.length;
+    batchStart += APP_DISCOVERY_CONCURRENCY
+  ) {
+    const batch = candidateDirectories.slice(
+      batchStart,
+      batchStart + APP_DISCOVERY_CONCURRENCY,
+    );
+    const batchResults = await Promise.all(
+      batch.map(async (directoryPath) => {
+        const appDiagnostics: DiscoveryDiagnostic[] = [];
+        const app = await maybeDiscoverApp(
+          directoryPath,
+          selectedRoot,
+          appDiagnostics,
+        );
+        return { app, diagnostics: appDiagnostics };
+      }),
+    );
 
-    const app = await maybeDiscoverApp(directoryPath, selectedRoot, diagnostics);
-
-    if (app) {
-      apps.push(app);
+    for (const result of batchResults) {
+      diagnostics.push(...result.diagnostics);
+      if (result.app) {
+        apps.push(result.app);
+      }
     }
   }
 

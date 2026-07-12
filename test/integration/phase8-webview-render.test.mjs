@@ -16,12 +16,22 @@ const layoutContractModulePath = path.resolve(
   __dirname,
   "../../out/shared/graph/layoutContract.js",
 );
+const protocolDecoderModulePath = path.resolve(
+  __dirname,
+  "../../out/shared/protocol/decodeDiagramBootstrap.js",
+);
+const renderModelModulePath = path.resolve(
+  __dirname,
+  "../../out/webview/state/createDiagramRenderModel.js",
+);
 const sampleModulePath = path.resolve(
   __dirname,
   "../../out/extension/services/loadPhaseOneSample.js",
 );
 const packageManifest = require(path.resolve(__dirname, "../../package.json"));
 const { OGDF_LAYOUT_TOOLBAR_DEFINITIONS } = require(layoutContractModulePath);
+const { decodeLayoutSnapshot } = require(protocolDecoderModulePath);
+const { createDiagramRenderModel } = require(renderModelModulePath);
 const { renderDiagramDocument } = require(renderModulePath);
 const { loadPhaseOneSample } = require(sampleModulePath);
 
@@ -91,6 +101,65 @@ test("phase8 document surfaces layout fallback state and disables failed layout 
   assert.match(html, /data-layout-mode="planarization"[\s\S]*disabled/);
 });
 
+test("phase8 document surfaces an applied layout that missed its quality target", () => {
+  const html = render((payload) => {
+    payload.layoutExecution = {
+      appliedMode: "fast_multipole",
+      engine: "ogdf",
+      reason: "Optimized visual crossings 2174 exceed target 500 by 1674.",
+      requestedMode: "fast_multipole",
+      status: "quality-degraded",
+    };
+  });
+
+  assert.match(html, /Optimized layout applied/);
+  assert.match(html, /Quality target missed/);
+  assert.match(html, /Optimized visual crossings 2174 exceed target 500 by 1674/);
+  assert.match(html, /layout_quality_degraded/);
+  assert.doesNotMatch(html, /Fallback active/);
+});
+
+test("phase8 decoder and inspector keep canonical crossing certification separate from visual conflicts", () => {
+  const payload = structuredClone(loadPhaseOneSample());
+  payload.layout.engineMetadata = {
+    ...(payload.layout.engineMetadata ?? {}),
+    canonicalCrossing: canonicalCrossingFixture(),
+    visualCrossings: 446,
+  };
+
+  const decodedLayout = decodeLayoutSnapshot(payload.layout, "phase8CanonicalLayout");
+  assert.deepEqual(
+    decodedLayout.engineMetadata?.canonicalCrossing,
+    canonicalCrossingFixture(),
+  );
+  payload.layout = decodedLayout;
+
+  const viewModel = createDiagramRenderModel(payload);
+  const html = renderDiagramDocument(payload);
+  assert.equal(viewModel.visualCrossings, 446);
+  assert.deepEqual(viewModel.canonicalCrossing, {
+    boundViolation: false,
+    completeRoutes: true,
+    gap: 38,
+    lowerBound: 53,
+    optimality: 53 / 91,
+    properDrawing: true,
+    routeCrossingPairs: 91,
+  });
+  assert.match(html, /Visual conflicts: 446/);
+  assert.match(
+    html,
+    /Canonical crossings: pairs 91 · certified lower bound ≥ 53 · gap 38/,
+  );
+
+  const malformedLayout = structuredClone(payload.layout);
+  malformedLayout.engineMetadata.canonicalCrossing.routeCrossingPairs = "91";
+  assert.throws(
+    () => decodeLayoutSnapshot(malformedLayout, "phase8MalformedLayout"),
+    /canonicalCrossing\.routeCrossingPairs must be a number/,
+  );
+});
+
 test("phase8 canvas scene keeps hidden table state in the JSON scene graph without DOM table nodes", () => {
   const html = render((payload) => {
     const taxonomy = payload.view.tableOptions.find(
@@ -112,12 +181,25 @@ test("phase8 canvas scene keeps hidden table state in the JSON scene graph witho
 
 test("phase8 catalog mode expands high-degree tables for relation ports", () => {
   const payload = createCatalogPayload();
+  payload.layout.engineMetadata = {
+    ...(payload.layout.engineMetadata ?? {}),
+    canonicalCrossing: canonicalCrossingFixture({
+      completeRoutes: false,
+      gap: undefined,
+      properDrawing: false,
+    }),
+  };
   const html = renderDiagramDocument(payload);
   const renderModel = readRenderModel(html);
   const hubSize = readTableSize(renderModel, "catalog.Hub");
   const leafSize = readTableSize(renderModel, "catalog.Leaf1");
 
   assert.match(html, /Model catalog mode: model and DB table names only\./);
+  assert.match(
+    html,
+    /Canonical crossings: pairs 91 · certified lower bound ≥ 53 · gap unavailable/,
+  );
+  assert.match(html, /diagnostic only/);
   assert.ok(hubSize.height > leafSize.height, "hub table should be taller than leaf tables");
   assert.ok(hubSize.width > leafSize.width, "hub table should be wider than leaf tables");
 });
@@ -204,6 +286,30 @@ function render(mutatePayload) {
   const payload = structuredClone(loadPhaseOneSample());
   mutatePayload?.(payload);
   return renderDiagramDocument(payload);
+}
+
+function canonicalCrossingFixture(overrides = {}) {
+  return {
+    boundViolation: false,
+    certifierVersion: "lb53-v1",
+    completeRoutes: true,
+    domain: "canonical-simple-v1",
+    edgeCount: 1682,
+    gap: 38,
+    k3nCertificates: 4,
+    k3nContribution: 30,
+    kuratowskiCertificates: 23,
+    kuratowskiContribution: 23,
+    lowerBound: 53,
+    method: "k3n-mantel+edge-disjoint-kuratowski",
+    nodeCount: 1218,
+    nonProperContacts: 0,
+    optimality: 53 / 91,
+    properDrawing: true,
+    routeCrossingPairs: 91,
+    routeCrossingPoints: 96,
+    ...overrides,
+  };
 }
 
 function readRenderModel(html) {

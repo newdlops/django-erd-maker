@@ -20,6 +20,8 @@ add_executable(django-erd-ogdf-layout
   src/main.cpp
   src/io.cpp
   src/clusterGraph.cpp
+  src/canonicalCrossingMetrics.cpp
+  src/crossingLowerBound.cpp
 )
 
 target_link_libraries(django-erd-ogdf-layout PRIVATE OGDF)

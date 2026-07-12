@@ -2,6 +2,8 @@
 #include "geometry.h"
 #include "io.h"
 #include "clusterGraph.h"
+#include "canonicalCrossingMetrics.h"
+#include "crossingLowerBound.h"
 
 #include <cstdlib>
 #include <numeric>
@@ -48,8 +50,11 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iomanip>
@@ -148,6 +153,309 @@ bool readBoolEnv(const char* name, bool fallback) {
     return static_cast<char>(std::tolower(ch));
   });
   return value != "0" && value != "false" && value != "no";
+}
+
+struct CanonicalTopologyFingerprint {
+  std::string value;
+  std::size_t edgeCount = 0;
+  std::size_t nodeCount = 0;
+};
+
+CanonicalTopologyFingerprint fingerprintCanonicalTopology(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges) {
+  std::vector<std::string> nodeIds;
+  nodeIds.reserve(nodes.size());
+  for (const NodeRecord& node : nodes) {
+    nodeIds.push_back(node.modelId);
+  }
+  std::sort(nodeIds.begin(), nodeIds.end());
+
+  std::set<std::pair<std::string, std::string>> edgePairs;
+  for (const EdgeRecord& edge : edges) {
+    if (
+        edge.sourceModelId.empty()
+        || edge.targetModelId.empty()
+        || edge.sourceModelId == edge.targetModelId) {
+      continue;
+    }
+    edgePairs.insert(std::minmax(edge.sourceModelId, edge.targetModelId));
+  }
+
+  uint64_t first = UINT64_C(1469598103934665603);
+  uint64_t second = UINT64_C(7809847782465536322);
+  auto mixByte = [&](unsigned char byte) {
+    first ^= static_cast<uint64_t>(byte);
+    first *= UINT64_C(1099511628211);
+    second ^= static_cast<uint64_t>(byte) + UINT64_C(0x9e);
+    second *= UINT64_C(14029467366897019727);
+  };
+  auto mixString = [&](const std::string& value) {
+    uint64_t length = value.size();
+    for (int shift = 0; shift < 8; ++shift) {
+      mixByte(static_cast<unsigned char>((length >> (shift * 8)) & 0xffU));
+    }
+    for (const unsigned char byte : value) {
+      mixByte(byte);
+    }
+  };
+  mixString(kCrossingLowerBoundVersion);
+  for (const std::string& nodeId : nodeIds) {
+    mixString("N");
+    mixString(nodeId);
+  }
+  for (const auto& edgePair : edgePairs) {
+    mixString("E");
+    mixString(edgePair.first);
+    mixString(edgePair.second);
+  }
+
+  std::ostringstream fingerprint;
+  fingerprint << std::hex << std::setfill('0')
+              << std::setw(16) << first
+              << std::setw(16) << second;
+  return {
+    fingerprint.str(),
+    edgePairs.size(),
+    nodeIds.size(),
+  };
+}
+
+std::filesystem::path canonicalCrossingCachePath(
+  const CanonicalTopologyFingerprint& fingerprint) {
+  return std::filesystem::temp_directory_path()
+    / ("django-erd-crossing-lb-v"
+      + std::string(kCrossingLowerBoundVersion)
+      + "-" + fingerprint.value + ".txt");
+}
+
+bool readCanonicalCrossingCache(
+  const std::filesystem::path& cachePath,
+  const CanonicalTopologyFingerprint& fingerprint,
+  CanonicalCrossingMetadata& metadata) {
+  std::ifstream stream(cachePath);
+  if (!stream) {
+    return false;
+  }
+  std::string cachedFingerprint;
+  std::string version;
+  std::string method;
+  CanonicalCrossingMetadata cached;
+  if (!(stream
+        >> cachedFingerprint
+        >> version
+        >> method
+        >> cached.nodeCount
+        >> cached.edgeCount
+        >> cached.lowerBound
+        >> cached.k3nContribution
+        >> cached.k3nCertificates
+        >> cached.kuratowskiContribution
+        >> cached.kuratowskiCertificates)) {
+    return false;
+  }
+  if (
+      cachedFingerprint != fingerprint.value
+      || version != kCrossingLowerBoundVersion
+      || method != kCrossingLowerBoundMethod
+      || cached.nodeCount != fingerprint.nodeCount
+      || cached.edgeCount != fingerprint.edgeCount
+      || cached.lowerBound
+        != cached.k3nContribution + cached.kuratowskiContribution) {
+    return false;
+  }
+  cached.available = true;
+  cached.certifierVersion = std::move(version);
+  cached.method = std::move(method);
+  metadata = std::move(cached);
+  return true;
+}
+
+void writeCanonicalCrossingCache(
+  const std::filesystem::path& cachePath,
+  const CanonicalTopologyFingerprint& fingerprint,
+  const CanonicalCrossingMetadata& metadata) {
+  const auto unique = std::chrono::steady_clock::now()
+    .time_since_epoch().count();
+  std::filesystem::path temporaryPath = cachePath;
+  temporaryPath += "." + std::to_string(unique) + ".tmp";
+  {
+    std::ofstream stream(temporaryPath, std::ios::trunc);
+    if (!stream) {
+      return;
+    }
+    stream
+      << fingerprint.value << ' '
+      << metadata.certifierVersion << ' '
+      << metadata.method << ' '
+      << metadata.nodeCount << ' '
+      << metadata.edgeCount << ' '
+      << metadata.lowerBound << ' '
+      << metadata.k3nContribution << ' '
+      << metadata.k3nCertificates << ' '
+      << metadata.kuratowskiContribution << ' '
+      << metadata.kuratowskiCertificates << '\n';
+    if (!stream) {
+      std::error_code removeError;
+      std::filesystem::remove(temporaryPath, removeError);
+      return;
+    }
+  }
+  std::error_code renameError;
+  std::filesystem::rename(temporaryPath, cachePath, renameError);
+  if (renameError) {
+    std::error_code removeError;
+    std::filesystem::remove(temporaryPath, removeError);
+  }
+}
+
+CanonicalCrossingMetadata certifyCanonicalCrossingTopology(
+  const ogdf::Graph& graph,
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges) {
+  CanonicalCrossingMetadata metadata;
+  if (!readBoolEnv("DJERD_CANONICAL_CROSSING_CERTIFIER", true)) {
+    return metadata;
+  }
+
+  const CanonicalTopologyFingerprint fingerprint =
+    fingerprintCanonicalTopology(nodes, edges);
+  const bool useCache = readBoolEnv("DJERD_CANONICAL_CROSSING_CACHE", true);
+  std::filesystem::path cachePath;
+  if (useCache) {
+    try {
+      cachePath = canonicalCrossingCachePath(fingerprint);
+      if (readCanonicalCrossingCache(cachePath, fingerprint, metadata)) {
+        std::fprintf(stderr,
+          "[canonical-crossing] cache hit lowerBound=%zu "
+          "(nodes=%zu, edges=%zu).\n",
+          metadata.lowerBound,
+          metadata.nodeCount,
+          metadata.edgeCount);
+        return metadata;
+      }
+    } catch (const std::exception& error) {
+      std::fprintf(stderr,
+        "[canonical-crossing] cache lookup skipped: %s\n",
+        error.what());
+      cachePath.clear();
+    }
+  }
+
+  ogdf::NodeArray<std::string> nodeIds(graph, std::string{});
+  for (const NodeRecord& node : nodes) {
+    if (node.handle != nullptr) {
+      nodeIds[node.handle] = node.modelId;
+    }
+  }
+  ogdf::EdgeArray<std::string> edgeIds(graph, std::string{});
+  for (const EdgeRecord& edge : edges) {
+    if (edge.handle == nullptr) {
+      continue;
+    }
+    std::string& representativeId = edgeIds[edge.handle];
+    if (representativeId.empty() || edge.edgeId < representativeId) {
+      representativeId = edge.edgeId;
+    }
+  }
+
+  const CrossingLowerBoundReport report = computeCertifiedCrossingLowerBound(
+    graph,
+    &nodeIds,
+    &edgeIds);
+  if (!report.invariantsVerified) {
+    std::fprintf(stderr,
+      "[canonical-crossing] certifier invariants failed; bound omitted.\n");
+    return metadata;
+  }
+
+  metadata.available = true;
+  metadata.certifierVersion = report.version;
+  metadata.method = report.method;
+  metadata.nodeCount = report.nodeCount;
+  metadata.edgeCount = report.edgeCount;
+  metadata.lowerBound = report.totalLowerBound;
+  metadata.k3nContribution = report.k3nContribution;
+  metadata.k3nCertificates = report.k3nCertificateCount;
+  metadata.kuratowskiContribution = report.kuratowskiContribution;
+  metadata.kuratowskiCertificates = report.kuratowskiCertificateCount;
+  if (useCache && !cachePath.empty()) {
+    writeCanonicalCrossingCache(cachePath, fingerprint, metadata);
+  }
+  std::fprintf(stderr,
+    "[canonical-crossing] certified lowerBound=%zu "
+    "(K3,n=%zu/%zu, Kuratowski=%zu/%zu, nodes=%zu, edges=%zu, "
+    "tripleOccurrences=%zu, planarityCalls=%zu, workLimit=%d).\n",
+    report.totalLowerBound,
+    report.k3nContribution,
+    report.k3nCertificateCount,
+    report.kuratowskiContribution,
+    report.kuratowskiCertificateCount,
+    report.nodeCount,
+    report.edgeCount,
+    report.tripleOccurrences,
+    report.planarityCalls,
+    report.workLimitReached ? 1 : 0);
+  return metadata;
+}
+
+void measureCanonicalCrossingDrawing(
+  CanonicalCrossingMetadata& metadata,
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  const std::vector<std::vector<RoutePoint>>& routes,
+  ogdf::GraphAttributes& attributes) {
+  if (!metadata.available) {
+    return;
+  }
+
+  const CanonicalCrossingMetrics metrics = measureCanonicalCrossingMetrics(
+    nodes,
+    edges,
+    routes,
+    attributes);
+  metadata.routeCrossingPoints = metrics.properCrossingPoints.size();
+  metadata.routeCrossingPairs = metrics.crossingEdgePairs.size();
+  metadata.completeRoutes =
+    metrics.allCanonicalRoutesComplete
+    && metrics.canonicalEdgeCount == metadata.edgeCount;
+  metadata.nonProperContacts =
+    metrics.invariantViolationCount
+    + metrics.degenerateSegmentCount
+    + metrics.collinearOverlapCount
+    + metrics.nonProperContactCount
+    + metrics.selfIntersectionCount
+    + metrics.adjacentEdgeIntersectionCount
+    + metrics.nonIncidentNodeHits.size();
+  metadata.properDrawing =
+    metrics.properDrawing
+    && metadata.completeRoutes;
+  metadata.boundViolation =
+    metadata.properDrawing
+    && metadata.routeCrossingPairs < metadata.lowerBound;
+
+  if (metadata.properDrawing && !metadata.boundViolation) {
+    metadata.gap = metadata.routeCrossingPairs - metadata.lowerBound;
+    if (metadata.routeCrossingPairs == 0) {
+      metadata.optimality = metadata.lowerBound == 0 ? 1.0 : 0.0;
+    } else {
+      metadata.optimality = std::min(
+        1.0,
+        static_cast<double>(metadata.lowerBound)
+          / static_cast<double>(metadata.routeCrossingPairs));
+    }
+  }
+
+  std::fprintf(stderr,
+    "[canonical-crossing] route pairs=%zu points=%zu lowerBound=%zu "
+    "proper=%d complete=%d contacts=%zu%s.\n",
+    metadata.routeCrossingPairs,
+    metadata.routeCrossingPoints,
+    metadata.lowerBound,
+    metadata.properDrawing ? 1 : 0,
+    metadata.completeRoutes ? 1 : 0,
+    metadata.nonProperContacts,
+    metadata.boundViolation ? " BOUND-VIOLATION" : "");
 }
 
 double visualNodeMargin() {
@@ -5834,6 +6142,22 @@ LayoutQualityMetrics measureLayoutQuality(
   // user-spec collision is strict 4-corner rect-rect only.
   metrics.nodeSpacingOverlaps = countNodeRectOverlaps(nodes, attributes, true);
 
+  const bool reuseQualityObstacles = [] {
+    const char* value = std::getenv("DJERD_QUALITY_REUSE_OBSTACLES");
+    return !value || std::strcmp(value, "0") != 0;
+  }();
+  std::vector<NodeObstacle> qualityObstacles;
+  if (reuseQualityObstacles) {
+    qualityObstacles.reserve(nodes.size());
+    for (const NodeRecord& node : nodes) {
+      qualityObstacles.push_back({
+        node.handle,
+        node.modelId,
+        nodeRect(node, attributes, kVisualMargin),
+      });
+    }
+  }
+
   RouteOccupancy occupancy;
 
   for (std::size_t edgeIndex = 0; edgeIndex < routes.size() && edgeIndex < edges.size(); ++edgeIndex) {
@@ -5845,8 +6169,17 @@ LayoutQualityMetrics measureLayoutQuality(
     const LineIntent line = makeLineIntent(edges[edgeIndex], edgeIndex, attributes);
     // Margin-expanded obstacle rects: edge entering the margin area
     // counts as a collision.
-    const std::vector<NodeObstacle> obstacles =
-      makeNodeObstacles(nodes, attributes, kVisualMargin, line.sourceHandle, line.targetHandle);
+    std::vector<NodeObstacle> edgeObstacles;
+    const std::vector<NodeObstacle>* obstacles = &qualityObstacles;
+    if (!reuseQualityObstacles) {
+      edgeObstacles = makeNodeObstacles(
+        nodes,
+        attributes,
+        kVisualMargin,
+        line.sourceHandle,
+        line.targetHandle);
+      obstacles = &edgeObstacles;
+    }
     const std::vector<LineSegment> segments = buildLineSegments(route, line.lineIndex, line.lineId);
 
     const std::string& srcId = edges[edgeIndex].sourceModelId;
@@ -5855,7 +6188,11 @@ LayoutQualityMetrics measureLayoutQuality(
     for (const LineSegment& segment : segments) {
       metrics.routeSegments += 1;
 
-      for (const NodeObstacle& obstacle : obstacles) {
+      for (const NodeObstacle& obstacle : *obstacles) {
+        if (obstacle.handle == line.sourceHandle
+            || obstacle.handle == line.targetHandle) {
+          continue;
+        }
         // Skip nodes absorbed by a leaf bundle — the bundle's own bbox
         // is checked separately. Counting absorbed leaves and the
         // bundle bbox would double-count the same visual block.
@@ -10021,6 +10358,14 @@ int main(int argc, char** argv) {
     std::vector<NodeRecord> nodes = readNodes(arguments.nodesFile, graph, attributes, nodesById);
     std::vector<EdgeRecord> edges = readEdges(arguments.edgesFile, graph, nodesById);
     LayoutRunMetadata metadata = makeLayoutRunMetadata(arguments.mode);
+    CanonicalCrossingMetadata canonicalCrossing;
+    try {
+      canonicalCrossing = certifyCanonicalCrossingTopology(graph, nodes, edges);
+    } catch (const std::exception& error) {
+      std::fprintf(stderr,
+        "[canonical-crossing] certifier unavailable: %s\n",
+        error.what());
+    }
 
     // State carried out of the cluster-graph branch into the final spine
     // flatten pass (after all post-passes). Empty when not running
@@ -10303,6 +10648,170 @@ int main(int argc, char** argv) {
             return static_cast<double>(cross)
               + (mstartBboxWeight != 0.0 ? mstartBboxWeight * mstartBboxAreaB() : 0.0);
           };
+          auto mstartStraightDrawingIsProper = [&]() -> bool {
+            constexpr double kPointTolerance = 1e-6;
+            constexpr double kParallelTolerance = 0.01;
+            auto point = [&](std::size_t nodeIndex) {
+              return RoutePoint{
+                attributes.x(nodes[nodeIndex].handle),
+                attributes.y(nodes[nodeIndex].handle),
+              };
+            };
+            auto pointOnOpenSegment = [&](const RoutePoint& candidate,
+                                          const RoutePoint& start,
+                                          const RoutePoint& end) {
+              const double dx = end.x - start.x;
+              const double dy = end.y - start.y;
+              const double lengthSquared = dx * dx + dy * dy;
+              if (lengthSquared <= kPointTolerance) return true;
+              const double px = candidate.x - start.x;
+              const double py = candidate.y - start.y;
+              const double distance = std::abs(crossProduct(dx, dy, px, py))
+                / std::sqrt(lengthSquared);
+              const double projection = px * dx + py * dy;
+              return distance <= kPointTolerance
+                && projection > kPointTolerance
+                && projection < lengthSquared - kPointTolerance;
+            };
+
+            for (std::size_t leftNode = 0;
+                 leftNode < nodes.size();
+                 ++leftNode) {
+              const RoutePoint leftPoint = point(leftNode);
+              for (std::size_t rightNode = leftNode + 1;
+                   rightNode < nodes.size();
+                   ++rightNode) {
+                const RoutePoint rightPoint = point(rightNode);
+                if (
+                    std::abs(leftPoint.x - rightPoint.x) <= kPointTolerance
+                    && std::abs(leftPoint.y - rightPoint.y) <= kPointTolerance) {
+                  return false;
+                }
+              }
+            }
+
+            for (const auto& edge : mstartEdgePairs) {
+              const RoutePoint start = point(edge.first);
+              const RoutePoint end = point(edge.second);
+              if (
+                  !std::isfinite(start.x) || !std::isfinite(start.y)
+                  || !std::isfinite(end.x) || !std::isfinite(end.y)
+                  || (std::abs(start.x - end.x) <= kPointTolerance
+                    && std::abs(start.y - end.y) <= kPointTolerance)) {
+                return false;
+              }
+              for (std::size_t nodeIndex = 0;
+                   nodeIndex < nodes.size();
+                   ++nodeIndex) {
+                if (nodeIndex == edge.first || nodeIndex == edge.second) continue;
+                if (pointOnOpenSegment(point(nodeIndex), start, end)) return false;
+              }
+            }
+
+            for (std::size_t leftIndex = 0;
+                 leftIndex < mstartEdgePairs.size();
+                 ++leftIndex) {
+              const auto& left = mstartEdgePairs[leftIndex];
+              const RoutePoint leftStart = point(left.first);
+              const RoutePoint leftEnd = point(left.second);
+              const double leftDx = leftEnd.x - leftStart.x;
+              const double leftDy = leftEnd.y - leftStart.y;
+              for (std::size_t rightIndex = leftIndex + 1;
+                   rightIndex < mstartEdgePairs.size();
+                   ++rightIndex) {
+                const auto& right = mstartEdgePairs[rightIndex];
+                const bool adjacent =
+                  left.first == right.first
+                  || left.first == right.second
+                  || left.second == right.first
+                  || left.second == right.second;
+                const RoutePoint rightStart = point(right.first);
+                const RoutePoint rightEnd = point(right.second);
+                const double rightDx = rightEnd.x - rightStart.x;
+                const double rightDy = rightEnd.y - rightStart.y;
+                const double denominator =
+                  crossProduct(leftDx, leftDy, rightDx, rightDy);
+                if (adjacent) {
+                  if (std::abs(denominator) > kParallelTolerance) continue;
+                  const std::size_t shared =
+                    left.first == right.first || left.first == right.second
+                      ? left.first
+                      : left.second;
+                  const std::size_t leftOther = left.first == shared
+                    ? left.second : left.first;
+                  const std::size_t rightOther = right.first == shared
+                    ? right.second : right.first;
+                  const RoutePoint sharedPoint = point(shared);
+                  const RoutePoint leftOtherPoint = point(leftOther);
+                  const RoutePoint rightOtherPoint = point(rightOther);
+                  const double leftVectorX = leftOtherPoint.x - sharedPoint.x;
+                  const double leftVectorY = leftOtherPoint.y - sharedPoint.y;
+                  const double rightVectorX = rightOtherPoint.x - sharedPoint.x;
+                  const double rightVectorY = rightOtherPoint.y - sharedPoint.y;
+                  if (leftVectorX * rightVectorX + leftVectorY * rightVectorY > 0.0) {
+                    return false;
+                  }
+                  continue;
+                }
+                if (std::abs(denominator) <= kParallelTolerance) {
+                  if (
+                      pointOnOpenSegment(leftStart, rightStart, rightEnd)
+                      || pointOnOpenSegment(leftEnd, rightStart, rightEnd)
+                      || pointOnOpenSegment(rightStart, leftStart, leftEnd)
+                      || pointOnOpenSegment(rightEnd, leftStart, leftEnd)) {
+                    return false;
+                  }
+                  const bool boundingBoxesOverlap =
+                    std::max(std::min(leftStart.x, leftEnd.x),
+                      std::min(rightStart.x, rightEnd.x))
+                      <= std::min(std::max(leftStart.x, leftEnd.x),
+                        std::max(rightStart.x, rightEnd.x)) + kPointTolerance
+                    && std::max(std::min(leftStart.y, leftEnd.y),
+                      std::min(rightStart.y, rightEnd.y))
+                      <= std::min(std::max(leftStart.y, leftEnd.y),
+                        std::max(rightStart.y, rightEnd.y)) + kPointTolerance;
+                  if (boundingBoxesOverlap) return false;
+                  continue;
+                }
+                const double qpx = rightStart.x - leftStart.x;
+                const double qpy = rightStart.y - leftStart.y;
+                const double leftParameter =
+                  crossProduct(qpx, qpy, rightDx, rightDy) / denominator;
+                const double rightParameter =
+                  crossProduct(qpx, qpy, leftDx, leftDy) / denominator;
+                const bool intersectsClosed =
+                  leftParameter >= -kPointTolerance
+                  && leftParameter <= 1.0 + kPointTolerance
+                  && rightParameter >= -kPointTolerance
+                  && rightParameter <= 1.0 + kPointTolerance;
+                const bool intersectsProperly =
+                  leftParameter > kPointTolerance
+                  && leftParameter < 1.0 - kPointTolerance
+                  && rightParameter > kPointTolerance
+                  && rightParameter < 1.0 - kPointTolerance;
+                if (intersectsClosed && !intersectsProperly) return false;
+              }
+            }
+            return true;
+          };
+          auto mstartReachedCertifiedFloor = [&](std::size_t cross) -> bool {
+            if (
+                !canonicalCrossing.available
+                || mstartBundleAware
+                || mstartBboxWeight != 0.0
+                || mstartEdgePairs.size() != canonicalCrossing.edgeCount
+                || cross != canonicalCrossing.lowerBound) {
+              return false;
+            }
+            const bool reached = mstartStraightDrawingIsProper();
+            if (!reached) {
+              std::fprintf(stderr,
+                "[multistart] canonical floor candidate rejected by "
+                "point-drawing guard (lowerBound=%zu).\n",
+                canonicalCrossing.lowerBound);
+            }
+            return reached;
+          };
 
           // Progressive rendering: on each new-best, dump current node
           // positions to DJERD_PROGRESS_FILE so the extension can stream an
@@ -10341,12 +10850,22 @@ int main(int argc, char** argv) {
           auto bestPositions = mstartSavePositions();
           ClusterGraphResult bestCg = cg;
           int bestSeed = -1;  // -1 = initial run (no explicit setSeed)
+          int completedRuns = 1;
+          bool certifiedFloorReached = mstartReachedCertifiedFloor(bestCross);
           std::fprintf(stderr,
             "[multistart] run 0 (initial) crossings=%zu score=%.1f\n",
             bestCross, bestScore);
           writeProgress(0, -1, bestCross);
+          if (certifiedFloorReached) {
+            std::fprintf(stderr,
+              "[multistart] certified canonical crossing floor reached "
+              "at run 0 (lowerBound=%zu); stopping early.\n",
+              canonicalCrossing.lowerBound);
+          }
 
-          for (int run = 1; run < multistartRuns; ++run) {
+          for (int run = 1;
+               run < multistartRuns && !certifiedFloorReached;
+               ++run) {
             const int seed = seedBase + run;
             mstartRestorePositions(mstartPreCgPositions);
             ogdf::setSeed(seed);
@@ -10359,6 +10878,7 @@ int main(int argc, char** argv) {
               nodes, edges, labels, attributes, arguments.bubble);
             const std::size_t altCross = mstartCountCrossings();
             const double altScore = mstartScore(altCross);
+            ++completedRuns;
             std::fprintf(stderr,
               "[multistart] run %d seed=%d crossings=%zu score=%.1f%s\n",
               run, seed, altCross, altScore,
@@ -10370,6 +10890,14 @@ int main(int argc, char** argv) {
               bestCg = altCg;
               bestSeed = seed;
               writeProgress(run, seed, altCross);
+              certifiedFloorReached = mstartReachedCertifiedFloor(bestCross);
+              if (certifiedFloorReached) {
+                std::fprintf(stderr,
+                  "[multistart] certified canonical crossing floor reached "
+                  "at run %d (lowerBound=%zu); stopping early.\n",
+                  run,
+                  canonicalCrossing.lowerBound);
+              }
             }
           }
           mstartRestorePositions(bestPositions);
@@ -10387,11 +10915,11 @@ int main(int argc, char** argv) {
           std::fprintf(stderr,
             "[multistart] selected run with crossings=%zu score=%.1f "
             "(seed=%d, runs=%d, bboxWeight=%.1f)\n",
-            bestCross, bestScore, bestSeed, multistartRuns, mstartBboxWeight);
+            bestCross, bestScore, bestSeed, completedRuns, mstartBboxWeight);
           if (!metadata.strategyReason.empty()) metadata.strategyReason += "; ";
           metadata.strategyReason +=
             "multistart selected best of "
-            + std::to_string(multistartRuns) + " runs";
+            + std::to_string(completedRuns) + " runs";
         } else if (multistartRuns > 1) {
           std::fprintf(stderr,
             "[multistart] skipped (%d runs) — positions-tsv override "
@@ -10628,6 +11156,7 @@ int main(int argc, char** argv) {
         metadata = runLayout(arguments.mode, nodes, edges, attributes);
       }
     }
+    metadata.canonicalCrossing = canonicalCrossing;
 
     sanitizeLayoutGeometry(nodes, edges, attributes);
 
@@ -11471,6 +12000,12 @@ int main(int argc, char** argv) {
           + quality.bundleEdgeIntersections
           + quality.bundleNodeOverlaps;
       }
+      measureCanonicalCrossingDrawing(
+        metadata.canonicalCrossing,
+        nodes,
+        edges,
+        routes,
+        attributes);
       const Bounds bounds = measureBounds(nodes, routes, attributes);
       std::fprintf(stderr,
         "[rigid-positions] Bypassed post-passes; cross=%zu bbox=%.2fB.\n",
@@ -21603,6 +22138,13 @@ int main(int argc, char** argv) {
         + quality.bundleEdgeIntersections
         + quality.bundleNodeOverlaps;
     }
+
+    measureCanonicalCrossingDrawing(
+      metadata.canonicalCrossing,
+      nodes,
+      edges,
+      routes,
+      attributes);
 
     const Bounds bounds = measureBounds(nodes, routes, attributes);
     writeLayoutJson(

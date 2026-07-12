@@ -17,6 +17,7 @@ export type RelationKind =
 export type ResolutionState = "deferred" | "resolved" | "unresolved";
 
 export interface AnalysisSummary {
+  canonicalModelIdCollisionCount?: number;
   diagnosticCount: number;
   discoveredAppCount: number;
   discoveredModelCount: number;
