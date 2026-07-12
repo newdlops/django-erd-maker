@@ -109,6 +109,13 @@ void writeLayoutEngineMetadata(
            << ",\"properDrawing\":" << (canonical.properDrawing ? "true" : "false")
            << ",\"completeRoutes\":" << (canonical.completeRoutes ? "true" : "false")
            << ",\"nonProperContacts\":" << canonical.nonProperContacts
+           << ",\"invariantViolations\":" << canonical.invariantViolations
+           << ",\"degenerateSegments\":" << canonical.degenerateSegments
+           << ",\"collinearOverlaps\":" << canonical.collinearOverlaps
+           << ",\"pointContacts\":" << canonical.pointContacts
+           << ",\"selfIntersections\":" << canonical.selfIntersections
+           << ",\"adjacentEdgeIntersections\":" << canonical.adjacentEdgeIntersections
+           << ",\"nonIncidentNodeHits\":" << canonical.nonIncidentNodeHits
            << ",\"boundViolation\":" << (canonical.boundViolation ? "true" : "false");
     if (canonical.properDrawing && !canonical.boundViolation) {
       stream << ",\"gap\":" << canonical.gap

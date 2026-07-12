@@ -328,6 +328,11 @@ function decodeCanonicalCrossing(
 
   const canonicalContext = `${context}.canonicalCrossing`;
   return {
+    adjacentEdgeIntersections: readOptionalNumber(
+      canonicalCrossing,
+      "adjacentEdgeIntersections",
+      canonicalContext,
+    ),
     boundViolation: readBoolean(
       canonicalCrossing,
       "boundViolation",
@@ -338,9 +343,19 @@ function decodeCanonicalCrossing(
       "certifierVersion",
       canonicalContext,
     ),
+    collinearOverlaps: readOptionalNumber(
+      canonicalCrossing,
+      "collinearOverlaps",
+      canonicalContext,
+    ),
     completeRoutes: readBoolean(
       canonicalCrossing,
       "completeRoutes",
+      canonicalContext,
+    ),
+    degenerateSegments: readOptionalNumber(
+      canonicalCrossing,
+      "degenerateSegments",
       canonicalContext,
     ),
     domain: readLiteral(
@@ -351,6 +366,11 @@ function decodeCanonicalCrossing(
     ),
     edgeCount: readNumber(canonicalCrossing, "edgeCount", canonicalContext),
     gap: readOptionalNumber(canonicalCrossing, "gap", canonicalContext),
+    invariantViolations: readOptionalNumber(
+      canonicalCrossing,
+      "invariantViolations",
+      canonicalContext,
+    ),
     k3nCertificates: readNumber(
       canonicalCrossing,
       "k3nCertificates",
@@ -378,9 +398,19 @@ function decodeCanonicalCrossing(
     ),
     method: readString(canonicalCrossing, "method", canonicalContext),
     nodeCount: readNumber(canonicalCrossing, "nodeCount", canonicalContext),
+    nonIncidentNodeHits: readOptionalNumber(
+      canonicalCrossing,
+      "nonIncidentNodeHits",
+      canonicalContext,
+    ),
     nonProperContacts: readNumber(
       canonicalCrossing,
       "nonProperContacts",
+      canonicalContext,
+    ),
+    pointContacts: readOptionalNumber(
+      canonicalCrossing,
+      "pointContacts",
       canonicalContext,
     ),
     optimality: readOptionalNumber(
@@ -401,6 +431,11 @@ function decodeCanonicalCrossing(
     routeCrossingPoints: readNumber(
       canonicalCrossing,
       "routeCrossingPoints",
+      canonicalContext,
+    ),
+    selfIntersections: readOptionalNumber(
+      canonicalCrossing,
+      "selfIntersections",
       canonicalContext,
     ),
   };

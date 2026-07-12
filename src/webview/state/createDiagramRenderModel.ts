@@ -129,13 +129,21 @@ export interface ClusterOutline {
 }
 
 export interface CanonicalCrossingRenderModel {
+  adjacentEdgeIntersections?: number;
   boundViolation: boolean;
+  collinearOverlaps?: number;
   completeRoutes: boolean;
+  degenerateSegments?: number;
   gap?: number;
+  invariantViolations?: number;
   lowerBound: number;
+  nonIncidentNodeHits?: number;
+  nonProperContacts: number;
   optimality?: number;
+  pointContacts?: number;
   properDrawing: boolean;
   routeCrossingPairs: number;
+  selfIntersections?: number;
 }
 
 export interface DiagramRenderModel {
@@ -378,13 +386,21 @@ function createCanonicalCrossingRenderModel(
   }
 
   return {
+    adjacentEdgeIntersections: metadata.adjacentEdgeIntersections,
     boundViolation: metadata.boundViolation,
+    collinearOverlaps: metadata.collinearOverlaps,
     completeRoutes: metadata.completeRoutes,
+    degenerateSegments: metadata.degenerateSegments,
     gap: metadata.gap,
+    invariantViolations: metadata.invariantViolations,
     lowerBound: metadata.lowerBound,
+    nonIncidentNodeHits: metadata.nonIncidentNodeHits,
+    nonProperContacts: metadata.nonProperContacts,
     optimality: metadata.optimality,
+    pointContacts: metadata.pointContacts,
     properDrawing: metadata.properDrawing,
     routeCrossingPairs: metadata.routeCrossingPairs,
+    selfIntersections: metadata.selfIntersections,
   };
 }
 
@@ -975,6 +991,7 @@ function packLeafBundles(
       },
       leafModelIds: bundle.leafModelIds,
       parentModelId: bundle.parentModelId,
+      sharedRootModelIds: bundle.sharedRootModelIds,
     });
   });
   return { bundleLeafTiles: [], leafBundles: packed };

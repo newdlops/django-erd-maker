@@ -427,6 +427,13 @@ void measureCanonicalCrossingDrawing(
     + metrics.selfIntersectionCount
     + metrics.adjacentEdgeIntersectionCount
     + metrics.nonIncidentNodeHits.size();
+  metadata.invariantViolations = metrics.invariantViolationCount;
+  metadata.degenerateSegments = metrics.degenerateSegmentCount;
+  metadata.collinearOverlaps = metrics.collinearOverlapCount;
+  metadata.pointContacts = metrics.nonProperContactCount;
+  metadata.selfIntersections = metrics.selfIntersectionCount;
+  metadata.adjacentEdgeIntersections = metrics.adjacentEdgeIntersectionCount;
+  metadata.nonIncidentNodeHits = metrics.nonIncidentNodeHits.size();
   metadata.properDrawing =
     metrics.properDrawing
     && metadata.completeRoutes;
@@ -448,13 +455,22 @@ void measureCanonicalCrossingDrawing(
 
   std::fprintf(stderr,
     "[canonical-crossing] route pairs=%zu points=%zu lowerBound=%zu "
-    "proper=%d complete=%d contacts=%zu%s.\n",
+    "proper=%d complete=%d contacts=%zu "
+    "categories={invariant=%zu,degenerate=%zu,overlap=%zu,point=%zu,"
+    "self=%zu,adjacent=%zu,nodeHit=%zu}%s.\n",
     metadata.routeCrossingPairs,
     metadata.routeCrossingPoints,
     metadata.lowerBound,
     metadata.properDrawing ? 1 : 0,
     metadata.completeRoutes ? 1 : 0,
     metadata.nonProperContacts,
+    metadata.invariantViolations,
+    metadata.degenerateSegments,
+    metadata.collinearOverlaps,
+    metadata.pointContacts,
+    metadata.selfIntersections,
+    metadata.adjacentEdgeIntersections,
+    metadata.nonIncidentNodeHits,
     metadata.boundViolation ? " BOUND-VIOLATION" : "");
 }
 
@@ -9692,6 +9708,7 @@ bool applyRenderedCarrierMetricsIfRequested(
   for (std::size_t e = 0; e < edges.size(); ++e) {
     const std::string& source = edges[e].sourceModelId;
     const std::string& target = edges[e].targetModelId;
+    const bool inheritance = edges[e].kind == "inheritance";
     auto sourceBundleIt = leafToBundleIdx.find(source);
     auto targetBundleIt = leafToBundleIdx.find(target);
     if (sourceBundleIt != leafToBundleIdx.end()) {
@@ -9721,7 +9738,22 @@ bool applyRenderedCarrierMetricsIfRequested(
       }
     }
     if (sourceBundleIt != leafToBundleIdx.end() || targetBundleIt != leafToBundleIdx.end()) {
-      renderedEdgeVisible[e] = false;
+      // The webview keeps a bundled leaf's non-carrier inheritance edge as an
+      // individual structural line. Other incidental bundled-leaf relations
+      // remain hidden. Neither kind participates in hub-carrier incidence.
+      if (inheritance) {
+        renderedCarrierIdByEdge[e] = edges[e].edgeId;
+      } else {
+        renderedEdgeVisible[e] = false;
+      }
+      continue;
+    }
+
+    // Inheritance is structurally significant in the webview and is never
+    // folded into a cluster hub carrier.
+    if (inheritance) {
+      renderedCarrierIdByEdge[e] = edges[e].edgeId;
+      continue;
     }
 
     auto sourceClusterIt = clusterByModelIdFull.find(source);
@@ -10151,10 +10183,12 @@ bool applyFinalCarrierMetricsIfRequested(
   };
 
   std::vector<std::string> carrierIdByEdge(edges.size());
+  std::vector<bool> carrierEdgeVisible(edges.size(), true);
   std::vector<std::pair<std::string, std::string>> carrierClustersByEdge(edges.size());
   for (std::size_t e = 0; e < edges.size(); ++e) {
     const std::string& s = edges[e].sourceModelId;
     const std::string& t = edges[e].targetModelId;
+    const bool inheritance = edges[e].kind == "inheritance";
     auto sBI = leafToBundleIdx.find(s);
     auto tBI = leafToBundleIdx.find(t);
     if (sBI != leafToBundleIdx.end()) {
@@ -10178,6 +10212,20 @@ bool applyFinalCarrierMetricsIfRequested(
           "B" + std::to_string(tBI->second) + "|" + s;
         continue;
       }
+    }
+
+    if (sBI != leafToBundleIdx.end() || tBI != leafToBundleIdx.end()) {
+      if (inheritance) {
+        carrierIdByEdge[e] = edges[e].edgeId;
+      } else {
+        carrierEdgeVisible[e] = false;
+      }
+      continue;
+    }
+
+    if (inheritance) {
+      carrierIdByEdge[e] = edges[e].edgeId;
+      continue;
     }
 
     auto sCit = clusterByModelIdFull.find(s);
@@ -10289,9 +10337,9 @@ bool applyFinalCarrierMetricsIfRequested(
   std::size_t carrierGroupedCross = 0;
   std::size_t carrierOccludedCross = 0;
   for (std::size_t i = 0; i < edges.size(); ++i) {
-    if (i >= routes.size() || routes[i].size() < 2) continue;
+    if (!carrierEdgeVisible[i] || i >= routes.size() || routes[i].size() < 2) continue;
     for (std::size_t j = i + 1; j < edges.size(); ++j) {
-      if (j >= routes.size() || routes[j].size() < 2) continue;
+      if (!carrierEdgeVisible[j] || j >= routes.size() || routes[j].size() < 2) continue;
       if (sharesEndpoint(edges[i], edges[j])) continue;
       if (carrierIdByEdge[i] == carrierIdByEdge[j]) continue;
       bool anyCross = false;

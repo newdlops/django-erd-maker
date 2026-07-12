@@ -61,7 +61,12 @@ import {
 import { decodeLayoutSnapshot } from "../../../shared/protocol/decodeDiagramBootstrap";
 import type { DiagramBootstrapPayload } from "../../../shared/protocol/webviewContract";
 import type { Logger } from "../logging/logger";
+import { evaluateCanonicalCrossingNonRegression } from "./canonicalCrossingNonRegression";
 import { consolidateEdges } from "./consolidateEdges";
+import {
+  acquireOptimizedLayoutFlight,
+  preserveBestOptimizedLayoutCache,
+} from "./optimizedLayoutCache";
 import { resolveOgdfLayoutBinaryPath } from "./resolveOgdfLayoutBinaryPath";
 
 const OGDF_LAYOUT_TIMEOUT_MS = 600_000;
@@ -2944,6 +2949,7 @@ export async function runOgdfLayout(
     false,
   );
   let preserveRequestDirectory = preserveInputs;
+  let releaseOptimizedLayoutFlight: (() => void) | undefined;
 
   // Edge consolidation (DJERD_CONSOLIDATE_EDGES=1, default off):
   // group multiple edges between the same (source, target) directional
@@ -3064,7 +3070,7 @@ export async function runOgdfLayout(
         const key = fnvHash(
           nodesData,
           edgesData,
-          "optimized-layout-cache-v10",
+          "optimized-layout-cache-v11",
           `binary=${binaryFingerprint}`,
           `scorer=${scorerScriptFingerprint}`,
           `checkpoint=${ckptFingerprint}`,
@@ -3089,6 +3095,22 @@ export async function runOgdfLayout(
           os.tmpdir(),
           `django-erd-optimized-layout-cache-${key}.json`,
         );
+        const flight = await acquireOptimizedLayoutFlight(
+          optimizedCachePath,
+          () => logger?.info(
+            "OGDF optimized layout joining in-flight execution"
+            + ` · requestId=${requestId ?? "absent"}`
+            + ` · cache=${optimizedCachePath}`,
+          ),
+        );
+        releaseOptimizedLayoutFlight = flight.release;
+        if (flight.waited) {
+          logger?.info(
+            "OGDF optimized layout in-flight execution completed; "
+            + `rechecking cache · requestId=${requestId ?? "absent"}`
+            + ` · cache=${optimizedCachePath}`,
+          );
+        }
         try {
           const cachedLayout = await readFile(optimizedCachePath, "utf8");
           decodeLayoutSnapshot(
@@ -4401,6 +4423,8 @@ export async function runOgdfLayout(
                 type VisualCrossPolishCandidate = {
                   bundleEdge: number;
                   bundleNode: number;
+                  canonicalAdjacent: number | undefined;
+                  canonicalNodeHits: number | undefined;
                   edgeCross: number;
                   edgeNode: number;
                   edgeSegmentOverlap: number;
@@ -4612,6 +4636,11 @@ export async function runOgdfLayout(
                       / 1e9;
                     const visualCandidateMetadata =
                       visualCandidate?.engineMetadata ?? {};
+                    const visualCanonicalNonRegression =
+                      evaluateCanonicalCrossingNonRegression(
+                        visualBaseMetadata,
+                        visualCandidateMetadata,
+                      );
                     const visualCandidateVisual =
                       Number(visualCandidateMetadata.visualCrossings ?? 0);
                     const visualBaseEdgeCross =
@@ -4797,10 +4826,15 @@ export async function runOgdfLayout(
                       && visualOverlappingEdgeOk
                       && visualSegmentOverlapOk
                       && visualNodeOverlapOk
-                      && visualBundleNodeOk;
+                      && visualBundleNodeOk
+                      && visualCanonicalNonRegression.ok;
                     const visualCandidateForBest: VisualCrossPolishCandidate = {
                       bundleEdge: visualCandidateBundleEdge,
                       bundleNode: visualCandidateBundleNode,
+                      canonicalAdjacent:
+                        visualCanonicalNonRegression.adjacentCandidate,
+                      canonicalNodeHits:
+                        visualCanonicalNonRegression.nodeHitsCandidate,
                       edgeCross: visualCandidateEdgeCross,
                       edgeNode: visualCandidateEdgeNode,
                       edgeSegmentOverlap: visualCandidateEdgeSegmentOverlaps,
@@ -4876,6 +4910,16 @@ export async function runOgdfLayout(
                       + `segmentOverlapOk=${visualSegmentOverlapOk} · `
                       + `nodeOverlapOk=${visualNodeOverlapOk} · `
                       + `bundleNodeOk=${visualBundleNodeOk} · `
+                      + `canonicalAdjacent=`
+                      + `${visualCanonicalNonRegression.adjacentBase ?? "n/a"}`
+                      + `->${visualCanonicalNonRegression.adjacentCandidate ?? "n/a"}`
+                      + ` · canonicalAdjacentOk=`
+                      + `${visualCanonicalNonRegression.adjacentOk} · `
+                      + `canonicalNodeHits=`
+                      + `${visualCanonicalNonRegression.nodeHitsBase ?? "n/a"}`
+                      + `->${visualCanonicalNonRegression.nodeHitsCandidate ?? "n/a"}`
+                      + ` · canonicalNodeHitsOk=`
+                      + `${visualCanonicalNonRegression.nodeHitsOk} · `
                       + `eligible=${visualAccept} · `
                       + `bestSoFar=${visualPromoted}`,
                     );
@@ -5014,6 +5058,11 @@ export async function runOgdfLayout(
                           / 1e9;
                         const visualRepairMetadata =
                           visualRepairCandidate?.engineMetadata ?? {};
+                        const visualRepairCanonicalNonRegression =
+                          evaluateCanonicalCrossingNonRegression(
+                            visualBaseMetadata,
+                            visualRepairMetadata,
+                          );
                         const visualRepairVisual =
                           Number(visualRepairMetadata.visualCrossings ?? 0);
                         const visualRepairEdgeCross =
@@ -5121,11 +5170,16 @@ export async function runOgdfLayout(
                           && visualRepairOverlappingEdgeOk
                           && visualRepairSegmentOverlapOk
                           && visualRepairNodeOverlapOk
-                          && visualRepairBundleNodeOk;
+                          && visualRepairBundleNodeOk
+                          && visualRepairCanonicalNonRegression.ok;
                         const visualRepairCandidateForBest:
                           VisualCrossPolishCandidate = {
                             bundleEdge: visualRepairBundleEdge,
                             bundleNode: visualRepairBundleNode,
+                            canonicalAdjacent:
+                              visualRepairCanonicalNonRegression.adjacentCandidate,
+                            canonicalNodeHits:
+                              visualRepairCanonicalNonRegression.nodeHitsCandidate,
                             edgeCross: visualRepairEdgeCross,
                             edgeNode: visualRepairEdgeNode,
                             edgeSegmentOverlap:
@@ -5195,6 +5249,18 @@ export async function runOgdfLayout(
                           + `segmentOverlapOk=${visualRepairSegmentOverlapOk} · `
                           + `nodeOverlapOk=${visualRepairNodeOverlapOk} · `
                           + `bundleNodeOk=${visualRepairBundleNodeOk} · `
+                          + `canonicalAdjacent=`
+                          + `${visualRepairCanonicalNonRegression.adjacentBase ?? "n/a"}`
+                          + `->`
+                          + `${visualRepairCanonicalNonRegression.adjacentCandidate ?? "n/a"}`
+                          + ` · canonicalAdjacentOk=`
+                          + `${visualRepairCanonicalNonRegression.adjacentOk} · `
+                          + `canonicalNodeHits=`
+                          + `${visualRepairCanonicalNonRegression.nodeHitsBase ?? "n/a"}`
+                          + `->`
+                          + `${visualRepairCanonicalNonRegression.nodeHitsCandidate ?? "n/a"}`
+                          + ` · canonicalNodeHitsOk=`
+                          + `${visualRepairCanonicalNonRegression.nodeHitsOk} · `
                           + `eligible=${visualRepairAccept} · `
                           + `bestSoFar=${visualRepairPromoted}`,
                         );
@@ -5277,6 +5343,12 @@ export async function runOgdfLayout(
                   + `->${visualBest.overlappingEdges} · `
                   + `edgeSegmentOverlaps=${Number(visualBaseMetadata.edgeSegmentOverlaps ?? 0)}`
                   + `->${visualBest.edgeSegmentOverlap} · `
+                  + `canonicalAdjacent=`
+                  + `${visualBaseMetadata.canonicalCrossing?.adjacentEdgeIntersections ?? "n/a"}`
+                  + `->${visualBest.canonicalAdjacent ?? "n/a"} · `
+                  + `canonicalNodeHits=`
+                  + `${visualBaseMetadata.canonicalCrossing?.nonIncidentNodeHits ?? "n/a"}`
+                  + `->${visualBest.canonicalNodeHits ?? "n/a"} · `
                   + `routeBbox=${visualBaseRouteAreaB.toFixed(2)}B`
                   + `->${visualBest.routeAreaB.toFixed(2)}B`,
 	                );
@@ -5989,12 +6061,22 @@ export async function runOgdfLayout(
 
     if (optimizedCachePath && optimizedLayout && !loadedOptimizedFinalFromCache) {
       try {
-        decodeLayoutSnapshot(
-          JSON.parse(stdout),
-          "ogdfOptimizedLayoutCacheWrite",
+        const selection = await preserveBestOptimizedLayoutCache(
+          optimizedCachePath,
+          stdout,
         );
-        await writeFile(optimizedCachePath, stdout, "utf8");
-        logger?.info(`OGDF optimized layout cached to ${optimizedCachePath}`);
+        stdout = selection.json;
+        if (selection.source === "existing") {
+          logger?.info(
+            "OGDF optimized layout cache preserved better existing result"
+            + ` · reason=${selection.preservationReason ?? "quality"}`
+            + ` · existingVisual=${selection.existingVisualCrossings ?? "absent"}`
+            + ` · candidateVisual=${selection.candidateVisualCrossings ?? "absent"}`
+            + ` · cache=${optimizedCachePath}`,
+          );
+        } else {
+          logger?.info(`OGDF optimized layout cached to ${optimizedCachePath}`);
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         logger?.warn(`OGDF optimized layout cache save failed: ${msg}`);
@@ -6160,6 +6242,7 @@ export async function runOgdfLayout(
       requestedLayoutMode: normalizedRequestedLayoutMode,
     };
   } finally {
+    releaseOptimizedLayoutFlight?.();
     await Promise.all(
       [...transientPaths].map((filePath) => rm(filePath, { force: true })),
     );

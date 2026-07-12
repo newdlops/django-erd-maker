@@ -175,6 +175,13 @@ struct CanonicalCrossingMetadata {
   std::size_t lowerBound = 0;
   std::size_t nodeCount = 0;
   std::size_t nonProperContacts = 0;
+  std::size_t invariantViolations = 0;
+  std::size_t degenerateSegments = 0;
+  std::size_t collinearOverlaps = 0;
+  std::size_t pointContacts = 0;
+  std::size_t selfIntersections = 0;
+  std::size_t adjacentEdgeIntersections = 0;
+  std::size_t nonIncidentNodeHits = 0;
   double optimality = 0.0;
   std::size_t routeCrossingPairs = 0;
   std::size_t routeCrossingPoints = 0;

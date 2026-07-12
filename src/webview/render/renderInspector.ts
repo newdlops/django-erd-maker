@@ -95,10 +95,34 @@ function renderCrossingReadouts(viewModel: DiagramRenderModel): string {
         : undefined,
   ].filter((part): part is string => part !== undefined);
 
+  const contactCategories: Array<[string, number | undefined]> = [
+    ["node hits", canonical.nonIncidentNodeHits],
+    ["adjacent", canonical.adjacentEdgeIntersections],
+    ["point contacts", canonical.pointContacts],
+    ["overlaps", canonical.collinearOverlaps],
+    ["self", canonical.selfIntersections],
+    ["degenerate", canonical.degenerateSegments],
+    ["invariants", canonical.invariantViolations],
+  ];
+  const contactBreakdown = !canonical.properDrawing && canonical.nonProperContacts > 0
+    ? [
+        `non-proper diagnostics ${formatMetricNumber(canonical.nonProperContacts)}`,
+        ...contactCategories
+          .filter((entry): entry is [string, number] =>
+            entry[1] !== undefined && entry[1] > 0)
+          .map(([label, value]) => `${label} ${formatMetricNumber(value)}`),
+      ].join(" · ")
+    : undefined;
+
   return `${visualReadout}
     <p class="erd-summary__meta" data-canonical-crossing-readout>
       ${escapeHtml(canonicalParts.join(" · "))}
     </p>
+    ${contactBreakdown === undefined ? "" : `
+      <p class="erd-summary__meta" data-canonical-contact-readout>
+        ${escapeHtml(contactBreakdown)}
+      </p>
+    `}
   `;
 }
 

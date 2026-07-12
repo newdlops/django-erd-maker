@@ -138,18 +138,46 @@ test("phase8 decoder and inspector keep canonical crossing certification separat
   const html = renderDiagramDocument(payload);
   assert.equal(viewModel.visualCrossings, 446);
   assert.deepEqual(viewModel.canonicalCrossing, {
+    adjacentEdgeIntersections: 0,
     boundViolation: false,
+    collinearOverlaps: 0,
     completeRoutes: true,
+    degenerateSegments: 0,
     gap: 38,
+    invariantViolations: 0,
     lowerBound: 53,
+    nonIncidentNodeHits: 0,
+    nonProperContacts: 0,
     optimality: 53 / 91,
+    pointContacts: 0,
     properDrawing: true,
     routeCrossingPairs: 91,
+    selfIntersections: 0,
   });
   assert.match(html, /Visual conflicts: 446/);
   assert.match(
     html,
     /Canonical crossings: pairs 91 · certified lower bound ≥ 53 · gap 38/,
+  );
+
+  const improperPayload = structuredClone(payload);
+  const improperCanonical = canonicalCrossingFixture({
+    adjacentEdgeIntersections: 7,
+    nonIncidentNodeHits: 3,
+    nonProperContacts: 10,
+    properDrawing: false,
+  });
+  delete improperCanonical.gap;
+  delete improperCanonical.optimality;
+  improperPayload.layout.engineMetadata.canonicalCrossing = improperCanonical;
+  improperPayload.layout = decodeLayoutSnapshot(
+    improperPayload.layout,
+    "phase8ImproperCanonicalLayout",
+  );
+  const improperHtml = renderDiagramDocument(improperPayload);
+  assert.match(
+    improperHtml,
+    /non-proper diagnostics 10 · node hits 3 · adjacent 7/,
   );
 
   const malformedLayout = structuredClone(payload.layout);
@@ -303,11 +331,18 @@ function canonicalCrossingFixture(overrides = {}) {
     lowerBound: 53,
     method: "k3n-mantel+edge-disjoint-kuratowski",
     nodeCount: 1218,
+    adjacentEdgeIntersections: 0,
+    collinearOverlaps: 0,
+    degenerateSegments: 0,
+    invariantViolations: 0,
+    nonIncidentNodeHits: 0,
     nonProperContacts: 0,
     optimality: 53 / 91,
+    pointContacts: 0,
     properDrawing: true,
     routeCrossingPairs: 91,
     routeCrossingPoints: 96,
+    selfIntersections: 0,
     ...overrides,
   };
 }
