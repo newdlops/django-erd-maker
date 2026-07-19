@@ -61,7 +61,16 @@ import {
 import { decodeLayoutSnapshot } from "../../../shared/protocol/decodeDiagramBootstrap";
 import type { DiagramBootstrapPayload } from "../../../shared/protocol/webviewContract";
 import type { Logger } from "../logging/logger";
-import { evaluateCanonicalCrossingNonRegression } from "./canonicalCrossingNonRegression";
+import {
+  DEFAULT_CANONICAL_OBSTACLE_RELIEF_MAX_VISUAL_DEBT_PER_GAIN,
+  DEFAULT_CANONICAL_ROUTE_REPAIR_MAX_ROUTE_BBOX_GROWTH,
+  DEFAULT_EDGE_NODE_POLISH_HOLISTIC_RESERVE_MS,
+  evaluateCanonicalCrossingNonRegression,
+  evaluateCanonicalObstacleRelief,
+  evaluateCanonicalRouteRepairCandidate,
+  planEdgeNodePolishCandidateBudget,
+  shouldSkipEdgeNodePolishVariantAfterVisualBlowup,
+} from "./canonicalCrossingNonRegression";
 import { consolidateEdges } from "./consolidateEdges";
 import {
   acquireOptimizedLayoutFlight,
@@ -72,9 +81,10 @@ import { resolveOgdfLayoutBinaryPath } from "./resolveOgdfLayoutBinaryPath";
 const OGDF_LAYOUT_TIMEOUT_MS = 600_000;
 const V35_SCORER_TIMEOUT_MS = 180_000;
 const DEFAULT_POST_REROUTE_POLISH_BUDGET_MS = 90_000;
-const DEFAULT_RENDERED_CARRIER_THRESHOLD = "12";
+const DEFAULT_CANONICAL_ROUTE_REPAIR_TIMEOUT_MS = 30_000;
+const DEFAULT_RENDERED_CARRIER_THRESHOLD = "2";
 const DEFAULT_OPTIMIZED_BBOX_TARGET_B = 1.0;
-const DEFAULT_VISUAL_CROSS_TARGET = 500;
+const DEFAULT_VISUAL_CROSS_TARGET = 100;
 const DEFAULT_VISUAL_CROSS_POLISH_VARIANTS = [
   "route",
   "route-clear",
@@ -152,6 +162,14 @@ function ogdfRenderedCarrierEnv(
     DJERD_HUB_CARRIER_CROSS_FINAL_THRESHOLD:
       process.env.DJERD_HUB_CARRIER_CROSS_FINAL_THRESHOLD
       ?? DEFAULT_RENDERED_CARRIER_THRESHOLD,
+    DJERD_INHERITANCE_CARRIER_FINAL:
+      process.env.DJERD_INHERITANCE_CARRIER_FINAL ?? "1",
+    DJERD_INTRA_CLUSTER_CARRIER_FINAL:
+      process.env.DJERD_INTRA_CLUSTER_CARRIER_FINAL ?? "1",
+    DJERD_ADAPTIVE_CARRIER_TARGET_FINAL:
+      process.env.DJERD_ADAPTIVE_CARRIER_TARGET_FINAL
+      ?? process.env.DJERD_OPTIMIZED_VISUAL_CROSS_TARGET
+      ?? DEFAULT_VISUAL_CROSS_TARGET.toString(),
     // Stress majorization post-pass — DEFAULT OFF (= 0). Initial
     // bundle-less binary tests on Captain looked promising (bbox -26%,
     // visualCross -0.8%) but the production VS Code path with
@@ -1125,7 +1143,16 @@ function ogdfOptimizedEdgeNodePolishEnv(
 ): Record<string, string | undefined> {
   const common = ogdfOptimizedEdgeNodePolishCommonEnv();
   if (variant === "holistic") {
-    return ogdfOptimizedBboxTargetEnv(common);
+    return ogdfOptimizedBboxTargetEnv({
+      ...common,
+      // The holistic candidate is the one bounded-Pareto path allowed to
+      // spend a tiny amount of visual score on canonical obstacle relief.
+      // Native code rolls the whole route snapshot back unless every
+      // canonical and rendered-carrier conflict metric is non-regressing.
+      DJERD_CANONICAL_ROUTE_REPAIR:
+        process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH_CANONICAL_ROUTE_REPAIR
+        ?? "1",
+    });
   }
   if (variant === "cheap") {
     return ogdfOptimizedEdgeNodePolishCheapEnv();
@@ -1668,6 +1695,29 @@ function ogdfOptimizedVisualCrossRecompactPreserveEnv(): Record<string, string |
     DJERD_NO_PD_KNOT: "1",
     DJERD_VISUAL_KNOT: "0",
   });
+}
+
+function ogdfOptimizedCanonicalRouteRepairEnv(): Record<string, string | undefined> {
+  return {
+    ...ogdfOptimizedVisualCrossRecompactPreserveEnv(),
+    // The general pipeline still performs a few unconditional structural
+    // position steps before its late metric/repair phase. Re-apply both TSVs
+    // at the existing pre-retouch restore point; retouch remains disabled, so
+    // canonical repair is the only subsequent route mutation.
+    DJERD_RESTORE_LAYOUT_TSV_BEFORE_RETOUCH: "1",
+    // A routes-tsv override is applied before the older non-final detour pass.
+    // Force it off even if the parent environment enabled it globally, so the
+    // only route mutation in this candidate is the canonical repair itself.
+    DJERD_EDGE_DETOUR: "0",
+    DJERD_CROSS_AWARE_ROUTING: "0",
+    DJERD_RIGID_NODE_EDGE_RELIEF_FINAL: "0",
+    DJERD_CANONICAL_ROUTE_REPAIR:
+      process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_NATIVE ?? "1",
+    DJERD_CANONICAL_ROUTE_REPAIR_CLEARANCE:
+      process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_CLEARANCE ?? "12",
+    DJERD_CANONICAL_ROUTE_REPAIR_MAX_DETOURS:
+      process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_MAX_DETOURS ?? "12",
+  };
 }
 
 function ogdfFinalExportRetouchEnv(): Record<string, string | undefined> {
@@ -2382,6 +2432,9 @@ function renderedCarrierCacheKeyParts(): string[] {
       process.env.DJERD_HUB_CARRIER_CROSS_FINAL_THRESHOLD
       ?? DEFAULT_RENDERED_CARRIER_THRESHOLD
     }`,
+    `inheritanceCarrier=${process.env.DJERD_INHERITANCE_CARRIER_FINAL ?? "1"}`,
+    `intraClusterCarrier=${process.env.DJERD_INTRA_CLUSTER_CARRIER_FINAL ?? "1"}`,
+    `adaptiveCarrierTarget=${process.env.DJERD_ADAPTIVE_CARRIER_TARGET_FINAL ?? process.env.DJERD_OPTIMIZED_VISUAL_CROSS_TARGET ?? DEFAULT_VISUAL_CROSS_TARGET.toString()}`,
     `stressPostPassIters=${process.env.DJERD_STRESS_POST_PASS_ITERS ?? "0"}`,
     `stressPostPassEdgeCost=${process.env.DJERD_STRESS_POST_PASS_EDGE_COST ?? "140"}`,
     `noCarrier=${process.env.DJERD_NO_CARRIER_CROSS ?? "0"}`,
@@ -2525,10 +2578,20 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedBboxTargetReliefStrength=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_RELIEF_STRENGTH ?? "0.95"}`,
     `optimizedPostReroutePolishBudgetMs=${process.env.DJERD_OPTIMIZED_POST_REROUTE_POLISH_BUDGET_MS ?? DEFAULT_POST_REROUTE_POLISH_BUDGET_MS.toString()}`,
     `optimizedEdgeNodePolish=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH ?? "1"}`,
-    `optimizedEdgeNodePolishVariants=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH_VARIANTS ?? "cheap,local,holistic"}`,
+    `optimizedCanonicalRouteRepair=${process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR ?? "1"}`,
+    `optimizedCanonicalRouteRepairNative=${process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_NATIVE ?? "1"}`,
+    `optimizedCanonicalRouteRepairTimeoutMs=${process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_TIMEOUT_MS ?? DEFAULT_CANONICAL_ROUTE_REPAIR_TIMEOUT_MS.toString()}`,
+    `optimizedCanonicalRouteRepairClearance=${process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_CLEARANCE ?? "12"}`,
+    `optimizedCanonicalRouteRepairMaxDetours=${process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_MAX_DETOURS ?? "12"}`,
+    `optimizedCanonicalRouteRepairMaxRouteBboxGrowth=${process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_MAX_ROUTE_BBOX_GROWTH ?? DEFAULT_CANONICAL_ROUTE_REPAIR_MAX_ROUTE_BBOX_GROWTH.toString()}`,
+    `optimizedEdgeNodePolishVariants=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH_VARIANTS ?? "cheap,local"}`,
     `optimizedEdgeNodePolishMinGain=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH_MIN_GAIN_RATIO ?? "0.08"}`,
     `optimizedEdgeNodePolishMinVisualGain=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH_MIN_VISUAL_GAIN_RATIO ?? "0.005"}`,
     `optimizedEdgeNodePolishAllowVisualRegression=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH_ALLOW_VISUAL_REGRESSION ?? "0"}`,
+    `optimizedEdgeNodePolishCanonicalObstacleRelief=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH_CANONICAL_OBSTACLE_RELIEF ?? "1"}`,
+    `optimizedEdgeNodePolishCanonicalMaxVisualDebtPerGain=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH_CANONICAL_MAX_VISUAL_DEBT_PER_GAIN ?? DEFAULT_CANONICAL_OBSTACLE_RELIEF_MAX_VISUAL_DEBT_PER_GAIN.toString()}`,
+    `optimizedEdgeNodePolishCanonicalRouteRepair=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH_CANONICAL_ROUTE_REPAIR ?? "1"}`,
+    `optimizedEdgeNodePolishHolisticReserveMs=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH_HOLISTIC_RESERVE_MS ?? DEFAULT_EDGE_NODE_POLISH_HOLISTIC_RESERVE_MS.toString()}`,
     `optimizedEdgeNodePolishBboxGrowth=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH_BBOX_GROWTH_LIMIT ?? "1.08"}`,
     `optimizedEdgeNodePolishAboveTargetBboxGrowth=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH_ABOVE_TARGET_BBOX_GROWTH_LIMIT ?? "1.002"}`,
     `optimizedEdgeNodePolishVisualDebtPerGain=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH_MAX_VISUAL_DEBT_PER_GAIN ?? "0.75"}`,
@@ -3070,7 +3133,7 @@ export async function runOgdfLayout(
         const key = fnvHash(
           nodesData,
           edgesData,
-          "optimized-layout-cache-v11",
+          "optimized-layout-cache-v16",
           `binary=${binaryFingerprint}`,
           `scorer=${scorerScriptFingerprint}`,
           `checkpoint=${ckptFingerprint}`,
@@ -3082,6 +3145,7 @@ export async function runOgdfLayout(
           ...renderedCarrierCacheKeyParts(),
           ...layoutEnvCacheKeyParts(ogdfRenderedCarrierEnv()),
           ...layoutEnvCacheKeyParts(ogdfOptimizedRerouteEnv()),
+          ...layoutEnvCacheKeyParts(ogdfOptimizedCanonicalRouteRepairEnv()),
           ...buildV36ScorerArgs(
             "eval_v35_scorer_filter.py",
             "baseline.json",
@@ -3569,8 +3633,6 @@ export async function runOgdfLayout(
             );
             if (bboxTargetB > 0) {
               const bboxTargetSafeties = readBboxTargetSafeties();
-              const bboxTargetVariants = readBboxTargetVariants();
-              const bboxTargetPositionStrategies = readBboxTargetPositionStrategies();
               const bboxInitialLayout =
                 decodeLayoutSnapshot(acceptedLayout, "ogdfLayout");
               const bboxInitialSummary = summarizeLayout(bboxInitialLayout);
@@ -3578,6 +3640,30 @@ export async function runOgdfLayout(
                 bboxInitialSummary.nodeBBoxWidth
                 * bboxInitialSummary.nodeBBoxHeight
                 / 1e9;
+              const bboxInitialVisual = Number(
+                bboxInitialLayout.engineMetadata?.visualCrossings,
+              );
+              const bboxVisualTarget =
+                readOptionalPositiveIntEnv("DJERD_OPTIMIZED_VISUAL_CROSS_TARGET")
+                ?? DEFAULT_VISUAL_CROSS_TARGET;
+              const bboxVisualTargetReached =
+                Number.isFinite(bboxInitialVisual)
+                && bboxInitialVisual <= bboxVisualTarget;
+              const bboxVariantsExplicit =
+                (process.env.DJERD_OPTIMIZED_BBOX_TARGET_VARIANTS?.trim().length ?? 0) > 0;
+              const bboxAllowHolisticAfterVisualTarget = readBoolEnv(
+                "DJERD_OPTIMIZED_BBOX_TARGET_HOLISTIC_AFTER_VISUAL_TARGET",
+                false,
+              );
+              const bboxUseTargetReachedFastPath =
+                bboxVisualTargetReached
+                && !bboxVariantsExplicit
+                && !bboxAllowHolisticAfterVisualTarget;
+              const configuredBboxTargetVariants = readBboxTargetVariants();
+              const bboxTargetVariants = bboxUseTargetReachedFastPath
+                ? configuredBboxTargetVariants.filter((variant) => variant === "local")
+                : configuredBboxTargetVariants;
+              const bboxTargetPositionStrategies = readBboxTargetPositionStrategies();
               const bboxTargetStages = readBboxTargetStages(
                 bboxTargetB,
                 bboxInitialAreaB,
@@ -3590,6 +3676,14 @@ export async function runOgdfLayout(
                 + `strategies=${bboxTargetPositionStrategies.join(",")} · `
                 + `variants=${bboxTargetVariants.join(",")}`,
               );
+              if (bboxUseTargetReachedFastPath) {
+                logger?.info(
+                  `[bbox target] visual target already met: ${bboxInitialVisual}`
+                  + `/${bboxVisualTarget}; limiting default search to local candidates. `
+                  + "Set DJERD_OPTIMIZED_BBOX_TARGET_HOLISTIC_AFTER_VISUAL_TARGET=1 "
+                  + "to restore holistic candidates.",
+                );
+              }
               const bboxMaxVisual = readOptionalPositiveIntEnv(
                 "DJERD_OPTIMIZED_BBOX_TARGET_MAX_VISUAL",
               );
@@ -3654,10 +3748,15 @@ export async function runOgdfLayout(
                 "DJERD_OPTIMIZED_BBOX_TARGET_MAX_VISUAL_DEBT_RATIO",
                 0.05,
               );
-              const bboxStageBailAfter = readNonNegativeIntEnv(
+              const configuredBboxStageBailAfter = readNonNegativeIntEnv(
                 "DJERD_OPTIMIZED_BBOX_TARGET_STAGE_BAIL_AFTER",
                 6,
               );
+              const bboxStageBailAfter =
+                bboxUseTargetReachedFastPath
+                && process.env.DJERD_OPTIMIZED_BBOX_TARGET_STAGE_BAIL_AFTER === undefined
+                  ? 2
+                  : configuredBboxStageBailAfter;
               const bboxStageBailQualityRatio = readFloatEnv(
                 "DJERD_OPTIMIZED_BBOX_TARGET_STAGE_BAIL_QUALITY_RATIO",
                 5.0,
@@ -3797,6 +3896,11 @@ export async function runOgdfLayout(
                           Number(bboxBeforeMetadata.bundleNodeOverlaps ?? 0);
                         const bboxBeforeNodeSpacing =
                           Number(bboxBeforeMetadata.nodeSpacingOverlaps ?? 0);
+                        const bboxCanonicalNonRegression =
+                          evaluateCanonicalCrossingNonRegression(
+                            bboxBeforeMetadata,
+                            bboxCandidateMetadata,
+                          );
                         const isFinalBboxStage =
                           bboxStageTargetB <= bboxTargetB + 1e-6;
                         const bboxHardOk =
@@ -3898,7 +4002,8 @@ export async function runOgdfLayout(
                           && bboxEffectiveQualityOk
                           && bboxBundleNodeOk
                           && bboxAbsoluteSpacingOk
-                          && bboxEffectiveSpacingOk;
+                          && bboxEffectiveSpacingOk
+                          && bboxCanonicalNonRegression.ok;
                         logger?.info(
                           `[bbox target:${bboxVariant}] candidate done in `
                           + `${Date.now() - bboxVariantStart}ms · `
@@ -3931,6 +4036,7 @@ export async function runOgdfLayout(
                           + `spacingDebtPerGain=${bboxSpacingDebtPerGain.toFixed(3)}`
                           + `/${bboxSpacingDebtLimit.toFixed(3)} · `
                           + `spacingOk=${bboxEffectiveSpacingOk} · `
+                          + `canonicalOk=${bboxCanonicalNonRegression.ok} · `
                           + `partialOk=${bboxPartialOk} · `
                           + `accepted=${bboxAccept}`,
                         );
@@ -3978,7 +4084,8 @@ export async function runOgdfLayout(
                           const farFromAcceptance =
                             qualityPerGainOverLimit >= bboxStageBailQualityRatio
                             || spacingPerGainOverLimit >= bboxStageBailSpacingRatio
-                            || bboxCandidateNodeOverlaps > 0;
+                            || bboxCandidateNodeOverlaps > 0
+                            || !bboxCanonicalNonRegression.ok;
                           const nearAcceptance =
                             qualityPerGainOverLimit <= bboxStageBailNearRatio
                             && spacingPerGainOverLimit <= bboxStageBailNearRatio
@@ -3986,7 +4093,8 @@ export async function runOgdfLayout(
                             && bboxAbsoluteVisualOk
                             && bboxVisualDebtOk
                             && bboxBundleNodeOk
-                            && bboxAbsoluteSpacingOk;
+                            && bboxAbsoluteSpacingOk
+                            && bboxCanonicalNonRegression.ok;
                           if (nearAcceptance) {
                             bboxStageBadStreak = 0;
                           } else if (farFromAcceptance) {
@@ -4060,14 +4168,141 @@ export async function runOgdfLayout(
             postReroutePolishDeadline ??=
               startPostReroutePolishDeadline(logger);
 
+            if (readBoolEnv("DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR", true)) {
+              const repairBase = decodeLayoutSnapshot(
+                acceptedLayout,
+                "ogdfCanonicalRouteRepairBase",
+              );
+              const repairBaseNodeHits = Number(
+                repairBase.engineMetadata?.canonicalCrossing
+                  ?.nonIncidentNodeHits ?? 0,
+              );
+              if (repairBaseNodeHits > 0) {
+                const repairStart = Date.now();
+                const repairPositionsPath = trackTransientPath(path.join(
+                  os.tmpdir(),
+                  `django-erd-canonical-route-repair-${Date.now()}.tsv`,
+                ));
+                const repairRoutesPath = trackTransientPath(path.join(
+                  os.tmpdir(),
+                  `django-erd-canonical-route-repair-${Date.now()}-routes.tsv`,
+                ));
+                let repairBudgetedTimeout: BudgetedCandidateTimeout | undefined;
+                try {
+                  await writePositionsTsvFromLayoutJson(
+                    JSON.stringify(acceptedLayout),
+                    repairPositionsPath,
+                  );
+                  await writeRoutesTsvFromLayoutJson(
+                    JSON.stringify(acceptedLayout),
+                    repairRoutesPath,
+                  );
+                  repairBudgetedTimeout = budgetCandidateTimeout(
+                    postReroutePolishDeadline,
+                    readPositiveIntEnv(
+                      "DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_TIMEOUT_MS",
+                      DEFAULT_CANONICAL_ROUTE_REPAIR_TIMEOUT_MS,
+                    ),
+                    "canonical route repair",
+                    logger,
+                  );
+                  if (repairBudgetedTimeout) {
+                    const repairRun = await execFileAsync(
+                      binaryPath,
+                      [
+                        "layout",
+                        "--mode", normalizedRequestedLayoutMode,
+                        "--nodes-file", nodesPath,
+                        "--edges-file", edgesPath,
+                        "--edge-routing", effectiveEdgeRouting,
+                        "--cluster-graph", "1",
+                        "--positions-tsv", repairPositionsPath,
+                        "--routes-tsv", repairRoutesPath,
+                      ],
+                      {
+                        cwd: extensionRootPath,
+                        env: ogdfOptimizedCanonicalRouteRepairEnv(),
+                        killSignal: "SIGKILL",
+                        maxBuffer: 100 * 1024 * 1024,
+                        timeout: repairBudgetedTimeout.timeoutMs,
+                      },
+                    );
+                    if (repairRun.stderr.trim().length > 0) {
+                      logger?.info(
+                        `[canonical route repair] OGDF stderr: `
+                        + repairRun.stderr.trim(),
+                      );
+                    }
+                    const repairCandidate = JSON.parse(repairRun.stdout);
+                    const repairCandidateLayout = decodeLayoutSnapshot(
+                      repairCandidate,
+                      "ogdfCanonicalRouteRepairCandidate",
+                    );
+                    const repairEvaluation =
+                      evaluateCanonicalRouteRepairCandidate(
+                        repairBase,
+                        repairCandidateLayout,
+                        {
+                          maxRouteBboxGrowth: readFloatEnv(
+                            "DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_MAX_ROUTE_BBOX_GROWTH",
+                            DEFAULT_CANONICAL_ROUTE_REPAIR_MAX_ROUTE_BBOX_GROWTH,
+                          ),
+                        },
+                      );
+                    logger?.info(
+                      `[canonical route repair] candidate done in `
+                      + `${Date.now() - repairStart}ms · `
+                      + `nodeHit=${repairEvaluation.nodeHitsBase ?? "n/a"}->`
+                      + `${repairEvaluation.nodeHitsCandidate ?? "n/a"} · `
+                      + `gain=${repairEvaluation.nodeHitsGain} · `
+                      + `routeBboxGrowth=${repairEvaluation.routeBboxGrowth.toFixed(3)} · `
+                      + `accepted=${repairEvaluation.ok} · `
+                      + `reasons=${repairEvaluation.reasons.join(",") || "none"}`,
+                    );
+                    if (repairEvaluation.ok) {
+                      acceptedStdout = repairRun.stdout;
+                      acceptedLayout = repairCandidate;
+                    }
+                  }
+                } catch (err) {
+                  const budgetFailure = isBudgetCausedCandidateFailure(
+                    err,
+                    repairBudgetedTimeout,
+                  );
+                  const message = err instanceof Error ? err.message : String(err);
+                  logger?.[budgetFailure ? "info" : "warn"](
+                    `[canonical route repair] candidate ${
+                      budgetFailure ? "timed out" : "failed"
+                    } in ${Date.now() - repairStart}ms: ${message}`,
+                  );
+                }
+              }
+            }
+
             if (readBoolEnv("DJERD_OPTIMIZED_EDGE_NODE_POLISH", true)) {
               const polishVariants = readEdgeNodePolishVariants();
               const polishSkipOnVisualBlowup = readFloatEnv(
                 "DJERD_OPTIMIZED_EDGE_NODE_POLISH_SKIP_ON_VISUAL_RATIO",
                 1.15,
               );
+              const polishCanonicalObstacleReliefEnabled = readBoolEnv(
+                "DJERD_OPTIMIZED_EDGE_NODE_POLISH_CANONICAL_OBSTACLE_RELIEF",
+                true,
+              );
+              const polishHolisticReserveMs = readNonNegativeIntEnv(
+                "DJERD_OPTIMIZED_EDGE_NODE_POLISH_HOLISTIC_RESERVE_MS",
+                DEFAULT_EDGE_NODE_POLISH_HOLISTIC_RESERVE_MS,
+              );
               let polishSkipRemaining = false;
-              for (const polishVariant of polishVariants) {
+              for (
+                let polishVariantIndex = 0;
+                polishVariantIndex < polishVariants.length;
+                polishVariantIndex += 1
+              ) {
+                const polishVariant = polishVariants[polishVariantIndex];
+                const laterPolishVariants = polishVariants.slice(
+                  polishVariantIndex + 1,
+                );
                 if (
                   remainingPostReroutePolishBudgetMs(
                     postReroutePolishDeadline,
@@ -4081,12 +4316,22 @@ export async function runOgdfLayout(
                   );
                   break;
                 }
-                if (polishSkipRemaining) {
+                if (shouldSkipEdgeNodePolishVariantAfterVisualBlowup(
+                  polishSkipRemaining,
+                  polishVariant,
+                  polishCanonicalObstacleReliefEnabled,
+                )) {
                   logger?.info(
                     `[edge-node polish:${polishVariant}] skipped; `
                     + "earlier variant showed visual blow-up",
                   );
                   continue;
+                }
+                if (polishSkipRemaining) {
+                  logger?.info(
+                    `[edge-node polish:${polishVariant}] evaluating despite `
+                    + "earlier visual blow-up; canonical obstacle relief enabled",
+                  );
                 }
                 const polishBaseLayout =
                   decodeLayoutSnapshot(acceptedLayout, "ogdfLayout");
@@ -4109,6 +4354,9 @@ export async function runOgdfLayout(
                 ));
                 let polishBudgetedTimeout:
                   BudgetedCandidateTimeout | undefined;
+                let polishBudgetPlan: ReturnType<
+                  typeof planEdgeNodePolishCandidateBudget
+                > | undefined;
                 try {
                   await writePositionsTsvFromLayoutJson(
                     JSON.stringify(acceptedLayout),
@@ -4118,14 +4366,42 @@ export async function runOgdfLayout(
                     "DJERD_OPTIMIZED_EDGE_NODE_POLISH_TIMEOUT_MS",
                     60_000,
                   );
-                  polishBudgetedTimeout = budgetCandidateTimeout(
-                    postReroutePolishDeadline,
+                  const polishRemainingMs =
+                    remainingPostReroutePolishBudgetMs(
+                      postReroutePolishDeadline,
+                    );
+                  polishBudgetPlan = planEdgeNodePolishCandidateBudget(
+                    polishRemainingMs,
                     polishTimeoutMs,
-                    `edge-node polish:${polishVariant}`,
-                    logger,
+                    polishVariant,
+                    laterPolishVariants,
+                    polishCanonicalObstacleReliefEnabled,
+                    polishHolisticReserveMs,
                   );
-                  if (!polishBudgetedTimeout) {
+                  if (polishBudgetPlan.timeoutMs <= 0) {
+                    if (polishBudgetPlan.holisticPending) {
+                      logger?.info(
+                        `[post-reroute polish budget] edge-node polish:`
+                        + `${polishVariant} skipped; reserving `
+                        + `${polishBudgetPlan.reservedMs}ms for holistic`,
+                      );
+                      continue;
+                    }
                     break;
+                  }
+                  polishBudgetedTimeout = {
+                    budgetLimited: polishBudgetPlan.budgetLimited,
+                    timeoutMs: polishBudgetPlan.timeoutMs,
+                  };
+                  if (polishBudgetPlan.budgetLimited) {
+                    logger?.info(
+                      `[post-reroute polish budget] edge-node polish:`
+                      + `${polishVariant} timeout capped · `
+                      + `configured=${polishTimeoutMs}ms · `
+                      + `timeout=${polishBudgetPlan.timeoutMs}ms · `
+                      + `remaining=${polishRemainingMs}ms · `
+                      + `holisticReserve=${polishBudgetPlan.reservedMs}ms`,
+                    );
                   }
                   const polishReroute = await execFileAsync(
                     binaryPath,
@@ -4252,6 +4528,10 @@ export async function runOgdfLayout(
                     "DJERD_OPTIMIZED_EDGE_NODE_POLISH_ALLOW_VISUAL_REGRESSION",
                     false,
                   );
+                  const polishCanonicalMaxVisualDebtPerGain = readFloatEnv(
+                    "DJERD_OPTIMIZED_EDGE_NODE_POLISH_CANONICAL_MAX_VISUAL_DEBT_PER_GAIN",
+                    DEFAULT_CANONICAL_OBSTACLE_RELIEF_MAX_VISUAL_DEBT_PER_GAIN,
+                  );
                   const polishMaxBundleNode = readNonNegativeIntEnv(
                     "DJERD_OPTIMIZED_EDGE_NODE_POLISH_MAX_BUNDLE_NODE",
                     0,
@@ -4268,21 +4548,45 @@ export async function runOgdfLayout(
                   const polishVisualNonRegressionOk =
                     polishAllowVisualRegression
                     || polishCandidateVisual <= polishBaseVisual;
+                  const polishCanonicalNonRegression =
+                    evaluateCanonicalCrossingNonRegression(
+                      polishBaseMetadata,
+                      polishCandidateMetadata,
+                    );
+                  const polishCanonicalObstacleRelief =
+                    evaluateCanonicalObstacleRelief(
+                      polishBaseMetadata,
+                      polishCandidateMetadata,
+                      polishBaseVisual,
+                      polishCandidateVisual,
+                      polishCanonicalMaxVisualDebtPerGain,
+                    );
+                  const polishCanonicalObstacleReliefOk =
+                    polishCanonicalObstacleReliefEnabled
+                    && polishCanonicalObstacleRelief.ok;
+                  const polishVisualPolicyOk =
+                    polishVisualNonRegressionOk
+                    || polishCanonicalObstacleReliefOk;
                   const polishSpacingOk =
                     polishSpacingDebtPerGain <= polishMaxSpacingDebtPerGain;
-                  const polishAcceptReason = polishGainOk
-                    ? "edge-node"
-                    : polishVisualGainOk
-                      ? "visual"
-                      : "none";
+                  const polishAcceptReason =
+                    polishCanonicalObstacleReliefOk
+                      && !polishVisualNonRegressionOk
+                      ? "canonical-obstacle-relief"
+                      : polishGainOk
+                        ? "edge-node"
+                        : polishVisualGainOk
+                          ? "visual"
+                          : "none";
                   const polishAccept =
                     (polishGainOk || polishVisualGainOk)
                     && polishBboxOk
                     && polishVisualOk
-                    && polishVisualNonRegressionOk
+                    && polishVisualPolicyOk
                     && polishSpacingOk
                     && polishCandidateNodeOverlaps === 0
-                    && polishCandidateBundleNode <= polishMaxBundleNode;
+                    && polishCandidateBundleNode <= polishMaxBundleNode
+                    && polishCanonicalNonRegression.ok;
                   logger?.info(
                     `[edge-node polish:${polishVariant}] candidate done in `
                     + `${Date.now() - polishStart}ms · `
@@ -4295,6 +4599,20 @@ export async function runOgdfLayout(
                     + `visualDebtPerGain=${polishVisualDebtPerGain.toFixed(3)}`
                     + `/${polishMaxVisualDebtPerGain.toFixed(3)} · `
                     + `visualNonRegression=${polishVisualNonRegressionOk} · `
+                    + `canonicalAdjacent=`
+                    + `${polishCanonicalObstacleRelief.adjacentBase ?? "n/a"}`
+                    + `->${polishCanonicalObstacleRelief.adjacentCandidate ?? "n/a"}`
+                    + ` · canonicalNodeHits=`
+                    + `${polishCanonicalObstacleRelief.nodeHitsBase ?? "n/a"}`
+                    + `->${polishCanonicalObstacleRelief.nodeHitsCandidate ?? "n/a"}`
+                    + ` · canonicalGain=${polishCanonicalObstacleRelief.canonicalGain} · `
+                    + `visualDebtPerCanonicalGain=`
+                    + `${polishCanonicalObstacleRelief.visualDebtPerCanonicalGain.toFixed(3)}`
+                    + `/${polishCanonicalMaxVisualDebtPerGain.toFixed(3)} · `
+                    + `canonicalObstacleReliefOk=`
+                    + `${polishCanonicalObstacleReliefOk} · `
+                    + `canonicalNonRegressionOk=`
+                    + `${polishCanonicalNonRegression.ok} · `
                     + `bbox=${polishBaseAreaB.toFixed(2)}B->`
                     + `${polishCandidateAreaB.toFixed(2)}B · `
                     + `bboxGrowth=${polishBboxGrowth.toFixed(3)}`
@@ -4335,6 +4653,15 @@ export async function runOgdfLayout(
                     polishBudgetedTimeout,
                   );
                   if (budgetFailure) {
+                    if (polishBudgetPlan?.holisticPending) {
+                      logger?.info(
+                        `[post-reroute polish budget] edge-node polish:`
+                        + `${polishVariant} reached reserved boundary; `
+                        + `continuing toward holistic · reserve=`
+                        + `${polishBudgetPlan.reservedMs}ms`,
+                      );
+                      continue;
+                    }
                     logger?.info(
                       `[post-reroute polish budget] edge-node polish stopped; `
                       + `budget-limited candidate timed out · `
@@ -6064,6 +6391,12 @@ export async function runOgdfLayout(
         const selection = await preserveBestOptimizedLayoutCache(
           optimizedCachePath,
           stdout,
+          {
+            maxCanonicalVisualDebtPerGain: readFloatEnv(
+              "DJERD_OPTIMIZED_EDGE_NODE_POLISH_CANONICAL_MAX_VISUAL_DEBT_PER_GAIN",
+              DEFAULT_CANONICAL_OBSTACLE_RELIEF_MAX_VISUAL_DEBT_PER_GAIN,
+            ),
+          },
         );
         stdout = selection.json;
         if (selection.source === "existing") {
@@ -6075,7 +6408,10 @@ export async function runOgdfLayout(
             + ` · cache=${optimizedCachePath}`,
           );
         } else {
-          logger?.info(`OGDF optimized layout cached to ${optimizedCachePath}`);
+          logger?.info(
+            `OGDF optimized layout cached to ${optimizedCachePath}`
+            + ` · reason=${selection.candidateReason ?? "quality"}`,
+          );
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -8511,7 +8847,7 @@ function readBoolEnv(name: string, fallback: boolean): boolean {
 function readEdgeNodePolishVariants(): EdgeNodePolishVariant[] {
   const raw = readStringEnv(
     "DJERD_OPTIMIZED_EDGE_NODE_POLISH_VARIANTS",
-    "cheap,local,holistic",
+    "cheap,local",
   );
   const variants: EdgeNodePolishVariant[] = [];
   for (const part of raw.split(",")) {
@@ -8528,7 +8864,7 @@ function readEdgeNodePolishVariants(): EdgeNodePolishVariant[] {
       variants.push(variant);
     }
   }
-  return variants.length > 0 ? variants : ["cheap", "local", "holistic"];
+  return variants.length > 0 ? variants : ["cheap", "local"];
 }
 
 function readVisualCrossPolishVariants(): VisualCrossPolishVariant[] {

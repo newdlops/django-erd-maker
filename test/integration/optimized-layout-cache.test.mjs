@@ -79,6 +79,40 @@ test("optimized cache quality uses conflict tie-breakers and keeps exact ties", 
   assert.equal(exactTie.source, "existing");
 });
 
+test("optimized cache prefers detail once both adaptive layouts meet the budget", () => {
+  const detailed = snapshot(90, {
+    adaptiveCarrierGrid: 12,
+    adaptiveCarrierTarget: 100,
+    adaptiveCarrierVisibleEdges: 235,
+  });
+  const overAggregated = snapshot(50, {
+    adaptiveCarrierGrid: 8,
+    adaptiveCarrierTarget: 100,
+    adaptiveCarrierVisibleEdges: 139,
+  });
+  assert.ok(compareOptimizedLayoutQuality(
+    detailed.engineMetadata,
+    overAggregated.engineMetadata,
+  ) < 0);
+  assert.equal(
+    selectPreferredOptimizedLayoutJson(
+      JSON.stringify(detailed),
+      JSON.stringify(overAggregated),
+    ).source,
+    "existing",
+  );
+
+  const moreDetailed = snapshot(99, {
+    adaptiveCarrierGrid: 16,
+    adaptiveCarrierTarget: 100,
+    adaptiveCarrierVisibleEdges: 260,
+  });
+  assert.ok(compareOptimizedLayoutQuality(
+    detailed.engineMetadata,
+    moreDetailed.engineMetadata,
+  ) > 0);
+});
+
 test("optimized cache preserves canonical adjacent and node-hit non-regression", () => {
   const existing = snapshot(1_258, {
     canonicalCrossing: canonicalCrossing(858, 1_050),
@@ -117,6 +151,34 @@ test("optimized cache preserves canonical adjacent and node-hit non-regression",
     ).source,
     "candidate",
   );
+});
+
+test("optimized cache accepts only bounded canonical obstacle relief", () => {
+  const existing = snapshot(1_258, {
+    canonicalCrossing: canonicalCrossing(972, 1_250),
+  });
+  const holistic = snapshot(1_265, {
+    canonicalCrossing: canonicalCrossing(858, 1_050),
+  });
+  const holisticSelection = selectPreferredOptimizedLayoutJson(
+    JSON.stringify(existing),
+    JSON.stringify(holistic),
+  );
+  assert.equal(holisticSelection.source, "candidate");
+  assert.equal(
+    holisticSelection.candidateReason,
+    "canonical-obstacle-relief",
+  );
+
+  const local = snapshot(1_289, {
+    canonicalCrossing: canonicalCrossing(869, 956),
+  });
+  const localSelection = selectPreferredOptimizedLayoutJson(
+    JSON.stringify(existing),
+    JSON.stringify(local),
+  );
+  assert.equal(localSelection.source, "existing");
+  assert.equal(localSelection.preservationReason, "quality");
 });
 
 test("optimized cache write preserves a better cache and replaces a worse one", async () => {

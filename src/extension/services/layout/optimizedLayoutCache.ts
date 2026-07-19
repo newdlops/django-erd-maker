@@ -5,7 +5,11 @@ import type {
   LayoutSnapshot,
 } from "../../../shared/graph/layoutContract";
 import { decodeLayoutSnapshot } from "../../../shared/protocol/decodeDiagramBootstrap";
-import { evaluateCanonicalCrossingNonRegression } from "./canonicalCrossingNonRegression";
+import {
+  DEFAULT_CANONICAL_OBSTACLE_RELIEF_MAX_VISUAL_DEBT_PER_GAIN,
+  evaluateCanonicalCrossingNonRegression,
+  evaluateCanonicalObstacleRelief,
+} from "./canonicalCrossingNonRegression";
 
 export interface OptimizedLayoutFlightLease {
   readonly waited: boolean;
@@ -13,11 +17,16 @@ export interface OptimizedLayoutFlightLease {
 }
 
 export interface OptimizedLayoutCacheSelection {
+  readonly candidateReason?: "canonical-obstacle-relief" | "quality";
   readonly candidateVisualCrossings?: number;
   readonly existingVisualCrossings?: number;
   readonly json: string;
   readonly preservationReason?: "canonical-non-regression" | "quality";
   readonly source: "candidate" | "existing";
+}
+
+export interface OptimizedLayoutCacheSelectionOptions {
+  readonly maxCanonicalVisualDebtPerGain?: number;
 }
 
 const optimizedLayoutFlights = new Map<string, Promise<void>>();
@@ -65,6 +74,10 @@ export function compareOptimizedLayoutQuality(
   left: LayoutEngineMetadata | undefined,
   right: LayoutEngineMetadata | undefined,
 ): number {
+  const adaptiveComparison = compareAdaptiveCarrierDetail(left, right);
+  if (adaptiveComparison !== undefined && adaptiveComparison !== 0) {
+    return adaptiveComparison;
+  }
   const lowerIsBetter: Array<keyof LayoutEngineMetadata> = [
     "visualCrossings",
     "nodeOverlaps",
@@ -99,9 +112,45 @@ export function compareOptimizedLayoutQuality(
   return rightQuality - leftQuality;
 }
 
+function compareAdaptiveCarrierDetail(
+  left: LayoutEngineMetadata | undefined,
+  right: LayoutEngineMetadata | undefined,
+): number | undefined {
+  const leftTarget = finiteNumber(left?.adaptiveCarrierTarget);
+  const rightTarget = finiteNumber(right?.adaptiveCarrierTarget);
+  const leftVisual = finiteNumber(left?.visualCrossings);
+  const rightVisual = finiteNumber(right?.visualCrossings);
+  const leftVisible = finiteNumber(left?.adaptiveCarrierVisibleEdges);
+  const rightVisible = finiteNumber(right?.adaptiveCarrierVisibleEdges);
+  if (
+    leftTarget === undefined
+    || rightTarget === undefined
+    || leftTarget !== rightTarget
+    || leftVisual === undefined
+    || rightVisual === undefined
+    || leftVisible === undefined
+    || rightVisible === undefined
+  ) {
+    return undefined;
+  }
+  const leftPasses = leftVisual <= leftTarget;
+  const rightPasses = rightVisual <= rightTarget;
+  if (leftPasses !== rightPasses) {
+    return leftPasses ? -1 : 1;
+  }
+  if (!leftPasses) {
+    return undefined;
+  }
+  // Once both layouts meet the same overview budget, retain the layout that
+  // exposes more pre-aggregation relationships. A lower score obtained only
+  // by moving to a coarser grid is not a quality improvement.
+  return rightVisible - leftVisible;
+}
+
 export function selectPreferredOptimizedLayoutJson(
   existingJson: string,
   candidateJson: string,
+  options: OptimizedLayoutCacheSelectionOptions = {},
 ): OptimizedLayoutCacheSelection {
   const candidate = decodeLayoutSnapshot(
     JSON.parse(candidateJson),
@@ -129,13 +178,38 @@ export function selectPreferredOptimizedLayoutJson(
       "canonical-non-regression",
     );
   }
+  const canonicalObstacleRelief = evaluateCanonicalObstacleRelief(
+    existing.engineMetadata,
+    candidate.engineMetadata,
+    finiteNumber(existing.engineMetadata?.visualCrossings) ?? Number.NaN,
+    finiteNumber(candidate.engineMetadata?.visualCrossings) ?? Number.NaN,
+    options.maxCanonicalVisualDebtPerGain
+      ?? DEFAULT_CANONICAL_OBSTACLE_RELIEF_MAX_VISUAL_DEBT_PER_GAIN,
+  );
+  if (canonicalObstacleRelief.ok) {
+    return selection(
+      "candidate",
+      candidateJson,
+      existing,
+      candidate,
+      undefined,
+      "canonical-obstacle-relief",
+    );
+  }
   if (compareOptimizedLayoutQuality(
     existing.engineMetadata,
     candidate.engineMetadata,
   ) <= 0) {
     return selection("existing", existingJson, existing, candidate, "quality");
   }
-  return selection("candidate", candidateJson, existing, candidate);
+  return selection(
+    "candidate",
+    candidateJson,
+    existing,
+    candidate,
+    undefined,
+    "quality",
+  );
 }
 
 // The caller holds the in-process flight lease. Re-reading immediately before
@@ -144,11 +218,16 @@ export function selectPreferredOptimizedLayoutJson(
 export async function preserveBestOptimizedLayoutCache(
   cachePath: string,
   candidateJson: string,
+  options: OptimizedLayoutCacheSelectionOptions = {},
 ): Promise<OptimizedLayoutCacheSelection> {
   let result: OptimizedLayoutCacheSelection;
   try {
     const existingJson = await readFile(cachePath, "utf8");
-    result = selectPreferredOptimizedLayoutJson(existingJson, candidateJson);
+    result = selectPreferredOptimizedLayoutJson(
+      existingJson,
+      candidateJson,
+      options,
+    );
   } catch {
     const candidate = decodeLayoutSnapshot(
       JSON.parse(candidateJson),
@@ -190,8 +269,10 @@ function selection(
   existing: LayoutSnapshot | undefined,
   candidate: LayoutSnapshot,
   preservationReason?: "canonical-non-regression" | "quality",
+  candidateReason?: "canonical-obstacle-relief" | "quality",
 ): OptimizedLayoutCacheSelection {
   return {
+    candidateReason,
     candidateVisualCrossings: finiteNumber(
       candidate.engineMetadata?.visualCrossings,
     ),
