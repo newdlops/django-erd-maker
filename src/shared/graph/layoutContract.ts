@@ -486,6 +486,14 @@ export interface CanonicalCrossingMetadata {
 }
 
 export interface LayoutEngineMetadata {
+  adaptiveCarrierBaseEdges?: number;
+  adaptiveCarrierGrid?: number;
+  adaptiveCarrierMaxX?: number;
+  adaptiveCarrierMaxY?: number;
+  adaptiveCarrierMinX?: number;
+  adaptiveCarrierMinY?: number;
+  adaptiveCarrierTarget?: number;
+  adaptiveCarrierVisibleEdges?: number;
   actualAlgorithm?: string;
   actualMode?: LayoutMode;
   aspectRatio?: number;
@@ -500,6 +508,8 @@ export interface LayoutEngineMetadata {
   hubCarrierClusters?: number;
   hubCarrierEdgesGrouped?: number;
   hubCarrierThreshold?: number;
+  inheritanceCarrierGrouping?: boolean;
+  intraClusterCarrierGrouping?: boolean;
   leafBundles?: LeafBundle[];
   meanEdgeLength?: number;
   nodeOverlaps?: number;

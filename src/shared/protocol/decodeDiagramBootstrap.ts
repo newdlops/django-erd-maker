@@ -261,6 +261,46 @@ function decodeLayoutEngineMetadata(
   }
 
   return {
+    adaptiveCarrierBaseEdges: readOptionalNumber(
+      metadata,
+      "adaptiveCarrierBaseEdges",
+      `${context}.engineMetadata`,
+    ),
+    adaptiveCarrierGrid: readOptionalNumber(
+      metadata,
+      "adaptiveCarrierGrid",
+      `${context}.engineMetadata`,
+    ),
+    adaptiveCarrierMaxX: readOptionalNumber(
+      metadata,
+      "adaptiveCarrierMaxX",
+      `${context}.engineMetadata`,
+    ),
+    adaptiveCarrierMaxY: readOptionalNumber(
+      metadata,
+      "adaptiveCarrierMaxY",
+      `${context}.engineMetadata`,
+    ),
+    adaptiveCarrierMinX: readOptionalNumber(
+      metadata,
+      "adaptiveCarrierMinX",
+      `${context}.engineMetadata`,
+    ),
+    adaptiveCarrierMinY: readOptionalNumber(
+      metadata,
+      "adaptiveCarrierMinY",
+      `${context}.engineMetadata`,
+    ),
+    adaptiveCarrierTarget: readOptionalNumber(
+      metadata,
+      "adaptiveCarrierTarget",
+      `${context}.engineMetadata`,
+    ),
+    adaptiveCarrierVisibleEdges: readOptionalNumber(
+      metadata,
+      "adaptiveCarrierVisibleEdges",
+      `${context}.engineMetadata`,
+    ),
     actualAlgorithm: readOptionalString(metadata, "actualAlgorithm", `${context}.engineMetadata`),
     actualMode: readOptionalLayoutMode(metadata, "actualMode", `${context}.engineMetadata`),
     aspectRatio: readOptionalNumber(metadata, "aspectRatio", `${context}.engineMetadata`),
@@ -275,6 +315,16 @@ function decodeLayoutEngineMetadata(
     hubCarrierClusters: readOptionalNumber(metadata, "hubCarrierClusters", `${context}.engineMetadata`),
     hubCarrierEdgesGrouped: readOptionalNumber(metadata, "hubCarrierEdgesGrouped", `${context}.engineMetadata`),
     hubCarrierThreshold: readOptionalNumber(metadata, "hubCarrierThreshold", `${context}.engineMetadata`),
+    inheritanceCarrierGrouping: readOptionalBoolean(
+      metadata,
+      "inheritanceCarrierGrouping",
+      `${context}.engineMetadata`,
+    ),
+    intraClusterCarrierGrouping: readOptionalBoolean(
+      metadata,
+      "intraClusterCarrierGrouping",
+      `${context}.engineMetadata`,
+    ),
     leafBundles: decodeLeafBundles(metadata, `${context}.engineMetadata`),
     meanEdgeLength: readOptionalNumber(metadata, "meanEdgeLength", `${context}.engineMetadata`),
     nodeOverlaps: readOptionalNumber(metadata, "nodeOverlaps", `${context}.engineMetadata`),
