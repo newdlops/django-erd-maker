@@ -700,7 +700,7 @@ export function getBrowserCanvasDrawSource(): string {
           }
 
           const visibleEdgeEntries = [];
-          for (const meta of edgeMeta) {
+          for (const meta of getActiveEdgeMeta()) {
             const sourceTable = tableMetaById.get(meta.sourceModelId);
             const targetTable = tableMetaById.get(meta.targetModelId);
             if (!sourceTable || !targetTable || !isVisibleModel(meta.sourceModelId) || !isVisibleModel(meta.targetModelId)) {
@@ -1535,7 +1535,7 @@ export function getBrowserCanvasDrawSource(): string {
 
         function collectLiveDragEdgeSegments(activeDrag, bounds) {
           const visibleEdgeEntries = [];
-          for (const meta of edgeMeta) {
+          for (const meta of getActiveEdgeMeta()) {
             if (
               meta.sourceModelId !== activeDrag.modelId &&
               meta.targetModelId !== activeDrag.modelId

@@ -18,6 +18,7 @@ import type {
   CanonicalCrossingMetadata,
   EdgeCrossing,
   LeafBundle,
+  LayoutEngineMetadata,
   Point,
   RoutedEdgePath,
 } from "../../shared/graph/layoutContract";
@@ -153,6 +154,7 @@ export interface DiagramRenderModel {
   canonicalCrossing?: CanonicalCrossingRenderModel;
   clusterOutlines: ClusterOutline[];
   crossings: EdgeCrossing[];
+  detailEdges: EdgeRenderModel[];
   edges: EdgeRenderModel[];
   inspector: InspectorRenderModel;
   layoutExecution: LayoutExecutionRenderModel;
@@ -293,12 +295,14 @@ export function createDiagramRenderModel(
     rawLeafBundles,
     bundleIndexByLeafModelId,
     payload.layout.engineMetadata?.hubCarrierThreshold,
+    payload.layout.engineMetadata?.inheritanceCarrierGrouping,
+    payload.layout.engineMetadata?.intraClusterCarrierGrouping,
   );
   // Set of `${bundleIndex}|${rootModelId}` keys: ensures ONE carrier edge
   // per (bundle, shared-root) pair, so a bus bundle with N shared roots
   // produces N carrier edges (one per root) instead of one global.
   const carrierAssignedByBundleRoot = new Set<string>();
-  const routedEdges = payload.layout.routedEdges
+  const baseRoutedEdges = payload.layout.routedEdges
     .map((route) =>
       createEdgeRenderModel(
         route,
@@ -311,6 +315,11 @@ export function createDiagramRenderModel(
       ),
     )
     .filter((edge): edge is EdgeRenderModel => Boolean(edge));
+  const routedEdges = createAdaptiveGridCarrierRenderGroups(
+    baseRoutedEdges,
+    renderedTables,
+    payload.layout.engineMetadata,
+  );
   const catalogEdges = modelCatalogMode
     ? payload.graph.structuralEdges
         .map((edge) => createCatalogEdgeRenderModel(edge, layoutNodesById))
@@ -359,6 +368,9 @@ export function createDiagramRenderModel(
     ),
     clusterOutlines,
     crossings: modelCatalogMode ? [] : payload.layout.crossings,
+    detailEdges: payload.layout.engineMetadata?.adaptiveCarrierGrid
+      ? baseRoutedEdges
+      : [],
     edges: renderedEdges,
     inspector: {
       diagnostics: createDiagnostics(payload),
@@ -500,6 +512,8 @@ function createHubCarrierRenderGroups(
   leafBundles: LeafBundle[],
   bundleIndexByLeafModelId: Map<ModelId, number>,
   threshold: number | undefined,
+  inheritanceCarrierGrouping: boolean | undefined,
+  intraClusterCarrierGrouping: boolean | undefined,
 ): Map<string, HubCarrierRenderGroup> {
   if (threshold === undefined || threshold < 2) {
     return new Map();
@@ -549,6 +563,7 @@ function createHubCarrierRenderGroups(
     return bestCluster;
   };
 
+  const directCarrierByEdgeId = new Map<string, string>();
   const clusterPairsByEdgeId = new Map<string, [string, string]>();
   const incidentCountByCluster = new Map<string, number>();
   for (const route of routes) {
@@ -556,12 +571,25 @@ function createHubCarrierRenderGroups(
     if (
       !edge ||
       edge.sourceModelId === edge.targetModelId ||
-      // Inheritance ("is-a") edges are structurally significant and few;
-      // never fold them into a cluster-to-cluster hub carrier or the direct
-      // parent→child line disappears (e.g. Shareholder→Stakeholder). They
-      // always render as their own edge.
-      edge.kind === "inheritance" ||
-      bundleEdgeMatch(edge.sourceModelId, edge.targetModelId, leafBundles, bundleIndexByLeafModelId) ||
+      bundleEdgeMatch(
+        edge.sourceModelId,
+        edge.targetModelId,
+        leafBundles,
+        bundleIndexByLeafModelId,
+      )
+    ) {
+      continue;
+    }
+    if (edge.kind === "inheritance") {
+      if (inheritanceCarrierGrouping) {
+        directCarrierByEdgeId.set(
+          edge.id,
+          `inheritance-carrier:${edge.targetModelId}`,
+        );
+      }
+      continue;
+    }
+    if (
       bundleIndexByLeafModelId.has(edge.sourceModelId) ||
       bundleIndexByLeafModelId.has(edge.targetModelId)
     ) {
@@ -569,7 +597,16 @@ function createHubCarrierRenderGroups(
     }
     const sourceCluster = clusterByModelId.get(edge.sourceModelId) ?? nearestCluster(edge.sourceModelId);
     const targetCluster = clusterByModelId.get(edge.targetModelId) ?? nearestCluster(edge.targetModelId);
-    if (!sourceCluster || !targetCluster || sourceCluster === targetCluster) {
+    if (!sourceCluster || !targetCluster) {
+      continue;
+    }
+    if (sourceCluster === targetCluster) {
+      if (intraClusterCarrierGrouping) {
+        directCarrierByEdgeId.set(
+          edge.id,
+          `intra-cluster-carrier:${sourceCluster}`,
+        );
+      }
       continue;
     }
     clusterPairsByEdgeId.set(edge.id, [sourceCluster, targetCluster]);
@@ -580,6 +617,15 @@ function createHubCarrierRenderGroups(
   const routeGroups = new Map<string, Array<{ edge: StructuralGraphEdge; route: RoutedEdgePath }>>();
   for (const route of routes) {
     const edge = structuralEdgeById.get(route.edgeId);
+    const directCarrier = edge
+      ? directCarrierByEdgeId.get(edge.id)
+      : undefined;
+    if (edge && directCarrier && route.points.length >= 2) {
+      const members = routeGroups.get(directCarrier) ?? [];
+      members.push({ edge, route });
+      routeGroups.set(directCarrier, members);
+      continue;
+    }
     const pair = edge ? clusterPairsByEdgeId.get(edge.id) : undefined;
     if (!edge || !pair || route.points.length < 2) {
       continue;
@@ -638,6 +684,181 @@ function averageRouteEndpoint(
   return {
     x: round2(x / members.length),
     y: round2(y / members.length),
+  };
+}
+
+function createAdaptiveGridCarrierRenderGroups(
+  edges: EdgeRenderModel[],
+  tables: TableRenderModel[],
+  metadata: LayoutEngineMetadata | undefined,
+): EdgeRenderModel[] {
+  const grid = metadata?.adaptiveCarrierGrid;
+  if (grid === undefined || grid < 1 || edges.length < 2 || tables.length === 0) {
+    return edges;
+  }
+
+  const tableByModelId = new Map(tables.map((table) => [table.modelId, table] as const));
+  const minX = metadata?.adaptiveCarrierMinX
+    ?? Math.min(...tables.map((table) => table.position.x));
+  const minY = metadata?.adaptiveCarrierMinY
+    ?? Math.min(...tables.map((table) => table.position.y));
+  const maxX = metadata?.adaptiveCarrierMaxX
+    ?? Math.max(...tables.map((table) => table.position.x + table.size.width));
+  const maxY = metadata?.adaptiveCarrierMaxY
+    ?? Math.max(...tables.map((table) => table.position.y + table.size.height));
+  const spanX = Math.max(1, maxX - minX);
+  const spanY = Math.max(1, maxY - minY);
+  const cellFor = (point: Point): number => {
+    const x = Math.min(
+      grid - 1,
+      Math.max(0, Math.floor(((point.x - minX) / spanX) * grid)),
+    );
+    const y = Math.min(
+      grid - 1,
+      Math.max(0, Math.floor(((point.y - minY) / spanY) * grid)),
+    );
+    return y * grid + x;
+  };
+  const pointBefore = (left: Point, right: Point): boolean =>
+    left.x < right.x || (left.x === right.x && left.y <= right.y);
+
+  interface AdaptiveGridMember {
+    edge: EdgeRenderModel;
+    end: Point;
+    reversed: boolean;
+    start: Point;
+  }
+  const groups = new Map<string, AdaptiveGridMember[]>();
+  for (const edge of edges) {
+    const endpoints = edgeRenderEndpoints(edge, tableByModelId);
+    if (!endpoints) {
+      // A malformed or partially decoded layout must never lose an edge merely
+      // because overview aggregation cannot resolve its endpoints. Keep the
+      // unaggregated render model in that case; valid native layouts always
+      // provide both endpoints, so this does not affect the budgeted path.
+      return edges;
+    }
+    let { start, end } = endpoints;
+    let startCell = cellFor(start);
+    let endCell = cellFor(end);
+    let reversed = false;
+    if (
+      startCell > endCell
+      || (startCell === endCell && !pointBefore(start, end))
+    ) {
+      [start, end] = [end, start];
+      [startCell, endCell] = [endCell, startCell];
+      reversed = true;
+    }
+    const key = `${startCell}|${endCell}`;
+    const members = groups.get(key) ?? [];
+    members.push({ edge, end, reversed, start });
+    groups.set(key, members);
+  }
+
+  const carriers: EdgeRenderModel[] = [];
+  for (const [key, members] of groups) {
+    const representative = members[0];
+    const count = members.length;
+    const start = {
+      x: round2(members.reduce((sum, member) => sum + member.start.x, 0) / count),
+      y: round2(members.reduce((sum, member) => sum + member.start.y, 0) / count),
+    };
+    const end = {
+      x: round2(members.reduce((sum, member) => sum + member.end.x, 0) / count),
+      y: round2(members.reduce((sum, member) => sum + member.end.y, 0) / count),
+    };
+    const sourceModelId = representative.reversed
+      ? representative.edge.targetModelId
+      : representative.edge.sourceModelId;
+    const targetModelId = representative.reversed
+      ? representative.edge.sourceModelId
+      : representative.edge.targetModelId;
+    carriers.push({
+      ...representative.edge,
+      crossingIds: [],
+      edgeId: `adaptive-carrier:${grid}:${key}`,
+      markerEndId: representative.reversed
+        ? representative.edge.markerStartId
+        : representative.edge.markerEndId,
+      markerStartId: representative.reversed
+        ? representative.edge.markerEndId
+        : representative.edge.markerStartId,
+      points: `${start.x},${start.y} ${end.x},${end.y}`,
+      sourceModelId,
+      targetModelId,
+    });
+  }
+  return carriers;
+}
+
+function edgeRenderEndpoints(
+  edge: EdgeRenderModel,
+  tableByModelId: Map<ModelId, TableRenderModel>,
+): { end: Point; start: Point } | undefined {
+  const routedPoints = edge.points
+    .split(" ")
+    .filter(Boolean)
+    .map((pair) => {
+      const [x, y] = pair.split(",").map(Number);
+      return { x, y };
+    })
+    .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
+  if (routedPoints.length >= 2) {
+    return {
+      end: routedPoints[routedPoints.length - 1],
+      start: routedPoints[0],
+    };
+  }
+
+  const source = tableByModelId.get(edge.sourceModelId);
+  const target = tableByModelId.get(edge.targetModelId);
+  if (!source || !target) {
+    return undefined;
+  }
+  const sourceCenter = tableCenter(source);
+  const targetCenter = tableCenter(target);
+  return {
+    end: tableBoundaryPort(target, sourceCenter),
+    start: tableBoundaryPort(source, targetCenter),
+  };
+}
+
+function tableCenter(table: TableRenderModel): Point {
+  return {
+    x: table.position.x + table.size.width / 2,
+    y: table.position.y + table.size.height / 2,
+  };
+}
+
+function tableBoundaryPort(table: TableRenderModel, toward: Point): Point {
+  const center = tableCenter(table);
+  const dx = toward.x - center.x;
+  const dy = toward.y - center.y;
+  if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) {
+    return center;
+  }
+  let scale = Number.POSITIVE_INFINITY;
+  if (Math.abs(dx) >= 0.01) {
+    const sideX = dx > 0
+      ? table.position.x + table.size.width
+      : table.position.x;
+    const candidate = (sideX - center.x) / dx;
+    if (candidate > 0) scale = Math.min(scale, candidate);
+  }
+  if (Math.abs(dy) >= 0.01) {
+    const sideY = dy > 0
+      ? table.position.y + table.size.height
+      : table.position.y;
+    const candidate = (sideY - center.y) / dy;
+    if (candidate > 0) scale = Math.min(scale, candidate);
+  }
+  if (!Number.isFinite(scale)) {
+    scale = 0;
+  }
+  return {
+    x: round2(center.x + dx * scale),
+    y: round2(center.y + dy * scale),
   };
 }
 
@@ -902,6 +1123,24 @@ function createEdgeRenderModel(
       targetModelId: match.leafIsSource ? match.rootModelId : fakeBundleId,
     };
   }
+
+  const hubCarrier = hubCarrierByEdgeId.get(edge.id);
+  if (hubCarrier !== undefined) {
+    if (hubCarrier.representativeEdgeId !== edge.id) {
+      return undefined;
+    }
+    return {
+      crossingIds: [],
+      cssKind: edge.kind.replaceAll("_", "-"),
+      edgeId: hubCarrier.id,
+      markerEndId,
+      markerStartId,
+      points: hubCarrier.points.map((point) => `${point.x},${point.y}`).join(" "),
+      provenance: edge.provenance,
+      sourceModelId: hubCarrier.sourceModelId,
+      targetModelId: hubCarrier.targetModelId,
+    };
+  }
   if (
     bundleIndexByLeafModelId.has(edge.sourceModelId) ||
     bundleIndexByLeafModelId.has(edge.targetModelId)
@@ -932,24 +1171,6 @@ function createEdgeRenderModel(
       };
     }
     return undefined;
-  }
-
-  const hubCarrier = hubCarrierByEdgeId.get(edge.id);
-  if (hubCarrier !== undefined) {
-    if (hubCarrier.representativeEdgeId !== edge.id) {
-      return undefined;
-    }
-    return {
-      crossingIds: [],
-      cssKind: edge.kind.replaceAll("_", "-"),
-      edgeId: hubCarrier.id,
-      markerEndId,
-      markerStartId,
-      points: hubCarrier.points.map((point) => `${point.x},${point.y}`).join(" "),
-      provenance: edge.provenance,
-      sourceModelId: hubCarrier.sourceModelId,
-      targetModelId: hubCarrier.targetModelId,
-    };
   }
 
   return {

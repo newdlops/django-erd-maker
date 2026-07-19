@@ -91,7 +91,7 @@ export function getBrowserControllerScript(nonce: string): string {
 ${getBrowserStateSource()}
 ${getBrowserLayoutSource()}
         const renderModel = readEmbeddedJson(renderModelElement);
-        const edgeMeta = (renderModel.edges || []).map((edge) => ({
+        const readEdgeMeta = (edge) => ({
           crossingIds: Array.isArray(edge.crossingIds) ? edge.crossingIds.slice() : [],
           cssKind: edge.cssKind || "",
           edgeId: edge.edgeId || "",
@@ -101,7 +101,15 @@ ${getBrowserLayoutSource()}
           provenance: edge.provenance || "",
           sourceModelId: edge.sourceModelId || "",
           targetModelId: edge.targetModelId || "",
-        }));
+        });
+        const edgeMeta = (renderModel.edges || []).map(readEdgeMeta);
+        const detailEdgeMeta = (renderModel.detailEdges || []).map(readEdgeMeta);
+        const adaptiveDetailZoom = 0.65;
+        function getActiveEdgeMeta() {
+          return detailEdgeMeta.length > 0 && state.viewport.zoom >= adaptiveDetailZoom
+            ? detailEdgeMeta
+            : edgeMeta;
+        }
         const tableMetaList = (renderModel.tables || []).map((table) => readTableMeta(table));
         const layoutVariants = createLayoutVariants(tableMetaList);
         const overlayMeta = (renderModel.overlays || []).map((overlay) => ({
@@ -153,6 +161,7 @@ ${getBrowserTestSource()}
 
         logErd("info", "webview.bootstrap", {
           edges: edgeMeta.length,
+          detailEdges: detailEdgeMeta.length,
           layoutMode: state.layoutMode,
           renderer: "detecting",
           tables: tableMetaList.length,

@@ -207,6 +207,36 @@ test("phase8 canvas scene keeps hidden table state in the JSON scene graph witho
   assert.doesNotMatch(html, /class="erd-table/);
 });
 
+test("phase8 document embeds adaptive detail edges for zoom LOD", () => {
+  const payload = structuredClone(loadPhaseOneSample());
+  const minX = Math.min(...payload.layout.nodes.map((node) => node.position.x));
+  const minY = Math.min(...payload.layout.nodes.map((node) => node.position.y));
+  const maxX = Math.max(...payload.layout.nodes.map(
+    (node) => node.position.x + node.size.width,
+  ));
+  const maxY = Math.max(...payload.layout.nodes.map(
+    (node) => node.position.y + node.size.height,
+  ));
+  payload.layout.engineMetadata = {
+    ...(payload.layout.engineMetadata ?? {}),
+    adaptiveCarrierBaseEdges: payload.layout.routedEdges.length,
+    adaptiveCarrierGrid: 1,
+    adaptiveCarrierMaxX: maxX,
+    adaptiveCarrierMaxY: maxY,
+    adaptiveCarrierMinX: minX,
+    adaptiveCarrierMinY: minY,
+    adaptiveCarrierTarget: 100,
+    adaptiveCarrierVisibleEdges: 1,
+  };
+
+  const expected = createDiagramRenderModel(payload);
+  const embedded = readRenderModel(renderDiagramDocument(payload));
+
+  assert.ok(expected.detailEdges.length > 0);
+  assert.deepEqual(embedded.detailEdges, expected.detailEdges);
+  assert.deepEqual(embedded.edges, expected.edges);
+});
+
 test("phase8 catalog mode expands high-degree tables for relation ports", () => {
   const payload = createCatalogPayload();
   payload.layout.engineMetadata = {
