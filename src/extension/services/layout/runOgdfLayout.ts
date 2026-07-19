@@ -62,6 +62,7 @@ import { decodeLayoutSnapshot } from "../../../shared/protocol/decodeDiagramBoot
 import type { DiagramBootstrapPayload } from "../../../shared/protocol/webviewContract";
 import {
   createDiagramRenderModel,
+  measureRenderedEdgeNodeIntersections,
   measureRenderedTableClearance,
   type BundleLeafTile,
   type EdgeRenderModel,
@@ -92,6 +93,7 @@ const DEFAULT_POST_REROUTE_POLISH_BUDGET_MS = 90_000;
 const DEFAULT_CANONICAL_ROUTE_REPAIR_TIMEOUT_MS = 30_000;
 const DEFAULT_OPTIMIZED_BBOX_TARGET_B = 1.0;
 const DEFAULT_VISUAL_CROSS_TARGET = 100;
+const DEFAULT_EDGE_NODE_TARGET = 0;
 const DEFAULT_VISUAL_CROSS_POLISH_VARIANTS = [
   "route-clear",
   "knot",
@@ -1084,6 +1086,35 @@ function ogdfOptimizedBboxTargetFinalCompactEnv(
     DJERD_RENDERED_CARRIER_GEOMETRY_OPT_FINAL: "1",
     DJERD_RENDERED_STRAIGHT_PORT_OPT_FINAL:
       process.env.DJERD_OPTIMIZED_BBOX_TARGET_STRAIGHT_PORT_OPT ?? "1",
+    // A low aggregate visual score is insufficient when any remaining line
+    // still passes through a table. Spend the visual budget lexicographically
+    // on straight boundary-port alternatives until that independent target is
+    // met; no route is hidden and no bend is introduced.
+    DJERD_RENDERED_CARRIER_NODE_TARGET_FINAL:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_PASS ?? "1",
+    DJERD_RENDERED_CARRIER_EDGE_NODE_TARGET:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET
+      ?? DEFAULT_EDGE_NODE_TARGET.toString(),
+    DJERD_RENDERED_CARRIER_VISUAL_TARGET:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_TARGET
+      ?? DEFAULT_VISUAL_CROSS_TARGET.toString(),
+    DJERD_RENDERED_CARRIER_NODE_TARGET_ROUNDS:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_ROUNDS ?? "4",
+    DJERD_RENDERED_CARRIER_NODE_TARGET_PORT_SAMPLES:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_PORT_SAMPLES ?? "8",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_FINAL:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR ?? "1",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_ROUNDS:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_ROUNDS ?? "6",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_DIRECTIONS:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_DIRECTIONS ?? "24",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_MAX_SHIFT:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_MAX_SHIFT ?? "1200",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_BBOX_TARGET_B:
+      process.env.DJERD_OPTIMIZED_BBOX_TARGET_B
+      ?? DEFAULT_OPTIMIZED_BBOX_TARGET_B.toString(),
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_BBOX_TOLERANCE:
+      process.env.DJERD_OPTIMIZED_BBOX_TARGET_TOLERANCE ?? "1.02",
   };
 }
 
@@ -1881,6 +1912,34 @@ function ogdfFinalExportRetouchEnv(): Record<string, string | undefined> {
     DJERD_NO_PD_KNOT: "1",
     DJERD_VISUAL_KNOT: "0",
 
+    DJERD_RENDERED_STRAIGHT_PORT_OPT_FINAL: "1",
+    DJERD_RENDERED_CARRIER_NODE_TARGET_FINAL:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_PASS ?? "1",
+    DJERD_RENDERED_CARRIER_EDGE_NODE_TARGET:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET
+      ?? DEFAULT_EDGE_NODE_TARGET.toString(),
+    DJERD_RENDERED_CARRIER_VISUAL_TARGET:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_TARGET
+      ?? DEFAULT_VISUAL_CROSS_TARGET.toString(),
+    DJERD_RENDERED_CARRIER_NODE_TARGET_ROUNDS:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_ROUNDS ?? "4",
+    DJERD_RENDERED_CARRIER_NODE_TARGET_PORT_SAMPLES:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_PORT_SAMPLES ?? "8",
+
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_FINAL:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR ?? "1",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_ROUNDS:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_ROUNDS ?? "6",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_DIRECTIONS:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_DIRECTIONS ?? "24",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_MAX_SHIFT:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_MAX_SHIFT ?? "1200",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_BBOX_TARGET_B:
+      process.env.DJERD_OPTIMIZED_BBOX_TARGET_B
+      ?? DEFAULT_OPTIMIZED_BBOX_TARGET_B.toString(),
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_BBOX_TOLERANCE:
+      process.env.DJERD_OPTIMIZED_BBOX_TARGET_TOLERANCE ?? "1.02",
+
     DJERD_DIAGONAL_RETOUCH: "1",
     DJERD_NODE_PAIR_RETOUCH: "1",
     DJERD_NODE_PAIR_RETOUCH_TOPK:
@@ -2527,6 +2586,14 @@ function renderedCarrierCacheKeyParts(): string[] {
     "inheritanceCarrier=1",
     "intraClusterCarrier=1",
     "renderedCarrierGeometryOpt=1",
+    `edgeNodeTarget=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET ?? DEFAULT_EDGE_NODE_TARGET}`,
+    `edgeNodeTargetCarrierPass=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_PASS ?? "1"}`,
+    `edgeNodeTargetCarrierRounds=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_ROUNDS ?? "4"}`,
+    `edgeNodeTargetPortSamples=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_PORT_SAMPLES ?? "8"}`,
+    `edgeNodeTargetNodeClear=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR ?? "1"}`,
+    `edgeNodeTargetNodeClearRounds=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_ROUNDS ?? "6"}`,
+    `edgeNodeTargetNodeClearDirections=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_DIRECTIONS ?? "24"}`,
+    `edgeNodeTargetNodeClearMaxShift=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_MAX_SHIFT ?? "1200"}`,
     `stressPostPassIters=${process.env.DJERD_STRESS_POST_PASS_ITERS ?? "0"}`,
     `stressPostPassEdgeCost=${process.env.DJERD_STRESS_POST_PASS_EDGE_COST ?? "140"}`,
     "noCarrier=0",
@@ -2592,7 +2659,7 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedBboxTargetAspectMaxBias=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_ASPECT_MAX_BIAS ?? "2.1"}`,
     `optimizedBboxTargetAspectMinScale=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_ASPECT_MIN_SCALE ?? "0.30"}`,
     `optimizedBboxTargetAspectNativeReserve=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_ASPECT_NATIVE_RESERVE ?? "0.96"}`,
-    `optimizedBboxTargetGapBridgeMaxVisualRatio=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_GAP_BRIDGE_MAX_VISUAL_RATIO ?? "1.25"}`,
+    `optimizedBboxTargetGapBridgeMaxVisualRatio=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_GAP_BRIDGE_MAX_VISUAL_RATIO ?? "1.30"}`,
     `optimizedBboxTargetDensityCellFactor=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_DENSITY_CELL_FACTOR ?? "4"}`,
     `optimizedBboxTargetDensitySparseRatio=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_DENSITY_SPARSE_RATIO ?? "0.5"}`,
     `optimizedBboxTargetDensityBias=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_DENSITY_BIAS ?? "auto"}`,
@@ -3096,6 +3163,186 @@ export function measureLayoutRenderedTableClearance(
   return measureRenderedTableClearance(renderModel);
 }
 
+export interface OptimizedLayoutHardTargetOptions {
+  bboxTargetB?: number;
+  bboxTolerance?: number;
+  edgeNodeTarget?: number;
+  expectedRouteEdgeIds?: readonly string[];
+  visualTarget?: number;
+}
+
+export interface OptimizedLayoutHardTargetEvaluation {
+  bboxAreaB: number;
+  bboxPass: boolean;
+  bendPass: boolean;
+  bendTotal: number;
+  clearance: RenderedTableClearanceMetrics;
+  clearancePass: boolean;
+  edgeNodeIntersections: number;
+  edgeNodePass: boolean;
+  edgeNodeTarget: number;
+  failures: string[];
+  pass: boolean;
+  routesPass: boolean;
+  renderedEdgeNodeIntersections: number;
+  visualCrossings: number;
+  visualPass: boolean;
+}
+
+/**
+ * Audits an optimized snapshot against the same hard, user-visible contract
+ * used by the final result. In particular this uses rendered catalog sizes
+ * and synthetic bundle tables, so a native-only metric cannot make an
+ * invalid cache entry look reusable.
+ */
+export function evaluateOptimizedLayoutHardTargets(
+  payload: DiagramBootstrapPayload,
+  layout: LayoutSnapshot,
+  options: OptimizedLayoutHardTargetOptions = {},
+): OptimizedLayoutHardTargetEvaluation {
+  const renderModel = createDiagramRenderModel({
+    ...payload,
+    layout,
+    view: {
+      ...payload.view,
+      layoutMode: layout.mode,
+    },
+  });
+  const clearance = measureRenderedTableClearance(renderModel);
+  const renderedEdgeNodeIntersections =
+    measureRenderedEdgeNodeIntersections(renderModel).count;
+  const renderedBundleOverlaps =
+    clearance.bundleNodeOverlaps + clearance.bundleBundleOverlaps;
+  const clearancePass =
+    clearance.nodeOverlaps === 0
+    && renderedBundleOverlaps === 0
+    && clearance.spacingViolations === 0;
+  const bboxAreaB = clearance.bboxArea / 1e9;
+  const bboxTargetB = options.bboxTargetB ?? readFloatEnv(
+    "DJERD_OPTIMIZED_BBOX_TARGET_B",
+    DEFAULT_OPTIMIZED_BBOX_TARGET_B,
+  );
+  const bboxTolerance = options.bboxTolerance ?? readFloatEnv(
+    "DJERD_OPTIMIZED_BBOX_TARGET_TOLERANCE",
+    1.02,
+  );
+  const bboxPass =
+    bboxTargetB <= 0 || bboxAreaB <= bboxTargetB * bboxTolerance;
+
+  const metadata = layout.engineMetadata;
+  const reportedVisual = metadata?.visualCrossings;
+  const renderedVisualFloor =
+    Number(metadata?.edgeCrossings ?? 0)
+    + Number(metadata?.edgeNodeIntersections ?? 0)
+    + Number(metadata?.bundleEdgeIntersections ?? 0)
+    + Number(metadata?.bundleNodeOverlaps ?? 0);
+  const visualCrossings =
+    typeof reportedVisual === "number" && Number.isFinite(reportedVisual)
+      ? Math.max(reportedVisual, renderedVisualFloor)
+      : Number.POSITIVE_INFINITY;
+  const visualTarget = options.visualTarget ?? readFloatEnv(
+    "DJERD_OPTIMIZED_VISUAL_CROSS_TARGET",
+    DEFAULT_VISUAL_CROSS_TARGET,
+  );
+  const visualPass =
+    Number.isFinite(visualCrossings) && visualCrossings <= visualTarget;
+  const reportedEdgeNode = metadata?.edgeNodeIntersections;
+  const reportedEdgeNodeIntersections =
+    typeof reportedEdgeNode === "number"
+      && Number.isFinite(reportedEdgeNode)
+      && reportedEdgeNode >= 0
+      ? reportedEdgeNode
+      : Number.POSITIVE_INFINITY;
+  const edgeNodeIntersections = Math.max(
+    reportedEdgeNodeIntersections,
+    renderedEdgeNodeIntersections,
+  );
+  const edgeNodeTarget = options.edgeNodeTarget ?? readFloatEnv(
+    "DJERD_OPTIMIZED_EDGE_NODE_TARGET",
+    DEFAULT_EDGE_NODE_TARGET,
+  );
+  const edgeNodePass =
+    Number.isFinite(edgeNodeIntersections)
+    && edgeNodeIntersections <= edgeNodeTarget;
+
+  const expectedRouteEdgeIds = new Set(options.expectedRouteEdgeIds ?? []);
+  const routedEdgeIds = new Set(layout.routedEdges.map((edge) => edge.edgeId));
+  const routesPass =
+    routedEdgeIds.size === layout.routedEdges.length
+    && [...expectedRouteEdgeIds].every((edgeId) => routedEdgeIds.has(edgeId));
+  const routeBendTotal = layout.routedEdges.reduce(
+    (sum, edge) => sum + Math.max(0, edge.points.length - 2),
+    0,
+  );
+  const reportedBend = Number(metadata?.edgeBendTotal ?? routeBendTotal);
+  const bendTotal = Number.isFinite(reportedBend)
+    ? Math.max(routeBendTotal, reportedBend)
+    : Number.POSITIVE_INFINITY;
+  const bendPass =
+    bendTotal <= 1e-6
+    && layout.routedEdges.every((edge) => edge.points.length === 2);
+
+  const failures: string[] = [];
+  if (!visualPass) {
+    failures.push(
+      Number.isFinite(visualCrossings)
+        ? `Optimized visual crossings ${visualCrossings} exceed target `
+          + `${visualTarget} by ${Math.max(0, Math.ceil(visualCrossings - visualTarget))}.`
+        : "Optimized visual crossings are absent or non-finite.",
+    );
+  }
+  if (!edgeNodePass) {
+    failures.push(
+      Number.isFinite(edgeNodeIntersections)
+        ? `Optimized edge/node intersections ${edgeNodeIntersections} exceed target `
+          + `${edgeNodeTarget} by `
+          + `${Math.max(0, Math.ceil(edgeNodeIntersections - edgeNodeTarget))}.`
+        : "Optimized edge/node intersections are absent or non-finite.",
+    );
+  }
+  if (!clearancePass) {
+    failures.push(
+      `Rendered table clearance failed with `
+      + `${clearance.nodeOverlaps} node overlaps, `
+      + `${renderedBundleOverlaps} bundle overlaps, and `
+      + `${clearance.spacingViolations} spacing violations.`,
+    );
+  }
+  if (!bboxPass) {
+    failures.push(
+      `Rendered table BBOX ${bboxAreaB.toFixed(3)}B exceeds `
+      + `${bboxTargetB.toFixed(3)}B target.`,
+    );
+  }
+  if (!routesPass) {
+    failures.push("Optimized layout does not contain every required route exactly once.");
+  }
+  if (!bendPass) {
+    failures.push(
+      `Optimized layout contains ${Number.isFinite(bendTotal) ? bendTotal : "invalid"} `
+      + "edge bends; straight routes are required.",
+    );
+  }
+
+  return {
+    bboxAreaB,
+    bboxPass,
+    bendPass,
+    bendTotal,
+    clearance,
+    clearancePass,
+    edgeNodeIntersections,
+    edgeNodePass,
+    edgeNodeTarget,
+    failures,
+    pass: failures.length === 0,
+    routesPass,
+    renderedEdgeNodeIntersections,
+    visualCrossings,
+    visualPass,
+  };
+}
+
 // Stream one ML-pipeline intermediate (a fully-parsed layout JSON) to the
 // webview as a positions preview, so the user sees each long stage (reroute,
 // each bbox-target candidate, polish) land instead of waiting for the whole
@@ -3250,6 +3497,9 @@ export async function runOgdfLayout(
   const selfLoopEdgeCount = layoutEdges.filter(
     (edge) => edge.sourceModelId === edge.targetModelId,
   ).length;
+  const expectedRoutedEdgeIds = layoutEdges
+    .filter((edge) => edge.sourceModelId !== edge.targetModelId)
+    .map((edge) => edge.id);
 
   try {
     await writeFile(exploratoryNodesPath, exploratoryNodesTsv, "utf8");
@@ -3308,6 +3558,7 @@ export async function runOgdfLayout(
     let loadedFromFile = false;
     let optimizedCachePath: string | undefined;
     let loadedOptimizedFinalFromCache = false;
+    let optimizedCacheNeedsHardTargetReplacement = false;
     let postReroutePolishDeadline: PostReroutePolishDeadline | undefined;
     if (layoutFromFile) {
       try {
@@ -3354,7 +3605,7 @@ export async function runOgdfLayout(
         const key = fnvHash(
           nodesData,
           edgesData,
-          "optimized-layout-cache-v24-render-size-reroute",
+          "optimized-layout-cache-v26-edge-node-hard-target",
           `binary=${binaryFingerprint}`,
           `scorer=${scorerScriptFingerprint}`,
           `checkpoint=${ckptFingerprint}`,
@@ -3398,10 +3649,22 @@ export async function runOgdfLayout(
         }
         try {
           const cachedLayout = await readFile(optimizedCachePath, "utf8");
-          decodeLayoutSnapshot(
+          const cachedSnapshot = decodeLayoutSnapshot(
             JSON.parse(cachedLayout),
             "ogdfOptimizedLayoutCache",
           );
+          const cachedHardTargets = evaluateOptimizedLayoutHardTargets(
+            payload,
+            cachedSnapshot,
+            { expectedRouteEdgeIds: expectedRoutedEdgeIds },
+          );
+          if (!cachedHardTargets.pass) {
+            optimizedCacheNeedsHardTargetReplacement = true;
+            throw new Error(
+              "hard target audit failed: "
+              + cachedHardTargets.failures.join(" "),
+            );
+          }
           stdout = cachedLayout;
           stderr = "";
           loadedFromFile = true;
@@ -3984,7 +4247,7 @@ export async function runOgdfLayout(
                 1,
                 readFloatEnv(
                   "DJERD_OPTIMIZED_BBOX_TARGET_GAP_BRIDGE_MAX_VISUAL_RATIO",
-                  1.25,
+                  1.30,
                 ),
               );
               const configuredBboxStageBailAfter = readNonNegativeIntEnv(
@@ -6722,7 +6985,13 @@ export async function runOgdfLayout(
     const visualCrossTarget =
       readOptionalPositiveIntEnv("DJERD_OPTIMIZED_VISUAL_CROSS_TARGET")
       ?? DEFAULT_VISUAL_CROSS_TARGET;
+    const edgeNodeTarget = readNonNegativeIntEnv(
+      "DJERD_OPTIMIZED_EDGE_NODE_TARGET",
+      DEFAULT_EDGE_NODE_TARGET,
+    );
     const preFinalVisualCrossings = readVisualCrossingsFromLayoutJson(stdout);
+    const preFinalEdgeNodeIntersections =
+      readEdgeNodeIntersectionsFromLayoutJson(stdout);
     const runExplicitFinalExportRetouch =
       readBoolEnv("DJERD_FINAL_EXPORT_RETOUCH", false);
     const skipTargetSatisfiedFinalRetouch =
@@ -6730,11 +6999,15 @@ export async function runOgdfLayout(
       && !loadedOptimizedFinalFromCache
       && !runExplicitFinalExportRetouch
       && preFinalVisualCrossings !== undefined
-      && preFinalVisualCrossings <= visualCrossTarget;
+      && preFinalVisualCrossings <= visualCrossTarget
+      && preFinalEdgeNodeIntersections !== undefined
+      && preFinalEdgeNodeIntersections <= edgeNodeTarget;
     if (skipTargetSatisfiedFinalRetouch) {
       logger?.info(
         `[final-export retouch] skipped because visualCrossings=${preFinalVisualCrossings}`
-        + ` <= target=${visualCrossTarget}`,
+        + ` <= target=${visualCrossTarget}`
+        + ` and edgeNodeIntersections=${preFinalEdgeNodeIntersections}`
+        + ` <= target=${edgeNodeTarget}`,
       );
     } else if (
       (optimizedLayout && !loadedOptimizedFinalFromCache)
@@ -6770,30 +7043,55 @@ export async function runOgdfLayout(
 
     if (optimizedCachePath && optimizedLayout && !loadedOptimizedFinalFromCache) {
       try {
-        const selection = await preserveBestOptimizedLayoutCache(
-          optimizedCachePath,
-          stdout,
-          {
-            maxCanonicalVisualDebtPerGain: readFloatEnv(
-              "DJERD_OPTIMIZED_EDGE_NODE_POLISH_CANONICAL_MAX_VISUAL_DEBT_PER_GAIN",
-              DEFAULT_CANONICAL_OBSTACLE_RELIEF_MAX_VISUAL_DEBT_PER_GAIN,
-            ),
-          },
+        const cacheCandidate = decodeLayoutSnapshot(
+          JSON.parse(stdout),
+          "ogdfOptimizedLayoutCacheCandidate",
         );
-        stdout = selection.json;
-        if (selection.source === "existing") {
+        const candidateHardTargets = evaluateOptimizedLayoutHardTargets(
+          payload,
+          cacheCandidate,
+          { expectedRouteEdgeIds: expectedRoutedEdgeIds },
+        );
+        if (!candidateHardTargets.pass) {
           logger?.info(
-            "OGDF optimized layout cache preserved better existing result"
-            + ` · reason=${selection.preservationReason ?? "quality"}`
-            + ` · existingVisual=${selection.existingVisualCrossings ?? "absent"}`
-            + ` · candidateVisual=${selection.candidateVisualCrossings ?? "absent"}`
+            "OGDF optimized layout not cached; hard target audit failed"
+            + ` · reason=${candidateHardTargets.failures.join(" ")}`
             + ` · cache=${optimizedCachePath}`,
           );
         } else {
-          logger?.info(
-            `OGDF optimized layout cached to ${optimizedCachePath}`
-            + ` · reason=${selection.candidateReason ?? "quality"}`,
-          );
+          if (optimizedCacheNeedsHardTargetReplacement) {
+            await writeFile(optimizedCachePath, stdout, "utf8");
+            logger?.info(
+              `OGDF optimized layout replaced invalid cache at ${optimizedCachePath}`
+              + " · reason=hard-target-pass",
+            );
+          } else {
+            const selection = await preserveBestOptimizedLayoutCache(
+              optimizedCachePath,
+              stdout,
+              {
+                maxCanonicalVisualDebtPerGain: readFloatEnv(
+                  "DJERD_OPTIMIZED_EDGE_NODE_POLISH_CANONICAL_MAX_VISUAL_DEBT_PER_GAIN",
+                  DEFAULT_CANONICAL_OBSTACLE_RELIEF_MAX_VISUAL_DEBT_PER_GAIN,
+                ),
+              },
+            );
+            stdout = selection.json;
+            if (selection.source === "existing") {
+              logger?.info(
+                "OGDF optimized layout cache preserved better existing result"
+                + ` · reason=${selection.preservationReason ?? "quality"}`
+                + ` · existingVisual=${selection.existingVisualCrossings ?? "absent"}`
+                + ` · candidateVisual=${selection.candidateVisualCrossings ?? "absent"}`
+                + ` · cache=${optimizedCachePath}`,
+              );
+            } else {
+              logger?.info(
+                `OGDF optimized layout cached to ${optimizedCachePath}`
+                + ` · reason=${selection.candidateReason ?? "quality"}`,
+              );
+            }
+          }
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -6811,11 +7109,20 @@ export async function runOgdfLayout(
 
     const summary = summarizeLayout(layout);
     const metadata = layout.engineMetadata;
-    const renderedClearance = measureLayoutRenderedTableClearance(payload, layout);
+    const finalHardTargets = evaluateOptimizedLayoutHardTargets(
+      payload,
+      layout,
+      { expectedRouteEdgeIds: expectedRoutedEdgeIds },
+    );
+    const renderedClearance = finalHardTargets.clearance;
     const renderedBundleOverlaps =
       renderedClearance.bundleNodeOverlaps
       + renderedClearance.bundleBundleOverlaps;
     if (metadata) {
+      metadata.edgeNodeIntersections = Math.max(
+        Number(metadata.edgeNodeIntersections ?? 0),
+        finalHardTargets.renderedEdgeNodeIntersections,
+      );
       metadata.nodeOverlaps = Math.max(
         Number(metadata.nodeOverlaps ?? 0),
         renderedClearance.nodeOverlaps,
@@ -6872,45 +7179,29 @@ export async function runOgdfLayout(
       && typeof visualCrossings === "number"
         ? Math.max(0, Math.ceil(visualCrossings - visualCrossTarget))
         : undefined;
-    const renderedClearancePass =
-      renderedClearance.nodeOverlaps === 0
-      && renderedBundleOverlaps === 0
-      && renderedClearance.spacingViolations === 0;
-    const finalRenderedBboxAreaB = renderedClearance.bboxArea / 1e9;
+    const edgeNodeStatus = optimizedLayout
+      ? finalHardTargets.edgeNodePass ? "pass" : "miss"
+      : undefined;
+    const edgeNodeOver = optimizedLayout
+      ? Math.max(
+        0,
+        Math.ceil(finalHardTargets.edgeNodeIntersections - edgeNodeTarget),
+      )
+      : undefined;
+    const renderedClearancePass = finalHardTargets.clearancePass;
+    const finalRenderedBboxAreaB = finalHardTargets.bboxAreaB;
     const finalBboxTargetB = readFloatEnv(
       "DJERD_OPTIMIZED_BBOX_TARGET_B",
       DEFAULT_OPTIMIZED_BBOX_TARGET_B,
     );
-    const finalBboxTolerance = readFloatEnv(
-      "DJERD_OPTIMIZED_BBOX_TARGET_TOLERANCE",
-      1.02,
-    );
     const bboxTargetStatus = optimizedLayout && finalBboxTargetB > 0
-      ? finalRenderedBboxAreaB <= finalBboxTargetB * finalBboxTolerance
+      ? finalHardTargets.bboxPass
         ? "pass"
         : "miss"
       : undefined;
-    const qualityFailures: string[] = [];
-    if (visualCrossStatus === "miss" && visualCrossOver !== undefined) {
-      qualityFailures.push(
-        `Optimized visual crossings ${visualCrossings} exceed target `
-        + `${visualCrossTarget} by ${visualCrossOver}.`,
-      );
-    }
-    if (optimizedLayout && !renderedClearancePass) {
-      qualityFailures.push(
-        `Rendered table clearance failed with `
-        + `${renderedClearance.nodeOverlaps} node overlaps, `
-        + `${renderedBundleOverlaps} bundle overlaps, and `
-        + `${renderedClearance.spacingViolations} spacing violations.`,
-      );
-    }
-    if (bboxTargetStatus === "miss") {
-      qualityFailures.push(
-        `Rendered table BBOX ${finalRenderedBboxAreaB.toFixed(3)}B exceeds `
-        + `${finalBboxTargetB.toFixed(3)}B target.`,
-      );
-    }
+    const qualityFailures = optimizedLayout
+      ? [...finalHardTargets.failures]
+      : [];
     const qualityDegraded = qualityFailures.length > 0;
     const qualityReason = qualityFailures.length > 0
       ? qualityFailures.join(" ")
@@ -6944,6 +7235,7 @@ export async function runOgdfLayout(
         ...(metadata?.rawRouteCrossings !== undefined ? [`rawRouteCrossings=${metadata.rawRouteCrossings}`] : []),
         ...(metadata?.edgeCrossings !== undefined ? [`edgeCrossings=${metadata.edgeCrossings}`] : []),
         ...(metadata?.edgeNodeIntersections !== undefined ? [`edgeNodeIntersections=${metadata.edgeNodeIntersections}`] : []),
+        `renderedEdgeNodeIntersections=${finalHardTargets.renderedEdgeNodeIntersections}`,
         ...(metadata?.overlappingEdges !== undefined ? [`overlappingEdges=${metadata.overlappingEdges}`] : []),
         ...(metadata?.edgeSegmentOverlaps !== undefined ? [`edgeSegmentOverlaps=${metadata.edgeSegmentOverlaps}`] : []),
         ...(metadata?.bundleEdgeIntersections !== undefined ? [`bundleEdgeIntersections=${metadata.bundleEdgeIntersections}`] : []),
@@ -6954,6 +7246,8 @@ export async function runOgdfLayout(
         `renderedNodeSpacingOverlaps=${renderedClearance.spacingViolations}`,
         `renderedNodeClearanceMin=${renderedClearance.minimum.toFixed(1)}`,
         `renderedNodeClearanceStatus=${renderedClearancePass ? "pass" : "miss"}`,
+        `routeCompletenessStatus=${finalHardTargets.routesPass ? "pass" : "miss"}`,
+        `straightRouteStatus=${finalHardTargets.bendPass ? "pass" : "miss"}`,
         ...(metadata?.visualCrossings !== undefined ? [`visualCrossings=${metadata.visualCrossings}`] : []),
         ...(metadata?.canonicalCrossing
           ? [
@@ -6970,6 +7264,13 @@ export async function runOgdfLayout(
               `visualCrossTarget=${visualCrossTarget}`,
               `visualCrossStatus=${visualCrossStatus}`,
               `visualCrossOver=${visualCrossOver}`,
+            ]
+          : []),
+        ...(edgeNodeStatus !== undefined
+          ? [
+              `edgeNodeTarget=${edgeNodeTarget}`,
+              `edgeNodeStatus=${edgeNodeStatus}`,
+              `edgeNodeOver=${edgeNodeOver}`,
             ]
           : []),
         ...(bboxTargetStatus !== undefined
@@ -7020,6 +7321,14 @@ export async function runOgdfLayout(
         + `target=${visualCrossTarget} · overBy=${visualCrossOver}`,
       );
     }
+    if (edgeNodeStatus === "miss" && edgeNodeOver !== undefined) {
+      logger?.warn(
+        `OGDF edge/node intersection target missed · `
+        + `edgeNodeIntersections=${finalHardTargets.edgeNodeIntersections} · `
+        + `renderedAudit=${finalHardTargets.renderedEdgeNodeIntersections} · `
+        + `target=${edgeNodeTarget} · overBy=${edgeNodeOver}`,
+      );
+    }
     if (optimizedLayout && !renderedClearancePass) {
       logger?.warn(
         `OGDF rendered table clearance missed · `
@@ -7035,6 +7344,17 @@ export async function runOgdfLayout(
         `OGDF rendered BBOX target missed · `
         + `bbox=${finalRenderedBboxAreaB.toFixed(3)}B · `
         + `target=${finalBboxTargetB.toFixed(3)}B`,
+      );
+    }
+    if (optimizedLayout && !finalHardTargets.routesPass) {
+      logger?.warn("OGDF optimized route completeness target missed");
+    }
+    if (optimizedLayout && !finalHardTargets.bendPass) {
+      logger?.warn(
+        `OGDF optimized straight-route target missed · `
+        + `edgeBend=${Number.isFinite(finalHardTargets.bendTotal)
+          ? finalHardTargets.bendTotal.toFixed(2)
+          : "invalid"}`,
       );
     }
 
@@ -7166,6 +7486,24 @@ function readVisualCrossingsFromLayoutJson(layoutJson: string): number | undefin
     const visualCrossings = parsed.engineMetadata?.visualCrossings;
     return typeof visualCrossings === "number" && Number.isFinite(visualCrossings)
       ? visualCrossings
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function readEdgeNodeIntersectionsFromLayoutJson(
+  layoutJson: string,
+): number | undefined {
+  try {
+    const parsed = JSON.parse(layoutJson) as {
+      engineMetadata?: { edgeNodeIntersections?: unknown };
+    };
+    const edgeNodeIntersections =
+      parsed.engineMetadata?.edgeNodeIntersections;
+    return typeof edgeNodeIntersections === "number"
+      && Number.isFinite(edgeNodeIntersections)
+      ? edgeNodeIntersections
       : undefined;
   } catch {
     return undefined;
@@ -7423,6 +7761,25 @@ async function runFinalExportRetouch(options: {
         retouchSegmentOverlapDebt <= retouchMaxSegmentOverlapDebt
         && retouchSegmentOverlapDebtPerGain
         <= retouchMaxSegmentOverlapDebtPerGain;
+      const retouchEdgeNodeTarget = readNonNegativeIntEnv(
+        "DJERD_OPTIMIZED_EDGE_NODE_TARGET",
+        DEFAULT_EDGE_NODE_TARGET,
+      );
+      const retouchVisualTarget = readPositiveIntEnv(
+        "DJERD_OPTIMIZED_VISUAL_CROSS_TARGET",
+        DEFAULT_VISUAL_CROSS_TARGET,
+      );
+      const retouchEdgeNodeTargetAccept =
+        candidateEdgeNode < baseEdgeNode
+        && candidateEdgeNode <= retouchEdgeNodeTarget
+        && candidateVisual <= retouchVisualTarget
+        && retouchNodeBboxOk
+        && retouchRouteBboxOk
+        && retouchNodeOverlapOk
+        && retouchBundleNodeOk
+        && retouchSpacingOk
+        && retouchOverlappingEdgeOk
+        && retouchSegmentOverlapOk;
       const retouchStrictAccept =
         retouchGainOk
         && retouchNodeBboxOk
@@ -7449,8 +7806,13 @@ async function runFinalExportRetouch(options: {
         <= retouchSalvageAcceptMaxSegmentOverlapDebt
         && retouchSegmentOverlapDebtPerGain
         <= retouchMaxSegmentOverlapDebtPerGain;
-      const retouchAccept = retouchStrictAccept || retouchSalvageAccept;
-      const retouchAcceptMode = retouchStrictAccept
+      const retouchAccept =
+        retouchEdgeNodeTargetAccept
+        || retouchStrictAccept
+        || retouchSalvageAccept;
+      const retouchAcceptMode = retouchEdgeNodeTargetAccept
+        ? "edge-node-target"
+        : retouchStrictAccept
         ? "strict"
         : retouchSalvageAccept
           ? "salvage"

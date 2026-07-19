@@ -609,6 +609,7 @@ export function getBrowserCanvasDrawSource(): string {
 
           const startedAt = performance.now();
           const nextScene = {
+            clippedTablePenetrations: 0,
             edgeBuckets: new Map(),
             edgeSegments: [],
             leafBundleBuckets: new Map(),
@@ -802,8 +803,9 @@ export function getBrowserCanvasDrawSource(): string {
 
           for (const edge of renderedEdges) {
             for (const segment of findSegments(edge.points)) {
-              const visibleSegments = clipSegmentAgainstTables(segment, edge.meta, nextScene);
-              for (const visibleSegment of visibleSegments) {
+              const clipped = clipSegmentAgainstTables(segment, edge.meta, nextScene);
+              nextScene.clippedTablePenetrations += clipped.clippedTableCount;
+              for (const visibleSegment of clipped.segments) {
                 const segmentIndex = nextScene.edgeSegments.length;
                 const bounds = {
                   bottom: Math.max(visibleSegment.start.y, visibleSegment.end.y),
@@ -828,6 +830,7 @@ export function getBrowserCanvasDrawSource(): string {
           renderedCrossings = [];
           sceneGraph = nextScene;
           logErdDuration("info", "scene.graph.built", startedAt, {
+            clippedTablePenetrations: nextScene.clippedTablePenetrations,
             edgeSegments: nextScene.edgeSegments.length,
             leafBundleRecords: nextScene.leafBundles.length,
             leafBundlesInPayload: (renderModel.leafBundles || []).length,
@@ -861,94 +864,36 @@ export function getBrowserCanvasDrawSource(): string {
         }
 
         function clipSegmentAgainstTables(segment, meta, scene) {
-          const vertical = Math.abs(segment.start.x - segment.end.x) < 0.01;
-          const horizontal = Math.abs(segment.start.y - segment.end.y) < 0.01;
-          if (!vertical && !horizontal) {
-            return [segment];
-          }
-
           const intervals = [];
           const padding = 5;
           const sourceModelId = meta.sourceModelId || "";
           const targetModelId = meta.targetModelId || "";
-
-          if (vertical) {
-            const x = segment.start.x;
-            const minY = Math.min(segment.start.y, segment.end.y);
-            const maxY = Math.max(segment.start.y, segment.end.y);
-            const tables = collectClipCandidateTables(scene, {
-              bottom: maxY + padding,
-              left: x - padding,
-              right: x + padding,
-              top: minY - padding,
-            });
-            for (const table of tables) {
-              if (table.modelId === sourceModelId || table.modelId === targetModelId) {
-                continue;
-              }
-
-              const left = table.x - padding;
-              const right = table.x + table.width + padding;
-              if (x <= left || x >= right) {
-                continue;
-              }
-
-              const top = table.y - padding;
-              const bottom = table.y + table.height + padding;
-              if (bottom <= minY || top >= maxY) {
-                continue;
-              }
-              intervals.push({ end: Math.min(maxY, bottom), start: Math.max(minY, top) });
-            }
-
-            return createClippedAxisSegments(
-              segment.start.y,
-              segment.end.y,
-              intervals,
-              (start, end) => ({
-                end: { x, y: end },
-                start: { x, y: start },
-              }),
-            );
-          }
-
-          const y = segment.start.y;
-          const minX = Math.min(segment.start.x, segment.end.x);
-          const maxX = Math.max(segment.start.x, segment.end.x);
           const tables = collectClipCandidateTables(scene, {
-            bottom: y + padding,
-            left: minX - padding,
-            right: maxX + padding,
-            top: y - padding,
+            bottom: Math.max(segment.start.y, segment.end.y) + padding,
+            left: Math.min(segment.start.x, segment.end.x) - padding,
+            right: Math.max(segment.start.x, segment.end.x) + padding,
+            top: Math.min(segment.start.y, segment.end.y) - padding,
           });
           for (const table of tables) {
             if (table.modelId === sourceModelId || table.modelId === targetModelId) {
               continue;
             }
-
-            const top = table.y - padding;
-            const bottom = table.y + table.height + padding;
-            if (y <= top || y >= bottom) {
-              continue;
+            const interval = segmentRectangleInteriorInterval(
+              segment,
+              table.x - padding,
+              table.x + table.width + padding,
+              table.y - padding,
+              table.y + table.height + padding,
+            );
+            if (interval) {
+              intervals.push(interval);
             }
-
-            const left = table.x - padding;
-            const right = table.x + table.width + padding;
-            if (right <= minX || left >= maxX) {
-              continue;
-            }
-            intervals.push({ end: Math.min(maxX, right), start: Math.max(minX, left) });
           }
 
-          return createClippedAxisSegments(
-            segment.start.x,
-            segment.end.x,
-            intervals,
-            (start, end) => ({
-              end: { x: end, y },
-              start: { x: start, y },
-            }),
-          );
+          return {
+            clippedTableCount: intervals.length,
+            segments: createClippedLineSegments(segment, intervals),
+          };
         }
 
         function collectClipCandidateTables(scene, bounds) {
@@ -957,42 +902,79 @@ export function getBrowserCanvasDrawSource(): string {
             .filter(Boolean);
         }
 
-        function createClippedAxisSegments(axisStart, axisEnd, intervals, createSegment) {
-          if (!intervals.length) {
-            return [createSegment(axisStart, axisEnd)];
+        function segmentRectangleInteriorInterval(segment, left, right, top, bottom) {
+          const dx = segment.end.x - segment.start.x;
+          const dy = segment.end.y - segment.start.y;
+          let enter = 0;
+          let exit = 1;
+          const axes = [
+            [segment.start.x, dx, left, right],
+            [segment.start.y, dy, top, bottom],
+          ];
+
+          for (const [origin, delta, minimum, maximum] of axes) {
+            if (Math.abs(delta) < 0.000001) {
+              if (origin <= minimum || origin >= maximum) {
+                return null;
+              }
+              continue;
+            }
+            const first = (minimum - origin) / delta;
+            const second = (maximum - origin) / delta;
+            enter = Math.max(enter, Math.min(first, second));
+            exit = Math.min(exit, Math.max(first, second));
+            if (exit - enter <= 0.000001) {
+              return null;
+            }
           }
 
-          const reversed = axisEnd < axisStart;
-          const minAxis = Math.min(axisStart, axisEnd);
-          const maxAxis = Math.max(axisStart, axisEnd);
+          return exit > 0.000001 && enter < 0.999999
+            ? { end: Math.min(1, exit), start: Math.max(0, enter) }
+            : null;
+        }
+
+        function interpolateSegmentPoint(segment, amount) {
+          return {
+            x: segment.start.x + (segment.end.x - segment.start.x) * amount,
+            y: segment.start.y + (segment.end.y - segment.start.y) * amount,
+          };
+        }
+
+        function createClippedLineSegments(segment, intervals) {
+          if (!intervals.length) {
+            return [segment];
+          }
+
+          const length = Math.hypot(
+            segment.end.x - segment.start.x,
+            segment.end.y - segment.start.y,
+          );
           const sorted = intervals
-            .filter((interval) => interval.end - interval.start > 1)
+            .filter((interval) => interval.end - interval.start > 0.000001)
             .sort((left, right) => left.start - right.start || left.end - right.end);
           const segments = [];
-          let cursor = minAxis;
+          let cursor = 0;
 
           for (const interval of sorted) {
-            const start = Math.max(minAxis, interval.start);
-            const end = Math.min(maxAxis, interval.end);
+            const start = Math.max(0, interval.start);
+            const end = Math.min(1, interval.end);
             if (end <= cursor) {
               continue;
             }
-            if (start - cursor > 1) {
-              segments.push(
-                reversed
-                  ? createSegment(start, cursor)
-                  : createSegment(cursor, start),
-              );
+            if ((start - cursor) * length > 1) {
+              segments.push({
+                end: interpolateSegmentPoint(segment, start),
+                start: interpolateSegmentPoint(segment, cursor),
+              });
             }
             cursor = Math.max(cursor, end);
           }
 
-          if (maxAxis - cursor > 1) {
-            segments.push(
-              reversed
-                ? createSegment(maxAxis, cursor)
-                : createSegment(cursor, maxAxis),
-            );
+          if ((1 - cursor) * length > 1) {
+            segments.push({
+              end: { ...segment.end },
+              start: interpolateSegmentPoint(segment, cursor),
+            });
           }
 
           return segments;
@@ -1523,31 +1505,38 @@ export function getBrowserCanvasDrawSource(): string {
 
           for (const edge of routedEdges) {
             for (const segment of findSegments(edge.points)) {
-              if (
-                !segmentIntersectsBounds(
-                  segment.start.x,
-                  segment.start.y,
-                  segment.end.x,
-                  segment.end.y,
-                  bounds,
-                  80,
-                )
-              ) {
-                continue;
-              }
-
-              records.push({
-                bounds: {
-                  bottom: Math.max(segment.start.y, segment.end.y),
-                  left: Math.min(segment.start.x, segment.end.x),
-                  right: Math.max(segment.start.x, segment.end.x),
-                  top: Math.min(segment.start.y, segment.end.y),
-                },
-                edgeId: edge.edgeId,
-                meta: edge.meta,
-                points: edge.points,
+              const clipped = clipSegmentAgainstTables(
                 segment,
-              });
+                edge.meta,
+                ensureSceneGraph(),
+              );
+              for (const visibleSegment of clipped.segments) {
+                if (
+                  !segmentIntersectsBounds(
+                    visibleSegment.start.x,
+                    visibleSegment.start.y,
+                    visibleSegment.end.x,
+                    visibleSegment.end.y,
+                    bounds,
+                    80,
+                  )
+                ) {
+                  continue;
+                }
+
+                records.push({
+                  bounds: {
+                    bottom: Math.max(visibleSegment.start.y, visibleSegment.end.y),
+                    left: Math.min(visibleSegment.start.x, visibleSegment.end.x),
+                    right: Math.max(visibleSegment.start.x, visibleSegment.end.x),
+                    top: Math.min(visibleSegment.start.y, visibleSegment.end.y),
+                  },
+                  edgeId: edge.edgeId,
+                  meta: edge.meta,
+                  points: edge.points,
+                  segment: visibleSegment,
+                });
+              }
             }
           }
 
@@ -1557,13 +1546,23 @@ export function getBrowserCanvasDrawSource(): string {
         function collectVisibleOverlaySegments(bounds) {
           return renderedOverlays
             .filter((overlay) => overlay.active)
-            .map((overlay) => ({
-              meta: { cssKind: "method-overlay", provenance: "overlay" },
-              segment: {
-                end: { x: overlay.x2, y: overlay.y2 },
-                start: { x: overlay.x1, y: overlay.y1 },
-              },
-            }))
+            .flatMap((overlay) => {
+              const meta = {
+                cssKind: "method-overlay",
+                provenance: "overlay",
+                sourceModelId: overlay.sourceModelId,
+                targetModelId: overlay.targetModelId,
+              };
+              const clipped = clipSegmentAgainstTables(
+                {
+                  end: { x: overlay.x2, y: overlay.y2 },
+                  start: { x: overlay.x1, y: overlay.y1 },
+                },
+                meta,
+                ensureSceneGraph(),
+              );
+              return clipped.segments.map((segment) => ({ meta, segment }));
+            })
             .filter((record) =>
               segmentIntersectsBounds(
                 record.segment.start.x,

@@ -37,9 +37,11 @@ const { OGDF_LAYOUT_TOOLBAR_DEFINITIONS } = require(layoutContractModulePath);
 const { decodeLayoutSnapshot } = require(protocolDecoderModulePath);
 const {
   createDiagramRenderModel,
+  measureRenderedEdgeNodeIntersections,
   measureRenderedTableClearance,
 } = require(renderModelModulePath);
 const {
+  evaluateOptimizedLayoutHardTargets,
   measureLayoutRenderedTableClearance,
   synchronizeLayoutNodeSizesWithRenderedTables,
 } = require(runOgdfLayoutModulePath);
@@ -347,6 +349,97 @@ test("catalog layout input and clearance audit use the exact rendered bundle geo
     payload.layout.nodes.length - 39 + 1,
     "nested leaf tiles should be represented by one synthetic bundle table",
   );
+
+  // This assertion block isolates table/bundle clearance. The catalog fixture's
+  // star edges are deliberately collinear here and are covered by the separate
+  // rendered edge/node audit below.
+  payload.graph.structuralEdges = [];
+  payload.layout.engineMetadata = {
+    ...payload.layout.engineMetadata,
+    bundleEdgeIntersections: 0,
+    bundleNodeOverlaps: 0,
+    edgeBendTotal: 0,
+    edgeCrossings: 0,
+    edgeNodeIntersections: 0,
+    visualCrossings: 0,
+  };
+  const rejectedCacheCandidate = evaluateOptimizedLayoutHardTargets(
+    payload,
+    payload.layout,
+    { bboxTargetB: 10, visualTarget: 100 },
+  );
+  assert.equal(rejectedCacheCandidate.pass, false);
+  assert.equal(rejectedCacheCandidate.clearancePass, false);
+  assert.match(
+    rejectedCacheCandidate.failures.join(" "),
+    /1 bundle overlaps/,
+  );
+
+  const clearLayout = structuredClone(payload.layout);
+  clearLayout.engineMetadata.leafBundles[0].bbox = {
+    height: 10,
+    width: 10,
+    x: 0,
+    y: 10_000,
+  };
+  clearLayout.crossings = [];
+  clearLayout.routedEdges = [];
+  const acceptedCacheCandidate = evaluateOptimizedLayoutHardTargets(
+    payload,
+    clearLayout,
+    { bboxTargetB: 10, visualTarget: 100 },
+  );
+  assert.equal(acceptedCacheCandidate.pass, true);
+  assert.equal(acceptedCacheCandidate.clearancePass, true);
+  assert.equal(acceptedCacheCandidate.bendPass, true);
+  assert.equal(acceptedCacheCandidate.edgeNodePass, true);
+
+  const penetratingLayout = structuredClone(clearLayout);
+  penetratingLayout.engineMetadata.edgeNodeIntersections = 1;
+  penetratingLayout.engineMetadata.visualCrossings = 1;
+  const penetratingCacheCandidate = evaluateOptimizedLayoutHardTargets(
+    payload,
+    penetratingLayout,
+    { bboxTargetB: 10, edgeNodeTarget: 0, visualTarget: 100 },
+  );
+  assert.equal(
+    penetratingCacheCandidate.visualPass,
+    true,
+    "aggregate visual target alone must not hide an edge through a table",
+  );
+  assert.equal(penetratingCacheCandidate.edgeNodePass, false);
+  assert.equal(penetratingCacheCandidate.pass, false);
+  assert.match(
+    penetratingCacheCandidate.failures.join(" "),
+    /edge\/node intersections 1 exceed target 0/,
+  );
+});
+
+test("rendered geometry audit detects diagonal edge penetrations independently of metadata", () => {
+  const source = renderedAuditTable("test.Source", 0, 0, 100, 100);
+  const blocker = renderedAuditTable("test.Blocker", 220, 110, 80, 80);
+  const target = renderedAuditTable("test.Target", 400, 200, 100, 100);
+  const renderModel = {
+    edges: [
+      {
+        edgeId: "edge-source-target",
+        points: "100,50 400,250",
+        sourceModelId: source.modelId,
+        targetModelId: target.modelId,
+      },
+    ],
+    tables: [source, blocker, target],
+  };
+
+  const penetrating = measureRenderedEdgeNodeIntersections(renderModel);
+  assert.equal(penetrating.count, 1);
+  assert.deepEqual(penetrating.hits, [
+    { edgeId: "edge-source-target", nodeModelId: "test.Blocker" },
+  ]);
+
+  blocker.position.y = 300;
+  const clear = measureRenderedEdgeNodeIntersections(renderModel);
+  assert.equal(clear.count, 0);
 });
 
 test("phase8 browser runtime renders a GPU scene with minimap and viewport-aware culling", () => {
@@ -358,6 +451,10 @@ test("phase8 browser runtime renders a GPU scene with minimap and viewport-aware
   assert.match(html, /webview\.bootstrap/);
   assert.match(html, /renderer\.selected/);
   assert.match(html, /scene\.graph\.built/);
+  assert.match(html, /clippedTablePenetrations/);
+  assert.match(html, /function segmentRectangleInteriorInterval\(/);
+  assert.match(html, /function createClippedLineSegments\(/);
+  assert.doesNotMatch(html, /if \(!vertical && !horizontal\)/);
   assert.match(html, /render\.frame/);
   assert.match(html, /render\.stats/);
   assert.match(html, /canvasWidth/);
@@ -440,6 +537,15 @@ function render(mutatePayload) {
   const payload = structuredClone(loadPhaseOneSample());
   mutatePayload?.(payload);
   return renderDiagramDocument(payload);
+}
+
+function renderedAuditTable(modelId, x, y, width, height) {
+  return {
+    hidden: false,
+    modelId,
+    position: { x, y },
+    size: { height, width },
+  };
 }
 
 function canonicalCrossingFixture(overrides = {}) {

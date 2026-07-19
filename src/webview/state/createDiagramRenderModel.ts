@@ -179,6 +179,16 @@ export interface RenderedTableClearanceMetrics {
   spacingViolations: number;
 }
 
+export interface RenderedEdgeNodeIntersection {
+  edgeId: string;
+  nodeModelId: ModelId;
+}
+
+export interface RenderedEdgeNodeIntersectionMetrics {
+  count: number;
+  hits: RenderedEdgeNodeIntersection[];
+}
+
 /**
  * Measures the table rectangles that the canvas actually receives.
  *
@@ -283,6 +293,197 @@ export function measureRenderedTableClearance(
     metrics.minimum = 0;
   }
   return metrics;
+}
+
+/**
+ * Independently audits the exact edge/table geometry sent to the canvas.
+ * Native metadata is deliberately not consulted: a stale or carrier-filtered
+ * metric must never certify a line that still penetrates a rendered table.
+ */
+export function measureRenderedEdgeNodeIntersections(
+  renderModel: DiagramRenderModel,
+  padding = 5,
+): RenderedEdgeNodeIntersectionMetrics {
+  const tables = renderModel.tables.filter((table) => !table.hidden);
+  const tableByModelId = new Map(
+    tables.map((table) => [table.modelId, table] as const),
+  );
+  const hits: RenderedEdgeNodeIntersection[] = [];
+  const seen = new Set<string>();
+
+  for (const edge of renderModel.edges) {
+    const sourceTable = tableByModelId.get(edge.sourceModelId);
+    const targetTable = tableByModelId.get(edge.targetModelId);
+    if (!sourceTable || !targetTable) {
+      continue;
+    }
+
+    const parsedPoints = parseRenderedEdgePoints(edge.points);
+    const points = parsedPoints.length >= 2
+      ? attachRenderedEdgeEndpoints(parsedPoints, sourceTable, targetTable)
+      : buildStraightRenderedEdgePoints(sourceTable, targetTable);
+    if (points.length < 2) {
+      continue;
+    }
+
+    for (const table of tables) {
+      if (
+        table.modelId === edge.sourceModelId
+        || table.modelId === edge.targetModelId
+      ) {
+        continue;
+      }
+      const penetrates = points.slice(1).some((end, index) =>
+        segmentPenetratesRenderedTable(points[index], end, table, padding)
+      );
+      if (!penetrates) {
+        continue;
+      }
+
+      const key = `${edge.edgeId}\u0000${table.modelId}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      hits.push({ edgeId: edge.edgeId, nodeModelId: table.modelId });
+    }
+  }
+
+  return { count: hits.length, hits };
+}
+
+function parseRenderedEdgePoints(value: string): Point[] {
+  if (!value.trim()) {
+    return [];
+  }
+  return value.trim().split(/\s+/).flatMap((pair) => {
+    const [rawX, rawY] = pair.split(",");
+    const x = Number(rawX);
+    const y = Number(rawY);
+    return Number.isFinite(x) && Number.isFinite(y) ? [{ x, y }] : [];
+  });
+}
+
+function attachRenderedEdgeEndpoints(
+  points: Point[],
+  sourceTable: TableRenderModel,
+  targetTable: TableRenderModel,
+): Point[] {
+  const attached = points.map((point) => ({ ...point }));
+  const lastIndex = attached.length - 1;
+  attached[0] = computeRenderedEndpointPort(sourceTable, attached[1]);
+  attached[lastIndex] = computeRenderedEndpointPort(
+    targetTable,
+    attached[lastIndex - 1],
+  );
+  return attached;
+}
+
+function buildStraightRenderedEdgePoints(
+  sourceTable: TableRenderModel,
+  targetTable: TableRenderModel,
+): Point[] {
+  const sourceCenter = renderedTableCenter(sourceTable);
+  const targetCenter = renderedTableCenter(targetTable);
+  return [
+    computeRenderedBoundaryPort(sourceTable, targetCenter),
+    computeRenderedBoundaryPort(targetTable, sourceCenter),
+  ];
+}
+
+function renderedTableCenter(table: TableRenderModel): Point {
+  return {
+    x: table.position.x + table.size.width / 2,
+    y: table.position.y + table.size.height / 2,
+  };
+}
+
+function computeRenderedEndpointPort(
+  table: TableRenderModel,
+  peerPoint: Point,
+): Point {
+  const left = table.position.x;
+  const right = left + table.size.width;
+  const top = table.position.y;
+  const bottom = top + table.size.height;
+  const center = renderedTableCenter(table);
+  let dx = peerPoint.x - center.x;
+  let dy = peerPoint.y - center.y;
+  if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) {
+    dx = 1;
+    dy = 0;
+  }
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return {
+      x: dx >= 0 ? right : left,
+      y: Math.max(top, Math.min(bottom, peerPoint.y)),
+    };
+  }
+  return {
+    x: Math.max(left, Math.min(right, peerPoint.x)),
+    y: dy >= 0 ? bottom : top,
+  };
+}
+
+function computeRenderedBoundaryPort(
+  table: TableRenderModel,
+  towardCenter: Point,
+): Point {
+  const center = renderedTableCenter(table);
+  let dx = towardCenter.x - center.x;
+  let dy = towardCenter.y - center.y;
+  if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) {
+    dx = 1;
+    dy = 0;
+  }
+  const scaleX = Math.abs(dx) < 0.01
+    ? Number.POSITIVE_INFINITY
+    : Math.max(1, table.size.width / 2) / Math.abs(dx);
+  const scaleY = Math.abs(dy) < 0.01
+    ? Number.POSITIVE_INFINITY
+    : Math.max(1, table.size.height / 2) / Math.abs(dy);
+  const scale = Math.min(scaleX, scaleY);
+  return {
+    x: center.x + dx * scale,
+    y: center.y + dy * scale,
+  };
+}
+
+function segmentPenetratesRenderedTable(
+  start: Point,
+  end: Point,
+  table: TableRenderModel,
+  padding: number,
+): boolean {
+  const left = table.position.x - padding;
+  const right = table.position.x + table.size.width + padding;
+  const top = table.position.y - padding;
+  const bottom = table.position.y + table.size.height + padding;
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  let enter = 0;
+  let exit = 1;
+
+  for (const [origin, delta, minimum, maximum] of [
+    [start.x, dx, left, right],
+    [start.y, dy, top, bottom],
+  ] as const) {
+    if (Math.abs(delta) < 1e-9) {
+      if (origin <= minimum || origin >= maximum) {
+        return false;
+      }
+      continue;
+    }
+    const first = (minimum - origin) / delta;
+    const second = (maximum - origin) / delta;
+    enter = Math.max(enter, Math.min(first, second));
+    exit = Math.min(exit, Math.max(first, second));
+    if (exit - enter <= 1e-9) {
+      return false;
+    }
+  }
+
+  return exit > 1e-9 && enter < 1 - 1e-9;
 }
 
 export function createDiagramRenderModel(

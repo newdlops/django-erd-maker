@@ -368,7 +368,7 @@ test("route-repair-only gate requires strict node-hit gain and every canonical c
   );
 });
 
-test("v24 orchestration targets 1B with rendered clearance-safe straight semantic carriers", async () => {
+test("v26 orchestration targets 1B and caches only penetration-free straight carriers", async () => {
   const source = await fs.readFile(
     path.resolve(
       __dirname,
@@ -377,7 +377,9 @@ test("v24 orchestration targets 1B with rendered clearance-safe straight semanti
     "utf8",
   );
 
-  assert.match(source, /"optimized-layout-cache-v24-render-size-reroute"/);
+  assert.match(source, /"optimized-layout-cache-v26-edge-node-hard-target"/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v25-hard-target-cache"/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v24-render-size-reroute"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v23-render-size"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v22"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v21"/);
@@ -389,6 +391,7 @@ test("v24 orchestration targets 1B with rendered clearance-safe straight semanti
   assert.doesNotMatch(source, /"optimized-layout-cache-v14"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v15"/);
   assert.match(source, /const DEFAULT_VISUAL_CROSS_TARGET = 100;/);
+  assert.match(source, /const DEFAULT_EDGE_NODE_TARGET = 0;/);
   assert.doesNotMatch(source, /DJERD_ADAPTIVE_CARRIER_TARGET_FINAL/);
   assert.match(
     source,
@@ -445,6 +448,18 @@ test("v24 orchestration targets 1B with rendered clearance-safe straight semanti
   assert.match(
     source,
     /DJERD_RENDERED_STRAIGHT_PORT_OPT_FINAL:[\s\S]*?\?\? "1"/,
+  );
+  assert.match(
+    source,
+    /DJERD_RENDERED_CARRIER_NODE_TARGET_FINAL:[\s\S]*?\?\? "1"/,
+  );
+  assert.match(
+    source,
+    /DJERD_RENDERED_CARRIER_NODE_CLEAR_FINAL:[\s\S]*?\?\? "1"/,
+  );
+  assert.match(
+    source,
+    /preFinalEdgeNodeIntersections[\s\S]*?preFinalEdgeNodeIntersections <= edgeNodeTarget/,
   );
   assert.match(
     source,
@@ -538,6 +553,10 @@ test("v24 orchestration targets 1B with rendered clearance-safe straight semanti
     source,
     /bboxGapBridgeLayout[\s\S]*source=gap-bridge[\s\S]*gap bridge retained for aspect solve/,
   );
+  assert.match(
+    source,
+    /DJERD_OPTIMIZED_BBOX_TARGET_GAP_BRIDGE_MAX_VISUAL_RATIO[\s\S]*?1\.30/,
+  );
   const gapBridgeGateStart = source.indexOf("const bboxGapBridgeOk =");
   const gapBridgeGateEnd = source.indexOf("logger?.info(", gapBridgeGateStart);
   assert.ok(gapBridgeGateStart >= 0 && gapBridgeGateEnd > gapBridgeGateStart);
@@ -551,6 +570,14 @@ test("v24 orchestration targets 1B with rendered clearance-safe straight semanti
   assert.match(
     source,
     /measureLayoutRenderedTableClearance[\s\S]*bboxRenderedClearance[\s\S]*renderedAudit=node:/,
+  );
+  assert.match(
+    source,
+    /evaluateOptimizedLayoutHardTargets[\s\S]*cachedHardTargets[\s\S]*hard target audit failed/,
+  );
+  assert.match(
+    source,
+    /candidateHardTargets[\s\S]*optimized layout not cached; hard target audit failed/,
   );
   assert.match(
     source,
