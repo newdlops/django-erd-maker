@@ -74,10 +74,6 @@ export function compareOptimizedLayoutQuality(
   left: LayoutEngineMetadata | undefined,
   right: LayoutEngineMetadata | undefined,
 ): number {
-  const adaptiveComparison = compareAdaptiveCarrierDetail(left, right);
-  if (adaptiveComparison !== undefined && adaptiveComparison !== 0) {
-    return adaptiveComparison;
-  }
   const lowerIsBetter: Array<keyof LayoutEngineMetadata> = [
     "visualCrossings",
     "nodeOverlaps",
@@ -110,41 +106,6 @@ export function compareOptimizedLayoutQuality(
     return -1;
   }
   return rightQuality - leftQuality;
-}
-
-function compareAdaptiveCarrierDetail(
-  left: LayoutEngineMetadata | undefined,
-  right: LayoutEngineMetadata | undefined,
-): number | undefined {
-  const leftTarget = finiteNumber(left?.adaptiveCarrierTarget);
-  const rightTarget = finiteNumber(right?.adaptiveCarrierTarget);
-  const leftVisual = finiteNumber(left?.visualCrossings);
-  const rightVisual = finiteNumber(right?.visualCrossings);
-  const leftVisible = finiteNumber(left?.adaptiveCarrierVisibleEdges);
-  const rightVisible = finiteNumber(right?.adaptiveCarrierVisibleEdges);
-  if (
-    leftTarget === undefined
-    || rightTarget === undefined
-    || leftTarget !== rightTarget
-    || leftVisual === undefined
-    || rightVisual === undefined
-    || leftVisible === undefined
-    || rightVisible === undefined
-  ) {
-    return undefined;
-  }
-  const leftPasses = leftVisual <= leftTarget;
-  const rightPasses = rightVisual <= rightTarget;
-  if (leftPasses !== rightPasses) {
-    return leftPasses ? -1 : 1;
-  }
-  if (!leftPasses) {
-    return undefined;
-  }
-  // Once both layouts meet the same overview budget, retain the layout that
-  // exposes more pre-aggregation relationships. A lower score obtained only
-  // by moving to a coarser grid is not a quality improvement.
-  return rightVisible - leftVisible;
 }
 
 export function selectPreferredOptimizedLayoutJson(

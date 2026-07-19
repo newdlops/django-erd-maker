@@ -248,6 +248,15 @@ function logLiveDiagramResult(
       `payloadLeafBundles=${payload.layout.engineMetadata?.leafBundles?.length ?? "absent"}`,
       `executionLeafBundles=${execution?.engineMetadata?.leafBundles?.length ?? "absent"}`,
       ...(metadata?.nodeOverlaps !== undefined ? [`nodeOverlaps=${metadata.nodeOverlaps}`] : []),
+      ...(metadata?.nodeSpacingOverlaps !== undefined
+        ? [`nodeSpacingOverlaps=${metadata.nodeSpacingOverlaps}`]
+        : []),
+      ...(metadata?.nodeClearanceMin !== undefined
+        ? [`nodeClearanceMin=${metadata.nodeClearanceMin.toFixed(1)}`]
+        : []),
+      ...(metadata?.nodeClearanceTarget !== undefined
+        ? [`nodeClearanceTarget=${metadata.nodeClearanceTarget.toFixed(1)}`]
+        : []),
       ...(metadata?.rawRouteCrossings !== undefined
         ? [`rawRouteCrossings=${metadata.rawRouteCrossings}`]
         : []),

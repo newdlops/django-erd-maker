@@ -79,38 +79,30 @@ test("optimized cache quality uses conflict tie-breakers and keeps exact ties", 
   assert.equal(exactTie.source, "existing");
 });
 
-test("optimized cache prefers detail once both adaptive layouts meet the budget", () => {
-  const detailed = snapshot(90, {
-    adaptiveCarrierGrid: 12,
-    adaptiveCarrierTarget: 100,
-    adaptiveCarrierVisibleEdges: 235,
-  });
-  const overAggregated = snapshot(50, {
+test("optimized cache never rewards legacy edge aggregation metadata", () => {
+  const lowerHonestScore = snapshot(50, {
+    // Old cache entries may still contain these unknown fields. They must not
+    // override the complete-edge visual score.
     adaptiveCarrierGrid: 8,
     adaptiveCarrierTarget: 100,
     adaptiveCarrierVisibleEdges: 139,
   });
+  const higherLegacyDetail = snapshot(90, {
+    adaptiveCarrierGrid: 12,
+    adaptiveCarrierTarget: 100,
+    adaptiveCarrierVisibleEdges: 235,
+  });
   assert.ok(compareOptimizedLayoutQuality(
-    detailed.engineMetadata,
-    overAggregated.engineMetadata,
+    lowerHonestScore.engineMetadata,
+    higherLegacyDetail.engineMetadata,
   ) < 0);
   assert.equal(
     selectPreferredOptimizedLayoutJson(
-      JSON.stringify(detailed),
-      JSON.stringify(overAggregated),
+      JSON.stringify(higherLegacyDetail),
+      JSON.stringify(lowerHonestScore),
     ).source,
-    "existing",
+    "candidate",
   );
-
-  const moreDetailed = snapshot(99, {
-    adaptiveCarrierGrid: 16,
-    adaptiveCarrierTarget: 100,
-    adaptiveCarrierVisibleEdges: 260,
-  });
-  assert.ok(compareOptimizedLayoutQuality(
-    detailed.engineMetadata,
-    moreDetailed.engineMetadata,
-  ) > 0);
 });
 
 test("optimized cache preserves canonical adjacent and node-hit non-regression", () => {

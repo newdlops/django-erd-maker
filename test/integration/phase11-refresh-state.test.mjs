@@ -109,6 +109,51 @@ test("phase11 full refresh maps the previous viewport center proportionally onto
   });
 });
 
+test("phase11 optimized layout refresh fits the complete graph instead of preserving a selected-node zoom", () => {
+  const previous = createLiveDiagramResult({
+    mode: "hierarchical",
+    nodes: [
+      createNode("app.Post", 0, 0),
+      createNode("app.Author", 400, 0),
+    ],
+  });
+  const next = createLiveDiagramResult({
+    mode: "circular",
+    nodes: [
+      createNode("app.Post", 100, 100),
+      createNode("app.Author", 1000, 1000),
+    ],
+  });
+  const restored = restoreRefreshViewState(
+    next,
+    previous,
+    {
+      layoutMode: "hierarchical",
+      optimizedLayout: true,
+      selectedMethodContext: undefined,
+      selectedModelId: "app.Post",
+      tableOptions: [defaultTableOptions("app.Post"), defaultTableOptions("app.Author")],
+      viewport: {
+        panX: -50,
+        panY: -60,
+        zoom: 1,
+      },
+      viewportRect: {
+        height: 400,
+        width: 500,
+      },
+    },
+    "layout",
+  );
+
+  assert.equal(restored.payload.view.optimizedLayout, true);
+  assert.deepEqual(restored.payload.view.viewport, {
+    panX: 58.89,
+    panY: 8.89,
+    zoom: 344 / 1080,
+  });
+});
+
 function createLiveDiagramResult({ mode, nodes }) {
   return {
     basePayload: {

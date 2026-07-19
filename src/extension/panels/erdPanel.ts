@@ -207,12 +207,39 @@ export class ErdPanel {
     // webview that's currently mounted handles `diagram.progress` and previews
     // the positions; `this.update()` below replaces it with the fully-routed
     // final layout when the refresh resolves.
+    let lastProgressBundleSignature: string | undefined;
+    const currentLayoutMetadata =
+      this.currentState?.payload.layoutExecution?.engineMetadata
+      ?? this.currentState?.payload.layout.engineMetadata;
+    const currentViewIsSemanticallyBundled =
+      (currentLayoutMetadata?.leafBundles?.length ?? 0) > 0
+      || currentLayoutMetadata?.hubCarrierThreshold !== undefined
+      || currentLayoutMetadata?.inheritanceCarrierGrouping === true
+      || currentLayoutMetadata?.intraClusterCarrierGrouping === true;
     setOgdfProgressListener((frame) => {
+      if (!frame.semanticRenderModel && !currentViewIsSemanticallyBundled) {
+        return;
+      }
+      const semanticRenderModel = frame.semanticRenderModel;
+      const bundleSignature = semanticRenderModel
+        ? JSON.stringify(semanticRenderModel.bundleLeavesByFakeId)
+        : undefined;
+      const includeTables = semanticRenderModel !== undefined
+        && bundleSignature !== lastProgressBundleSignature;
+      if (bundleSignature !== undefined) {
+        lastProgressBundleSignature = bundleSignature;
+      }
       void this.panel.webview.postMessage({
         type: "diagram.progress",
         positions: frame.positions,
         run: frame.run,
         crossings: frame.crossings,
+        semanticRenderModel: semanticRenderModel
+          ? {
+              ...semanticRenderModel,
+              tables: includeTables ? semanticRenderModel.tables : undefined,
+            }
+          : undefined,
         stage: frame.stage,
       });
     });

@@ -12,6 +12,7 @@ interface Bounds {
   maxY: number;
   minX: number;
   minY: number;
+  visibleCount: number;
 }
 
 export function restoreRefreshViewState(
@@ -28,6 +29,7 @@ export function restoreRefreshViewState(
   nextResult.payload.view.useEdgeBends = Boolean(viewState.useEdgeBends);
   nextResult.payload.view.clusterGraphLayout = Boolean(viewState.clusterGraphLayout);
   nextResult.payload.view.bubbleLayout = Boolean(viewState.bubbleLayout);
+  nextResult.payload.view.optimizedLayout = Boolean(viewState.optimizedLayout);
   nextResult.payload.view.layoutMode = normalizeLayoutMode(nextResult.payload.layout.mode);
   nextResult.payload.view.selectedModelId = viewState.selectedModelId &&
   availableModelIds.has(viewState.selectedModelId)
@@ -51,6 +53,7 @@ export function restoreRefreshViewState(
     viewState,
     nextResult.payload.view.selectedModelId,
     refreshKind,
+    Boolean(viewState.optimizedLayout),
   );
 
   return nextResult;
@@ -98,7 +101,7 @@ function computeBounds(
     return undefined;
   }
 
-  return { maxX, maxY, minX, minY };
+  return { maxX, maxY, minX, minY, visibleCount };
 }
 
 function computeNodeCenter(
@@ -148,12 +151,13 @@ function restoreViewport(
   viewState: RefreshViewStateSnapshot,
   selectedModelId: ModelId | undefined,
   refreshKind: "full" | "layout",
+  fitCompletedLayout: boolean,
 ): DiagramViewportSnapshot {
   const width = Math.max(1, viewState.viewportRect.width);
   const height = Math.max(1, viewState.viewportRect.height);
   const zoom = clampZoom(viewState.viewport.zoom);
 
-  if (refreshKind === "layout" && selectedModelId) {
+  if (!fitCompletedLayout && refreshKind === "layout" && selectedModelId) {
     const selectedCenter = computeNodeCenter(
       nextLayout,
       viewState.tableOptions,
@@ -168,6 +172,10 @@ function restoreViewport(
     ? computeBounds(previousLayout, viewState.tableOptions)
     : undefined;
   const nextBounds = computeBounds(nextLayout, viewState.tableOptions);
+
+  if (fitCompletedLayout && nextBounds) {
+    return createFittedViewport(nextBounds, width, height);
+  }
 
   if (!previousBounds || !nextBounds) {
     return {
@@ -202,6 +210,33 @@ function restoreViewport(
   };
 
   return createViewportForCenter(mappedCenter, zoom, width, height);
+}
+
+function createFittedViewport(
+  bounds: Bounds,
+  width: number,
+  height: number,
+): DiagramViewportSnapshot {
+  const worldPadding = bounds.visibleCount > 500 ? 24 : 40;
+  const screenPadding = bounds.visibleCount > 500 ? 18 : 28;
+  const worldWidth = Math.max(1, bounds.maxX - bounds.minX + worldPadding * 2);
+  const worldHeight = Math.max(1, bounds.maxY - bounds.minY + worldPadding * 2);
+  const zoom = clampZoom(Math.min(
+    Math.max(0.005, (width - screenPadding * 2) / worldWidth),
+    Math.max(0.005, (height - screenPadding * 2) / worldHeight),
+  ));
+
+  return {
+    panX: Math.round(
+      ((width - worldWidth * zoom) / 2 - (bounds.minX - worldPadding) * zoom)
+      * 100,
+    ) / 100,
+    panY: Math.round(
+      ((height - worldHeight * zoom) / 2 - (bounds.minY - worldPadding) * zoom)
+      * 100,
+    ) / 100,
+    zoom,
+  };
 }
 
 function clampPointToBounds(
