@@ -211,6 +211,172 @@ test("native and webview share semantic bundling without zoom-only detail", {
   }
 });
 
+test("native final carrier pass clears table penetrations without bends or bbox growth", {
+  skip: !binaryAvailable,
+}, async () => {
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "django-erd-carrier-node-clear-"),
+  );
+  const nodesPath = path.join(directory, "nodes.tsv");
+  const edgesPath = path.join(directory, "edges.tsv");
+  const positionsPath = path.join(directory, "positions.tsv");
+  const centers = new Map([
+    ["test.source", [100, 100]],
+    ["test.blocker", [500, 100]],
+    ["test.target", [900, 100]],
+    ["test.lowerLeft", [100, 600]],
+    ["test.lowerMid", [500, 600]],
+    ["test.lowerRight", [900, 600]],
+    ["test.upperLeft", [100, -400]],
+    ["test.upperRight", [900, -400]],
+  ]);
+  const nodes = [...centers.keys()];
+  const edges = [
+    ["edge:penetrating", "test.source", "test.target"],
+    ["edge:blocker-lower", "test.blocker", "test.lowerMid"],
+    ["edge:blocker-upper", "test.blocker", "test.upperRight"],
+    ["edge:source-lower", "test.source", "test.lowerLeft"],
+    ["edge:lower-left-mid", "test.lowerLeft", "test.lowerMid"],
+    ["edge:lower-mid-right", "test.lowerMid", "test.lowerRight"],
+    ["edge:target-lower", "test.target", "test.lowerRight"],
+    ["edge:source-upper", "test.source", "test.upperLeft"],
+    ["edge:upper", "test.upperLeft", "test.upperRight"],
+    ["edge:target-upper", "test.target", "test.upperRight"],
+  ];
+
+  await fs.writeFile(
+    nodesPath,
+    `${nodes.map((modelId, index) =>
+      `${modelId}\t120\t80\t0\t0\tgroup${index % 2}`
+    ).join("\n")}\n`,
+    "utf8",
+  );
+  await fs.writeFile(
+    edgesPath,
+    `${edges.map(([id, source, target]) =>
+      [id, source, target, "association", "declared"].join("\t")
+    ).join("\n")}\n`,
+    "utf8",
+  );
+  await fs.writeFile(
+    positionsPath,
+    `${nodes.map((modelId) => {
+      const [x, y] = centers.get(modelId);
+      return `${modelId}\t${x}\t${y}`;
+    }).join("\n")}\n`,
+    "utf8",
+  );
+
+  const commonEnv = {
+    ...process.env,
+    DJERD_ATTACH_ISOLATED_BY_NAME_FINAL: "0",
+    DJERD_BBOX_AXIS_SCALE_FINAL: "0",
+    DJERD_BUNDLE_BOX_RELOCATE_FINAL: "0",
+    DJERD_CANONICAL_CROSSING_CACHE: "0",
+    DJERD_CG_SKIP_POSITIONING: "1",
+    DJERD_DENSITY_BALANCE_FINAL: "0",
+    DJERD_DENSITY_PACK_FINAL: "0",
+    DJERD_DIAGONAL_RETOUCH: "0",
+    DJERD_FACE_RASTER: "0",
+    DJERD_FACE_UNTANGLE: "0",
+    DJERD_HOT_REGION_SA: "0",
+    DJERD_HUB_CARRIER_CROSS_FINAL: "0",
+    DJERD_INHERITANCE_CARRIER_FINAL: "0",
+    DJERD_INTRA_CLUSTER_CARRIER_FINAL: "0",
+    DJERD_ISOLATED_BBOX_COMPACT_FINAL: "0",
+    DJERD_LEAF_PASSES: "0",
+    DJERD_LEAF_PASSES_2: "0",
+    DJERD_MULTISTART_RUNS: "1",
+    DJERD_NODE_EDGE_RELIEF_FINAL: "0",
+    DJERD_NODE_OVERLAP_CLEAR_FINAL: "0",
+    DJERD_NODE_PAIR_RETOUCH: "0",
+    DJERD_NODE_SPACING_CLEAR_FINAL: "0",
+    DJERD_NO_BUNDLE_CLEAR: "1",
+    DJERD_NO_KNOT_MIN: "1",
+    DJERD_NO_LEAF_UNTANGLE: "1",
+    DJERD_NO_PD_KNOT: "1",
+    DJERD_PERIPHERY_REROUTE: "0",
+    DJERD_RENDERED_CARRIER_EDGE_NODE_TARGET: "0",
+    DJERD_RENDERED_CARRIER_GEOMETRY_OPT_FINAL: "1",
+    DJERD_RENDERED_CARRIER_METRICS_FINAL: "1",
+    DJERD_RENDERED_CARRIER_VISUAL_TARGET: "100",
+    DJERD_RENDERED_NODE_CLEARANCE_FINAL: "1",
+    DJERD_RENDERED_STRAIGHT_PORT_OPT_FINAL: "1",
+    DJERD_RIGID_ATTACH_ISOLATED_FINAL: "0",
+    DJERD_RIGID_COMPACT_BBOX_FINAL: "0",
+    DJERD_RIGID_NODE_EDGE_RELIEF_FINAL: "0",
+    DJERD_SIDECAR_BBOX_COMPACT_FINAL: "0",
+    DJERD_SKIP_CG_OPT: "1",
+    DJERD_STRESS_POST_PASS_ITERS: "0",
+    DJERD_STUCK_LEAF_2D: "0",
+    DJERD_VISUAL_KNOT: "0",
+    DJERD_XINGS_DETOUR: "0",
+    DJERD_XINGS_DETOUR_FINAL: "0",
+  };
+  const args = [
+    "layout",
+    "--mode", "fmmm",
+    "--nodes-file", nodesPath,
+    "--edges-file", edgesPath,
+    "--edge-routing", "straight",
+    "--cluster-graph", "0",
+    "--positions-tsv", positionsPath,
+    "--rigid-positions", "1",
+  ];
+
+  try {
+    const baseRun = await execFileAsync(binaryPath, args, {
+      cwd: repoRoot,
+      env: {
+        ...commonEnv,
+        DJERD_RENDERED_CARRIER_NODE_CLEAR_FINAL: "0",
+        DJERD_RENDERED_CARRIER_NODE_TARGET_FINAL: "0",
+      },
+      maxBuffer: 16 * 1024 * 1024,
+      timeout: 30_000,
+    });
+    const base = JSON.parse(baseRun.stdout);
+    assert.ok(
+      base.engineMetadata.edgeNodeIntersections > 0,
+      "fixture must begin with a visible carrier crossing a table body",
+    );
+    const baseArea = nodeBoundingBoxArea(base.nodes);
+
+    const clearRun = await execFileAsync(binaryPath, args, {
+      cwd: repoRoot,
+      env: {
+        ...commonEnv,
+        DJERD_RENDERED_CARRIER_NODE_CLEAR_DIRECTIONS: "24",
+        DJERD_RENDERED_CARRIER_NODE_CLEAR_FINAL: "1",
+        DJERD_RENDERED_CARRIER_NODE_CLEAR_MAX_SHIFT: "1200",
+        DJERD_RENDERED_CARRIER_NODE_CLEAR_ROUNDS: "6",
+        DJERD_RENDERED_CARRIER_NODE_TARGET_FINAL: "1",
+      },
+      maxBuffer: 16 * 1024 * 1024,
+      timeout: 30_000,
+    });
+    const cleared = JSON.parse(clearRun.stdout);
+    assert.equal(cleared.engineMetadata.edgeNodeIntersections, 0);
+    assert.ok(cleared.engineMetadata.visualCrossings <= 100);
+    assert.equal(cleared.engineMetadata.nodeOverlaps, 0);
+    assert.equal(cleared.engineMetadata.bundleNodeOverlaps, 0);
+    assert.equal(cleared.engineMetadata.nodeSpacingOverlaps, 0);
+    assert.ok(
+      cleared.engineMetadata.nodeClearanceMin
+        >= cleared.engineMetadata.nodeClearanceTarget,
+    );
+    assert.equal(cleared.engineMetadata.edgeBendTotal, 0);
+    assert.ok(cleared.routedEdges.every((edge) => edge.points.length === 2));
+    assert.ok(
+      nodeBoundingBoxArea(cleared.nodes) <= baseArea + 1e-6,
+      "local blocker relocation must stay inside the settled node bbox",
+    );
+    assert.match(clearRun.stderr, /\[rendered-carrier-node-clear-final\]/);
+  } finally {
+    await fs.rm(directory, { force: true, recursive: true });
+  }
+});
+
 test("removed adaptive settings cannot create a zoom-only carrier set", {
   skip: !binaryAvailable || !renderModelAvailable,
 }, async () => {
@@ -398,6 +564,18 @@ function createBootstrapPayload(fixture, layout) {
       tableOptions: [],
     },
   };
+}
+
+function nodeBoundingBoxArea(nodes) {
+  const minX = Math.min(...nodes.map((node) => node.position.x));
+  const minY = Math.min(...nodes.map((node) => node.position.y));
+  const maxX = Math.max(
+    ...nodes.map((node) => node.position.x + node.size.width),
+  );
+  const maxY = Math.max(
+    ...nodes.map((node) => node.position.y + node.size.height),
+  );
+  return (maxX - minX) * (maxY - minY);
 }
 
 async function pathExists(filePath) {

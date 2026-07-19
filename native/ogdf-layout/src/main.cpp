@@ -10001,12 +10001,11 @@ bool applyRenderedCarrierMetricsIfRequested(
     std::getenv("DJERD_RENDERED_CARRIER_METRICS_FINAL");
   const bool renderedCarrierMetrics =
     renderedCarrierMetricsEnv && std::strcmp(renderedCarrierMetricsEnv, "0") != 0;
-  // Plain layouts without bundle/cluster structure keep their individual
-  // edges. Cluster-graph layouts can still use the generic carrier policy
-  // even when a project has no leaf bundles.
-  if (
-      !renderedCarrierMetrics
-      || (metadata.leafBundles.empty() && metadata.strategy != "cluster_graph")) {
+  // Plain layouts without bundle/cluster structure still render their
+  // individual edges. They need the same exact edge/node penetration audit;
+  // limiting this metric to cluster layouts would let a visible raw edge pass
+  // through a table without entering the final hard target.
+  if (!renderedCarrierMetrics) {
     return false;
   }
 
@@ -10202,7 +10201,9 @@ bool applyRenderedCarrierMetricsIfRequested(
     : 0.0;
   std::unordered_set<std::string> bundleAbsorbed;
   for (const LeafBundleRecord& bundle : metadata.leafBundles) {
-    bundleAbsorbed.insert(bundle.parentModelId);
+    // Bundle leaf tiles are nested inside the synthetic bundle table and are
+    // not separate rendered obstacles. The parent table remains visible in
+    // the webview, so it must continue to count as an edge/node obstacle.
     for (const std::string& leaf : bundle.leafModelIds) {
       bundleAbsorbed.insert(leaf);
     }
@@ -10235,6 +10236,9 @@ bool applyRenderedCarrierMetricsIfRequested(
     std::vector<std::string> memberEdgeIds;
     std::unordered_set<std::string> endpointModelIds;
     int bundleIndex = -1;
+    bool hasStraightEndpointRects = false;
+    Rect straightStartRect{};
+    Rect straightEndRect{};
   };
 
   auto startsWith = [](const std::string& value, const char* prefix) {
@@ -10351,6 +10355,9 @@ bool applyRenderedCarrierMetricsIfRequested(
         const auto [sourcePoint, targetPoint] =
           sourceTargetRouteEndpoints(edgeIndex);
         path.points = {sourcePoint, targetPoint};
+        path.hasStraightEndpointRects = true;
+        path.straightStartRect = nodeRect(*sourceIt->second, attributes, 0.0);
+        path.straightEndRect = nodeRect(*targetIt->second, attributes, 0.0);
         path.straightCandidates.push_back(path.points);
         const std::vector<RoutePoint> sourcePorts = rectBoundaryCandidates(
           nodeRect(*sourceIt->second, attributes, 0.0));
@@ -10407,6 +10414,9 @@ bool applyRenderedCarrierMetricsIfRequested(
         path.endpointModelIds.insert(leaf);
       }
       if (optimizeStraightPorts) {
+        path.hasStraightEndpointRects = true;
+        path.straightStartRect = bundleRect;
+        path.straightEndRect = rootRect;
         path.straightCandidates.push_back(path.points);
         const std::vector<RoutePoint> bundlePorts =
           rectBoundaryCandidates(bundleRect);
@@ -10655,16 +10665,32 @@ bool applyRenderedCarrierMetricsIfRequested(
     return counts;
   };
 
-  auto renderedPathVisualCost = [&]
+  struct RenderedPathVisualCost {
+    std::size_t edgeCrossings = 0;
+    std::size_t edgeNodeIntersections = 0;
+    std::size_t bundleEdgeIntersections = 0;
+
+    std::size_t visual() const {
+      return edgeCrossings
+        + edgeNodeIntersections
+        + bundleEdgeIntersections;
+    }
+  };
+
+  auto renderedPathCost = [&]
       (const std::vector<RenderedCarrierMetricPath>& paths,
        std::size_t pathIndex,
        const std::vector<RoutePoint>& candidatePoints) {
     if (pathIndex >= paths.size() || candidatePoints.size() < 2) {
-      return std::numeric_limits<std::size_t>::max();
+      return RenderedPathVisualCost{
+        std::numeric_limits<std::size_t>::max() / 4,
+        std::numeric_limits<std::size_t>::max() / 4,
+        std::numeric_limits<std::size_t>::max() / 4,
+      };
     }
     RenderedCarrierMetricPath candidatePath = paths[pathIndex];
     candidatePath.points = candidatePoints;
-    std::size_t cost = 0;
+    RenderedPathVisualCost cost;
     for (std::size_t otherIndex = 0; otherIndex < paths.size(); ++otherIndex) {
       if (
           otherIndex == pathIndex
@@ -10688,7 +10714,7 @@ bool applyRenderedCarrierMetricsIfRequested(
         }
       }
       if (anyCross) {
-        ++cost;
+        ++cost.edgeCrossings;
       }
     }
 
@@ -10705,7 +10731,7 @@ bool applyRenderedCarrierMetricsIfRequested(
         if (segmentIntersectsRect(
             start, end,
             nodeRect(node, attributes, kRenderedCarrierVisualMargin))) {
-          ++cost;
+          ++cost.edgeNodeIntersections;
         }
       }
       for (std::size_t bundleIndex = 0;
@@ -10727,11 +10753,18 @@ bool applyRenderedCarrierMetricsIfRequested(
         if (
             !touchesBundleMember
             && segmentIntersectsRect(start, end, bundleRects[bundleIndex])) {
-          ++cost;
+          ++cost.bundleEdgeIntersections;
         }
       }
     }
     return cost;
+  };
+
+  auto renderedPathVisualCost = [&]
+      (const std::vector<RenderedCarrierMetricPath>& paths,
+       std::size_t pathIndex,
+       const std::vector<RoutePoint>& candidatePoints) {
+    return renderedPathCost(paths, pathIndex, candidatePoints).visual();
   };
 
   const RenderedCarrierCounts preGeometryCounts =
@@ -10786,6 +10819,195 @@ bool applyRenderedCarrierMetricsIfRequested(
       if (movedThisRound == 0) {
         break;
       }
+    }
+  }
+
+  // Once the ordinary visual-cost descent has produced a low-crossing
+  // drawing, spend only the remaining visual budget on removing carrier
+  // segments that pass through rendered tables. This is deliberately a
+  // second, lexicographic stage: treating an edge/node hit as interchangeable
+  // with an edge/edge crossing allowed a visually acceptable total to retain
+  // lines through table bodies. Every candidate remains a two-point segment
+  // attached to the boundary of the same endpoint tables.
+  std::size_t carrierNodeTargetMoves = 0;
+  if (
+      optimizeStraightPorts
+      && readBoolEnv("DJERD_RENDERED_CARRIER_NODE_TARGET_FINAL", false)) {
+    const std::size_t edgeNodeTarget = static_cast<std::size_t>(readDoubleEnv(
+      "DJERD_RENDERED_CARRIER_EDGE_NODE_TARGET", 0.0, 0.0, 1'000'000.0));
+    const std::size_t visualTarget = static_cast<std::size_t>(readDoubleEnv(
+      "DJERD_RENDERED_CARRIER_VISUAL_TARGET", 100.0, 0.0, 1'000'000.0));
+    const int targetRounds = static_cast<int>(readDoubleEnv(
+      "DJERD_RENDERED_CARRIER_NODE_TARGET_ROUNDS", 4.0, 1.0, 12.0));
+    const int samplesPerSide = static_cast<int>(readDoubleEnv(
+      "DJERD_RENDERED_CARRIER_NODE_TARGET_PORT_SAMPLES", 8.0, 2.0, 24.0));
+
+    auto denseBoundaryCandidates = [&](const Rect& rect) {
+      std::vector<RoutePoint> candidates;
+      candidates.reserve(static_cast<std::size_t>(samplesPerSide) * 4);
+      auto addCandidate = [&](const RoutePoint& candidate) {
+        for (const RoutePoint& existing : candidates) {
+          if (
+              std::abs(existing.x - candidate.x) < 0.005
+              && std::abs(existing.y - candidate.y) < 0.005) {
+            return;
+          }
+        }
+        candidates.push_back(candidate);
+      };
+      for (int sample = 0; sample <= samplesPerSide; ++sample) {
+        const double t = static_cast<double>(sample)
+          / static_cast<double>(samplesPerSide);
+        addCandidate(roundedRoutePoint(
+          rect.left + rectWidth(rect) * t, rect.top));
+        addCandidate(roundedRoutePoint(
+          rect.right, rect.top + rectHeight(rect) * t));
+        addCandidate(roundedRoutePoint(
+          rect.right - rectWidth(rect) * t, rect.bottom));
+        addCandidate(roundedRoutePoint(
+          rect.left, rect.bottom - rectHeight(rect) * t));
+      }
+      return candidates;
+    };
+
+    RenderedCarrierCounts targetCounts = measureRenderedPaths(renderedPaths);
+    const RenderedCarrierCounts beforeTargetCounts = targetCounts;
+    for (
+        int round = 0;
+        round < targetRounds
+          && targetCounts.edgeNodeIntersections > edgeNodeTarget;
+        ++round) {
+      std::vector<std::pair<std::size_t, std::size_t>> order;
+      order.reserve(renderedPaths.size());
+      for (std::size_t pathIndex = 0;
+           pathIndex < renderedPaths.size(); ++pathIndex) {
+        const RenderedCarrierMetricPath& path = renderedPaths[pathIndex];
+        if (path.points.size() != 2 || path.straightCandidates.empty()) continue;
+        const RenderedPathVisualCost currentCost =
+          renderedPathCost(renderedPaths, pathIndex, path.points);
+        if (currentCost.edgeNodeIntersections == 0) continue;
+        order.push_back({currentCost.edgeNodeIntersections, pathIndex});
+      }
+      std::sort(
+        order.begin(),
+        order.end(),
+        [&](const auto& left, const auto& right) {
+          if (left.first != right.first) return left.first > right.first;
+          return renderedPaths[left.second].id < renderedPaths[right.second].id;
+        });
+
+      std::size_t movedThisRound = 0;
+      for (const auto& ranked : order) {
+        const std::size_t pathIndex = ranked.second;
+        RenderedCarrierMetricPath& path = renderedPaths[pathIndex];
+        const RenderedPathVisualCost currentCost =
+          renderedPathCost(renderedPaths, pathIndex, path.points);
+        if (currentCost.edgeNodeIntersections == 0) continue;
+
+        std::vector<RoutePoint> bestPoints = path.points;
+        RenderedPathVisualCost bestCost = currentCost;
+        std::size_t bestGlobalEdgeNode = targetCounts.edgeNodeIntersections;
+        std::size_t bestGlobalVisual =
+          targetCounts.edgeCrossings
+          + targetCounts.edgeNodeIntersections
+          + targetCounts.bundleEdgeIntersections;
+
+        auto considerCandidate = [&](const std::vector<RoutePoint>& candidate) {
+          if (candidate.size() != 2) return;
+          const RenderedPathVisualCost candidateCost =
+            renderedPathCost(renderedPaths, pathIndex, candidate);
+          if (candidateCost.edgeNodeIntersections
+              >= currentCost.edgeNodeIntersections) {
+            return;
+          }
+          const std::size_t nextEdgeCrossings =
+            targetCounts.edgeCrossings
+            - currentCost.edgeCrossings
+            + candidateCost.edgeCrossings;
+          const std::size_t nextEdgeNode =
+            targetCounts.edgeNodeIntersections
+            - currentCost.edgeNodeIntersections
+            + candidateCost.edgeNodeIntersections;
+          const std::size_t nextBundleEdge =
+            targetCounts.bundleEdgeIntersections
+            - currentCost.bundleEdgeIntersections
+            + candidateCost.bundleEdgeIntersections;
+          const std::size_t nextVisual =
+            nextEdgeCrossings + nextEdgeNode + nextBundleEdge;
+          if (nextVisual > visualTarget) return;
+          if (
+              nextEdgeNode < bestGlobalEdgeNode
+              || (nextEdgeNode == bestGlobalEdgeNode
+                  && nextVisual < bestGlobalVisual)) {
+            bestPoints = candidate;
+            bestCost = candidateCost;
+            bestGlobalEdgeNode = nextEdgeNode;
+            bestGlobalVisual = nextVisual;
+          }
+        };
+
+        for (const std::vector<RoutePoint>& candidate : path.straightCandidates) {
+          considerCandidate(candidate);
+        }
+        if (path.hasStraightEndpointRects) {
+          const std::vector<RoutePoint> startCandidates =
+            denseBoundaryCandidates(path.straightStartRect);
+          const std::vector<RoutePoint> endCandidates =
+            denseBoundaryCandidates(path.straightEndRect);
+          for (const RoutePoint& start : startCandidates) {
+            for (const RoutePoint& end : endCandidates) {
+              considerCandidate({start, end});
+            }
+          }
+        }
+
+        if (
+            bestGlobalEdgeNode < targetCounts.edgeNodeIntersections
+            && (std::abs(bestPoints[0].x - path.points[0].x) >= 0.005
+                || std::abs(bestPoints[0].y - path.points[0].y) >= 0.005
+                || std::abs(bestPoints[1].x - path.points[1].x) >= 0.005
+                || std::abs(bestPoints[1].y - path.points[1].y) >= 0.005)) {
+          targetCounts.edgeCrossings =
+            targetCounts.edgeCrossings
+            - currentCost.edgeCrossings
+            + bestCost.edgeCrossings;
+          targetCounts.edgeNodeIntersections = bestGlobalEdgeNode;
+          targetCounts.bundleEdgeIntersections =
+            targetCounts.bundleEdgeIntersections
+            - currentCost.bundleEdgeIntersections
+            + bestCost.bundleEdgeIntersections;
+          path.points = std::move(bestPoints);
+          ++movedThisRound;
+          ++carrierNodeTargetMoves;
+          ++geometryMoves;
+        }
+      }
+      if (movedThisRound == 0) break;
+      // Re-measure rather than trusting accumulated deltas; this also keeps
+      // the hard-target stage honest if a future carrier metric changes.
+      targetCounts = measureRenderedPaths(renderedPaths);
+    }
+
+    if (!quiet) {
+      const std::size_t beforeVisual =
+        beforeTargetCounts.edgeCrossings
+        + beforeTargetCounts.edgeNodeIntersections
+        + beforeTargetCounts.bundleEdgeIntersections;
+      const std::size_t afterVisual =
+        targetCounts.edgeCrossings
+        + targetCounts.edgeNodeIntersections
+        + targetCounts.bundleEdgeIntersections;
+      std::fprintf(stderr,
+        "[rendered-carrier-node-target] moved=%zu straight carriers, "
+        "visual=%zu -> %zu/%zu, edgeCross=%zu -> %zu, edgeNode=%zu -> %zu/%zu, "
+        "bundleEdge=%zu -> %zu.\n",
+        carrierNodeTargetMoves,
+        beforeVisual, afterVisual, visualTarget,
+        beforeTargetCounts.edgeCrossings, targetCounts.edgeCrossings,
+        beforeTargetCounts.edgeNodeIntersections,
+        targetCounts.edgeNodeIntersections, edgeNodeTarget,
+        beforeTargetCounts.bundleEdgeIntersections,
+        targetCounts.bundleEdgeIntersections);
     }
   }
 
@@ -10856,6 +11078,440 @@ bool applyRenderedCarrierMetricsIfRequested(
     + quality.bundleEdgeIntersections
     + quality.bundleNodeOverlaps;
   return true;
+}
+
+bool clearRenderedCarrierNodeIntersectionsIfRequested(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  std::vector<std::vector<RoutePoint>>& routes,
+  ogdf::GraphAttributes& attributes,
+  const std::unordered_map<std::string, std::string>& clusterByModelIdFull,
+  LayoutRunMetadata& metadata) {
+  if (
+      !readBoolEnv("DJERD_RENDERED_CARRIER_NODE_CLEAR_FINAL", false)
+      || nodes.empty()
+      || edges.empty()) {
+    return false;
+  }
+
+  const std::size_t edgeNodeTarget = static_cast<std::size_t>(readDoubleEnv(
+    "DJERD_RENDERED_CARRIER_EDGE_NODE_TARGET", 0.0, 0.0, 1'000'000.0));
+  const std::size_t visualTarget = static_cast<std::size_t>(readDoubleEnv(
+    "DJERD_RENDERED_CARRIER_VISUAL_TARGET", 100.0, 0.0, 1'000'000.0));
+  const int rounds = static_cast<int>(readDoubleEnv(
+    "DJERD_RENDERED_CARRIER_NODE_CLEAR_ROUNDS", 6.0, 1.0, 16.0));
+  const int directions = static_cast<int>(readDoubleEnv(
+    "DJERD_RENDERED_CARRIER_NODE_CLEAR_DIRECTIONS", 24.0, 8.0, 64.0));
+  const double maxShift = readDoubleEnv(
+    "DJERD_RENDERED_CARRIER_NODE_CLEAR_MAX_SHIFT", 1200.0, 40.0, 12000.0);
+  const double bboxTargetB = readDoubleEnv(
+    "DJERD_RENDERED_CARRIER_NODE_CLEAR_BBOX_TARGET_B", 1.0, 0.0, 1000.0);
+  const double bboxTolerance = readDoubleEnv(
+    "DJERD_RENDERED_CARRIER_NODE_CLEAR_BBOX_TOLERANCE", 1.02, 1.0, 2.0);
+  constexpr double kCarrierNodeMargin = 8.0;
+
+  auto reroute = [&]() {
+    routes = routeAllEdgesStraight(edges, attributes);
+    recomputeLeafBundleBboxesFromNodes(metadata.leafBundles, nodes, attributes);
+  };
+  auto measure = [&]() {
+    std::vector<std::vector<std::string>> ignoredIdsByEdge;
+    std::size_t rawCrossings = 0;
+    (void)detectRouteCrossings(
+      edges, routes, ignoredIdsByEdge, rawCrossings);
+    LayoutQualityMetrics quality = measureLayoutQuality(
+      nodes,
+      edges,
+      routes,
+      attributes,
+      &metadata.leafBundles,
+      &metadata.clusterByModelId);
+    quality.edgeCrossings = rawCrossings;
+    if (!applyRenderedCarrierMetricsIfRequested(
+        nodes,
+        edges,
+        routes,
+        attributes,
+        clusterByModelIdFull,
+        metadata,
+        quality,
+        rawCrossings,
+        true)) {
+      quality.visualCrossings =
+        quality.edgeCrossings
+        + quality.edgeNodeIntersections
+        + quality.nodeOverlaps
+        + quality.bundleEdgeIntersections
+        + quality.bundleNodeOverlaps;
+    }
+    return quality;
+  };
+
+  reroute();
+  LayoutQualityMetrics currentQuality = measure();
+  const LayoutQualityMetrics initialQuality = currentQuality;
+  if (currentQuality.edgeNodeIntersections <= edgeNodeTarget) {
+    return false;
+  }
+
+  std::unordered_map<std::string, std::size_t> edgeIndexById;
+  edgeIndexById.reserve(edges.size());
+  for (std::size_t edgeIndex = 0; edgeIndex < edges.size(); ++edgeIndex) {
+    edgeIndexById[edges[edgeIndex].edgeId] = edgeIndex;
+  }
+  const std::unordered_set<std::string> leafTiles =
+    renderedLeafTileIds(metadata.leafBundles);
+
+  struct CarrierNodeClearPath {
+    std::vector<RoutePoint> points;
+    std::unordered_set<std::string> endpointModelIds;
+  };
+  auto buildCarrierPaths = [&]() {
+    std::vector<CarrierNodeClearPath> paths;
+    paths.reserve(metadata.renderedCarrierRoutes.size());
+    for (const RenderedCarrierRouteRecord& carrier
+         : metadata.renderedCarrierRoutes) {
+      if (carrier.points.size() < 2) continue;
+      CarrierNodeClearPath path;
+      path.points = carrier.points;
+      for (const std::string& edgeId : carrier.memberEdgeIds) {
+        auto edgeIt = edgeIndexById.find(edgeId);
+        if (edgeIt == edgeIndexById.end()) continue;
+        path.endpointModelIds.insert(
+          edges[edgeIt->second].sourceModelId);
+        path.endpointModelIds.insert(
+          edges[edgeIt->second].targetModelId);
+      }
+      if (carrier.carrierId.size() > 2 && carrier.carrierId[0] == 'B') {
+        const std::size_t separator = carrier.carrierId.find('|');
+        if (separator != std::string::npos) {
+          try {
+            const std::size_t bundleIndex = static_cast<std::size_t>(
+              std::stoull(carrier.carrierId.substr(1, separator - 1)));
+            if (bundleIndex < metadata.leafBundles.size()) {
+              const LeafBundleRecord& bundle =
+                metadata.leafBundles[bundleIndex];
+              path.endpointModelIds.insert(bundle.parentModelId);
+              for (const std::string& leaf : bundle.leafModelIds) {
+                path.endpointModelIds.insert(leaf);
+              }
+              for (const std::string& root : bundle.sharedRootModelIds) {
+                path.endpointModelIds.insert(root);
+              }
+            }
+          } catch (const std::exception&) {
+          }
+        }
+      }
+      paths.push_back(std::move(path));
+    }
+    return paths;
+  };
+
+  auto rectAt = [&](std::size_t nodeIndex, double centerX, double centerY) {
+    const NodeRecord& node = nodes[nodeIndex];
+    const double halfWidth = attributes.width(node.handle) / 2.0;
+    const double halfHeight = attributes.height(node.handle) / 2.0;
+    return Rect{
+      centerY + halfHeight,
+      centerX - halfWidth,
+      centerX + halfWidth,
+      centerY - halfHeight,
+    };
+  };
+  auto expandedRect = [](const Rect& rect, double margin) {
+    return Rect{
+      rect.bottom + margin,
+      rect.left - margin,
+      rect.right + margin,
+      rect.top - margin,
+    };
+  };
+
+  std::size_t acceptedMoves = 0;
+  int completedRounds = 0;
+  for (
+      int round = 0;
+      round < rounds
+        && currentQuality.edgeNodeIntersections > edgeNodeTarget;
+      ++round) {
+    const std::vector<CarrierNodeClearPath> carrierPaths = buildCarrierPaths();
+    if (carrierPaths.empty()) break;
+
+    struct HitSegment {
+      RoutePoint start;
+      RoutePoint end;
+    };
+    std::vector<std::vector<HitSegment>> hitsByNode(nodes.size());
+    for (const CarrierNodeClearPath& path : carrierPaths) {
+      for (std::size_t nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex) {
+        const NodeRecord& node = nodes[nodeIndex];
+        if (
+            leafTiles.count(node.modelId)
+            || path.endpointModelIds.count(node.modelId)) {
+          continue;
+        }
+        const Rect obstacle = nodeRect(
+          node, attributes, kCarrierNodeMargin);
+        for (std::size_t pointIndex = 1;
+             pointIndex < path.points.size(); ++pointIndex) {
+          if (segmentIntersectsRect(
+              path.points[pointIndex - 1],
+              path.points[pointIndex],
+              obstacle)) {
+            hitsByNode[nodeIndex].push_back({
+              path.points[pointIndex - 1],
+              path.points[pointIndex],
+            });
+          }
+        }
+      }
+    }
+
+    std::vector<std::pair<std::size_t, std::size_t>> blockerOrder;
+    for (std::size_t nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex) {
+      if (!hitsByNode[nodeIndex].empty()) {
+        blockerOrder.push_back({hitsByNode[nodeIndex].size(), nodeIndex});
+      }
+    }
+    std::sort(
+      blockerOrder.begin(),
+      blockerOrder.end(),
+      [&](const auto& left, const auto& right) {
+        if (left.first != right.first) return left.first > right.first;
+        return nodes[left.second].modelId < nodes[right.second].modelId;
+      });
+    if (blockerOrder.empty()) break;
+
+    std::vector<std::pair<double, double>> savedPositions;
+    savedPositions.reserve(nodes.size());
+    for (const NodeRecord& node : nodes) {
+      savedPositions.emplace_back(
+        attributes.x(node.handle), attributes.y(node.handle));
+    }
+    const std::vector<std::vector<RoutePoint>> savedRoutes = routes;
+    const LayoutRunMetadata savedMetadata = metadata;
+    const Rect settledBounds = graphNodeBounds(nodes, attributes);
+
+    auto candidateHasClearance = [&](std::size_t movingIndex, const Rect& candidate) {
+      const Rect expandedCandidate = expandForRenderedNodeClearance(candidate);
+      for (std::size_t otherIndex = 0;
+           otherIndex < nodes.size(); ++otherIndex) {
+        if (
+            otherIndex == movingIndex
+            || leafTiles.count(nodes[otherIndex].modelId)) {
+          continue;
+        }
+        if (rectsOverlap(
+            expandedCandidate,
+            expandForRenderedNodeClearance(
+              nodeRect(nodes[otherIndex], attributes)))) {
+          return false;
+        }
+      }
+      for (const LeafBundleRecord& bundle : metadata.leafBundles) {
+        if (rectsOverlap(
+            expandedCandidate,
+            expandForRenderedNodeClearance(
+              renderedLeafBundleRect(bundle)))) {
+          return false;
+        }
+      }
+      return true;
+    };
+    auto candidateHitCount = [&]
+        (std::size_t movingIndex, const Rect& rawCandidate) {
+      const Rect candidate = expandedRect(
+        rawCandidate, kCarrierNodeMargin);
+      std::size_t hits = 0;
+      for (const CarrierNodeClearPath& path : carrierPaths) {
+        if (path.endpointModelIds.count(nodes[movingIndex].modelId)) continue;
+        for (std::size_t pointIndex = 1;
+             pointIndex < path.points.size(); ++pointIndex) {
+          if (segmentIntersectsRect(
+              path.points[pointIndex - 1],
+              path.points[pointIndex],
+              candidate)) {
+            ++hits;
+          }
+        }
+      }
+      return hits;
+    };
+
+    std::size_t movedThisRound = 0;
+    for (const auto& ranked : blockerOrder) {
+      const std::size_t nodeIndex = ranked.second;
+      const NodeRecord& node = nodes[nodeIndex];
+      const double originX = attributes.x(node.handle);
+      const double originY = attributes.y(node.handle);
+      const Rect originRect = rectAt(nodeIndex, originX, originY);
+      const std::size_t originHits =
+        candidateHitCount(nodeIndex, originRect);
+      if (originHits == 0) continue;
+
+      struct PositionCandidate {
+        double x;
+        double y;
+      };
+      std::vector<PositionCandidate> candidates;
+      candidates.reserve(
+        hitsByNode[nodeIndex].size() * 4
+        + static_cast<std::size_t>(directions) * 7);
+      auto addCandidate = [&](double x, double y) {
+        const double dx = x - originX;
+        const double dy = y - originY;
+        if (dx * dx + dy * dy > maxShift * maxShift + 1e-6) return;
+        const Rect candidateRect = rectAt(nodeIndex, x, y);
+        // Do not expand an already compliant BBOX just to clear a carrier.
+        if (
+            candidateRect.left < settledBounds.left - 1e-6
+            || candidateRect.right > settledBounds.right + 1e-6
+            || candidateRect.top < settledBounds.top - 1e-6
+            || candidateRect.bottom > settledBounds.bottom + 1e-6) {
+          return;
+        }
+        candidates.push_back({x, y});
+      };
+
+      const double halfWidth = attributes.width(node.handle) / 2.0;
+      const double halfHeight = attributes.height(node.handle) / 2.0;
+      for (const HitSegment& hit : hitsByNode[nodeIndex]) {
+        const double dx = hit.end.x - hit.start.x;
+        const double dy = hit.end.y - hit.start.y;
+        const double length = std::hypot(dx, dy);
+        if (length < 1e-6) continue;
+        const double nx = -dy / length;
+        const double ny = dx / length;
+        const double signedDistance =
+          (originX - hit.start.x) * nx
+          + (originY - hit.start.y) * ny;
+        const double projectedRadius =
+          std::abs(nx) * (halfWidth + kCarrierNodeMargin)
+          + std::abs(ny) * (halfHeight + kCarrierNodeMargin)
+          + 2.0;
+        for (const double sign : {-1.0, 1.0}) {
+          const double shift = sign * projectedRadius - signedDistance;
+          addCandidate(originX + nx * shift, originY + ny * shift);
+          addCandidate(
+            originX + nx * shift * 1.35,
+            originY + ny * shift * 1.35);
+        }
+      }
+
+      const double baseRadius = std::max({
+        80.0,
+        halfWidth + kPostLayoutNodeGapX + kCarrierNodeMargin,
+        halfHeight + kPostLayoutNodeGapY + kCarrierNodeMargin,
+      });
+      const std::vector<double> radiusFactors = {
+        1.0, 1.5, 2.25, 3.25, 4.5, 6.0, 8.0,
+      };
+      constexpr double kPi = 3.14159265358979323846;
+      for (const double factor : radiusFactors) {
+        const double radius = std::min(maxShift, baseRadius * factor);
+        for (int direction = 0; direction < directions; ++direction) {
+          const double angle = 2.0 * kPi
+            * static_cast<double>(direction)
+            / static_cast<double>(directions);
+          addCandidate(
+            originX + std::cos(angle) * radius,
+            originY + std::sin(angle) * radius);
+        }
+      }
+
+      std::size_t bestHits = originHits;
+      double bestDistanceSquared = std::numeric_limits<double>::infinity();
+      PositionCandidate best{originX, originY};
+      for (const PositionCandidate& candidate : candidates) {
+        const Rect candidateRect = rectAt(
+          nodeIndex, candidate.x, candidate.y);
+        if (!candidateHasClearance(nodeIndex, candidateRect)) continue;
+        const std::size_t hits =
+          candidateHitCount(nodeIndex, candidateRect);
+        const double dx = candidate.x - originX;
+        const double dy = candidate.y - originY;
+        const double distanceSquared = dx * dx + dy * dy;
+        if (
+            hits < bestHits
+            || (hits == bestHits
+                && distanceSquared < bestDistanceSquared)) {
+          bestHits = hits;
+          bestDistanceSquared = distanceSquared;
+          best = candidate;
+        }
+      }
+      if (bestHits >= originHits) continue;
+      attributes.x(node.handle) = best.x;
+      attributes.y(node.handle) = best.y;
+      ++movedThisRound;
+    }
+
+    if (movedThisRound == 0) break;
+    reroute();
+    const LayoutQualityMetrics candidateQuality = measure();
+    const bool edgeNodeImproved =
+      candidateQuality.edgeNodeIntersections
+        < currentQuality.edgeNodeIntersections;
+    const bool visualOk =
+      candidateQuality.visualCrossings <= visualTarget;
+    const bool overlapOk =
+      candidateQuality.nodeOverlaps <= currentQuality.nodeOverlaps
+      && candidateQuality.bundleNodeOverlaps
+        <= currentQuality.bundleNodeOverlaps
+      && candidateQuality.nodeSpacingOverlaps
+        <= currentQuality.nodeSpacingOverlaps;
+    const bool bboxOk =
+      (bboxTargetB <= 0.0
+       || candidateQuality.boundingBoxArea
+          <= bboxTargetB * 1e9 * bboxTolerance)
+      && (currentQuality.boundingBoxArea <= 0.0
+          || candidateQuality.boundingBoxArea
+             <= currentQuality.boundingBoxArea * bboxTolerance);
+    const bool bendOk = candidateQuality.edgeBendTotal <= 1e-6;
+    if (!(edgeNodeImproved && visualOk && overlapOk && bboxOk && bendOk)) {
+      for (std::size_t nodeIndex = 0;
+           nodeIndex < nodes.size() && nodeIndex < savedPositions.size();
+           ++nodeIndex) {
+        attributes.x(nodes[nodeIndex].handle) = savedPositions[nodeIndex].first;
+        attributes.y(nodes[nodeIndex].handle) = savedPositions[nodeIndex].second;
+      }
+      routes = savedRoutes;
+      metadata = savedMetadata;
+      break;
+    }
+    currentQuality = candidateQuality;
+    acceptedMoves += movedThisRound;
+    ++completedRounds;
+  }
+
+  std::fprintf(stderr,
+    "[rendered-carrier-node-clear-final] moved=%zu rounds=%d/%d, "
+    "visual=%zu->%zu/%zu edgeCross=%zu->%zu edgeNode=%zu->%zu/%zu "
+    "bundleEdge=%zu->%zu bundleNode=%zu->%zu spacing=%zu->%zu "
+    "bbox=%.3fB->%.3fB bend=%.2f->%.2f.\n",
+    acceptedMoves,
+    completedRounds,
+    rounds,
+    initialQuality.visualCrossings,
+    currentQuality.visualCrossings,
+    visualTarget,
+    initialQuality.edgeCrossings,
+    currentQuality.edgeCrossings,
+    initialQuality.edgeNodeIntersections,
+    currentQuality.edgeNodeIntersections,
+    edgeNodeTarget,
+    initialQuality.bundleEdgeIntersections,
+    currentQuality.bundleEdgeIntersections,
+    initialQuality.bundleNodeOverlaps,
+    currentQuality.bundleNodeOverlaps,
+    initialQuality.nodeSpacingOverlaps,
+    currentQuality.nodeSpacingOverlaps,
+    initialQuality.boundingBoxArea / 1e9,
+    currentQuality.boundingBoxArea / 1e9,
+    initialQuality.edgeBendTotal,
+    currentQuality.edgeBendTotal);
+  return acceptedMoves > 0;
 }
 
 bool applyFinalCarrierMetricsIfRequested(
@@ -13365,6 +14021,13 @@ int main(int argc, char** argv) {
           currentQuality.boundingBoxArea / 1e9);
       }
 
+      (void)clearRenderedCarrierNodeIntersectionsIfRequested(
+        nodes,
+        edges,
+        routes,
+        attributes,
+        clusterByModelIdFull,
+        metadata);
       repairCanonicalRouteObstaclesIfRequested(
         nodes, edges, routes, attributes, clusterByModelIdFull, metadata);
       std::vector<std::vector<std::string>> crossingIdsByEdge;
@@ -24270,6 +24933,19 @@ int main(int argc, char** argv) {
           }
         }
       }
+    }
+
+    // Clearance repair can shift a table onto an otherwise clean semantic
+    // carrier. Remove those final, actually rendered penetrations only after
+    // every other placement-changing pass has settled.
+    if (straightLineMode) {
+      (void)clearRenderedCarrierNodeIntersectionsIfRequested(
+        nodes,
+        edges,
+        routes,
+        attributes,
+        clusterByModelIdFull,
+        metadata);
     }
 
     repairCanonicalRouteObstaclesIfRequested(
