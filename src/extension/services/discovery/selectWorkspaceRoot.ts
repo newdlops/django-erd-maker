@@ -4,13 +4,38 @@ import type {
   DiscoveryDiagnostic,
   WorkspaceRootSelection,
 } from "./discoveryTypes";
-import { findFilesNamed } from "./pathScanner";
+import {
+  scanDirectoryTree,
+  scanImmediateChildren,
+  type ScannedDirectory,
+} from "./pathScanner";
+
+export interface WorkspaceRootSelectionResult extends WorkspaceRootSelection {
+  directorySnapshot?: ScannedDirectory[];
+}
 
 export async function selectWorkspaceRoot(
   workspacePath: string,
-): Promise<WorkspaceRootSelection> {
+): Promise<WorkspaceRootSelectionResult> {
   const diagnostics: DiscoveryDiagnostic[] = [];
-  const managePyFiles = await findFilesNamed(workspacePath, "manage.py");
+  const rootManagePyPath = path.join(workspacePath, "manage.py");
+
+  // A manage.py at the opened root is necessarily the shallowest candidate.
+  // Avoid walking a large monorepo merely to rediscover that deterministic
+  // answer.
+  const rootEntries = await scanImmediateChildren(workspacePath);
+  if (rootEntries.files.includes(rootManagePyPath)) {
+    return {
+      diagnostics,
+      selectedRoot: workspacePath,
+      strategy: "manage_py",
+    };
+  }
+
+  const directorySnapshot = await scanDirectoryTree(workspacePath);
+  const managePyFiles = directorySnapshot.flatMap((entry) =>
+    entry.files.filter((filePath) => path.basename(filePath) === "manage.py")
+  );
 
   if (managePyFiles.length === 0) {
     diagnostics.push({
@@ -21,6 +46,7 @@ export async function selectWorkspaceRoot(
     });
 
     return {
+      directorySnapshot,
       diagnostics,
       selectedRoot: workspacePath,
       strategy: "workspace_fallback",
@@ -48,6 +74,7 @@ export async function selectWorkspaceRoot(
   }
 
   return {
+    directorySnapshot,
     diagnostics,
     selectedRoot: candidateRoots[0],
     strategy: "manage_py",

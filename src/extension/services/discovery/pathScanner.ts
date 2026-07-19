@@ -25,6 +25,10 @@ export interface ScanDirectoryResult {
   files: string[];
 }
 
+export interface ScannedDirectory extends ScanDirectoryResult {
+  directoryPath: string;
+}
+
 interface DirectoryEntry {
   isDirectory(): boolean;
   isFile(): boolean;
@@ -69,14 +73,40 @@ export async function findFilesNamed(
 }
 
 export async function scanDirectories(rootPath: string): Promise<string[]> {
-  const directories: string[] = [];
-  await walkDirectoryTree(rootPath, (currentDirectory) => {
-    directories.push(currentDirectory);
+  return (await scanDirectoryTree(rootPath)).map((entry) => entry.directoryPath);
+}
+
+/**
+ * Captures every directory and its immediate entries in one filesystem walk.
+ * Discovery previously discarded these entries and then called readdir again
+ * for every directory (and a third time for each models package).
+ */
+export async function scanDirectoryTree(rootPath: string): Promise<ScannedDirectory[]> {
+  const results: ScannedDirectory[] = [];
+  await walkDirectoryTree(rootPath, (currentDirectory, entries) => {
+    const directories: string[] = [];
+    const files: string[] = [];
+
+    for (const entry of entries) {
+      const entryPath = path.join(currentDirectory, entry.name);
+      if (entry.isDirectory()) {
+        directories.push(entryPath);
+      } else if (entry.isFile()) {
+        files.push(entryPath);
+      }
+    }
+
+    directories.sort();
+    files.sort();
+    results.push({
+      directories,
+      directoryPath: currentDirectory,
+      files,
+    });
   });
 
-  directories.sort();
-
-  return directories;
+  results.sort((left, right) => left.directoryPath.localeCompare(right.directoryPath));
+  return results;
 }
 
 export async function scanImmediateChildren(

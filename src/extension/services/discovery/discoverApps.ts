@@ -1,13 +1,10 @@
-import { access } from "node:fs/promises";
 import path from "node:path";
 
 import type {
   DiscoveredDjangoApp,
   DiscoveryDiagnostic,
 } from "./discoveryTypes";
-import { collectPythonFiles, scanDirectories, scanImmediateChildren } from "./pathScanner";
-
-const APP_DISCOVERY_CONCURRENCY = 32;
+import { scanDirectoryTree, type ScannedDirectory } from "./pathScanner";
 
 export interface DiscoverAppsResult {
   apps: DiscoveredDjangoApp[];
@@ -16,41 +13,44 @@ export interface DiscoverAppsResult {
 
 export async function discoverApps(
   selectedRoot: string,
+  existingSnapshot?: ScannedDirectory[],
 ): Promise<DiscoverAppsResult> {
   const diagnostics: DiscoveryDiagnostic[] = [];
   const apps: DiscoveredDjangoApp[] = [];
-  const directories = await scanDirectories(selectedRoot);
-
-  const candidateDirectories = directories.filter(
-    (directoryPath) => path.basename(directoryPath) !== "models",
+  const directorySnapshot = existingSnapshot
+    ? existingSnapshot.filter((entry) => isPathWithin(selectedRoot, entry.directoryPath))
+    : await scanDirectoryTree(selectedRoot);
+  const snapshotByPath = new Map(
+    directorySnapshot.map((entry) => [entry.directoryPath, entry] as const),
+  );
+  if (!existingSnapshot) {
+    const managePyFiles = directorySnapshot.flatMap((entry) =>
+      entry.files.filter((filePath) => path.basename(filePath) === "manage.py")
+    );
+    if (managePyFiles.length > 1) {
+      diagnostics.push({
+        code: "multiple_manage_py_roots",
+        message: `Multiple manage.py roots were found. Using ${toPosixPath(selectedRoot)}.`,
+        severity: "warning",
+      });
+    }
+  }
+  const candidateDirectories = directorySnapshot.filter(
+    (entry) => path.basename(entry.directoryPath) !== "models",
   );
 
-  for (
-    let batchStart = 0;
-    batchStart < candidateDirectories.length;
-    batchStart += APP_DISCOVERY_CONCURRENCY
-  ) {
-    const batch = candidateDirectories.slice(
-      batchStart,
-      batchStart + APP_DISCOVERY_CONCURRENCY,
+  for (const directory of candidateDirectories) {
+    const appDiagnostics: DiscoveryDiagnostic[] = [];
+    const app = maybeDiscoverApp(
+      directory,
+      selectedRoot,
+      directorySnapshot,
+      snapshotByPath,
+      appDiagnostics,
     );
-    const batchResults = await Promise.all(
-      batch.map(async (directoryPath) => {
-        const appDiagnostics: DiscoveryDiagnostic[] = [];
-        const app = await maybeDiscoverApp(
-          directoryPath,
-          selectedRoot,
-          appDiagnostics,
-        );
-        return { app, diagnostics: appDiagnostics };
-      }),
-    );
-
-    for (const result of batchResults) {
-      diagnostics.push(...result.diagnostics);
-      if (result.app) {
-        apps.push(result.app);
-      }
+    diagnostics.push(...appDiagnostics);
+    if (app) {
+      apps.push(app);
     }
   }
 
@@ -71,12 +71,14 @@ export async function discoverApps(
   };
 }
 
-async function maybeDiscoverApp(
-  directoryPath: string,
+function maybeDiscoverApp(
+  scanResult: ScannedDirectory,
   selectedRoot: string,
+  directorySnapshot: ScannedDirectory[],
+  snapshotByPath: Map<string, ScannedDirectory>,
   diagnostics: DiscoveryDiagnostic[],
-): Promise<DiscoveredDjangoApp | undefined> {
-  const scanResult = await scanImmediateChildren(directoryPath);
+): DiscoveredDjangoApp | undefined {
+  const directoryPath = scanResult.directoryPath;
   const hasAppConfig = scanResult.files.some(
     (filePath) => path.basename(filePath) === "apps.py",
   );
@@ -92,10 +94,13 @@ async function maybeDiscoverApp(
     return undefined;
   }
 
-  const candidateModelFiles = await collectCandidateModelFiles(
+  const candidateModelFiles = collectCandidateModelFiles(
     directoryPath,
     modelsPackagePath,
     selectedRoot,
+    scanResult,
+    directorySnapshot,
+    snapshotByPath,
     diagnostics,
   );
 
@@ -117,16 +122,19 @@ async function maybeDiscoverApp(
   };
 }
 
-async function collectCandidateModelFiles(
+function collectCandidateModelFiles(
   appDirectoryPath: string,
   modelsPackagePath: string | undefined,
   selectedRoot: string,
+  appScan: ScannedDirectory,
+  directorySnapshot: ScannedDirectory[],
+  snapshotByPath: Map<string, ScannedDirectory>,
   diagnostics: DiscoveryDiagnostic[],
-): Promise<string[]> {
+): string[] {
   const candidateFiles: string[] = [];
   const modelsPyPath = path.join(appDirectoryPath, "models.py");
 
-  if (await pathExists(modelsPyPath)) {
+  if (appScan.files.includes(modelsPyPath)) {
     candidateFiles.push(toRelativePosixPath(selectedRoot, modelsPyPath));
   }
 
@@ -135,8 +143,9 @@ async function collectCandidateModelFiles(
   }
 
   const modelsInitPath = path.join(modelsPackagePath, "__init__.py");
+  const modelsPackageScan = snapshotByPath.get(modelsPackagePath);
 
-  if (!(await pathExists(modelsInitPath))) {
+  if (!modelsPackageScan?.files.includes(modelsInitPath)) {
     diagnostics.push({
       code: "models_package_missing_init",
       message: `Models package ${toRelativePosixPath(selectedRoot, modelsPackagePath)} is missing __init__.py.`,
@@ -146,7 +155,11 @@ async function collectCandidateModelFiles(
     return candidateFiles.sort();
   }
 
-  const modelModuleFiles = await collectPythonFiles(modelsPackagePath);
+  const modelModuleFiles = directorySnapshot.flatMap((entry) =>
+    isPathWithin(modelsPackagePath, entry.directoryPath)
+      ? entry.files.filter((filePath) => filePath.endsWith(".py"))
+      : []
+  );
 
   for (const filePath of modelModuleFiles) {
     if (!isCandidateModelModuleFile(modelsPackagePath, filePath)) {
@@ -161,13 +174,11 @@ async function collectCandidateModelFiles(
   return candidateFiles;
 }
 
-async function pathExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
+function isPathWithin(rootPath: string, candidatePath: string): boolean {
+  const relativePath = path.relative(rootPath, candidatePath);
+  return relativePath === ""
+    || (!relativePath.startsWith(`..${path.sep}`)
+      && relativePath !== "..");
 }
 
 function toPosixPath(filePath: string): string {

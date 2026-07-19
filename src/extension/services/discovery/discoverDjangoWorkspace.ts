@@ -10,7 +10,10 @@ export async function discoverDjangoWorkspace(
   const rootSelection = await selectWorkspaceRoot(workspacePath);
   const rootSelectionMs = Date.now() - rootSelectionStart;
   const appDiscoveryStart = Date.now();
-  const appDiscovery = await discoverApps(rootSelection.selectedRoot);
+  const appDiscovery = await discoverApps(
+    rootSelection.selectedRoot,
+    rootSelection.directorySnapshot,
+  );
   const appDiscoveryMs = Date.now() - appDiscoveryStart;
   const candidateModulesStart = Date.now();
   const candidateModules = await discoverCandidateModules(
