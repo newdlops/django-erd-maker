@@ -65,14 +65,7 @@ export function getBrowserRenderSource(): string {
         }
 
         function dispatch(action) {
-          const wasAdaptiveDetail =
-            detailEdgeMeta.length > 0 && state.viewport.zoom >= adaptiveDetailZoom;
           state = reduceState(state, action);
-          const isAdaptiveDetail =
-            detailEdgeMeta.length > 0 && state.viewport.zoom >= adaptiveDetailZoom;
-          if (wasAdaptiveDetail !== isAdaptiveDetail) {
-            invalidateSceneGraph();
-          }
           if (
             action.type === "set-viewport-pan" ||
             action.type === "set-viewport-zoom" ||

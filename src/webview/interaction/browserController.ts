@@ -103,12 +103,8 @@ ${getBrowserLayoutSource()}
           targetModelId: edge.targetModelId || "",
         });
         const edgeMeta = (renderModel.edges || []).map(readEdgeMeta);
-        const detailEdgeMeta = (renderModel.detailEdges || []).map(readEdgeMeta);
-        const adaptiveDetailZoom = 0.65;
         function getActiveEdgeMeta() {
-          return detailEdgeMeta.length > 0 && state.viewport.zoom >= adaptiveDetailZoom
-            ? detailEdgeMeta
-            : edgeMeta;
+          return edgeMeta;
         }
         const tableMetaList = (renderModel.tables || []).map((table) => readTableMeta(table));
         const layoutVariants = createLayoutVariants(tableMetaList);
@@ -161,7 +157,6 @@ ${getBrowserTestSource()}
 
         logErd("info", "webview.bootstrap", {
           edges: edgeMeta.length,
-          detailEdges: detailEdgeMeta.length,
           layoutMode: state.layoutMode,
           renderer: "detecting",
           tables: tableMetaList.length,

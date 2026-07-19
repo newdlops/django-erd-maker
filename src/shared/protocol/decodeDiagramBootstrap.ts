@@ -11,6 +11,7 @@ import {
   type LeafBundle,
   type NodeLayout,
   type Point,
+  type RenderedCarrierRoute,
   type RoutedEdgePath,
   type Size,
   type TopCrossEdge,
@@ -261,46 +262,6 @@ function decodeLayoutEngineMetadata(
   }
 
   return {
-    adaptiveCarrierBaseEdges: readOptionalNumber(
-      metadata,
-      "adaptiveCarrierBaseEdges",
-      `${context}.engineMetadata`,
-    ),
-    adaptiveCarrierGrid: readOptionalNumber(
-      metadata,
-      "adaptiveCarrierGrid",
-      `${context}.engineMetadata`,
-    ),
-    adaptiveCarrierMaxX: readOptionalNumber(
-      metadata,
-      "adaptiveCarrierMaxX",
-      `${context}.engineMetadata`,
-    ),
-    adaptiveCarrierMaxY: readOptionalNumber(
-      metadata,
-      "adaptiveCarrierMaxY",
-      `${context}.engineMetadata`,
-    ),
-    adaptiveCarrierMinX: readOptionalNumber(
-      metadata,
-      "adaptiveCarrierMinX",
-      `${context}.engineMetadata`,
-    ),
-    adaptiveCarrierMinY: readOptionalNumber(
-      metadata,
-      "adaptiveCarrierMinY",
-      `${context}.engineMetadata`,
-    ),
-    adaptiveCarrierTarget: readOptionalNumber(
-      metadata,
-      "adaptiveCarrierTarget",
-      `${context}.engineMetadata`,
-    ),
-    adaptiveCarrierVisibleEdges: readOptionalNumber(
-      metadata,
-      "adaptiveCarrierVisibleEdges",
-      `${context}.engineMetadata`,
-    ),
     actualAlgorithm: readOptionalString(metadata, "actualAlgorithm", `${context}.engineMetadata`),
     actualMode: readOptionalLayoutMode(metadata, "actualMode", `${context}.engineMetadata`),
     aspectRatio: readOptionalNumber(metadata, "aspectRatio", `${context}.engineMetadata`),
@@ -327,10 +288,16 @@ function decodeLayoutEngineMetadata(
     ),
     leafBundles: decodeLeafBundles(metadata, `${context}.engineMetadata`),
     meanEdgeLength: readOptionalNumber(metadata, "meanEdgeLength", `${context}.engineMetadata`),
+    nodeClearanceMin: readOptionalNumber(metadata, "nodeClearanceMin", `${context}.engineMetadata`),
+    nodeClearanceTarget: readOptionalNumber(metadata, "nodeClearanceTarget", `${context}.engineMetadata`),
     nodeOverlaps: readOptionalNumber(metadata, "nodeOverlaps", `${context}.engineMetadata`),
     nodeSpacingOverlaps: readOptionalNumber(metadata, "nodeSpacingOverlaps", `${context}.engineMetadata`),
     overlappingEdges: readOptionalNumber(metadata, "overlappingEdges", `${context}.engineMetadata`),
     rawRouteCrossings: readOptionalNumber(metadata, "rawRouteCrossings", `${context}.engineMetadata`),
+    renderedCarrierRoutes: decodeRenderedCarrierRoutes(
+      metadata,
+      `${context}.engineMetadata`,
+    ),
     requestedAlgorithm: readOptionalString(metadata, "requestedAlgorithm", `${context}.engineMetadata`),
     requestedMode: readOptionalLayoutMode(metadata, "requestedMode", `${context}.engineMetadata`),
     routeSegments: readOptionalNumber(metadata, "routeSegments", `${context}.engineMetadata`),
@@ -361,6 +328,33 @@ function decodeLayoutEngineMetadata(
     topCrossEdges: decodeTopCrossEdges(metadata, `${context}.engineMetadata`),
     clusterByModelId: decodeClusterByModelId(metadata, `${context}.engineMetadata`),
   };
+}
+
+function decodeRenderedCarrierRoutes(
+  record: JsonRecord,
+  context: string,
+): RenderedCarrierRoute[] | undefined {
+  if (record.renderedCarrierRoutes === undefined) {
+    return undefined;
+  }
+  return readArray(record, "renderedCarrierRoutes", context).map((item, index) => {
+    const routeContext = `${context}.renderedCarrierRoutes[${index}]`;
+    const route = readRecord(item, routeContext);
+    const carrierId = readString(route, "carrierId", routeContext);
+    const memberEdgeIds = readStringArray(route, "memberEdgeIds", routeContext);
+    const points = readArray(route, "points", routeContext).map((point, pointIndex) =>
+      decodePoint(
+        readRecord(point, `${routeContext}.points[${pointIndex}]`),
+        `${routeContext}.points[${pointIndex}]`,
+      ),
+    );
+    if (carrierId.length === 0 || memberEdgeIds.length < 1 || points.length < 2) {
+      throw new Error(
+        `${routeContext} must contain a carrierId, at least one member, and at least two points.`,
+      );
+    }
+    return { carrierId, memberEdgeIds, points };
+  });
 }
 
 function decodeCanonicalCrossing(

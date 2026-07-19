@@ -485,15 +485,15 @@ export interface CanonicalCrossingMetadata {
   selfIntersections?: number;
 }
 
+export interface RenderedCarrierRoute {
+  carrierId: string;
+  // Grouped carriers list every represented relationship. A singleton route
+  // stores an optimized straight boundary-port choice for one visible edge.
+  memberEdgeIds: string[];
+  points: Point[];
+}
+
 export interface LayoutEngineMetadata {
-  adaptiveCarrierBaseEdges?: number;
-  adaptiveCarrierGrid?: number;
-  adaptiveCarrierMaxX?: number;
-  adaptiveCarrierMaxY?: number;
-  adaptiveCarrierMinX?: number;
-  adaptiveCarrierMinY?: number;
-  adaptiveCarrierTarget?: number;
-  adaptiveCarrierVisibleEdges?: number;
   actualAlgorithm?: string;
   actualMode?: LayoutMode;
   aspectRatio?: number;
@@ -512,10 +512,13 @@ export interface LayoutEngineMetadata {
   intraClusterCarrierGrouping?: boolean;
   leafBundles?: LeafBundle[];
   meanEdgeLength?: number;
+  nodeClearanceMin?: number;
+  nodeClearanceTarget?: number;
   nodeOverlaps?: number;
   nodeSpacingOverlaps?: number;
   overlappingEdges?: number;
   rawRouteCrossings?: number;
+  renderedCarrierRoutes?: RenderedCarrierRoute[];
   requestedAlgorithm?: string;
   requestedMode?: LayoutMode;
   routeSegments?: number;

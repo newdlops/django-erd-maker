@@ -487,9 +487,70 @@ export function getBrowserEventSource(): string {
         // "diagram.progress", positions: { modelId: [x, y] } }. Override node
         // positions so the user watches the layout improve; the fully-routed
         // final layout reloads the webview when the refresh completes.
+        function applyProgressSemanticRenderModel(preview) {
+          if (!preview || !Array.isArray(preview.edges)) {
+            return;
+          }
+
+          renderModel.edges = preview.edges.slice();
+          edgeMeta.splice(0, edgeMeta.length, ...preview.edges.map(readEdgeMeta));
+
+          if (Array.isArray(preview.tables)) {
+            renderModel.tables = preview.tables.slice();
+            tableMetaList.splice(
+              0,
+              tableMetaList.length,
+              ...preview.tables.map((table) => readTableMeta(table)),
+            );
+            tableMetaById.clear();
+            tableRenderById.clear();
+            for (let index = 0; index < tableMetaList.length; index += 1) {
+              const meta = tableMetaList[index];
+              const table = preview.tables[index];
+              tableMetaById.set(meta.modelId, meta);
+              tableRenderById.set(meta.modelId, table);
+            }
+            const nextLayoutVariants = createLayoutVariants(tableMetaList);
+            for (const layoutMode of layoutModes) {
+              layoutVariants[layoutMode] = nextLayoutVariants[layoutMode] || {};
+            }
+          }
+
+          renderModel.bundleLeafTiles = Array.isArray(preview.bundleLeafTiles)
+            ? preview.bundleLeafTiles.slice()
+            : [];
+          renderModel.leafBundles = Array.isArray(preview.leafBundles)
+            ? preview.leafBundles.slice()
+            : [];
+          for (const fakeId of Object.keys(bundleLeavesByFakeIdRaw)) {
+            delete bundleLeavesByFakeIdRaw[fakeId];
+          }
+          for (const leafId of Object.keys(bundleLeafToFakeId)) {
+            delete bundleLeafToFakeId[leafId];
+          }
+          const nextBundles = preview.bundleLeavesByFakeId || {};
+          for (const fakeId of Object.keys(nextBundles)) {
+            const leaves = Array.isArray(nextBundles[fakeId])
+              ? nextBundles[fakeId].slice()
+              : [];
+            bundleLeavesByFakeIdRaw[fakeId] = leaves;
+            for (const leafId of leaves) {
+              bundleLeafToFakeId[leafId] = fakeId;
+            }
+          }
+          renderModel.bundleLeavesByFakeId = bundleLeavesByFakeIdRaw;
+
+          logErd("info", "progress.semantic.applied", {
+            edges: edgeMeta.length,
+            leafBundles: renderModel.leafBundles.length,
+            tables: tableMetaList.length,
+          });
+        }
+
         window.addEventListener("message", function (event) {
           const msg = event && event.data;
           if (!msg || msg.type !== "diagram.progress" || !msg.positions) return;
+          applyProgressSemanticRenderModel(msg.semanticRenderModel);
           dispatch({ type: "apply-progress-positions", positions: msg.positions });
         });
         // -------------------------------------------------------------------

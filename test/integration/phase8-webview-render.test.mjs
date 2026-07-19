@@ -24,6 +24,10 @@ const renderModelModulePath = path.resolve(
   __dirname,
   "../../out/webview/state/createDiagramRenderModel.js",
 );
+const runOgdfLayoutModulePath = path.resolve(
+  __dirname,
+  "../../out/extension/services/layout/runOgdfLayout.js",
+);
 const sampleModulePath = path.resolve(
   __dirname,
   "../../out/extension/services/loadPhaseOneSample.js",
@@ -31,7 +35,14 @@ const sampleModulePath = path.resolve(
 const packageManifest = require(path.resolve(__dirname, "../../package.json"));
 const { OGDF_LAYOUT_TOOLBAR_DEFINITIONS } = require(layoutContractModulePath);
 const { decodeLayoutSnapshot } = require(protocolDecoderModulePath);
-const { createDiagramRenderModel } = require(renderModelModulePath);
+const {
+  createDiagramRenderModel,
+  measureRenderedTableClearance,
+} = require(renderModelModulePath);
+const {
+  measureLayoutRenderedTableClearance,
+  synchronizeLayoutNodeSizesWithRenderedTables,
+} = require(runOgdfLayoutModulePath);
 const { renderDiagramDocument } = require(renderModulePath);
 const { loadPhaseOneSample } = require(sampleModulePath);
 
@@ -94,7 +105,7 @@ test("phase8 document surfaces layout fallback state and disables failed layout 
   });
 
   assert.match(html, /Requested Planarization Layout/);
-  assert.match(html, /Applied FMMM Layout \(FM3\)/);
+  assert.match(html, /Applied Fast Multipole Embedder/);
   assert.match(html, /Fallback active/);
   assert.match(html, /Layout Failures/);
   assert.match(html, /Planarization Layout: native layout timed out after 20000ms/);
@@ -207,34 +218,49 @@ test("phase8 canvas scene keeps hidden table state in the JSON scene graph witho
   assert.doesNotMatch(html, /class="erd-table/);
 });
 
-test("phase8 document embeds adaptive detail edges for zoom LOD", () => {
+test("phase8 document embeds every semantic carrier in one zoom-independent set", () => {
   const payload = structuredClone(loadPhaseOneSample());
-  const minX = Math.min(...payload.layout.nodes.map((node) => node.position.x));
-  const minY = Math.min(...payload.layout.nodes.map((node) => node.position.y));
-  const maxX = Math.max(...payload.layout.nodes.map(
-    (node) => node.position.x + node.size.width,
-  ));
-  const maxY = Math.max(...payload.layout.nodes.map(
-    (node) => node.position.y + node.size.height,
-  ));
+  const expected = createDiagramRenderModel(payload);
+  const html = renderDiagramDocument(payload);
+  const embedded = readRenderModel(html);
+
+  assert.ok(expected.edges.length > 0);
+  assert.deepEqual(embedded.edges, expected.edges);
+  assert.equal(Object.hasOwn(embedded, "detailEdges"), false);
+  assert.doesNotMatch(html, /applyEdgeSegmentLod/);
+  assert.doesNotMatch(html, /GPU_EDGE_LOD/);
+  assert.doesNotMatch(html, /GPU_MAX_SEGMENTS_PER_FRAME/);
+});
+
+test("phase8 decoder preserves native-scored straight carrier geometry", () => {
+  const payload = structuredClone(loadPhaseOneSample());
   payload.layout.engineMetadata = {
     ...(payload.layout.engineMetadata ?? {}),
-    adaptiveCarrierBaseEdges: payload.layout.routedEdges.length,
-    adaptiveCarrierGrid: 1,
-    adaptiveCarrierMaxX: maxX,
-    adaptiveCarrierMaxY: maxY,
-    adaptiveCarrierMinX: minX,
-    adaptiveCarrierMinY: minY,
-    adaptiveCarrierTarget: 100,
-    adaptiveCarrierVisibleEdges: 1,
+    renderedCarrierRoutes: [{
+      carrierId: "H|cluster-a",
+      memberEdgeIds: ["edge-post-author", "edge-post-tags"],
+      points: [{ x: 120.5, y: 240.25 }, { x: 900.75, y: 480.5 }],
+    }],
   };
 
-  const expected = createDiagramRenderModel(payload);
-  const embedded = readRenderModel(renderDiagramDocument(payload));
+  const decoded = decodeLayoutSnapshot(payload.layout, "phase8CarrierGeometry");
+  assert.deepEqual(
+    decoded.engineMetadata?.renderedCarrierRoutes,
+    payload.layout.engineMetadata.renderedCarrierRoutes,
+  );
 
-  assert.ok(expected.detailEdges.length > 0);
-  assert.deepEqual(embedded.detailEdges, expected.detailEdges);
-  assert.deepEqual(embedded.edges, expected.edges);
+  const singleton = structuredClone(payload.layout);
+  singleton.engineMetadata.renderedCarrierRoutes[0].memberEdgeIds = ["edge-post-author"];
+  assert.doesNotThrow(
+    () => decodeLayoutSnapshot(singleton, "phase8SingletonCarrierGeometry"),
+  );
+
+  const malformed = structuredClone(payload.layout);
+  malformed.engineMetadata.renderedCarrierRoutes[0].memberEdgeIds = [];
+  assert.throws(
+    () => decodeLayoutSnapshot(malformed, "phase8MalformedCarrierGeometry"),
+    /at least one member/,
+  );
 });
 
 test("phase8 catalog mode expands high-degree tables for relation ports", () => {
@@ -260,6 +286,67 @@ test("phase8 catalog mode expands high-degree tables for relation ports", () => 
   assert.match(html, /diagnostic only/);
   assert.ok(hubSize.height > leafSize.height, "hub table should be taller than leaf tables");
   assert.ok(hubSize.width > leafSize.width, "hub table should be wider than leaf tables");
+});
+
+test("catalog layout input and clearance audit use the exact rendered bundle geometry", () => {
+  const payload = createCatalogPayload();
+  payload.layout.nodes.forEach((node, index) => {
+    node.position = { x: index * 1000, y: 0 };
+    node.size = { height: 76, width: 180 };
+  });
+  payload.layout.engineMetadata = {
+    leafBundles: [{
+      anchor: { x: 190, y: 217 },
+      bbox: { height: 10, width: 10, x: 185, y: 212 },
+      leafModelIds: Array.from(
+        { length: 39 },
+        (_, index) => `catalog.Leaf${index + 1}`,
+      ),
+      parentModelId: "catalog.Hub",
+      sharedRootModelIds: ["catalog.Hub"],
+    }],
+  };
+
+  const beforeSyncRenderModel = createDiagramRenderModel(payload);
+  const beforeSyncAudit = measureRenderedTableClearance(beforeSyncRenderModel);
+  assert.equal(
+    beforeSyncAudit.bundleNodeOverlaps,
+    1,
+    "the final canvas geometry should expose the hub/bundle collision",
+  );
+
+  const changed = synchronizeLayoutNodeSizesWithRenderedTables(payload);
+  assert.ok(changed > 0, "catalog dimensions should replace analyzer dimensions");
+  const synchronizedRenderModel = createDiagramRenderModel(payload);
+  const synchronizedTableById = new Map(
+    synchronizedRenderModel.tables.map((table) => [table.modelId, table]),
+  );
+  for (const node of payload.layout.nodes) {
+    assert.deepEqual(
+      node.size,
+      synchronizedTableById.get(node.modelId)?.size,
+      `native input size should match rendered size for ${node.modelId}`,
+    );
+  }
+  assert.deepEqual(
+    payload.layout.nodes.find((node) => node.modelId === "catalog.Hub")?.size,
+    { height: 378, width: 356 },
+  );
+  assert.equal(
+    synchronizeLayoutNodeSizesWithRenderedTables(payload),
+    0,
+    "render-size synchronization should be idempotent",
+  );
+
+  const layoutAudit = measureLayoutRenderedTableClearance(payload, payload.layout);
+  assert.equal(layoutAudit.bundleNodeOverlaps, 1);
+  assert.equal(layoutAudit.bundleBundleOverlaps, 0);
+  assert.equal(layoutAudit.nodeOverlaps, 0);
+  assert.equal(
+    layoutAudit.objectCount,
+    payload.layout.nodes.length - 39 + 1,
+    "nested leaf tiles should be represented by one synthetic bundle table",
+  );
 });
 
 test("phase8 browser runtime renders a GPU scene with minimap and viewport-aware culling", () => {
@@ -296,7 +383,10 @@ test("phase8 browser runtime renders a GPU scene with minimap and viewport-aware
   assert.match(html, /function createWebGpuTablePipeline\(device, format, commonBindGroupLayout\)/);
   assert.match(html, /function createWebGpuSegmentPipeline\(device, format, commonBindGroupLayout\)/);
   assert.match(html, /function createWebGpuSpritePipeline\(/);
-  assert.match(html, /function drawWebGpuScene\(renderer, segments, overlays, tables, labels\)/);
+  assert.match(
+    html,
+    /function drawWebGpuScene\(renderer, segments, overlays, tables, labels, leafBundles, leafTiles\)/,
+  );
   assert.match(html, /arrayStride: 48/);
   assert.match(html, /erdUniforms: ErdCommonUniforms/);
   assert.doesNotMatch(html, /var<uniform> common:/);
@@ -320,6 +410,12 @@ test("phase8 browser runtime renders a GPU scene with minimap and viewport-aware
   assert.match(html, /function updateMinimapViewportCursor\(metrics\)/);
   assert.match(html, /function getMinimapWorldPoint\(event\)/);
   assert.match(html, /function createViewportPanToWorldPointAction\(worldPoint\)/);
+  assert.match(html, /function applyProgressSemanticRenderModel\(preview\)/);
+  assert.match(html, /renderModel\.edges = preview\.edges\.slice\(\)/);
+  assert.match(
+    html,
+    /applyProgressSemanticRenderModel\(msg\.semanticRenderModel\);\s*dispatch\(\{ type: "apply-progress-positions"/,
+  );
   assert.match(html, /minimap\.addEventListener\("pointerdown"/);
   assert.match(html, /ResizeObserver/);
   assert.match(html, /function readEmbeddedJson\(element\)/);

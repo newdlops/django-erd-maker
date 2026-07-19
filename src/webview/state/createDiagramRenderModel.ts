@@ -18,8 +18,8 @@ import type {
   CanonicalCrossingMetadata,
   EdgeCrossing,
   LeafBundle,
-  LayoutEngineMetadata,
   Point,
+  RenderedCarrierRoute,
   RoutedEdgePath,
 } from "../../shared/graph/layoutContract";
 import type { StructuralGraphEdge, MethodAssociation } from "../../shared/graph/diagramGraph";
@@ -154,7 +154,6 @@ export interface DiagramRenderModel {
   canonicalCrossing?: CanonicalCrossingRenderModel;
   clusterOutlines: ClusterOutline[];
   crossings: EdgeCrossing[];
-  detailEdges: EdgeRenderModel[];
   edges: EdgeRenderModel[];
   inspector: InspectorRenderModel;
   layoutExecution: LayoutExecutionRenderModel;
@@ -166,6 +165,124 @@ export interface DiagramRenderModel {
   timings: DiagramBootstrapPayload["timings"];
   tables: TableRenderModel[];
   visualCrossings?: number;
+}
+
+export interface RenderedTableClearanceMetrics {
+  bboxArea: number;
+  bboxHeight: number;
+  bboxWidth: number;
+  bundleBundleOverlaps: number;
+  bundleNodeOverlaps: number;
+  minimum: number;
+  nodeOverlaps: number;
+  objectCount: number;
+  spacingViolations: number;
+}
+
+/**
+ * Measures the table rectangles that the canvas actually receives.
+ *
+ * Bundled leaf tables are intentionally nested inside their synthetic bundle
+ * table, so they are represented by that outer table for pairwise clearance.
+ * Bundle parents remain ordinary visible tables and are therefore included.
+ * The X/Y gaps mirror the native post-layout spacing contract.
+ */
+export function measureRenderedTableClearance(
+  renderModel: DiagramRenderModel,
+  gapX = 56,
+  gapY = 42,
+): RenderedTableClearanceMetrics {
+  const serializationTolerance = 0.01;
+  const syntheticBundleIds = new Set(Object.keys(renderModel.bundleLeavesByFakeId));
+  const bundledLeafIds = new Set(
+    Object.values(renderModel.bundleLeavesByFakeId).flat(),
+  );
+  const objects = renderModel.tables
+    .filter((table) => !bundledLeafIds.has(table.modelId))
+    .map((table) => ({
+      bottom: table.position.y + table.size.height,
+      bundle: syntheticBundleIds.has(table.modelId),
+      left: table.position.x,
+      right: table.position.x + table.size.width,
+      top: table.position.y,
+    }));
+
+  const metrics: RenderedTableClearanceMetrics = {
+    bboxArea: 0,
+    bboxHeight: 0,
+    bboxWidth: 0,
+    bundleBundleOverlaps: 0,
+    bundleNodeOverlaps: 0,
+    minimum: 0,
+    nodeOverlaps: 0,
+    objectCount: objects.length,
+    spacingViolations: 0,
+  };
+  if (objects.length < 2) {
+    if (objects.length === 1) {
+      metrics.bboxWidth = objects[0].right - objects[0].left;
+      metrics.bboxHeight = objects[0].bottom - objects[0].top;
+      metrics.bboxArea = metrics.bboxWidth * metrics.bboxHeight;
+    }
+    return metrics;
+  }
+
+  const minX = Math.min(...objects.map((object) => object.left));
+  const minY = Math.min(...objects.map((object) => object.top));
+  const maxX = Math.max(...objects.map((object) => object.right));
+  const maxY = Math.max(...objects.map((object) => object.bottom));
+  metrics.bboxWidth = maxX - minX;
+  metrics.bboxHeight = maxY - minY;
+  metrics.bboxArea = metrics.bboxWidth * metrics.bboxHeight;
+
+  metrics.minimum = Number.POSITIVE_INFINITY;
+  for (let leftIndex = 0; leftIndex < objects.length; leftIndex += 1) {
+    const left = objects[leftIndex];
+    for (let rightIndex = leftIndex + 1; rightIndex < objects.length; rightIndex += 1) {
+      const right = objects[rightIndex];
+      const separationX = Math.max(
+        0,
+        left.left - right.right,
+        right.left - left.right,
+      );
+      const separationY = Math.max(
+        0,
+        left.top - right.bottom,
+        right.top - left.bottom,
+      );
+      metrics.minimum = Math.min(
+        metrics.minimum,
+        Math.hypot(separationX, separationY),
+      );
+
+      const overlapX = Math.min(left.right, right.right)
+        - Math.max(left.left, right.left);
+      const overlapY = Math.min(left.bottom, right.bottom)
+        - Math.max(left.top, right.top);
+      if (overlapX > 0 && overlapY > 0) {
+        if (left.bundle && right.bundle) {
+          metrics.bundleBundleOverlaps += 1;
+        } else if (left.bundle || right.bundle) {
+          metrics.bundleNodeOverlaps += 1;
+        } else {
+          metrics.nodeOverlaps += 1;
+        }
+      }
+
+      // Equivalent to expanding both rectangles by half of the native X/Y
+      // gap and checking strict rectangle overlap.
+      if (
+        separationX + serializationTolerance < gapX
+        && separationY + serializationTolerance < gapY
+      ) {
+        metrics.spacingViolations += 1;
+      }
+    }
+  }
+  if (!Number.isFinite(metrics.minimum)) {
+    metrics.minimum = 0;
+  }
+  return metrics;
 }
 
 export function createDiagramRenderModel(
@@ -297,7 +414,15 @@ export function createDiagramRenderModel(
     payload.layout.engineMetadata?.hubCarrierThreshold,
     payload.layout.engineMetadata?.inheritanceCarrierGrouping,
     payload.layout.engineMetadata?.intraClusterCarrierGrouping,
+    payload.layout.engineMetadata?.renderedCarrierRoutes,
   );
+  const renderedBundleCarrierPointsByKey = new Map<string, Point[]>();
+  for (const route of payload.layout.engineMetadata?.renderedCarrierRoutes ?? []) {
+    const match = /^B(\d+)\|(.+)$/.exec(route.carrierId);
+    if (match && route.points.length >= 2) {
+      renderedBundleCarrierPointsByKey.set(`${match[1]}|${match[2]}`, route.points);
+    }
+  }
   // Set of `${bundleIndex}|${rootModelId}` keys: ensures ONE carrier edge
   // per (bundle, shared-root) pair, so a bus bundle with N shared roots
   // produces N carrier edges (one per root) instead of one global.
@@ -312,14 +437,11 @@ export function createDiagramRenderModel(
         carrierAssignedByBundleRoot,
         bundleFakeIdByIndex,
         hubCarrierByEdgeId,
+        renderedBundleCarrierPointsByKey,
       ),
     )
     .filter((edge): edge is EdgeRenderModel => Boolean(edge));
-  const routedEdges = createAdaptiveGridCarrierRenderGroups(
-    baseRoutedEdges,
-    renderedTables,
-    payload.layout.engineMetadata,
-  );
+  const routedEdges = baseRoutedEdges;
   const catalogEdges = modelCatalogMode
     ? payload.graph.structuralEdges
         .map((edge) => createCatalogEdgeRenderModel(edge, layoutNodesById))
@@ -368,9 +490,6 @@ export function createDiagramRenderModel(
     ),
     clusterOutlines,
     crossings: modelCatalogMode ? [] : payload.layout.crossings,
-    detailEdges: payload.layout.engineMetadata?.adaptiveCarrierGrid
-      ? baseRoutedEdges
-      : [],
     edges: renderedEdges,
     inspector: {
       diagnostics: createDiagnostics(payload),
@@ -514,7 +633,45 @@ function createHubCarrierRenderGroups(
   threshold: number | undefined,
   inheritanceCarrierGrouping: boolean | undefined,
   intraClusterCarrierGrouping: boolean | undefined,
+  renderedCarrierRoutes: RenderedCarrierRoute[] | undefined,
 ): Map<string, HubCarrierRenderGroup> {
+  if ((renderedCarrierRoutes?.length ?? 0) > 0) {
+    const routeByEdgeId = new Map(routes.map((route) => [route.edgeId, route] as const));
+    const serializedGroups = new Map<string, HubCarrierRenderGroup>();
+    for (const carrierRoute of renderedCarrierRoutes ?? []) {
+      if (carrierRoute.memberEdgeIds.length < 1 || carrierRoute.points.length < 2) {
+        continue;
+      }
+      const representativeEdgeId = carrierRoute.memberEdgeIds[0];
+      const representativeEdge = structuralEdgeById.get(representativeEdgeId);
+      if (!representativeEdge || !routeByEdgeId.has(representativeEdgeId)) {
+        continue;
+      }
+      const webviewCarrierId = carrierRoute.carrierId.startsWith("H|")
+        ? `hub-carrier:${carrierRoute.carrierId.slice(2)}`
+        : carrierRoute.carrierId.startsWith("I|")
+          ? `inheritance-carrier:${carrierRoute.carrierId.slice(2)}`
+          : carrierRoute.carrierId.startsWith("Cself|")
+            ? `intra-cluster-carrier:${carrierRoute.carrierId.slice("Cself|".length)}`
+            : carrierRoute.carrierId;
+      const group: HubCarrierRenderGroup = {
+        id: webviewCarrierId,
+        points: carrierRoute.points,
+        representativeEdgeId,
+        sourceModelId: representativeEdge.sourceModelId,
+        targetModelId: representativeEdge.targetModelId,
+      };
+      for (const edgeId of carrierRoute.memberEdgeIds) {
+        if (structuralEdgeById.has(edgeId) && routeByEdgeId.has(edgeId)) {
+          serializedGroups.set(edgeId, group);
+        }
+      }
+    }
+    if (serializedGroups.size > 0) {
+      return serializedGroups;
+    }
+  }
+
   if (threshold === undefined || threshold < 2) {
     return new Map();
   }
@@ -647,16 +804,31 @@ function createHubCarrierRenderGroups(
   }
 
   const groupByEdgeId = new Map<string, HubCarrierRenderGroup>();
+  const renderedPointsByCarrierId = new Map(
+    (renderedCarrierRoutes ?? []).map((route) => [route.carrierId, route.points] as const),
+  );
   for (const [carrierId, members] of routeGroups) {
     if (members.length < 2) {
       continue;
     }
     const firstMember = members[0];
-    const start = averageRouteEndpoint(members, "start");
-    const end = averageRouteEndpoint(members, "end");
+    const nativeCarrierId = carrierId.startsWith("hub-carrier:")
+      ? `H|${carrierId.slice("hub-carrier:".length)}`
+      : carrierId.startsWith("inheritance-carrier:")
+        ? `I|${carrierId.slice("inheritance-carrier:".length)}`
+        : carrierId.startsWith("intra-cluster-carrier:")
+          ? `Cself|${carrierId.slice("intra-cluster-carrier:".length)}`
+          : carrierId;
+    const optimizedPoints = renderedPointsByCarrierId.get(nativeCarrierId);
+    const points = optimizedPoints && optimizedPoints.length >= 2
+      ? optimizedPoints
+      : [
+          averageRouteEndpoint(members, "start"),
+          averageRouteEndpoint(members, "end"),
+        ];
     const group: HubCarrierRenderGroup = {
       id: carrierId,
-      points: [start, end],
+      points,
       representativeEdgeId: firstMember.edge.id,
       sourceModelId: firstMember.edge.sourceModelId,
       targetModelId: firstMember.edge.targetModelId,
@@ -684,181 +856,6 @@ function averageRouteEndpoint(
   return {
     x: round2(x / members.length),
     y: round2(y / members.length),
-  };
-}
-
-function createAdaptiveGridCarrierRenderGroups(
-  edges: EdgeRenderModel[],
-  tables: TableRenderModel[],
-  metadata: LayoutEngineMetadata | undefined,
-): EdgeRenderModel[] {
-  const grid = metadata?.adaptiveCarrierGrid;
-  if (grid === undefined || grid < 1 || edges.length < 2 || tables.length === 0) {
-    return edges;
-  }
-
-  const tableByModelId = new Map(tables.map((table) => [table.modelId, table] as const));
-  const minX = metadata?.adaptiveCarrierMinX
-    ?? Math.min(...tables.map((table) => table.position.x));
-  const minY = metadata?.adaptiveCarrierMinY
-    ?? Math.min(...tables.map((table) => table.position.y));
-  const maxX = metadata?.adaptiveCarrierMaxX
-    ?? Math.max(...tables.map((table) => table.position.x + table.size.width));
-  const maxY = metadata?.adaptiveCarrierMaxY
-    ?? Math.max(...tables.map((table) => table.position.y + table.size.height));
-  const spanX = Math.max(1, maxX - minX);
-  const spanY = Math.max(1, maxY - minY);
-  const cellFor = (point: Point): number => {
-    const x = Math.min(
-      grid - 1,
-      Math.max(0, Math.floor(((point.x - minX) / spanX) * grid)),
-    );
-    const y = Math.min(
-      grid - 1,
-      Math.max(0, Math.floor(((point.y - minY) / spanY) * grid)),
-    );
-    return y * grid + x;
-  };
-  const pointBefore = (left: Point, right: Point): boolean =>
-    left.x < right.x || (left.x === right.x && left.y <= right.y);
-
-  interface AdaptiveGridMember {
-    edge: EdgeRenderModel;
-    end: Point;
-    reversed: boolean;
-    start: Point;
-  }
-  const groups = new Map<string, AdaptiveGridMember[]>();
-  for (const edge of edges) {
-    const endpoints = edgeRenderEndpoints(edge, tableByModelId);
-    if (!endpoints) {
-      // A malformed or partially decoded layout must never lose an edge merely
-      // because overview aggregation cannot resolve its endpoints. Keep the
-      // unaggregated render model in that case; valid native layouts always
-      // provide both endpoints, so this does not affect the budgeted path.
-      return edges;
-    }
-    let { start, end } = endpoints;
-    let startCell = cellFor(start);
-    let endCell = cellFor(end);
-    let reversed = false;
-    if (
-      startCell > endCell
-      || (startCell === endCell && !pointBefore(start, end))
-    ) {
-      [start, end] = [end, start];
-      [startCell, endCell] = [endCell, startCell];
-      reversed = true;
-    }
-    const key = `${startCell}|${endCell}`;
-    const members = groups.get(key) ?? [];
-    members.push({ edge, end, reversed, start });
-    groups.set(key, members);
-  }
-
-  const carriers: EdgeRenderModel[] = [];
-  for (const [key, members] of groups) {
-    const representative = members[0];
-    const count = members.length;
-    const start = {
-      x: round2(members.reduce((sum, member) => sum + member.start.x, 0) / count),
-      y: round2(members.reduce((sum, member) => sum + member.start.y, 0) / count),
-    };
-    const end = {
-      x: round2(members.reduce((sum, member) => sum + member.end.x, 0) / count),
-      y: round2(members.reduce((sum, member) => sum + member.end.y, 0) / count),
-    };
-    const sourceModelId = representative.reversed
-      ? representative.edge.targetModelId
-      : representative.edge.sourceModelId;
-    const targetModelId = representative.reversed
-      ? representative.edge.sourceModelId
-      : representative.edge.targetModelId;
-    carriers.push({
-      ...representative.edge,
-      crossingIds: [],
-      edgeId: `adaptive-carrier:${grid}:${key}`,
-      markerEndId: representative.reversed
-        ? representative.edge.markerStartId
-        : representative.edge.markerEndId,
-      markerStartId: representative.reversed
-        ? representative.edge.markerEndId
-        : representative.edge.markerStartId,
-      points: `${start.x},${start.y} ${end.x},${end.y}`,
-      sourceModelId,
-      targetModelId,
-    });
-  }
-  return carriers;
-}
-
-function edgeRenderEndpoints(
-  edge: EdgeRenderModel,
-  tableByModelId: Map<ModelId, TableRenderModel>,
-): { end: Point; start: Point } | undefined {
-  const routedPoints = edge.points
-    .split(" ")
-    .filter(Boolean)
-    .map((pair) => {
-      const [x, y] = pair.split(",").map(Number);
-      return { x, y };
-    })
-    .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
-  if (routedPoints.length >= 2) {
-    return {
-      end: routedPoints[routedPoints.length - 1],
-      start: routedPoints[0],
-    };
-  }
-
-  const source = tableByModelId.get(edge.sourceModelId);
-  const target = tableByModelId.get(edge.targetModelId);
-  if (!source || !target) {
-    return undefined;
-  }
-  const sourceCenter = tableCenter(source);
-  const targetCenter = tableCenter(target);
-  return {
-    end: tableBoundaryPort(target, sourceCenter),
-    start: tableBoundaryPort(source, targetCenter),
-  };
-}
-
-function tableCenter(table: TableRenderModel): Point {
-  return {
-    x: table.position.x + table.size.width / 2,
-    y: table.position.y + table.size.height / 2,
-  };
-}
-
-function tableBoundaryPort(table: TableRenderModel, toward: Point): Point {
-  const center = tableCenter(table);
-  const dx = toward.x - center.x;
-  const dy = toward.y - center.y;
-  if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) {
-    return center;
-  }
-  let scale = Number.POSITIVE_INFINITY;
-  if (Math.abs(dx) >= 0.01) {
-    const sideX = dx > 0
-      ? table.position.x + table.size.width
-      : table.position.x;
-    const candidate = (sideX - center.x) / dx;
-    if (candidate > 0) scale = Math.min(scale, candidate);
-  }
-  if (Math.abs(dy) >= 0.01) {
-    const sideY = dy > 0
-      ? table.position.y + table.size.height
-      : table.position.y;
-    const candidate = (sideY - center.y) / dy;
-    if (candidate > 0) scale = Math.min(scale, candidate);
-  }
-  if (!Number.isFinite(scale)) {
-    scale = 0;
-  }
-  return {
-    x: round2(center.x + dx * scale),
-    y: round2(center.y + dy * scale),
   };
 }
 
@@ -1084,6 +1081,7 @@ function createEdgeRenderModel(
   carrierAssignedByBundleRoot: Set<string>,
   bundleFakeIdByIndex: Map<number, ModelId>,
   hubCarrierByEdgeId: Map<string, HubCarrierRenderGroup>,
+  renderedBundleCarrierPointsByKey: Map<string, Point[]>,
 ): EdgeRenderModel | undefined {
   const edge = structuralEdgeById.get(route.edgeId);
   if (!edge) {
@@ -1111,13 +1109,19 @@ function createEdgeRenderModel(
       return undefined;
     }
     carrierAssignedByBundleRoot.add(carrierKey);
+    const optimizedPoints = renderedBundleCarrierPointsByKey.get(carrierKey);
+    const orientedPoints = optimizedPoints
+      ? (match.leafIsSource ? optimizedPoints : [...optimizedPoints].reverse())
+      : undefined;
     return {
       crossingIds: [],
       cssKind: edge.kind.replaceAll("_", "-"),
       edgeId: edge.id,
       markerEndId,
       markerStartId,
-      points: "",
+      points: orientedPoints
+        ? orientedPoints.map((point) => `${point.x},${point.y}`).join(" ")
+        : "",
       provenance: edge.provenance,
       sourceModelId: match.leafIsSource ? fakeBundleId : match.rootModelId,
       targetModelId: match.leafIsSource ? match.rootModelId : fakeBundleId,

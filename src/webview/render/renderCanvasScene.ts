@@ -15,7 +15,6 @@ export function renderCanvasScene(viewModel: DiagramRenderModel, appVersion: str
     bundleLeavesByFakeId: viewModel.bundleLeavesByFakeId,
     clusterOutlines: viewModel.clusterOutlines,
     crossings: viewModel.crossings,
-    detailEdges: viewModel.detailEdges,
     edges: viewModel.edges,
     layoutMode: viewModel.layoutMode,
     leafBundles: viewModel.leafBundles,
