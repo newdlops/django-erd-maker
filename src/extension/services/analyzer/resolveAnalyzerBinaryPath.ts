@@ -7,8 +7,8 @@ export async function resolveAnalyzerBinaryPath(
   const envOverride = process.env.DJANGO_ERD_ANALYZER_BIN;
   const candidatePaths = [
     envOverride,
-    path.join(extensionRootPath, "analyzer", "target", "debug", analyzerBinaryName()),
     path.join(extensionRootPath, "analyzer", "target", "release", analyzerBinaryName()),
+    path.join(extensionRootPath, "analyzer", "target", "debug", analyzerBinaryName()),
   ].filter((value): value is string => Boolean(value));
 
   for (const candidatePath of candidatePaths) {

@@ -38,7 +38,7 @@
   },
   "scripts": {
     "build": "npm run build:extension && npm run build:analyzer",
-    "build:analyzer": "cargo build --manifest-path analyzer/Cargo.toml",
+    "build:analyzer": "cargo build --release --manifest-path analyzer/Cargo.toml",
     "build:extension": "npm exec --yes --package typescript -- tsc -p .",
     "typecheck": "npm exec --yes --package typescript -- tsc -p . --noEmit",
     "lint": "npm run typecheck",

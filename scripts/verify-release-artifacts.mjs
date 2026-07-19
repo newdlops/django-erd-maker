@@ -15,7 +15,7 @@ const manifest = JSON.parse(
 );
 await execFileAsync(
   "cargo",
-  ["build", "--manifest-path", "analyzer/Cargo.toml"],
+  ["build", "--release", "--manifest-path", "analyzer/Cargo.toml"],
   {
     cwd: repoRoot,
     maxBuffer: 10 * 1024 * 1024,
@@ -24,7 +24,7 @@ await execFileAsync(
 const extensionEntryPath = path.join(repoRoot, manifest.main.replace(/^\.\//, ""));
 const analyzerBinaryPath = path.join(
   repoRoot,
-  "analyzer/target/debug",
+  "analyzer/target/release",
   process.platform === "win32"
     ? "django-erd-maker-analyzer.exe"
     : "django-erd-maker-analyzer",

@@ -15,7 +15,12 @@ const discoveryModulePath = path.resolve(
   __dirname,
   "../../out/extension/services/discovery/discoverDjangoWorkspace.js",
 );
+const analyzerResolverModulePath = path.resolve(
+  __dirname,
+  "../../out/extension/services/analyzer/resolveAnalyzerBinaryPath.js",
+);
 const { discoverDjangoWorkspace } = require(discoveryModulePath);
+const { resolveAnalyzerBinaryPath } = require(analyzerResolverModulePath);
 
 test("single_app_project discovers one app and one model file", async () => {
   const fixturePath = path.join(fixturesRoot, "single_app_project");
@@ -174,6 +179,37 @@ test("hidden directories do not contribute Django roots or apps", async (t) => {
     ),
     "manage.py files under hidden directories should not create extra roots",
   );
+});
+
+test("analyzer resolution prefers an optimized release binary", async (t) => {
+  const extensionRoot = await mkdtemp(
+    path.join(os.tmpdir(), "django-erd-analyzer-resolution-"),
+  );
+  t.after(() => rm(extensionRoot, { force: true, recursive: true }));
+  const binaryName = process.platform === "win32"
+    ? "django-erd-maker-analyzer.exe"
+    : "django-erd-maker-analyzer";
+  const debugDirectory = path.join(extensionRoot, "analyzer/target/debug");
+  const releaseDirectory = path.join(extensionRoot, "analyzer/target/release");
+  await mkdir(debugDirectory, { recursive: true });
+  await mkdir(releaseDirectory, { recursive: true });
+  await writeFile(path.join(debugDirectory, binaryName), "debug", "utf8");
+  await writeFile(path.join(releaseDirectory, binaryName), "release", "utf8");
+
+  const previousOverride = process.env.DJANGO_ERD_ANALYZER_BIN;
+  delete process.env.DJANGO_ERD_ANALYZER_BIN;
+  try {
+    assert.equal(
+      await resolveAnalyzerBinaryPath(extensionRoot),
+      path.join(releaseDirectory, binaryName),
+    );
+  } finally {
+    if (previousOverride === undefined) {
+      delete process.env.DJANGO_ERD_ANALYZER_BIN;
+    } else {
+      process.env.DJANGO_ERD_ANALYZER_BIN = previousOverride;
+    }
+  }
 });
 
 function assertDiscoveredModulesContain(result, expectedPaths) {
