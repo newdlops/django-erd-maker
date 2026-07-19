@@ -80,6 +80,15 @@ await fs.copyFile(builtBinary, outputBinary);
 if (process.platform !== "win32") {
   await fs.chmod(outputBinary, 0o755);
 }
+if (process.platform === "darwin") {
+  // Copying a linker-signed Mach-O into the extension bundle can leave it
+  // valid according to `codesign --verify` yet blocked by macOS at exec time.
+  // Re-sign the final path so development and packaged binaries launch alike.
+  await execFileAsync("codesign", ["--force", "--sign", "-", outputBinary], {
+    cwd: extensionRoot,
+    maxBuffer: 10 * 1024 * 1024,
+  });
+}
 
 process.stdout.write(
   JSON.stringify({
