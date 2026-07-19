@@ -60,6 +60,14 @@ import {
 } from "../../../shared/graph/layoutContract";
 import { decodeLayoutSnapshot } from "../../../shared/protocol/decodeDiagramBootstrap";
 import type { DiagramBootstrapPayload } from "../../../shared/protocol/webviewContract";
+import {
+  createDiagramRenderModel,
+  measureRenderedTableClearance,
+  type BundleLeafTile,
+  type EdgeRenderModel,
+  type RenderedTableClearanceMetrics,
+  type TableRenderModel,
+} from "../../../webview/state/createDiagramRenderModel";
 import type { Logger } from "../logging/logger";
 import {
   DEFAULT_CANONICAL_OBSTACLE_RELIEF_MAX_VISUAL_DEBT_PER_GAIN,
@@ -82,22 +90,10 @@ const OGDF_LAYOUT_TIMEOUT_MS = 600_000;
 const V35_SCORER_TIMEOUT_MS = 180_000;
 const DEFAULT_POST_REROUTE_POLISH_BUDGET_MS = 90_000;
 const DEFAULT_CANONICAL_ROUTE_REPAIR_TIMEOUT_MS = 30_000;
-const DEFAULT_RENDERED_CARRIER_THRESHOLD = "2";
 const DEFAULT_OPTIMIZED_BBOX_TARGET_B = 1.0;
 const DEFAULT_VISUAL_CROSS_TARGET = 100;
 const DEFAULT_VISUAL_CROSS_POLISH_VARIANTS = [
-  "route",
   "route-clear",
-  "route-clear-tight",
-  "route-clear-wide",
-  "route-clear-short",
-  "route-clear-deep",
-  "route-clear-lbend",
-  "route-clear-deep-lbend",
-  "route-clear-periphery",
-  "route-clear-deep-periphery",
-  "detour",
-  "detour-clear",
   "knot",
   "knot-clear",
 ].join(",");
@@ -119,7 +115,11 @@ type VisualCrossPolishVariant =
   | "knot"
   | "knot-clear";
 type BboxTargetVariant = "local" | "holistic";
-type BboxTargetPositionStrategy = "gap" | "scale" | "density-scale";
+type BboxTargetPositionStrategy =
+  | "aspect-scale"
+  | "gap"
+  | "scale"
+  | "density-scale";
 
 type PostReroutePolishDeadline = {
   budgetMs: number;
@@ -157,19 +157,15 @@ function ogdfRenderedCarrierEnv(
     DJERD_DIAGONAL_RETOUCH: "0",
     DJERD_NODE_PAIR_RETOUCH: "0",
     DJERD_DIAGONAL_RETOUCH_ROUTE_SEGMENTS: "0",
-    DJERD_HUB_CARRIER_CROSS_FINAL:
-      process.env.DJERD_HUB_CARRIER_CROSS_FINAL ?? "1",
-    DJERD_HUB_CARRIER_CROSS_FINAL_THRESHOLD:
-      process.env.DJERD_HUB_CARRIER_CROSS_FINAL_THRESHOLD
-      ?? DEFAULT_RENDERED_CARRIER_THRESHOLD,
-    DJERD_INHERITANCE_CARRIER_FINAL:
-      process.env.DJERD_INHERITANCE_CARRIER_FINAL ?? "1",
-    DJERD_INTRA_CLUSTER_CARRIER_FINAL:
-      process.env.DJERD_INTRA_CLUSTER_CARRIER_FINAL ?? "1",
-    DJERD_ADAPTIVE_CARRIER_TARGET_FINAL:
-      process.env.DJERD_ADAPTIVE_CARRIER_TARGET_FINAL
-      ?? process.env.DJERD_OPTIMIZED_VISUAL_CROSS_TARGET
-      ?? DEFAULT_VISUAL_CROSS_TARGET.toString(),
+    // Semantic bundling stays enabled for leaf groups and repeated pipelines.
+    // Spatial-grid aggregation and zoom-dependent detail replacement are not
+    // part of this path: every resulting carrier is visible at every zoom.
+    DJERD_HUB_CARRIER_CROSS_FINAL: "1",
+    DJERD_HUB_CARRIER_CROSS_FINAL_THRESHOLD: "2",
+    DJERD_INHERITANCE_CARRIER_FINAL: "1",
+    DJERD_INTRA_CLUSTER_CARRIER_FINAL: "1",
+    DJERD_NO_CARRIER_CROSS: "0",
+    DJERD_RENDERED_CARRIER_GEOMETRY_OPT_FINAL: "1",
     // Stress majorization post-pass — DEFAULT OFF (= 0). Initial
     // bundle-less binary tests on Captain looked promising (bbox -26%,
     // visualCross -0.8%) but the production VS Code path with
@@ -183,8 +179,19 @@ function ogdfRenderedCarrierEnv(
       process.env.DJERD_STRESS_POST_PASS_ITERS ?? "0",
     DJERD_STRESS_POST_PASS_EDGE_COST:
       process.env.DJERD_STRESS_POST_PASS_EDGE_COST ?? "140",
-    DJERD_RENDERED_CARRIER_METRICS_FINAL:
-      process.env.DJERD_RENDERED_CARRIER_METRICS_FINAL ?? "1",
+    DJERD_RENDERED_CARRIER_METRICS_FINAL: "1",
+    // Re-audit the exact table objects after every late placement pass. This
+    // includes visible bundle parents and the synthetic bundle table itself.
+    DJERD_RENDERED_NODE_CLEARANCE_FINAL:
+      process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL ?? "1",
+    DJERD_RENDERED_NODE_CLEARANCE_FINAL_PASSES:
+      process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_PASSES ?? "12",
+    DJERD_RENDERED_NODE_CLEARANCE_FINAL_MAX_SHIFT:
+      process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_MAX_SHIFT ?? "1200",
+    DJERD_RENDERED_NODE_CLEARANCE_FINAL_EXTRA:
+      process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_EXTRA ?? "2",
+    DJERD_RENDERED_NODE_CLEARANCE_FINAL_BBOX_LIMIT:
+      process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_BBOX_LIMIT ?? "1.01",
     // Multi-start cluster_graph: run FMMM N times with different OGDF
     // seeds and keep the layout with the fewest straight-line edge
     // crossings. Unlike local search it explores *global* alternative
@@ -996,6 +1003,90 @@ function ogdfOptimizedBboxTargetEnvForVariant(
   });
 }
 
+function ogdfOptimizedBboxTargetFinalCompactEnv(
+  variant: BboxTargetVariant,
+): Record<string, string | undefined> {
+  return {
+    ...ogdfOptimizedBboxTargetEnvForVariant(variant),
+
+    // This candidate starts from an aggressively aspect-compressed placement.
+    // Preserve that placement until the late, exact rendered-carrier passes;
+    // every candidate is still guarded by the TypeScript Pareto/canonical
+    // acceptance gates below.
+    DJERD_ATTACH_ISOLATED_BY_NAME_FINAL: "0",
+    DJERD_BBOX_AXIS_SCALE_FINAL: "0",
+    DJERD_BUNDLE_BOX_RELOCATE_FINAL: "0",
+    DJERD_CROSS_AWARE_ROUTING: "0",
+    DJERD_DENSITY_BALANCE_FINAL: "0",
+    DJERD_DENSITY_PACK_FINAL: "0",
+    DJERD_FACE_RASTER: "0",
+    DJERD_FACE_UNTANGLE: "0",
+    DJERD_HOT_REGION_SA: "0",
+    DJERD_ISOLATED_BBOX_COMPACT_FINAL: "0",
+    DJERD_ISOLATED_STASH: "0",
+    DJERD_LEAF_BUNDLE_NODE_CLEAR_AFTER_RELOCATE_FINAL: "0",
+    DJERD_LEAF_BUNDLE_NODE_CLEAR_FINAL: "0",
+    DJERD_LEAF_PASSES: "0",
+    DJERD_LEAF_PASSES_2: "0",
+    DJERD_NODE_EDGE_RELIEF_FINAL: "0",
+    DJERD_NODE_OVERLAP_CLEAR_FINAL: "0",
+    DJERD_NODE_SPACING_CLEAR_FINAL: "0",
+    DJERD_NO_BUNDLE_CLEAR: "1",
+    DJERD_NO_C3: "1",
+    DJERD_NO_LEAF_UNTANGLE: "1",
+    DJERD_NO_KNOT_MIN: "1",
+    DJERD_NO_PD_KNOT: "1",
+    DJERD_PERIPHERY_REROUTE: "0",
+    DJERD_RIGID_ATTACH_ISOLATED_FINAL: "0",
+    DJERD_RIGID_COMPACT_BBOX_FINAL: "0",
+    DJERD_RIGID_NODE_EDGE_RELIEF_FINAL: "0",
+    DJERD_SIDECAR_BBOX_COMPACT_FINAL: "0",
+    DJERD_STUCK_LEAF_2D: "0",
+    DJERD_VISUAL_KNOT: "0",
+    DJERD_XINGS_DETOUR: "0",
+    DJERD_XINGS_DETOUR_FINAL: "0",
+
+    // Pack every leaf bundle as one rigid rendered box near its semantic
+    // root, then retouch only bundle leaves. No route bends are introduced.
+    DJERD_BUNDLE_CONNECTOR_PACK_FINAL:
+      process.env.DJERD_OPTIMIZED_BBOX_TARGET_CONNECTOR_PACK ?? "1",
+    DJERD_DIAGONAL_RETOUCH:
+      process.env.DJERD_OPTIMIZED_BBOX_TARGET_RETOUCH ?? "1",
+    DJERD_DIAGONAL_RETOUCH_ROUTE_SEGMENTS: "0",
+    DJERD_NODE_PAIR_RETOUCH:
+      process.env.DJERD_OPTIMIZED_BBOX_TARGET_NODE_PAIR_RETOUCH ?? "0",
+    DJERD_NODE_PAIR_RETOUCH_BUDGET_MS:
+      process.env.DJERD_OPTIMIZED_BBOX_TARGET_RETOUCH_BUDGET_MS ?? "45000",
+    DJERD_NODE_PAIR_RETOUCH_COMPACT_RELOCATE: "0",
+    DJERD_NODE_PAIR_RETOUCH_LEAF_GAP: "16",
+    DJERD_NODE_PAIR_RETOUCH_LEAF_MIN_SPAN: "450",
+    DJERD_NODE_PAIR_RETOUCH_LEAF_ONLY: "1",
+    DJERD_NODE_PAIR_RETOUCH_MAX_INCIDENT: "64",
+    DJERD_NODE_PAIR_RETOUCH_MAX_SHIFT: "4200",
+    DJERD_NODE_PAIR_RETOUCH_MIN_SPAN: "700",
+    DJERD_NODE_PAIR_RETOUCH_NODE_MARGIN: "0",
+    DJERD_NODE_PAIR_RETOUCH_PAIR_GAP: "16",
+    DJERD_NODE_PAIR_RETOUCH_RAW_ACCEPT: "1",
+    DJERD_NODE_PAIR_RETOUCH_ROUNDS:
+      process.env.DJERD_OPTIMIZED_BBOX_TARGET_RETOUCH_ROUNDS ?? "2",
+    DJERD_NODE_PAIR_RETOUCH_SLOT_RINGS: "2",
+    DJERD_NODE_PAIR_RETOUCH_STEP: "240",
+    DJERD_NODE_PAIR_RETOUCH_STEPS:
+      process.env.DJERD_OPTIMIZED_BBOX_TARGET_RETOUCH_STEPS ?? "2",
+    DJERD_NODE_PAIR_RETOUCH_TOPK:
+      process.env.DJERD_OPTIMIZED_BBOX_TARGET_RETOUCH_TOPK ?? "64",
+    DJERD_FINAL_ROUTE_SYNC_GAP:
+      process.env.DJERD_OPTIMIZED_BBOX_TARGET_FINAL_ROUTE_SYNC_GAP
+      ?? "1000000000",
+
+    // Search alternative boundary ports, but keep every rendered semantic
+    // carrier as one straight, visible two-point segment.
+    DJERD_RENDERED_CARRIER_GEOMETRY_OPT_FINAL: "1",
+    DJERD_RENDERED_STRAIGHT_PORT_OPT_FINAL:
+      process.env.DJERD_OPTIMIZED_BBOX_TARGET_STRAIGHT_PORT_OPT ?? "1",
+  };
+}
+
 function ogdfOptimizedEdgeNodePolishCommonEnv(): Record<string, string | undefined> {
   return {
     DJERD_NODE_EDGE_RELIEF_FINAL:
@@ -1350,8 +1441,11 @@ function ogdfOptimizedVisualCrossPolishEnv(
     DJERD_HOT_REGION_SA: "0",
     DJERD_STUCK_LEAF_2D: "0",
 
+    // The default visual contract renders every relationship as a straight
+    // semantic carrier. Route detours can still be enabled explicitly for
+    // experiments, but they must never appear in the default candidate set.
     DJERD_XINGS_DETOUR:
-      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR ?? "1",
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR ?? "0",
     DJERD_XINGS_DETOUR_PHASE:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR_PHASE
       ?? "post",
@@ -1372,7 +1466,7 @@ function ogdfOptimizedVisualCrossPolishEnv(
       ?? "0",
     DJERD_EDGE_DETOUR_FINAL:
       runEdgeDetour
-        ? process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_EDGE_DETOUR ?? "1"
+        ? process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_EDGE_DETOUR ?? "0"
         : "0",
     DJERD_EDGE_DETOUR_FINAL_PASSES:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_EDGE_DETOUR_PASSES
@@ -1712,7 +1806,7 @@ function ogdfOptimizedCanonicalRouteRepairEnv(): Record<string, string | undefin
     DJERD_CROSS_AWARE_ROUTING: "0",
     DJERD_RIGID_NODE_EDGE_RELIEF_FINAL: "0",
     DJERD_CANONICAL_ROUTE_REPAIR:
-      process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_NATIVE ?? "1",
+      process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_NATIVE ?? "0",
     DJERD_CANONICAL_ROUTE_REPAIR_CLEARANCE:
       process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_CLEARANCE ?? "12",
     DJERD_CANONICAL_ROUTE_REPAIR_MAX_DETOURS:
@@ -1760,9 +1854,10 @@ function ogdfFinalExportRetouchEnv(): Record<string, string | undefined> {
     DJERD_XINGS_DETOUR: "0",
     DJERD_XINGS_DETOUR_FINAL: "0",
     DJERD_EDGE_DETOUR_FINAL: "0",
-    DJERD_L_BEND_REROUTE:
-      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_L_BEND
-      ?? "1",
+    // Optimized output is straight-line only. Semantic carrier geometry is
+    // improved by choosing a better straight representative, never by adding
+    // route bends.
+    DJERD_L_BEND_REROUTE: "0",
     DJERD_L_BEND_REROUTE_TOPK:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_L_BEND_TOPK
       ?? "960",
@@ -2012,7 +2107,7 @@ function ogdfFinalExportRetouchDebtRepairEnv(): Record<string, string | undefine
 
     DJERD_EDGE_DETOUR_FINAL:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_EDGE_DETOUR
-      ?? "1",
+      ?? "0",
     DJERD_EDGE_DETOUR_FINAL_PASSES:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_EDGE_DETOUR_PASSES
       ?? "1",
@@ -2028,7 +2123,7 @@ function ogdfFinalExportRetouchDebtRepairEnv(): Record<string, string | undefine
 
     DJERD_L_BEND_REROUTE:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_L_BEND
-      ?? "1",
+      ?? "0",
     DJERD_L_BEND_REROUTE_TOPK:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_L_BEND_TOPK
       ?? process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_L_BEND_TOPK
@@ -2123,7 +2218,7 @@ function ogdfFinalExportRetouchDebtRepairHubCorridorEnv(): Record<string, string
     DJERD_L_BEND_REROUTE:
       process.env
         .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND
-      ?? "1",
+      ?? "0",
     DJERD_L_BEND_REROUTE_TOPK:
       process.env
         .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_TOPK
@@ -2151,7 +2246,7 @@ function ogdfFinalExportRetouchDebtRepairHubCorridorEnv(): Record<string, string
     DJERD_PERIPHERY_REROUTE:
       process.env
         .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY
-      ?? "1",
+      ?? "0",
     DJERD_PERIPHERY_TOPK:
       process.env
         .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_TOPK
@@ -2426,18 +2521,15 @@ function ogdfOptimizedVisualCrossPolishVariantEnv(
 
 function renderedCarrierCacheKeyParts(): string[] {
   return [
-    `renderedCarrier=${process.env.DJERD_RENDERED_CARRIER_METRICS_FINAL ?? "1"}`,
-    `hubCarrier=${process.env.DJERD_HUB_CARRIER_CROSS_FINAL ?? "1"}`,
-    `hubThreshold=${
-      process.env.DJERD_HUB_CARRIER_CROSS_FINAL_THRESHOLD
-      ?? DEFAULT_RENDERED_CARRIER_THRESHOLD
-    }`,
-    `inheritanceCarrier=${process.env.DJERD_INHERITANCE_CARRIER_FINAL ?? "1"}`,
-    `intraClusterCarrier=${process.env.DJERD_INTRA_CLUSTER_CARRIER_FINAL ?? "1"}`,
-    `adaptiveCarrierTarget=${process.env.DJERD_ADAPTIVE_CARRIER_TARGET_FINAL ?? process.env.DJERD_OPTIMIZED_VISUAL_CROSS_TARGET ?? DEFAULT_VISUAL_CROSS_TARGET.toString()}`,
+    "renderedCarrier=1",
+    "hubCarrier=1",
+    "hubThreshold=2",
+    "inheritanceCarrier=1",
+    "intraClusterCarrier=1",
+    "renderedCarrierGeometryOpt=1",
     `stressPostPassIters=${process.env.DJERD_STRESS_POST_PASS_ITERS ?? "0"}`,
     `stressPostPassEdgeCost=${process.env.DJERD_STRESS_POST_PASS_EDGE_COST ?? "140"}`,
-    `noCarrier=${process.env.DJERD_NO_CARRIER_CROSS ?? "0"}`,
+    "noCarrier=0",
     `nodeMargin=${process.env.DJERD_NODE_VISUAL_MARGIN ?? "8"}`,
     `leafBundleMargin=${process.env.DJERD_LEAF_BUNDLE_VISUAL_MARGIN ?? "32"}`,
     `isolatedBboxCompact=${process.env.DJERD_ISOLATED_BBOX_COMPACT_FINAL ?? "1"}`,
@@ -2478,6 +2570,11 @@ function renderedCarrierCacheKeyParts(): string[] {
     `nodeSpacingClearVisualSlack=${process.env.DJERD_NODE_SPACING_CLEAR_FINAL_VISUAL_SLACK ?? "80"}`,
     `nodeSpacingClearEdgeNodeSlack=${process.env.DJERD_NODE_SPACING_CLEAR_FINAL_EDGE_NODE_SLACK ?? "80"}`,
     `nodeSpacingClearBboxLimit=${process.env.DJERD_NODE_SPACING_CLEAR_FINAL_BBOX_LIMIT ?? "1.025"}`,
+    `renderedNodeClearance=${process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL ?? "1"}`,
+    `renderedNodeClearancePasses=${process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_PASSES ?? "12"}`,
+    `renderedNodeClearanceMaxShift=${process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_MAX_SHIFT ?? "1200"}`,
+    `renderedNodeClearanceExtra=${process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_EXTRA ?? "2"}`,
+    `renderedNodeClearanceBboxLimit=${process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_BBOX_LIMIT ?? "1.01"}`,
     `leafBundleNodeClear=${process.env.DJERD_LEAF_BUNDLE_NODE_CLEAR_FINAL ?? "1"}`,
     `leafBundleNodeClearPasses=${process.env.DJERD_LEAF_BUNDLE_NODE_CLEAR_FINAL_PASSES ?? "8"}`,
     `leafBundleNodeClearMaxShift=${process.env.DJERD_LEAF_BUNDLE_NODE_CLEAR_FINAL_MAX_SHIFT ?? "3600"}`,
@@ -2491,7 +2588,11 @@ function renderedCarrierCacheKeyParts(): string[] {
     `leafBundleNodeClearPushNodeMaxShift=${process.env.DJERD_LEAF_BUNDLE_NODE_CLEAR_FINAL_PUSH_NODE_MAX_SHIFT ?? "600"}`,
     `optimizedBboxTargetB=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_B ?? DEFAULT_OPTIMIZED_BBOX_TARGET_B.toFixed(1)}`,
     `optimizedBboxTargetVariants=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_VARIANTS ?? "local,holistic"}`,
-    `optimizedBboxTargetPositionStrategies=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_POSITION_STRATEGIES ?? "gap,density-scale,scale"}`,
+    `optimizedBboxTargetPositionStrategies=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_POSITION_STRATEGIES ?? "gap,aspect-scale,density-scale,scale"}`,
+    `optimizedBboxTargetAspectMaxBias=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_ASPECT_MAX_BIAS ?? "2.1"}`,
+    `optimizedBboxTargetAspectMinScale=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_ASPECT_MIN_SCALE ?? "0.30"}`,
+    `optimizedBboxTargetAspectNativeReserve=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_ASPECT_NATIVE_RESERVE ?? "0.96"}`,
+    `optimizedBboxTargetGapBridgeMaxVisualRatio=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_GAP_BRIDGE_MAX_VISUAL_RATIO ?? "1.25"}`,
     `optimizedBboxTargetDensityCellFactor=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_DENSITY_CELL_FACTOR ?? "4"}`,
     `optimizedBboxTargetDensitySparseRatio=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_DENSITY_SPARSE_RATIO ?? "0.5"}`,
     `optimizedBboxTargetDensityBias=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_DENSITY_BIAS ?? "auto"}`,
@@ -2515,12 +2616,20 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedBboxTargetStageMaxSpacingDebtPerGain=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_STAGE_MAX_SPACING_DEBT_PER_GAIN ?? "1.00"}`,
     `optimizedBboxTargetFinalMaxSpacingDebtPerGain=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_FINAL_MAX_SPACING_DEBT_PER_GAIN ?? "0.25"}`,
     `optimizedBboxTargetEdgeNodeDebtWeight=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_EDGE_NODE_DEBT_WEIGHT ?? "0.50"}`,
-    `optimizedBboxTargetTimeoutMs=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_TIMEOUT_MS ?? "60000"}`,
+    `optimizedBboxTargetTimeoutMs=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_TIMEOUT_MS ?? "210000"}`,
+    `optimizedBboxTargetConnectorPack=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_CONNECTOR_PACK ?? "1"}`,
+    `optimizedBboxTargetConnectorCarrierWeight=${process.env.DJERD_BUNDLE_CONNECTOR_PACK_CARRIER_WEIGHT ?? "0.25"}`,
+    `optimizedBboxTargetRetouch=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_RETOUCH ?? "1"}`,
+    `optimizedBboxTargetRetouchRounds=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_RETOUCH_ROUNDS ?? "2"}`,
+    `optimizedBboxTargetRetouchSteps=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_RETOUCH_STEPS ?? "2"}`,
+    `optimizedBboxTargetRetouchTopk=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_RETOUCH_TOPK ?? "64"}`,
+    `optimizedBboxTargetRetouchBudgetMs=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_RETOUCH_BUDGET_MS ?? "45000"}`,
+    `optimizedBboxTargetStraightPortOpt=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_STRAIGHT_PORT_OPT ?? "1"}`,
     `optimizedBboxTargetLeafPasses=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_LEAF_PASSES ?? "1"}`,
     `optimizedBboxTargetLeafPasses2=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_LEAF_PASSES_2 ?? "0"}`,
     `optimizedBboxTargetMaxVisual=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_MAX_VISUAL ?? "auto"}`,
     `optimizedBboxTargetMaxBundleNode=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_MAX_BUNDLE_NODE ?? "0"}`,
-    `optimizedBboxTargetMaxNodeSpacing=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_MAX_NODE_SPACING ?? "auto"}`,
+    `optimizedBboxTargetMaxNodeSpacing=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_MAX_NODE_SPACING ?? "0"}`,
     `optimizedBboxTargetSoftB=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_SOFT_B ?? "1.2"}`,
     `optimizedBboxTargetAcceptMinGain=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_ACCEPT_MIN_GAIN ?? "0.35"}`,
     `optimizedBboxTargetPartialAccept=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_PARTIAL_ACCEPT ?? "1"}`,
@@ -2578,8 +2687,8 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedBboxTargetReliefStrength=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_RELIEF_STRENGTH ?? "0.95"}`,
     `optimizedPostReroutePolishBudgetMs=${process.env.DJERD_OPTIMIZED_POST_REROUTE_POLISH_BUDGET_MS ?? DEFAULT_POST_REROUTE_POLISH_BUDGET_MS.toString()}`,
     `optimizedEdgeNodePolish=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH ?? "1"}`,
-    `optimizedCanonicalRouteRepair=${process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR ?? "1"}`,
-    `optimizedCanonicalRouteRepairNative=${process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_NATIVE ?? "1"}`,
+    `optimizedCanonicalRouteRepair=${process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR ?? "0"}`,
+    `optimizedCanonicalRouteRepairNative=${process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_NATIVE ?? "0"}`,
     `optimizedCanonicalRouteRepairTimeoutMs=${process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_TIMEOUT_MS ?? DEFAULT_CANONICAL_ROUTE_REPAIR_TIMEOUT_MS.toString()}`,
     `optimizedCanonicalRouteRepairClearance=${process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_CLEARANCE ?? "12"}`,
     `optimizedCanonicalRouteRepairMaxDetours=${process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_MAX_DETOURS ?? "12"}`,
@@ -2681,14 +2790,14 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedVisualCrossPolishBundleAfterClearMaxCandidates=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_BUNDLE_AFTER_CLEAR_MAX_CANDIDATES ?? "48"}`,
     `optimizedVisualCrossPolishBundleAfterClearFullShortlist=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_BUNDLE_AFTER_CLEAR_FULL_SHORTLIST ?? "8"}`,
     `optimizedVisualCrossPolishBundleAfterClearBboxLimit=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_BUNDLE_AFTER_CLEAR_BBOX_LIMIT ?? "1.04"}`,
-    `optimizedVisualCrossPolishXingsDetour=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR ?? "1"}`,
+    `optimizedVisualCrossPolishXingsDetour=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR ?? "0"}`,
     `optimizedVisualCrossPolishXingsDetourPhase=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR_PHASE ?? "post"}`,
     `optimizedVisualCrossPolishXingsDetourIters=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR_ITERS ?? "3"}`,
     `optimizedVisualCrossPolishXingsDetourMaxSegs=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR_MAX_SEGS ?? "2"}`,
     `optimizedVisualCrossPolishXingsDetourTopK=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR_TOPK ?? "12"}`,
     `optimizedVisualCrossPolishXingsDetourMaxOffset=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR_MAX_OFFSET ?? "480"}`,
     `optimizedVisualCrossPolishXingsDetourFinal=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR_FINAL ?? "0"}`,
-    `optimizedVisualCrossPolishEdgeDetour=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_EDGE_DETOUR ?? "1"}`,
+    `optimizedVisualCrossPolishEdgeDetour=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_EDGE_DETOUR ?? "0"}`,
     `optimizedVisualCrossPolishEdgeDetourPasses=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_EDGE_DETOUR_PASSES ?? "1"}`,
     `optimizedVisualCrossPolishEdgeDetourCrossWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_EDGE_DETOUR_CROSS_WEIGHT ?? "1.0"}`,
     `optimizedVisualCrossPolishEdgeDetourLengthWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_EDGE_DETOUR_LENGTH_WEIGHT ?? "0"}`,
@@ -2810,8 +2919,8 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedVisualCrossFinalRetouchDebtRepairReliefEndpoints=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_ENDPOINTS ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_ENDPOINTS ?? "1"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairReliefEndpointTop=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_ENDPOINT_TOP ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_ENDPOINT_TOP ?? "80"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairReliefEndpointSteps=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_ENDPOINT_STEPS ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_ENDPOINT_STEPS ?? "80,160,300,600"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairEdgeDetour=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_EDGE_DETOUR ?? "1"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairLBend=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_L_BEND ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairEdgeDetour=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_EDGE_DETOUR ?? "0"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairLBend=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_L_BEND ?? "0"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairLBendMinGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_L_BEND_MIN_GAIN ?? "0"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairBundleClear=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BUNDLE_CLEAR ?? "1"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairBundleAfterClear=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BUNDLE_AFTER_CLEAR ?? "1"}`,
@@ -2840,14 +2949,14 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorRouteBboxGrowth=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_ROUTE_BBOX_GROWTH_LIMIT ?? "1.35"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorTimeoutMs=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_TIMEOUT_MS ?? "120000"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorRestoreLayout=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_RESTORE_LAYOUT ?? "0"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBend=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBend=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND ?? "0"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendTopK=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_TOPK ?? "960"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendMinGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_MIN_GAIN ?? "0"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendEdgeNodeWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_EDGE_NODE_WEIGHT ?? "6"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendSegmentOverlapWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_SEGMENT_OVERLAP_WEIGHT ?? "12"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendSegmentOverlapLengthWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_SEGMENT_OVERLAP_LENGTH_WEIGHT ?? "0.001"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendLengthWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_LENGTH_WEIGHT ?? "0.0001"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorPeriphery=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY ?? "1"}`,
+    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorPeriphery=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY ?? "0"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorPeripheryTopK=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_TOPK ?? "96"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorPeripheryMaxLanes=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_MAX_LANES ?? "4"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorPeripheryEdgeNodeWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_EDGE_NODE_WEIGHT ?? "6"}`,
@@ -2907,6 +3016,15 @@ export interface OgdfProgressFrame {
   // intermediates streamed from the extension.
   stage?: string;
   positions: Record<string, [number, number]>;
+  semanticRenderModel?: OgdfProgressSemanticRenderModel;
+}
+
+export interface OgdfProgressSemanticRenderModel {
+  bundleLeafTiles: BundleLeafTile[];
+  bundleLeavesByFakeId: Record<string, string[]>;
+  edges: EdgeRenderModel[];
+  leafBundles: LayoutEngineMetadata["leafBundles"];
+  tables: TableRenderModel[];
 }
 
 // Optional sink for intermediate layout frames. The ERD panel registers its
@@ -2923,13 +3041,72 @@ export function setOgdfProgressListener(
   ogdfProgressListener = listener;
 }
 
+/**
+ * Makes the native layout input use the exact table sizes that the webview
+ * will render. Model-catalog mode derives hub dimensions from relationship
+ * degree; applying that resize only after layout creates real node/bundle
+ * overlaps that native quality metrics cannot see.
+ */
+export function synchronizeLayoutNodeSizesWithRenderedTables(
+  payload: DiagramBootstrapPayload,
+): number {
+  const renderModel = createDiagramRenderModel(payload);
+  const renderedSizeByModelId = new Map(
+    renderModel.tables.map((table) => [String(table.modelId), table.size] as const),
+  );
+  let changed = 0;
+  for (const node of payload.layout.nodes) {
+    const renderedSize = renderedSizeByModelId.get(String(node.modelId));
+    if (
+      !renderedSize
+      || !Number.isFinite(renderedSize.width)
+      || !Number.isFinite(renderedSize.height)
+      || renderedSize.width <= 0
+      || renderedSize.height <= 0
+    ) {
+      continue;
+    }
+    if (
+      Math.abs(node.size.width - renderedSize.width) <= 1e-6
+      && Math.abs(node.size.height - renderedSize.height) <= 1e-6
+    ) {
+      continue;
+    }
+    node.size = {
+      height: renderedSize.height,
+      width: renderedSize.width,
+    };
+    changed += 1;
+  }
+  return changed;
+}
+
+export function measureLayoutRenderedTableClearance(
+  payload: DiagramBootstrapPayload,
+  layout: LayoutSnapshot,
+): RenderedTableClearanceMetrics {
+  const renderModel = createDiagramRenderModel({
+    ...payload,
+    layout,
+    view: {
+      ...payload.view,
+      layoutMode: layout.mode,
+    },
+  });
+  return measureRenderedTableClearance(renderModel);
+}
+
 // Stream one ML-pipeline intermediate (a fully-parsed layout JSON) to the
 // webview as a positions preview, so the user sees each long stage (reroute,
 // each bbox-target candidate, polish) land instead of waiting for the whole
 // pipeline. No-op when no listener is registered. The node positions are
 // top-left (same convention the webview treats as basePosition); the webview
 // previews them with straight edges and snaps to the routed final on reload.
-function streamIntermediateLayout(stage: string, layout: unknown): void {
+function streamIntermediateLayout(
+  stage: string,
+  layout: unknown,
+  payload: DiagramBootstrapPayload,
+): void {
   if (!ogdfProgressListener) return;
   const nodes = (
     layout as { nodes?: Array<{ modelId?: unknown; position?: { x?: unknown; y?: unknown } }> }
@@ -2945,7 +3122,26 @@ function streamIntermediateLayout(stage: string, layout: unknown): void {
     }
   }
   if (Object.keys(positions).length === 0) return;
-  ogdfProgressListener({ stage, positions });
+  const candidateLayout = layout as LayoutSnapshot;
+  const semanticRenderModel = createDiagramRenderModel({
+    ...payload,
+    layout: candidateLayout,
+    view: {
+      ...payload.view,
+      layoutMode: candidateLayout.mode,
+    },
+  });
+  ogdfProgressListener({
+    positions,
+    semanticRenderModel: {
+      bundleLeafTiles: semanticRenderModel.bundleLeafTiles,
+      bundleLeavesByFakeId: semanticRenderModel.bundleLeavesByFakeId,
+      edges: semanticRenderModel.edges,
+      leafBundles: semanticRenderModel.leafBundles,
+      tables: semanticRenderModel.tables,
+    },
+    stage,
+  });
 }
 
 export async function runOgdfLayout(
@@ -2997,10 +3193,34 @@ export async function runOgdfLayout(
 
   const binaryFingerprint = await fileStatFingerprint(binaryPath);
 
+  // Keep a cheap exploratory size input for the initial global placement.
+  // Large catalog hub rectangles can make unconstrained FMMM pathological,
+  // while positions-TSV reroutes handle those exact rectangles quickly. All
+  // accepted/final candidates use nodesPath (the rendered sizes); only the
+  // optimized cold-start baseline may use exploratoryNodesPath.
+  const exploratoryNodesTsv = serializeNodes(payload);
+  const synchronizedRenderedNodeSizes =
+    synchronizeLayoutNodeSizesWithRenderedTables(payload);
+  if (synchronizedRenderedNodeSizes > 0) {
+    logger?.info(
+      `[rendered-size-sync] updated ${synchronizedRenderedNodeSizes}`
+      + `/${payload.layout.nodes.length} final node sizes; `
+      + "cold-start placement retains exploratory sizes",
+    );
+  }
+
   const requestDirectory = await mkdtemp(
     path.join(os.tmpdir(), `django-erd-ogdf-${normalizedRequestedLayoutMode}-`),
   );
   const nodesPath = path.join(requestDirectory, "nodes.tsv");
+  const exploratoryNodesPath = path.join(
+    requestDirectory,
+    "nodes-exploratory.tsv",
+  );
+  const initialNodesPath =
+    optimizedLayout && synchronizedRenderedNodeSizes > 0
+      ? exploratoryNodesPath
+      : nodesPath;
   const edgesPath = path.join(requestDirectory, "edges.tsv");
   const transientPaths = new Set<string>();
   const trackTransientPath = (filePath: string): string => {
@@ -3032,6 +3252,7 @@ export async function runOgdfLayout(
   ).length;
 
   try {
+    await writeFile(exploratoryNodesPath, exploratoryNodesTsv, "utf8");
     await writeFile(nodesPath, serializeNodes(payload), "utf8");
     await writeFile(edgesPath, serializeEdges(layoutEdges), "utf8");
 
@@ -3133,7 +3354,7 @@ export async function runOgdfLayout(
         const key = fnvHash(
           nodesData,
           edgesData,
-          "optimized-layout-cache-v16",
+          "optimized-layout-cache-v24-render-size-reroute",
           `binary=${binaryFingerprint}`,
           `scorer=${scorerScriptFingerprint}`,
           `checkpoint=${ckptFingerprint}`,
@@ -3282,7 +3503,7 @@ export async function runOgdfLayout(
             "--mode",
             normalizedRequestedLayoutMode,
             "--nodes-file",
-            nodesPath,
+            initialNodesPath,
             "--edges-file",
             edgesPath,
             "--edge-routing",
@@ -3369,7 +3590,7 @@ export async function runOgdfLayout(
           let baselineLoadedFromCache = false;
           if (readBoolEnv("DJERD_OPTIMIZED_BASELINE_CACHE", true)) {
             try {
-              const nodesData = await readFile(nodesPath, "utf8");
+              const nodesData = await readFile(initialNodesPath, "utf8");
               const edgesData = await readFile(edgesPath, "utf8");
               const key = fnvHash(
                 nodesData,
@@ -3420,7 +3641,7 @@ export async function runOgdfLayout(
               [
                 "layout",
                 "--mode", "hierarchical_barycenter",
-                "--nodes-file", nodesPath,
+                "--nodes-file", initialNodesPath,
                 "--edges-file", edgesPath,
                 "--edge-routing", effectiveEdgeRouting,
                 "--cluster-graph", "1",
@@ -3622,7 +3843,7 @@ export async function runOgdfLayout(
             / 1e9;
           // Show the routed reroute result immediately (don't wait for the
           // long bbox-target / polish stages that follow).
-          streamIntermediateLayout("reroute", reroutedLayout);
+          streamIntermediateLayout("reroute", reroutedLayout, payload);
 
           if (usePoststackReroute) {
             // Strong default target: keep squeezing toward the final export
@@ -3635,11 +3856,10 @@ export async function runOgdfLayout(
               const bboxTargetSafeties = readBboxTargetSafeties();
               const bboxInitialLayout =
                 decodeLayoutSnapshot(acceptedLayout, "ogdfLayout");
-              const bboxInitialSummary = summarizeLayout(bboxInitialLayout);
+              const bboxInitialRenderedClearance =
+                measureLayoutRenderedTableClearance(payload, bboxInitialLayout);
               const bboxInitialAreaB =
-                bboxInitialSummary.nodeBBoxWidth
-                * bboxInitialSummary.nodeBBoxHeight
-                / 1e9;
+                bboxInitialRenderedClearance.bboxArea / 1e9;
               const bboxInitialVisual = Number(
                 bboxInitialLayout.engineMetadata?.visualCrossings,
               );
@@ -3664,10 +3884,21 @@ export async function runOgdfLayout(
                 ? configuredBboxTargetVariants.filter((variant) => variant === "local")
                 : configuredBboxTargetVariants;
               const bboxTargetPositionStrategies = readBboxTargetPositionStrategies();
-              const bboxTargetStages = readBboxTargetStages(
+              const configuredBboxTargetStages = readBboxTargetStages(
                 bboxTargetB,
                 bboxInitialAreaB,
               );
+              // When visual quality is already at target, try the direct,
+              // rollback-safe final target first. If it rejects, retain the
+              // original staged sequence as a generic fallback.
+              const bboxTargetStages = bboxUseTargetReachedFastPath
+                ? [
+                    bboxTargetB,
+                    ...configuredBboxTargetStages.filter(
+                      (stage) => Math.abs(stage - bboxTargetB) > 1e-6,
+                    ),
+                  ]
+                : configuredBboxTargetStages;
               logger?.info(
                 `[bbox target] stages=${bboxTargetStages
                   .map((stage) => `${stage.toFixed(2)}B`)
@@ -3711,12 +3942,13 @@ export async function runOgdfLayout(
                 "DJERD_OPTIMIZED_BBOX_TARGET_MAX_BUNDLE_NODE",
                 0,
               );
-              const bboxMaxNodeSpacing = readOptionalNonNegativeIntEnv(
+              const bboxMaxNodeSpacing = readNonNegativeIntEnv(
                 "DJERD_OPTIMIZED_BBOX_TARGET_MAX_NODE_SPACING",
+                0,
               );
               const bboxCandidateTimeoutMs = readPositiveIntEnv(
                 "DJERD_OPTIMIZED_BBOX_TARGET_TIMEOUT_MS",
-                60_000,
+                210_000,
               );
               const bboxAreaTolerance =
                 readFloatEnv("DJERD_OPTIMIZED_BBOX_TARGET_TOLERANCE", 1.02);
@@ -3748,6 +3980,13 @@ export async function runOgdfLayout(
                 "DJERD_OPTIMIZED_BBOX_TARGET_MAX_VISUAL_DEBT_RATIO",
                 0.05,
               );
+              const bboxGapBridgeMaxVisualRatio = Math.max(
+                1,
+                readFloatEnv(
+                  "DJERD_OPTIMIZED_BBOX_TARGET_GAP_BRIDGE_MAX_VISUAL_RATIO",
+                  1.25,
+                ),
+              );
               const configuredBboxStageBailAfter = readNonNegativeIntEnv(
                 "DJERD_OPTIMIZED_BBOX_TARGET_STAGE_BAIL_AFTER",
                 6,
@@ -3774,11 +4013,13 @@ export async function runOgdfLayout(
               for (const bboxStageTargetB of bboxTargetStages) {
                 const bboxStageBaseLayout =
                   decodeLayoutSnapshot(acceptedLayout, "ogdfLayout");
-                const bboxStageBaseSummary = summarizeLayout(bboxStageBaseLayout);
+                const bboxStageBaseRenderedClearance =
+                  measureLayoutRenderedTableClearance(
+                    payload,
+                    bboxStageBaseLayout,
+                  );
                 const bboxStageBaseAreaB =
-                  bboxStageBaseSummary.nodeBBoxWidth
-                  * bboxStageBaseSummary.nodeBBoxHeight
-                  / 1e9;
+                  bboxStageBaseRenderedClearance.bboxArea / 1e9;
                 if (bboxStageBaseAreaB <= bboxStageTargetB * bboxAreaTolerance) {
                   logger?.info(
                     `[bbox target] stage=${bboxStageTargetB.toFixed(2)}B skipped; `
@@ -3793,14 +4034,25 @@ export async function runOgdfLayout(
                 let bboxStageBadStreak = 0;
                 const bboxStageSeenPositionCandidates = new Set<string>();
                 for (const bboxSafety of bboxTargetSafeties) {
+                  // A gap-compressed result may be unsuitable as final output
+                  // yet still be the topology-preserving placement that makes
+                  // the following aspect solve viable. Keep it as an
+                  // exploratory bridge only; acceptedLayout is unchanged
+                  // until a candidate passes every final quality gate.
+                  let bboxGapBridgeLayout: unknown = acceptedLayout;
+                  let bboxGapBridgeAreaB = bboxStageBaseAreaB;
                   const stageTag = String(Math.round(bboxStageTargetB * 100));
                   const safetyTag = String(Math.round(bboxSafety * 1000));
                   for (const bboxPositionStrategy of bboxTargetPositionStrategies) {
                     const bboxStart = Date.now();
                     let bboxTargetPositionsPath: string | undefined;
                     try {
+                      const bboxPositionSourceLayout =
+                        bboxPositionStrategy === "aspect-scale"
+                          ? bboxGapBridgeLayout
+                          : acceptedLayout;
                       const bboxTarget = await writePositionsTsvForBBoxTarget(
-                        acceptedLayout,
+                        bboxPositionSourceLayout,
                         path.join(
                           os.tmpdir(),
                           `django-erd-bbox-target-${Date.now()}-${stageTag}-${safetyTag}-${bboxPositionStrategy}.tsv`,
@@ -3832,11 +4084,22 @@ export async function runOgdfLayout(
                         `[bbox target] stage=${bboxStageTargetB.toFixed(2)}B `
                         + `safety=${bboxSafety.toFixed(3)} `
                         + `strategy=${bboxPositionStrategy} `
+                        + (bboxPositionStrategy === "aspect-scale"
+                          && bboxGapBridgeLayout !== acceptedLayout
+                            ? "source=gap-bridge · "
+                            : "")
                         + `${bboxTarget.description}`,
                       );
                       for (const bboxVariant of bboxTargetVariants) {
                       const bboxVariantStart = Date.now();
                       try {
+                        const bboxFinalCompactCandidate =
+                          bboxPositionStrategy === "aspect-scale"
+                          && bboxStageTargetB
+                            <= Math.max(
+                              bboxTargetB * bboxAreaTolerance,
+                              bboxSoftCapB,
+                            );
                         const bboxRerouteArgs = [
                           "layout",
                           "--mode", normalizedRequestedLayoutMode,
@@ -3851,10 +4114,14 @@ export async function runOgdfLayout(
                           bboxRerouteArgs,
                           {
                             cwd: extensionRootPath,
-                            env: ogdfOptimizedBboxTargetEnvForVariant(bboxVariant),
+                            env: bboxFinalCompactCandidate
+                              ? ogdfOptimizedBboxTargetFinalCompactEnv(bboxVariant)
+                              : ogdfOptimizedBboxTargetEnvForVariant(bboxVariant),
                             killSignal: "SIGKILL",
                             maxBuffer: 100 * 1024 * 1024,
-                            timeout: bboxCandidateTimeoutMs,
+                            timeout: bboxFinalCompactCandidate
+                              ? Math.max(bboxCandidateTimeoutMs, 210_000)
+                              : bboxCandidateTimeoutMs,
                           },
                         );
                         if (bboxReroute.stderr.trim().length > 0) {
@@ -3868,26 +4135,56 @@ export async function runOgdfLayout(
                         // the user sees progress through this long stage
                         // (accepted or not — the final routed layout reloads
                         // when the whole pipeline finishes).
-                        streamIntermediateLayout("bbox", bboxCandidate);
+                        streamIntermediateLayout("bbox", bboxCandidate, payload);
                         const bboxCandidateLayout =
                           decodeLayoutSnapshot(bboxCandidate, "ogdfLayout");
                         const bboxCandidateSummary = summarizeLayout(bboxCandidateLayout);
-                        const bboxCandidateAreaB =
+                        const bboxNativeCandidateAreaB =
                           bboxCandidateSummary.nodeBBoxWidth
                           * bboxCandidateSummary.nodeBBoxHeight
                           / 1e9;
                         const bboxCandidateMetadata = bboxCandidate?.engineMetadata ?? {};
-                        const bboxCandidateNodeOverlaps =
+                        const bboxRenderedClearance =
+                          measureLayoutRenderedTableClearance(
+                            payload,
+                            bboxCandidateLayout,
+                          );
+                        const bboxCandidateAreaB =
+                          bboxRenderedClearance.bboxArea / 1e9;
+                        const bboxNativeNodeOverlaps =
                           Number(bboxCandidateMetadata.nodeOverlaps ?? 0);
-                        const bboxCandidateBundleNode =
+                        const bboxCandidateNodeOverlaps =
+                          Math.max(
+                            bboxNativeNodeOverlaps,
+                            bboxRenderedClearance.nodeOverlaps,
+                          );
+                        const bboxNativeBundleNode =
                           Number(bboxCandidateMetadata.bundleNodeOverlaps ?? 0);
-                        const bboxCandidateNodeSpacing =
+                        const bboxCandidateBundleNode =
+                          Math.max(
+                            bboxNativeBundleNode,
+                            bboxRenderedClearance.bundleNodeOverlaps
+                              + bboxRenderedClearance.bundleBundleOverlaps,
+                          );
+                        const bboxNativeNodeSpacing =
                           Number(bboxCandidateMetadata.nodeSpacingOverlaps ?? 0);
+                        const bboxCandidateNodeSpacing =
+                          Math.max(
+                            bboxNativeNodeSpacing,
+                            bboxRenderedClearance.spacingViolations,
+                          );
                         const bboxCandidateVisual =
                           Number(bboxCandidateMetadata.visualCrossings ?? 0);
                         const bboxCandidateEdgeNode =
                           Number(bboxCandidateMetadata.edgeNodeIntersections ?? 0);
-                        const bboxBeforeMetadata = acceptedLayout?.engineMetadata ?? {};
+                        // All candidates in a stage are alternatives relative
+                        // to the layout the user had when the stage began.
+                        // A good partial (for example gap compression) may be
+                        // used as the placement basis for the next strategy,
+                        // but must not silently tighten the final visual gate
+                        // below that user-visible reference.
+                        const bboxBeforeMetadata =
+                          bboxStageBaseLayout.engineMetadata ?? {};
                         const bboxBeforeVisual =
                           Number(bboxBeforeMetadata.visualCrossings ?? Number.POSITIVE_INFINITY);
                         const bboxBeforeEdgeNode =
@@ -3903,6 +4200,48 @@ export async function runOgdfLayout(
                           );
                         const isFinalBboxStage =
                           bboxStageTargetB <= bboxTargetB + 1e-6;
+                        // Canonical raw-edge obstacle counts naturally rise
+                        // when a complete straight drawing is compressed, but
+                        // bundled members are not drawn as those raw segments.
+                        // Let the exact rendered objective arbitrate only at
+                        // the final target and only when every route, leaf
+                        // route and leaf-bundle membership is still present,
+                        // duplicate-pipeline carrier coverage is retained,
+                        // and every emitted carrier remains a straight line.
+                        const bboxCompleteRouteSet =
+                          preservesCompleteStraightRouteSet(
+                            bboxStageBaseLayout,
+                            bboxCandidateLayout,
+                          );
+                        const bboxSemanticBundlesPreserved =
+                          preservesStraightSemanticBundles(
+                            bboxBeforeMetadata,
+                            bboxCandidateMetadata,
+                          );
+                        const bboxLeafBundlesPreserved =
+                          preservesLeafBundleMemberships(
+                            bboxBeforeMetadata,
+                            bboxCandidateMetadata,
+                          );
+                        const bboxBeforeBend = Number(
+                          bboxBeforeMetadata.edgeBendTotal ?? 0,
+                        );
+                        const bboxCandidateBend = Number(
+                          bboxCandidateMetadata.edgeBendTotal ?? 0,
+                        );
+                        const bboxStraightBendOk =
+                          Number.isFinite(bboxCandidateBend)
+                          && bboxCandidateBend <= Math.max(0, bboxBeforeBend) + 1e-6;
+                        const bboxRenderedCanonicalOverride =
+                          isFinalBboxStage
+                          && bboxCompleteRouteSet
+                          && bboxSemanticBundlesPreserved
+                          && bboxStraightBendOk
+                          && bboxCandidateVisual <= bboxBeforeVisual
+                          && bboxCandidateVisual <= bboxVisualTarget;
+                        const bboxCanonicalOk =
+                          bboxCanonicalNonRegression.ok
+                          || bboxRenderedCanonicalOverride;
                         const bboxHardOk =
                           bboxCandidateAreaB <= bboxStageTargetB * bboxAreaTolerance;
                         const bboxSoftGain =
@@ -3964,15 +4303,13 @@ export async function runOgdfLayout(
                         const bboxVisualDebtOk =
                           bboxVisualDebtRatio <= bboxMaxVisualDebtRatio;
                         const bboxAbsoluteSpacingOk =
-                          bboxMaxNodeSpacing === undefined
-                          || bboxCandidateNodeSpacing <= bboxMaxNodeSpacing;
+                          bboxCandidateNodeSpacing <= bboxMaxNodeSpacing;
                         const bboxQualityOk =
                           bboxQualityDebtPerGain <= bboxQualityDebtLimit;
                         const bboxSpacingOk =
                           bboxSpacingDebtPerGain <= bboxSpacingDebtLimit;
                         const bboxBundleNodeOk =
-                          bboxCandidateBundleNode <= bboxMaxBundleNode
-                          || bboxCandidateBundleNode <= bboxBeforeBundleNode;
+                          bboxCandidateBundleNode <= bboxMaxBundleNode;
                         const bboxGoalOk = bboxHardOk || bboxSoftOk;
                         const bboxPartialOk =
                           bboxPartialAccept
@@ -4003,7 +4340,19 @@ export async function runOgdfLayout(
                           && bboxBundleNodeOk
                           && bboxAbsoluteSpacingOk
                           && bboxEffectiveSpacingOk
-                          && bboxCanonicalNonRegression.ok;
+                          && bboxCanonicalOk;
+                        const bboxGapBridgeVisualLimit =
+                          Math.max(bboxBeforeVisual, bboxVisualTarget)
+                          * bboxGapBridgeMaxVisualRatio;
+                        const bboxGapBridgeOk =
+                          bboxPositionStrategy === "gap"
+                          && bboxCandidateAreaB + 1e-6 < bboxGapBridgeAreaB
+                          && Number.isFinite(bboxCandidateVisual)
+                          && bboxCandidateVisual <= bboxGapBridgeVisualLimit
+                          && bboxCandidateNodeOverlaps === 0
+                          && bboxCompleteRouteSet
+                          && bboxLeafBundlesPreserved
+                          && bboxStraightBendOk;
                         logger?.info(
                           `[bbox target:${bboxVariant}] candidate done in `
                           + `${Date.now() - bboxVariantStart}ms · `
@@ -4011,6 +4360,7 @@ export async function runOgdfLayout(
                           + `safety=${bboxSafety.toFixed(3)} · `
                           + `strategy=${bboxPositionStrategy} · `
                           + `bbox=${bboxCandidateAreaB.toFixed(2)}B · `
+                          + `nativeBbox=${bboxNativeCandidateAreaB.toFixed(2)}B · `
                           + `bboxOk=${bboxAcceptanceMode} · `
                           + `bboxGain=${bboxCompressionGainRatio.toFixed(3)} · `
                           + `visual=${bboxCandidateMetadata.visualCrossings ?? "?"} · `
@@ -4031,15 +4381,42 @@ export async function runOgdfLayout(
                           + `bundleNodeOk=${bboxBundleNodeOk} · `
                           + `nodeOverlaps=${bboxCandidateNodeOverlaps} · `
                           + `nodeSpacing=${bboxCandidateNodeSpacing} · `
+                          + `clearance=${bboxRenderedClearance.minimum.toFixed(1)}`
+                          + `/${Number(
+                            bboxCandidateMetadata.nodeClearanceTarget ?? 0,
+                          ).toFixed(1)} · `
+                          + `renderedAudit=node:${bboxRenderedClearance.nodeOverlaps}`
+                          + `/bundle:${bboxRenderedClearance.bundleNodeOverlaps}`
+                          + `/bundleBundle:${bboxRenderedClearance.bundleBundleOverlaps}`
+                          + `/spacing:${bboxRenderedClearance.spacingViolations} · `
                           + `spacingDebt=${bboxSpacingDebtRatio.toFixed(3)}`
                           + `/${bboxPartialMaxSpacingDebt.toFixed(3)} · `
                           + `spacingDebtPerGain=${bboxSpacingDebtPerGain.toFixed(3)}`
                           + `/${bboxSpacingDebtLimit.toFixed(3)} · `
                           + `spacingOk=${bboxEffectiveSpacingOk} · `
-                          + `canonicalOk=${bboxCanonicalNonRegression.ok} · `
+                          + `canonicalOk=${bboxCanonicalOk}`
+                          + `/raw=${bboxCanonicalNonRegression.ok}`
+                          + `/renderedOverride=${bboxRenderedCanonicalOverride}`
+                          + `/routes=${bboxCompleteRouteSet}`
+                          + `/leafBundles=${bboxLeafBundlesPreserved}`
+                          + `/bundles=${bboxSemanticBundlesPreserved}`
+                          + `/bend=${bboxStraightBendOk} · `
+                          + `gapBridge=${bboxGapBridgeOk} · `
                           + `partialOk=${bboxPartialOk} · `
                           + `accepted=${bboxAccept}`,
                         );
+                        if (bboxGapBridgeOk) {
+                          bboxGapBridgeLayout = bboxCandidate;
+                          bboxGapBridgeAreaB = bboxCandidateAreaB;
+                          logger?.info(
+                            `[bbox target] gap bridge retained for aspect solve · `
+                            + `stage=${bboxStageTargetB.toFixed(2)}B · `
+                            + `safety=${bboxSafety.toFixed(3)} · `
+                            + `bbox=${bboxCandidateAreaB.toFixed(2)}B · `
+                            + `visual=${bboxCandidateVisual.toFixed(0)} · `
+                            + `finalAccepted=${bboxAccept}`,
+                          );
+                        }
                         if (bboxAccept) {
                           acceptedStdout = bboxReroute.stdout;
                           acceptedLayout = bboxCandidate;
@@ -4085,7 +4462,7 @@ export async function runOgdfLayout(
                             qualityPerGainOverLimit >= bboxStageBailQualityRatio
                             || spacingPerGainOverLimit >= bboxStageBailSpacingRatio
                             || bboxCandidateNodeOverlaps > 0
-                            || !bboxCanonicalNonRegression.ok;
+                            || !bboxCanonicalOk;
                           const nearAcceptance =
                             qualityPerGainOverLimit <= bboxStageBailNearRatio
                             && spacingPerGainOverLimit <= bboxStageBailNearRatio
@@ -4094,7 +4471,7 @@ export async function runOgdfLayout(
                             && bboxVisualDebtOk
                             && bboxBundleNodeOk
                             && bboxAbsoluteSpacingOk
-                            && bboxCanonicalNonRegression.ok;
+                            && bboxCanonicalOk;
                           if (nearAcceptance) {
                             bboxStageBadStreak = 0;
                           } else if (farFromAcceptance) {
@@ -4152,10 +4529,10 @@ export async function runOgdfLayout(
                   logger?.info(
                     `[bbox target] stage=${bboxStageTargetB.toFixed(2)}B `
                     + (bboxStageBailed
-                      ? "bailed out early; stopping staged compression"
-                      : "had no accepted candidate; stopping staged compression"),
+                      ? "bailed out early; continuing with the next rollback-safe stage"
+                      : "had no accepted candidate; continuing with the next stage"),
                   );
-                  break;
+                  continue;
                 }
               }
               if (bboxTried && !bboxAnyAccepted) {
@@ -4168,7 +4545,7 @@ export async function runOgdfLayout(
             postReroutePolishDeadline ??=
               startPostReroutePolishDeadline(logger);
 
-            if (readBoolEnv("DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR", true)) {
+            if (readBoolEnv("DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR", false)) {
               const repairBase = decodeLayoutSnapshot(
                 acceptedLayout,
                 "ogdfCanonicalRouteRepairBase",
@@ -4430,7 +4807,7 @@ export async function runOgdfLayout(
                   }
                   const polishCandidate = JSON.parse(polishReroute.stdout);
                   // Draw every polish candidate as it's computed.
-                  streamIntermediateLayout("polish", polishCandidate);
+                  streamIntermediateLayout("polish", polishCandidate, payload);
                   const polishCandidateLayout =
                     decodeLayoutSnapshot(polishCandidate, "ogdfLayout");
                   const polishCandidateSummary = summarizeLayout(polishCandidateLayout);
@@ -4948,7 +5325,7 @@ export async function runOgdfLayout(
                       );
                     }
                     const visualCandidate = JSON.parse(visualReroute.stdout);
-                    streamIntermediateLayout("polish", visualCandidate);
+                    streamIntermediateLayout("polish", visualCandidate, payload);
                     const visualCandidateLayout =
                       decodeLayoutSnapshot(visualCandidate, "ogdfLayout");
                     const visualCandidateSummary =
@@ -5370,7 +5747,11 @@ export async function runOgdfLayout(
                           );
                         }
                         const visualRepairCandidate = JSON.parse(visualRepair.stdout);
-                        streamIntermediateLayout("polish", visualRepairCandidate);
+                        streamIntermediateLayout(
+                          "polish",
+                          visualRepairCandidate,
+                          payload,
+                        );
                         const visualRepairLayout =
                           decodeLayoutSnapshot(visualRepairCandidate, "ogdfLayout");
                         const visualRepairSummary =
@@ -5999,6 +6380,7 @@ export async function runOgdfLayout(
                           streamIntermediateLayout(
                             "bbox",
                             recompactCandidate,
+                            payload,
                           );
                           const recompactCandidateLayout =
                             decodeLayoutSnapshot(
@@ -6429,6 +6811,55 @@ export async function runOgdfLayout(
 
     const summary = summarizeLayout(layout);
     const metadata = layout.engineMetadata;
+    const renderedClearance = measureLayoutRenderedTableClearance(payload, layout);
+    const renderedBundleOverlaps =
+      renderedClearance.bundleNodeOverlaps
+      + renderedClearance.bundleBundleOverlaps;
+    if (metadata) {
+      metadata.nodeOverlaps = Math.max(
+        Number(metadata.nodeOverlaps ?? 0),
+        renderedClearance.nodeOverlaps,
+      );
+      metadata.bundleNodeOverlaps = Math.max(
+        Number(metadata.bundleNodeOverlaps ?? 0),
+        renderedBundleOverlaps,
+      );
+      metadata.nodeSpacingOverlaps = Math.max(
+        Number(metadata.nodeSpacingOverlaps ?? 0),
+        renderedClearance.spacingViolations,
+      );
+      metadata.nodeClearanceMin = Math.min(
+        Number(metadata.nodeClearanceMin ?? Number.POSITIVE_INFINITY),
+        renderedClearance.minimum,
+      );
+      const renderedVisualFloor =
+        Number(metadata.edgeCrossings ?? 0)
+        + Number(metadata.edgeNodeIntersections ?? 0)
+        + Number(metadata.bundleEdgeIntersections ?? 0)
+        + Number(metadata.bundleNodeOverlaps ?? 0);
+      metadata.visualCrossings = Math.max(
+        Number(metadata.visualCrossings ?? 0),
+        renderedVisualFloor,
+      );
+    }
+    const routedInputEdgeIds = new Set(
+      layout.routedEdges.map((edge) => edge.edgeId),
+    );
+    const missingInputEdges = layoutEdges.filter(
+      (edge) => !routedInputEdgeIds.has(edge.id),
+    );
+    const unroutedSelfLoopEdges = missingInputEdges.filter(
+      (edge) => edge.sourceModelId === edge.targetModelId,
+    );
+    const unroutedNonSelfEdges = missingInputEdges.filter(
+      (edge) => edge.sourceModelId !== edge.targetModelId,
+    );
+    if (unroutedNonSelfEdges.length > 0) {
+      logger?.warn(
+        `OGDF omitted ${unroutedNonSelfEdges.length} non-self input routes: `
+        + unroutedNonSelfEdges.slice(0, 12).map((edge) => edge.id).join(","),
+      );
+    }
     const visualCrossings = metadata?.visualCrossings;
     const visualCrossStatus =
       optimizedLayout
@@ -6441,12 +6872,49 @@ export async function runOgdfLayout(
       && typeof visualCrossings === "number"
         ? Math.max(0, Math.ceil(visualCrossings - visualCrossTarget))
         : undefined;
-    const qualityDegraded = visualCrossStatus === "miss";
-    const qualityReason =
-      qualityDegraded && visualCrossOver !== undefined
-        ? `Optimized visual crossings ${visualCrossings} exceed target `
-          + `${visualCrossTarget} by ${visualCrossOver}.`
-        : undefined;
+    const renderedClearancePass =
+      renderedClearance.nodeOverlaps === 0
+      && renderedBundleOverlaps === 0
+      && renderedClearance.spacingViolations === 0;
+    const finalRenderedBboxAreaB = renderedClearance.bboxArea / 1e9;
+    const finalBboxTargetB = readFloatEnv(
+      "DJERD_OPTIMIZED_BBOX_TARGET_B",
+      DEFAULT_OPTIMIZED_BBOX_TARGET_B,
+    );
+    const finalBboxTolerance = readFloatEnv(
+      "DJERD_OPTIMIZED_BBOX_TARGET_TOLERANCE",
+      1.02,
+    );
+    const bboxTargetStatus = optimizedLayout && finalBboxTargetB > 0
+      ? finalRenderedBboxAreaB <= finalBboxTargetB * finalBboxTolerance
+        ? "pass"
+        : "miss"
+      : undefined;
+    const qualityFailures: string[] = [];
+    if (visualCrossStatus === "miss" && visualCrossOver !== undefined) {
+      qualityFailures.push(
+        `Optimized visual crossings ${visualCrossings} exceed target `
+        + `${visualCrossTarget} by ${visualCrossOver}.`,
+      );
+    }
+    if (optimizedLayout && !renderedClearancePass) {
+      qualityFailures.push(
+        `Rendered table clearance failed with `
+        + `${renderedClearance.nodeOverlaps} node overlaps, `
+        + `${renderedBundleOverlaps} bundle overlaps, and `
+        + `${renderedClearance.spacingViolations} spacing violations.`,
+      );
+    }
+    if (bboxTargetStatus === "miss") {
+      qualityFailures.push(
+        `Rendered table BBOX ${finalRenderedBboxAreaB.toFixed(3)}B exceeds `
+        + `${finalBboxTargetB.toFixed(3)}B target.`,
+      );
+    }
+    const qualityDegraded = qualityFailures.length > 0;
+    const qualityReason = qualityFailures.length > 0
+      ? qualityFailures.join(" ")
+      : undefined;
     logger?.info(
       [
         `OGDF layout completed in ${Date.now() - started}ms`,
@@ -6461,11 +6929,18 @@ export async function runOgdfLayout(
         ...(metadata?.strategyReason ? [`strategyReason=${metadata.strategyReason}`] : []),
         `nodes=${layout.nodes.length}`,
         `routedEdges=${layout.routedEdges.length}`,
-        `unroutedInputEdges=${Math.max(0, layoutEdges.length - layout.routedEdges.length)}`,
+        `unroutedInputEdges=${unroutedNonSelfEdges.length}`,
+        `selfLoopInputEdges=${unroutedSelfLoopEdges.length}`,
         `routePoints=${summary.routePointCount}`,
         ...(metadata?.routeSegments !== undefined ? [`routeSegments=${metadata.routeSegments}`] : []),
         ...(metadata?.nodeOverlaps !== undefined ? [`nodeOverlaps=${metadata.nodeOverlaps}`] : []),
         ...(metadata?.nodeSpacingOverlaps !== undefined ? [`nodeSpacingOverlaps=${metadata.nodeSpacingOverlaps}`] : []),
+        ...(metadata?.nodeClearanceMin !== undefined
+          ? [`nodeClearanceMin=${metadata.nodeClearanceMin.toFixed(1)}`]
+          : []),
+        ...(metadata?.nodeClearanceTarget !== undefined
+          ? [`nodeClearanceTarget=${metadata.nodeClearanceTarget.toFixed(1)}`]
+          : []),
         ...(metadata?.rawRouteCrossings !== undefined ? [`rawRouteCrossings=${metadata.rawRouteCrossings}`] : []),
         ...(metadata?.edgeCrossings !== undefined ? [`edgeCrossings=${metadata.edgeCrossings}`] : []),
         ...(metadata?.edgeNodeIntersections !== undefined ? [`edgeNodeIntersections=${metadata.edgeNodeIntersections}`] : []),
@@ -6473,6 +6948,12 @@ export async function runOgdfLayout(
         ...(metadata?.edgeSegmentOverlaps !== undefined ? [`edgeSegmentOverlaps=${metadata.edgeSegmentOverlaps}`] : []),
         ...(metadata?.bundleEdgeIntersections !== undefined ? [`bundleEdgeIntersections=${metadata.bundleEdgeIntersections}`] : []),
         ...(metadata?.bundleNodeOverlaps !== undefined ? [`bundleNodeOverlaps=${metadata.bundleNodeOverlaps}`] : []),
+        `renderedBundleNodeOverlaps=${renderedClearance.bundleNodeOverlaps}`,
+        `renderedBundleBundleOverlaps=${renderedClearance.bundleBundleOverlaps}`,
+        `renderedNodeOverlaps=${renderedClearance.nodeOverlaps}`,
+        `renderedNodeSpacingOverlaps=${renderedClearance.spacingViolations}`,
+        `renderedNodeClearanceMin=${renderedClearance.minimum.toFixed(1)}`,
+        `renderedNodeClearanceStatus=${renderedClearancePass ? "pass" : "miss"}`,
         ...(metadata?.visualCrossings !== undefined ? [`visualCrossings=${metadata.visualCrossings}`] : []),
         ...(metadata?.canonicalCrossing
           ? [
@@ -6489,6 +6970,13 @@ export async function runOgdfLayout(
               `visualCrossTarget=${visualCrossTarget}`,
               `visualCrossStatus=${visualCrossStatus}`,
               `visualCrossOver=${visualCrossOver}`,
+            ]
+          : []),
+        ...(bboxTargetStatus !== undefined
+          ? [
+              `renderedBboxArea=${finalRenderedBboxAreaB.toFixed(3)}B`,
+              `bboxTarget=${finalBboxTargetB.toFixed(3)}B`,
+              `bboxStatus=${bboxTargetStatus}`,
             ]
           : []),
         ...(metadata?.stressScore !== undefined ? [`stress=${metadata.stressScore.toFixed(4)}`] : []),
@@ -6530,6 +7018,23 @@ export async function runOgdfLayout(
       logger?.warn(
         `OGDF visual crossing target missed · visualCrossings=${visualCrossings} · `
         + `target=${visualCrossTarget} · overBy=${visualCrossOver}`,
+      );
+    }
+    if (optimizedLayout && !renderedClearancePass) {
+      logger?.warn(
+        `OGDF rendered table clearance missed · `
+        + `nodeOverlaps=${renderedClearance.nodeOverlaps} · `
+        + `bundleNodeOverlaps=${renderedClearance.bundleNodeOverlaps} · `
+        + `bundleBundleOverlaps=${renderedClearance.bundleBundleOverlaps} · `
+        + `spacing=${renderedClearance.spacingViolations} · `
+        + `minimum=${renderedClearance.minimum.toFixed(3)}`,
+      );
+    }
+    if (bboxTargetStatus === "miss") {
+      logger?.warn(
+        `OGDF rendered BBOX target missed · `
+        + `bbox=${finalRenderedBboxAreaB.toFixed(3)}B · `
+        + `target=${finalBboxTargetB.toFixed(3)}B`,
       );
     }
 
@@ -8076,6 +8581,14 @@ async function writePositionsTsvForBBoxTarget(
   safety: number,
   strategy: BboxTargetPositionStrategy,
 ): Promise<BboxTargetPositionsResult | undefined> {
+  if (strategy === "aspect-scale") {
+    return writeAspectScaledPositionsTsvForBBoxTarget(
+      layout,
+      outputPath,
+      targetAreaB,
+      safety,
+    );
+  }
   if (strategy === "gap") {
     return writeGapCompressedPositionsTsvForBBoxTarget(
       layout,
@@ -8098,6 +8611,175 @@ async function writePositionsTsvForBBoxTarget(
     targetAreaB,
     safety,
   );
+}
+
+async function writeAspectScaledPositionsTsvForBBoxTarget(
+  layout: unknown,
+  outputPath: string,
+  targetAreaB: number,
+  safety: number,
+): Promise<BboxTargetPositionsResult | undefined> {
+  const parsed = layout as {
+    nodes?: Array<{
+      modelId?: unknown;
+      position?: { x?: unknown; y?: unknown };
+      size?: { height?: unknown; width?: unknown };
+    }>;
+  };
+  const nodes = (parsed.nodes ?? [])
+    .filter((node) => typeof node.modelId === "string" && node.position)
+    .map((node) => {
+      const x = numericValue(node.position?.x);
+      const y = numericValue(node.position?.y);
+      const width = numericValue(node.size?.width);
+      const height = numericValue(node.size?.height);
+      return {
+        centerX: x + width / 2,
+        centerY: y + height / 2,
+        height,
+        id: String(node.modelId),
+        maxX: x + width,
+        maxY: y + height,
+        minX: x,
+        minY: y,
+        width,
+      };
+    });
+  if (nodes.length === 0 || targetAreaB <= 0) {
+    return undefined;
+  }
+
+  const minX = Math.min(...nodes.map((node) => node.minX));
+  const minY = Math.min(...nodes.map((node) => node.minY));
+  const maxX = Math.max(...nodes.map((node) => node.maxX));
+  const maxY = Math.max(...nodes.map((node) => node.maxY));
+  const width = maxX - minX;
+  const height = maxY - minY;
+  const beforeArea = width * height;
+  if (!Number.isFinite(beforeArea) || beforeArea <= 1) {
+    return undefined;
+  }
+
+  const requestedTargetArea = targetAreaB * 1e9 * safety;
+  // The native straight-port/carrier pass can expand the supplied node
+  // placement slightly. Reserve a small, dimensionless fraction here so the
+  // emitted layout, rather than only the positions TSV, lands below target.
+  const nativeReserve = Math.max(
+    0.5,
+    Math.min(
+      1,
+      readFloatEnv("DJERD_OPTIMIZED_BBOX_TARGET_ASPECT_NATIVE_RESERVE", 0.96),
+    ),
+  );
+  const targetArea = requestedTargetArea * nativeReserve;
+  const maxBias = Math.max(
+    1,
+    readFloatEnv("DJERD_OPTIMIZED_BBOX_TARGET_ASPECT_MAX_BIAS", 2.1),
+  );
+  const medianWidth = Math.max(1, median(nodes.map((node) => node.width)));
+  const medianHeight = Math.max(1, median(nodes.map((node) => node.height)));
+  // Wide tables need more horizontal separation than vertical separation;
+  // tall nodes need the inverse. The dimensionless median aspect ratio makes
+  // the rule independent of project size and coordinate units. Clamp the
+  // bias so unusually shaped custom nodes cannot collapse one axis.
+  const axisBias = Math.max(
+    1 / maxBias,
+    Math.min(maxBias, medianWidth / medianHeight),
+  );
+  const minScale = Math.max(
+    0.05,
+    readFloatEnv("DJERD_OPTIMIZED_BBOX_TARGET_ASPECT_MIN_SCALE", 0.30),
+  );
+  const maxScale = readFloatEnv(
+    "DJERD_OPTIMIZED_BBOX_TARGET_MAX_SCALE",
+    0.995,
+  );
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+  const biasRoot = Math.sqrt(axisBias);
+  const scalesForBase = (baseScale: number) => ({
+    x: Math.max(minScale, Math.min(maxScale, baseScale * biasRoot)),
+    y: Math.max(minScale, Math.min(maxScale, baseScale / biasRoot)),
+  });
+  const transformedNodeBounds = (scaleX: number, scaleY: number) => {
+    let transformedMinX = Number.POSITIVE_INFINITY;
+    let transformedMinY = Number.POSITIVE_INFINITY;
+    let transformedMaxX = Number.NEGATIVE_INFINITY;
+    let transformedMaxY = Number.NEGATIVE_INFINITY;
+    for (const node of nodes) {
+      const transformedCenterX = centerX + (node.centerX - centerX) * scaleX;
+      const transformedCenterY = centerY + (node.centerY - centerY) * scaleY;
+      transformedMinX = Math.min(transformedMinX, transformedCenterX - node.width / 2);
+      transformedMaxX = Math.max(transformedMaxX, transformedCenterX + node.width / 2);
+      transformedMinY = Math.min(transformedMinY, transformedCenterY - node.height / 2);
+      transformedMaxY = Math.max(transformedMaxY, transformedCenterY + node.height / 2);
+    }
+    const transformedWidth = transformedMaxX - transformedMinX;
+    const transformedHeight = transformedMaxY - transformedMinY;
+    return {
+      area: transformedWidth * transformedHeight,
+      height: transformedHeight,
+      width: transformedWidth,
+    };
+  };
+
+  // Scaling table centers does not scale table dimensions. Solve against the
+  // exact transformed rectangles instead of sqrt(target / oldArea), which
+  // systematically underestimates the final BBOX on large schemas.
+  let lowBaseScale = 0;
+  let highBaseScale = maxScale * Math.max(biasRoot, 1 / biasRoot);
+  const highScales = scalesForBase(highBaseScale);
+  if (transformedNodeBounds(highScales.x, highScales.y).area <= targetArea) {
+    return undefined;
+  }
+  for (let iteration = 0; iteration < 64; iteration += 1) {
+    const midpoint = (lowBaseScale + highBaseScale) / 2;
+    const scales = scalesForBase(midpoint);
+    if (transformedNodeBounds(scales.x, scales.y).area <= targetArea) {
+      lowBaseScale = midpoint;
+    } else {
+      highBaseScale = midpoint;
+    }
+  }
+  const solvedScales = scalesForBase(lowBaseScale);
+  const scaleX = solvedScales.x;
+  const scaleY = solvedScales.y;
+  const predictedBounds = transformedNodeBounds(scaleX, scaleY);
+  if (
+    !Number.isFinite(scaleX)
+    || !Number.isFinite(scaleY)
+    || !Number.isFinite(predictedBounds.area)
+    || (scaleX >= maxScale && scaleY >= maxScale)
+  ) {
+    return undefined;
+  }
+
+  const transformPoint = (x: number, y: number) => ({
+    x: centerX + (x - centerX) * scaleX,
+    y: centerY + (y - centerY) * scaleY,
+  });
+  const lines = nodes.map((node) => {
+    const transformed = transformPoint(node.centerX, node.centerY);
+    return `${tsvCell(node.id)}\t${transformed.x.toFixed(3)}\t${transformed.y.toFixed(3)}`;
+  });
+  await writeFile(outputPath, lines.join("\n"), "utf8");
+  return {
+    beforeAreaB: beforeArea / 1e9,
+    description:
+      `aspect-scale positions by ${scaleX.toFixed(3)}x/`
+      + `${scaleY.toFixed(3)}y (medianAspect=`
+      + `${(medianWidth / medianHeight).toFixed(2)}, bias=${axisBias.toFixed(2)}) `
+      + `for ${(beforeArea / 1e9).toFixed(2)}B -> `
+      + `${(predictedBounds.area / 1e9).toFixed(2)}B predicted `
+      + `(${predictedBounds.width.toFixed(0)}x${predictedBounds.height.toFixed(0)}, `
+      + `requested=${(requestedTargetArea / 1e9).toFixed(2)}B, `
+      + `nativeReserve=${nativeReserve.toFixed(3)})`,
+    positionsPath: outputPath,
+    scale: Math.sqrt(scaleX * scaleY),
+    strategy: "aspect-scale",
+    targetAreaB: predictedBounds.area / 1e9,
+    transformPoint,
+  };
 }
 
 async function writeScaledPositionsTsvForBBoxTarget(
@@ -8883,18 +9565,7 @@ function readVisualCrossPolishVariants(): VisualCrossPolishVariant[] {
   return variants.length > 0
     ? variants
     : [
-      "route",
       "route-clear",
-      "route-clear-tight",
-      "route-clear-wide",
-      "route-clear-short",
-      "route-clear-deep",
-      "route-clear-lbend",
-      "route-clear-deep-lbend",
-      "route-clear-periphery",
-      "route-clear-deep-periphery",
-      "detour",
-      "detour-clear",
       "knot",
       "knot-clear",
     ];
@@ -9014,13 +9685,17 @@ function readBboxTargetVariants(): BboxTargetVariant[] {
 function readBboxTargetPositionStrategies(): BboxTargetPositionStrategy[] {
   const raw = readStringEnv(
     "DJERD_OPTIMIZED_BBOX_TARGET_POSITION_STRATEGIES",
-    "gap,density-scale,scale",
+    "gap,aspect-scale,density-scale,scale",
   );
   const strategies: BboxTargetPositionStrategy[] = [];
   for (const part of raw.split(",")) {
     const value = part.trim().toLowerCase();
     const strategy: BboxTargetPositionStrategy | undefined =
-      value === "gap" || value === "bands" || value === "empty-gaps"
+      value === "aspect-scale"
+        || value === "aspect"
+        || value === "anisotropic"
+        ? "aspect-scale"
+        : value === "gap" || value === "bands" || value === "empty-gaps"
         ? "gap"
         : value === "density-scale"
             || value === "density"
@@ -9033,7 +9708,9 @@ function readBboxTargetPositionStrategies(): BboxTargetPositionStrategy[] {
       strategies.push(strategy);
     }
   }
-  return strategies.length > 0 ? strategies : ["gap", "density-scale", "scale"];
+  return strategies.length > 0
+    ? strategies
+    : ["gap", "aspect-scale", "density-scale", "scale"];
 }
 
 function readPositiveIntEnv(name: string, fallback: number): number {
@@ -9053,15 +9730,6 @@ function readOptionalPositiveIntEnv(name: string): number | undefined {
   }
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
-}
-
-function readOptionalNonNegativeIntEnv(name: string): number | undefined {
-  const value = process.env[name]?.trim();
-  if (!value || value.toLowerCase() === "auto") {
-    return undefined;
-  }
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
 function readFloatEnv(name: string, fallback: number): number {
@@ -9412,6 +10080,85 @@ function summarizeLayout(layout: LayoutSnapshot): {
     routeBBoxWidth: boundsWidth(routeBounds),
     routePointCount,
   };
+}
+
+function preservesCompleteStraightRouteSet(
+  base: LayoutSnapshot,
+  candidate: LayoutSnapshot,
+): boolean {
+  if (candidate.engineMetadata?.canonicalCrossing?.completeRoutes !== true) {
+    return false;
+  }
+  if (candidate.routedEdges.length !== base.routedEdges.length) {
+    return false;
+  }
+  const baseIds = new Set(base.routedEdges.map((edge) => edge.edgeId));
+  if (baseIds.size !== base.routedEdges.length) {
+    return false;
+  }
+  return candidate.routedEdges.every(
+    (edge) => baseIds.has(edge.edgeId) && edge.points.length === 2,
+  );
+}
+
+function preservesStraightSemanticBundles(
+  base: LayoutEngineMetadata | undefined,
+  candidate: LayoutEngineMetadata | undefined,
+): boolean {
+  const groupedCarrierMembers = (metadata: LayoutEngineMetadata | undefined) => {
+    const members = new Set<string>();
+    for (const route of metadata?.renderedCarrierRoutes ?? []) {
+      if (route.memberEdgeIds.length < 2) {
+        continue;
+      }
+      for (const edgeId of route.memberEdgeIds) {
+        members.add(edgeId);
+      }
+    }
+    return members;
+  };
+  const candidateCarrierRoutes = candidate?.renderedCarrierRoutes ?? [];
+  if (
+    (base?.renderedCarrierRoutes?.length ?? 0) > 0
+    && candidateCarrierRoutes.length === 0
+  ) {
+    return false;
+  }
+  if (
+    candidateCarrierRoutes.some(
+      (route) => route.memberEdgeIds.length === 0 || route.points.length !== 2,
+    )
+  ) {
+    return false;
+  }
+  const requiredGroupedMembers = groupedCarrierMembers(base);
+  const candidateGroupedMembers = groupedCarrierMembers(candidate);
+  const minimumGroupedCoverage = Math.ceil(requiredGroupedMembers.size * 0.995);
+  // Carrier membership can be reclassified at semantic cluster boundaries
+  // after compression. Preserve the amount of duplicate-pipeline bundling
+  // (within 0.5% rounding tolerance) rather than requiring the exact same
+  // edge IDs to remain in the exact same carrier. Leaf membership is stable
+  // and therefore remains an exact subset requirement.
+  return preservesLeafBundleMemberships(base, candidate)
+    && candidateGroupedMembers.size >= minimumGroupedCoverage;
+}
+
+function preservesLeafBundleMemberships(
+  base: LayoutEngineMetadata | undefined,
+  candidate: LayoutEngineMetadata | undefined,
+): boolean {
+  const leafMemberships = (metadata: LayoutEngineMetadata | undefined) => {
+    const memberships = new Set<string>();
+    for (const bundle of metadata?.leafBundles ?? []) {
+      for (const leafModelId of bundle.leafModelIds) {
+        memberships.add(`${bundle.parentModelId}\u0000${leafModelId}`);
+      }
+    }
+    return memberships;
+  };
+  const required = leafMemberships(base);
+  const available = leafMemberships(candidate);
+  return [...required].every((value) => available.has(value));
 }
 
 function emptyBounds(): {

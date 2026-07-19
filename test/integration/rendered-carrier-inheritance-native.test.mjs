@@ -28,7 +28,7 @@ const renderModelModulePath = path.resolve(
 const binaryAvailable = await pathExists(binaryPath);
 const renderModelAvailable = await pathExists(renderModelModulePath);
 
-test("native and webview share inheritance and intra-cluster carrier topology", {
+test("native and webview share semantic bundling without zoom-only detail", {
   skip: !binaryAvailable || !renderModelAvailable,
 }, async () => {
   const fixture = createCarrierFixture();
@@ -74,7 +74,10 @@ test("native and webview share inheritance and intra-cluster carrier topology", 
         DJERD_INHERITANCE_CARRIER_FINAL: "1",
         DJERD_INTRA_CLUSTER_CARRIER_FINAL: "1",
         DJERD_MULTISTART_RUNS: "1",
+        DJERD_RENDERED_CARRIER_GEOMETRY_OPT_FINAL: "1",
         DJERD_RENDERED_CARRIER_METRICS_FINAL: "1",
+        DJERD_RENDERED_NODE_CLEARANCE_FINAL: "1",
+        DJERD_RENDERED_STRAIGHT_PORT_OPT_FINAL: "1",
       },
       maxBuffer: 32 * 1024 * 1024,
       timeout: 30_000,
@@ -106,6 +109,21 @@ test("native and webview share inheritance and intra-cluster carrier topology", 
     );
     assert.equal(layout.engineMetadata?.inheritanceCarrierGrouping, true);
     assert.equal(layout.engineMetadata?.intraClusterCarrierGrouping, true);
+    assert.equal(
+      layout.engineMetadata?.nodeSpacingOverlaps,
+      0,
+      "the emitted table set should satisfy the rendered clearance gate",
+    );
+    assert.ok(
+      layout.engineMetadata?.nodeClearanceMin
+        >= layout.engineMetadata?.nodeClearanceTarget,
+      "the measured minimum table clearance should meet its declared target",
+    );
+    assert.equal(layout.routedEdges.length, fixture.edges.length);
+    assert.ok(
+      layout.engineMetadata?.renderedCarrierRoutes?.length > 0,
+      "native layout should serialize optimized straight carrier geometry",
+    );
 
     const metricMatches = [...stderr.matchAll(
       /\[rendered-carrier-metrics-final\].*visibleEdges=(\d+).*routeSegments=(\d+)/g,
@@ -143,17 +161,57 @@ test("native and webview share inheritance and intra-cluster carrier topology", 
       );
     }
     assert.ok(renderedEdgeIds.has("inheritance-carrier:test.sharedBase"));
+    assert.ok(renderModel.leafBundles.length > 0);
+    assert.equal(Object.hasOwn(renderModel, "detailEdges"), false);
     assert.equal(
       Number(finalMetric[1]),
       renderModel.edges.length,
-      "native visible carrier paths should match webview structural edges",
+      "every scored semantic carrier should be visible without zoom",
     );
+    assert.ok(
+      Number(finalMetric[2]) >= renderModel.edges.length,
+      "native route-segment count should cover every visible carrier",
+    );
+    const renderedEdgeById = new Map(
+      renderModel.edges.map((edge) => [edge.edgeId, edge]),
+    );
+    for (const carrierRoute of layout.engineMetadata.renderedCarrierRoutes) {
+      const webviewCarrierId = carrierRoute.carrierId.startsWith("H|")
+        ? `hub-carrier:${carrierRoute.carrierId.slice(2)}`
+        : carrierRoute.carrierId.startsWith("I|")
+          ? `inheritance-carrier:${carrierRoute.carrierId.slice(2)}`
+          : carrierRoute.carrierId.startsWith("Cself|")
+            ? `intra-cluster-carrier:${carrierRoute.carrierId.slice("Cself|".length)}`
+            : carrierRoute.carrierId.startsWith("B")
+              ? carrierRoute.memberEdgeIds.find((edgeId) => renderedEdgeById.has(edgeId))
+              : carrierRoute.carrierId;
+      const renderedEdge = renderedEdgeById.get(webviewCarrierId);
+      assert.ok(renderedEdge, `missing serialized carrier ${webviewCarrierId}`);
+      const nativePoints = carrierRoute.points
+        .map((point) => `${point.x},${point.y}`)
+        .join(" ");
+      const reversedNativePoints = [...carrierRoute.points]
+        .reverse()
+        .map((point) => `${point.x},${point.y}`)
+        .join(" ");
+      assert.ok(
+        renderedEdge.points === nativePoints
+        || renderedEdge.points === reversedNativePoints,
+        `carrier ${webviewCarrierId} should use native-scored geometry`,
+      );
+      assert.ok(carrierRoute.memberEdgeIds.length >= 1);
+      assert.equal(
+        carrierRoute.points.length,
+        2,
+        `carrier ${webviewCarrierId} should remain a straight line`,
+      );
+    }
   } finally {
     await fs.rm(directory, { force: true, recursive: true });
   }
 });
 
-test("adaptive carrier budget is project-agnostic and works without leaf bundles", {
+test("removed adaptive settings cannot create a zoom-only carrier set", {
   skip: !binaryAvailable || !renderModelAvailable,
 }, async () => {
   const fixture = createDenseBundleFreeFixture();
@@ -210,15 +268,10 @@ test("adaptive carrier budget is project-agnostic and works without leaf bundles
     });
     const layout = JSON.parse(stdout);
     assert.equal(layout.engineMetadata?.leafBundles?.length ?? 0, 0);
-    assert.equal(
-      layout.engineMetadata?.adaptiveCarrierTarget,
-      1,
-      JSON.stringify(layout.engineMetadata),
-    );
-    assert.ok(layout.engineMetadata?.adaptiveCarrierGrid >= 1);
-    assert.ok(layout.engineMetadata?.adaptiveCarrierBaseEdges >= fixture.edges.length);
-    assert.ok(layout.engineMetadata?.adaptiveCarrierVisibleEdges < fixture.edges.length);
-    assert.ok(layout.engineMetadata?.visualCrossings <= 1);
+    assert.equal(layout.engineMetadata?.adaptiveCarrierTarget, undefined);
+    assert.equal(layout.engineMetadata?.adaptiveCarrierGrid, undefined);
+    assert.equal(layout.routedEdges.length, fixture.edges.length);
+    assert.ok(layout.engineMetadata?.visualCrossings > 1);
 
     const { createDiagramRenderModel } = require(renderModelModulePath);
     const renderModel = createDiagramRenderModel(
@@ -226,16 +279,13 @@ test("adaptive carrier budget is project-agnostic and works without leaf bundles
     );
     assert.equal(
       renderModel.edges.length,
-      layout.engineMetadata.adaptiveCarrierVisibleEdges,
-      "native and webview should select the same adaptive spatial groups",
+      fixture.edges.length,
+      "every routed relationship should be present at every zoom",
     );
-    assert.equal(
-      renderModel.detailEdges.length,
-      layout.engineMetadata.adaptiveCarrierBaseEdges,
-      "zoomed detail should retain every pre-adaptive carrier",
-    );
-    assert.ok(
-      renderModel.edges.every((edge) => edge.edgeId.startsWith("adaptive-carrier:")),
+    assert.equal(Object.hasOwn(renderModel, "detailEdges"), false);
+    assert.deepEqual(
+      new Set(renderModel.edges.map((edge) => edge.edgeId)),
+      new Set(fixture.edges.map((edge) => edge.id)),
     );
   } finally {
     await fs.rm(directory, { force: true, recursive: true });

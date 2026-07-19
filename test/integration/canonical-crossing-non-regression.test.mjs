@@ -368,7 +368,7 @@ test("route-repair-only gate requires strict node-hit gain and every canonical c
   );
 });
 
-test("v16 orchestration targets at most 100 rendered crossings adaptively", async () => {
+test("v24 orchestration targets 1B with rendered clearance-safe straight semantic carriers", async () => {
   const source = await fs.readFile(
     path.resolve(
       __dirname,
@@ -377,20 +377,102 @@ test("v16 orchestration targets at most 100 rendered crossings adaptively", asyn
     "utf8",
   );
 
-  assert.match(source, /"optimized-layout-cache-v16"/);
+  assert.match(source, /"optimized-layout-cache-v24-render-size-reroute"/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v23-render-size"/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v22"/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v21"/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v20"/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v19"/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v18"/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v17"/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v16"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v14"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v15"/);
   assert.match(source, /const DEFAULT_VISUAL_CROSS_TARGET = 100;/);
-  assert.match(source, /DJERD_ADAPTIVE_CARRIER_TARGET_FINAL/);
-  assert.match(source, /adaptiveCarrierTarget=/);
-  assert.match(source, /const DEFAULT_RENDERED_CARRIER_THRESHOLD = "2";/);
+  assert.doesNotMatch(source, /DJERD_ADAPTIVE_CARRIER_TARGET_FINAL/);
   assert.match(
     source,
-    /DJERD_INHERITANCE_CARRIER_FINAL:[\s\S]*\?\? "1"/,
+    /DJERD_NO_CARRIER_CROSS:\s*"0"/,
   );
   assert.match(
     source,
-    /DJERD_INTRA_CLUSTER_CARRIER_FINAL:[\s\S]*\?\? "1"/,
+    /DJERD_RENDERED_CARRIER_METRICS_FINAL:\s*"1"/,
+  );
+  assert.match(
+    source,
+    /DJERD_RENDERED_NODE_CLEARANCE_FINAL:[\s\S]*?\?\? "1"/,
+  );
+  assert.match(
+    source,
+    /DJERD_OPTIMIZED_BBOX_TARGET_MAX_NODE_SPACING[\s\S]*?0,/,
+  );
+  assert.match(
+    source,
+    /DJERD_HUB_CARRIER_CROSS_FINAL:\s*"1"/,
+  );
+  assert.match(
+    source,
+    /DJERD_HUB_CARRIER_CROSS_FINAL_THRESHOLD:\s*"2"/,
+  );
+  assert.match(
+    source,
+    /DJERD_INHERITANCE_CARRIER_FINAL:\s*"1"/,
+  );
+  assert.match(
+    source,
+    /DJERD_INTRA_CLUSTER_CARRIER_FINAL:\s*"1"/,
+  );
+  assert.match(
+    source,
+    /DJERD_RENDERED_CARRIER_GEOMETRY_OPT_FINAL:\s*"1"/,
+  );
+  assert.match(
+    source,
+    /"gap",\s*"aspect-scale",\s*"density-scale",\s*"scale"/,
+  );
+  assert.match(
+    source,
+    /DJERD_OPTIMIZED_BBOX_TARGET_ASPECT_NATIVE_RESERVE[\s\S]*?0\.96/,
+  );
+  assert.match(
+    source,
+    /transformedNodeBounds[\s\S]*for \(let iteration = 0; iteration < 64/,
+  );
+  assert.match(
+    source,
+    /DJERD_BUNDLE_CONNECTOR_PACK_FINAL:[\s\S]*?\?\? "1"/,
+  );
+  assert.match(
+    source,
+    /DJERD_RENDERED_STRAIGHT_PORT_OPT_FINAL:[\s\S]*?\?\? "1"/,
+  );
+  assert.match(
+    source,
+    /DJERD_L_BEND_REROUTE:\s*"0"/,
+  );
+  assert.match(
+    source,
+    /const DEFAULT_VISUAL_CROSS_POLISH_VARIANTS = \[\s*"route-clear",\s*"knot",\s*"knot-clear",\s*\]\.join\(","\);/,
+  );
+  assert.match(
+    source,
+    /DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR \?\? "0"/,
+  );
+  assert.match(
+    source,
+    /DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_EDGE_DETOUR \?\? "0"/,
+  );
+  assert.match(
+    source,
+    /DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR", false/,
+  );
+  assert.match(
+    source,
+    /DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_EDGE_DETOUR[\s\S]*?\?\? "0"/,
+  );
+  assert.match(
+    source,
+    /DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_L_BEND[\s\S]*?\?\? "0"/,
   );
   assert.match(
     source,
@@ -440,4 +522,57 @@ test("v16 orchestration targets at most 100 rendered crossings adaptively", asyn
     source,
     /bboxCanonicalNonRegression[\s\S]*evaluateCanonicalCrossingNonRegression[\s\S]*bboxCanonicalNonRegression\.ok/,
   );
+  assert.match(
+    source,
+    /bboxCompleteRouteSet[\s\S]*bboxRenderedCanonicalOverride[\s\S]*bboxCandidateVisual <= bboxBeforeVisual/,
+  );
+  assert.match(
+    source,
+    /preservesStraightSemanticBundles[\s\S]*bboxSemanticBundlesPreserved[\s\S]*bboxStraightBendOk/,
+  );
+  assert.match(
+    source,
+    /const bboxBeforeMetadata =\s*bboxStageBaseLayout\.engineMetadata \?\? \{\}/,
+  );
+  assert.match(
+    source,
+    /bboxGapBridgeLayout[\s\S]*source=gap-bridge[\s\S]*gap bridge retained for aspect solve/,
+  );
+  const gapBridgeGateStart = source.indexOf("const bboxGapBridgeOk =");
+  const gapBridgeGateEnd = source.indexOf("logger?.info(", gapBridgeGateStart);
+  assert.ok(gapBridgeGateStart >= 0 && gapBridgeGateEnd > gapBridgeGateStart);
+  const gapBridgeGate = source.slice(gapBridgeGateStart, gapBridgeGateEnd);
+  assert.match(gapBridgeGate, /bboxLeafBundlesPreserved/);
+  assert.doesNotMatch(gapBridgeGate, /bboxSemanticBundlesPreserved/);
+  assert.match(
+    source,
+    /function preservesLeafBundleMemberships[\s\S]*leafModelIds[\s\S]*available\.has/,
+  );
+  assert.match(
+    source,
+    /measureLayoutRenderedTableClearance[\s\S]*bboxRenderedClearance[\s\S]*renderedAudit=node:/,
+  );
+  assert.match(
+    source,
+    /minimumGroupedCoverage[\s\S]*requiredGroupedMembers\.size \* 0\.995/,
+  );
+  assert.match(
+    source,
+    /DJERD_OPTIMIZED_BBOX_TARGET_NODE_PAIR_RETOUCH \?\? "0"/,
+  );
+  assert.match(
+    source,
+    /DJERD_NODE_PAIR_RETOUCH_BUDGET_MS:[\s\S]*?45000/,
+  );
+});
+
+test("node-pair retouch honors its native time budget", async () => {
+  const source = await fs.readFile(
+    path.resolve(__dirname, "../../native/ogdf-layout/src/main.cpp"),
+    "utf8",
+  );
+
+  assert.match(source, /DJERD_NODE_PAIR_RETOUCH_BUDGET_MS/);
+  assert.match(source, /nodePairBudgetExceeded/);
+  assert.match(source, /budgetHit=%d/);
 });

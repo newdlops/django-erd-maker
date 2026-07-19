@@ -97,15 +97,40 @@ void writeLayoutEngineMetadata(
   if (metadata.intraClusterCarrierGrouping) {
     stream << ",\"intraClusterCarrierGrouping\":true";
   }
-  if (metadata.adaptiveCarrierTarget > 0) {
-    stream << ",\"adaptiveCarrierGrid\":" << metadata.adaptiveCarrierGrid
-           << ",\"adaptiveCarrierTarget\":" << metadata.adaptiveCarrierTarget
-           << ",\"adaptiveCarrierBaseEdges\":" << metadata.adaptiveCarrierBaseEdges
-           << ",\"adaptiveCarrierVisibleEdges\":" << metadata.adaptiveCarrierVisibleEdges
-           << ",\"adaptiveCarrierMinX\":" << metadata.adaptiveCarrierMinX - bounds.minX
-           << ",\"adaptiveCarrierMinY\":" << metadata.adaptiveCarrierMinY - bounds.minY
-           << ",\"adaptiveCarrierMaxX\":" << metadata.adaptiveCarrierMaxX - bounds.minX
-           << ",\"adaptiveCarrierMaxY\":" << metadata.adaptiveCarrierMaxY - bounds.minY;
+  if (!metadata.renderedCarrierRoutes.empty()) {
+    stream << ",\"renderedCarrierRoutes\":[";
+    bool firstRoute = true;
+    for (const RenderedCarrierRouteRecord& route : metadata.renderedCarrierRoutes) {
+      if (route.carrierId.empty() || route.points.size() < 2) {
+        continue;
+      }
+      if (!firstRoute) {
+        stream << ',';
+      }
+      firstRoute = false;
+      stream << "{\"carrierId\":\"" << escapeJson(route.carrierId)
+             << "\",\"memberEdgeIds\":[";
+      for (std::size_t edgeIndex = 0;
+           edgeIndex < route.memberEdgeIds.size(); ++edgeIndex) {
+        if (edgeIndex > 0) {
+          stream << ',';
+        }
+        stream << '\"' << escapeJson(route.memberEdgeIds[edgeIndex]) << '\"';
+      }
+      stream << "],\"points\":[";
+      for (std::size_t pointIndex = 0; pointIndex < route.points.size(); ++pointIndex) {
+        if (pointIndex > 0) {
+          stream << ',';
+        }
+        writePoint(
+          stream,
+          route.points[pointIndex].x,
+          route.points[pointIndex].y,
+          bounds);
+      }
+      stream << "]}";
+    }
+    stream << ']';
   }
   if (metadata.canonicalCrossing.available) {
     const CanonicalCrossingMetadata& canonical = metadata.canonicalCrossing;
@@ -142,6 +167,8 @@ void writeLayoutEngineMetadata(
   stream << ",\"nodeOverlaps\":" << quality.nodeOverlaps
          << ",\"rawRouteCrossings\":" << metadata.rawRouteCrossings
          << ",\"nodeSpacingOverlaps\":" << quality.nodeSpacingOverlaps
+         << ",\"nodeClearanceMin\":" << quality.nodeClearanceMin
+         << ",\"nodeClearanceTarget\":" << quality.nodeClearanceTarget
          << ",\"edgeCrossings\":" << quality.edgeCrossings
          << ",\"edgeNodeIntersections\":" << quality.edgeNodeIntersections
          << ",\"edgeSegmentOverlaps\":" << quality.edgeSegmentOverlaps

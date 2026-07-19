@@ -144,6 +144,16 @@ struct LeafBundleRecord {
   double bboxHeight = 0.0;
 };
 
+// Final straight geometry for a semantic carrier (hub, inheritance pipeline,
+// or intra-cluster pipeline). The native scorer chooses one visible segment
+// without changing carrier membership; the webview consumes the same points
+// so the reported visual-crossing metric and rendered scene stay identical.
+struct RenderedCarrierRouteRecord {
+  std::string carrierId;
+  std::vector<std::string> memberEdgeIds;
+  std::vector<RoutePoint> points;
+};
+
 // One offender record in metadata.topCrossEdges. Identifies an edge by
 // its source/target model ids and reports how many segment-segment
 // crossings it participates in (raw geometric count, pre carrier
@@ -196,14 +206,6 @@ struct LayoutRunMetadata {
   std::string strategyReason;
   bool inheritanceCarrierGrouping = false;
   bool intraClusterCarrierGrouping = false;
-  int adaptiveCarrierGrid = 0;
-  int adaptiveCarrierTarget = 0;
-  std::size_t adaptiveCarrierBaseEdges = 0;
-  std::size_t adaptiveCarrierVisibleEdges = 0;
-  double adaptiveCarrierMinX = 0.0;
-  double adaptiveCarrierMinY = 0.0;
-  double adaptiveCarrierMaxX = 0.0;
-  double adaptiveCarrierMaxY = 0.0;
   int hubCarrierThreshold = 0;
   std::size_t hubCarrierEdgesGrouped = 0;
   std::size_t hubCarrierClusters = 0;
@@ -211,6 +213,7 @@ struct LayoutRunMetadata {
   CanonicalCrossingMetadata canonicalCrossing;
   std::unordered_map<std::string, std::string> clusterByModelId;
   std::vector<LeafBundleRecord> leafBundles;
+  std::vector<RenderedCarrierRouteRecord> renderedCarrierRoutes;
 };
 
 struct LayoutQualityMetrics {
@@ -219,6 +222,12 @@ struct LayoutQualityMetrics {
   std::size_t edgeSegmentOverlaps = 0;
   std::size_t nodeOverlaps = 0;
   std::size_t nodeSpacingOverlaps = 0;
+  // Minimum edge-to-edge distance across the objects the webview actually
+  // draws as tables: ordinary nodes (including bundle parents) plus the
+  // synthetic leaf-bundle tables. Bundled leaf tiles are represented by the
+  // synthetic table and therefore excluded from this pairwise measurement.
+  double nodeClearanceMin = 0.0;
+  double nodeClearanceTarget = 0.0;
   std::size_t overlappingEdges = 0;
   std::size_t routeSegments = 0;
   // Edge passes through a leafBundle bbox (bundle is treated as a single
@@ -327,6 +336,10 @@ constexpr double kRadialLevelDistance = 220.0;
 constexpr double kRadialComponentDistance = 360.0;
 constexpr double kPostLayoutNodeGapX = 56.0;
 constexpr double kPostLayoutNodeGapY = 42.0;
+constexpr double kMinimumNodeClearance =
+  kPostLayoutNodeGapX < kPostLayoutNodeGapY
+    ? kPostLayoutNodeGapX
+    : kPostLayoutNodeGapY;
 constexpr int kOverlapRelaxationIterations = 64;
 constexpr double kDistantEdgeMinThreshold = 1800.0;
 constexpr double kDistantEdgeLengthFactor = 5.0;
