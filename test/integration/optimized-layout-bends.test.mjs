@@ -11,16 +11,20 @@ const sourceModulePath = path.resolve(
   "../../out/webview/interaction/runtime/browserEventSource.js",
 );
 
-test("enabling optimized layout also enables the routed bend geometry it scores", () => {
+test("enabling optimized layout preserves the user's edge-bend preference", () => {
   const { getBrowserEventSource } = require(sourceModulePath);
   const source = getBrowserEventSource();
 
-  const optimizedHandler = source.slice(
-    source.indexOf('for (const button of document.querySelectorAll("[data-optimized-toggle]"))'),
+  const optimizedHandlerStart = source.indexOf(
+    'for (const button of document.querySelectorAll("[data-optimized-toggle]"))',
   );
-  assert.match(
+  const optimizedHandler = source.slice(
+    optimizedHandlerStart,
+    source.indexOf('root.addEventListener("click"', optimizedHandlerStart),
+  );
+  assert.doesNotMatch(
     optimizedHandler,
-    /if \(state\.optimizedLayout\) \{[\s\S]*state\.useEdgeBends = true;/,
+    /state\.useEdgeBends\s*=/,
   );
   assert.match(
     optimizedHandler,

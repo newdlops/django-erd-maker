@@ -190,17 +190,6 @@ export function getBrowserEventSource(): string {
           button.addEventListener("click", () => {
             state.optimizedLayout = !state.optimizedLayout;
             button.classList.toggle("is-active", state.optimizedLayout);
-            // The optimized pipeline scores and polishes the routed polyline
-            // geometry. Keep the browser in the same geometry domain so its
-            // visible segments match the native visual-crossing metric.
-            if (state.optimizedLayout) {
-              state.useEdgeBends = true;
-              for (const bendsButton of document.querySelectorAll(
-                "[data-edge-bends-toggle]",
-              )) {
-                bendsButton.classList.add("is-active");
-              }
-            }
             logErd("info", "event.optimized.toggle", {
               edgeBends: state.useEdgeBends,
               enabled: state.optimizedLayout,
