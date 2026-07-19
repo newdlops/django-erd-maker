@@ -194,6 +194,16 @@ struct LayoutRunMetadata {
   std::string actualAlgorithm;
   std::string strategy;
   std::string strategyReason;
+  bool inheritanceCarrierGrouping = false;
+  bool intraClusterCarrierGrouping = false;
+  int adaptiveCarrierGrid = 0;
+  int adaptiveCarrierTarget = 0;
+  std::size_t adaptiveCarrierBaseEdges = 0;
+  std::size_t adaptiveCarrierVisibleEdges = 0;
+  double adaptiveCarrierMinX = 0.0;
+  double adaptiveCarrierMinY = 0.0;
+  double adaptiveCarrierMaxX = 0.0;
+  double adaptiveCarrierMaxY = 0.0;
   int hubCarrierThreshold = 0;
   std::size_t hubCarrierEdgesGrouped = 0;
   std::size_t hubCarrierClusters = 0;

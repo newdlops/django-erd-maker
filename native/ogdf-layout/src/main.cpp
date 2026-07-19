@@ -9638,7 +9638,12 @@ bool applyRenderedCarrierMetricsIfRequested(
     std::getenv("DJERD_RENDERED_CARRIER_METRICS_FINAL");
   const bool renderedCarrierMetrics =
     renderedCarrierMetricsEnv && std::strcmp(renderedCarrierMetricsEnv, "0") != 0;
-  if (!renderedCarrierMetrics || metadata.leafBundles.empty()) {
+  // Plain layouts without bundle/cluster structure keep their individual
+  // edges. Cluster-graph layouts can still use the generic carrier policy
+  // even when a project has no leaf bundles.
+  if (
+      !renderedCarrierMetrics
+      || (metadata.leafBundles.empty() && metadata.strategy != "cluster_graph")) {
     return false;
   }
 
@@ -9704,6 +9709,12 @@ bool applyRenderedCarrierMetricsIfRequested(
   std::vector<int> renderedBundleIndexByEdge(edges.size(), -1);
   std::vector<std::string> renderedBundleRootByEdge(edges.size());
   std::vector<std::pair<std::string, std::string>> carrierClustersByEdge(edges.size());
+  const bool inheritanceCarrier =
+    readBoolEnv("DJERD_INHERITANCE_CARRIER_FINAL", false);
+  const bool intraClusterCarrier =
+    readBoolEnv("DJERD_INTRA_CLUSTER_CARRIER_FINAL", false);
+  metadata.inheritanceCarrierGrouping = inheritanceCarrier;
+  metadata.intraClusterCarrierGrouping = intraClusterCarrier;
 
   for (std::size_t e = 0; e < edges.size(); ++e) {
     const std::string& source = edges[e].sourceModelId;
@@ -9742,17 +9753,21 @@ bool applyRenderedCarrierMetricsIfRequested(
       // individual structural line. Other incidental bundled-leaf relations
       // remain hidden. Neither kind participates in hub-carrier incidence.
       if (inheritance) {
-        renderedCarrierIdByEdge[e] = edges[e].edgeId;
+        renderedCarrierIdByEdge[e] = inheritanceCarrier
+          ? "I|" + target
+          : edges[e].edgeId;
       } else {
         renderedEdgeVisible[e] = false;
       }
       continue;
     }
 
-    // Inheritance is structurally significant in the webview and is never
-    // folded into a cluster hub carrier.
+    // Inheritance never folds into a cluster hub carrier. When explicitly
+    // enabled, siblings sharing one parent use their own inheritance carrier.
     if (inheritance) {
-      renderedCarrierIdByEdge[e] = edges[e].edgeId;
+      renderedCarrierIdByEdge[e] = inheritanceCarrier
+        ? "I|" + target
+        : edges[e].edgeId;
       continue;
     }
 
@@ -9768,6 +9783,10 @@ bool applyRenderedCarrierMetricsIfRequested(
     if (targetCluster.empty()) targetCluster = nearestCluster(target);
     if (!sourceCluster.empty() && !targetCluster.empty()) {
       carrierClustersByEdge[e] = {sourceCluster, targetCluster};
+      if (intraClusterCarrier && sourceCluster == targetCluster) {
+        renderedCarrierIdByEdge[e] = "Cself|" + sourceCluster;
+        continue;
+      }
     }
     renderedCarrierIdByEdge[e] = edges[e].edgeId;
   }
@@ -9955,7 +9974,11 @@ bool applyRenderedCarrierMetricsIfRequested(
       continue;
     }
 
-    if (startsWith(carrierId, "H|") && members.size() >= 2) {
+    if (
+        (startsWith(carrierId, "H|")
+         || startsWith(carrierId, "I|")
+         || startsWith(carrierId, "Cself|"))
+        && members.size() >= 2) {
       double startX = 0.0;
       double startY = 0.0;
       double endX = 0.0;
@@ -10013,34 +10036,6 @@ bool applyRenderedCarrierMetricsIfRequested(
     return false;
   };
 
-  std::size_t renderedEdgeCrossings = 0;
-  std::size_t renderedOccludedCrossings = 0;
-  for (std::size_t i = 0; i < renderedPaths.size(); ++i) {
-    if (renderedPaths[i].points.size() < 2) continue;
-    for (std::size_t j = i + 1; j < renderedPaths.size(); ++j) {
-      if (renderedPaths[j].points.size() < 2) continue;
-      if (pathsShareEndpoint(renderedPaths[i], renderedPaths[j])) continue;
-      bool anyCross = false;
-      for (std::size_t li = 1; li < renderedPaths[i].points.size() && !anyCross; ++li) {
-        for (std::size_t rj = 1; rj < renderedPaths[j].points.size() && !anyCross; ++rj) {
-          RoutePoint isect;
-          if (properSegmentIntersection(
-              renderedPaths[i].points[li - 1], renderedPaths[i].points[li],
-              renderedPaths[j].points[rj - 1], renderedPaths[j].points[rj], isect)) {
-            if (pointInOcclusion(isect)) {
-              ++renderedOccludedCrossings;
-            } else {
-              anyCross = true;
-            }
-          }
-        }
-      }
-      if (anyCross) {
-        ++renderedEdgeCrossings;
-      }
-    }
-  }
-
   constexpr double kRenderedCarrierVisualMargin = 8.0;
   std::vector<Rect> bundleRects;
   bundleRects.reserve(metadata.leafBundles.size());
@@ -10048,42 +10043,239 @@ bool applyRenderedCarrierMetricsIfRequested(
     bundleRects.push_back(renderedLeafBundleRect(bundle, kRenderedCarrierVisualMargin));
   }
 
-  std::size_t renderedEdgeNodeIntersections = 0;
-  std::size_t renderedBundleEdgeIntersections = 0;
-  std::size_t renderedRouteSegments = 0;
-  for (const RenderedCarrierMetricPath& path : renderedPaths) {
-    if (path.points.size() < 2) continue;
-    for (std::size_t pointIndex = 1; pointIndex < path.points.size(); ++pointIndex) {
-      const RoutePoint& start = path.points[pointIndex - 1];
-      const RoutePoint& end = path.points[pointIndex];
-      ++renderedRouteSegments;
+  struct RenderedCarrierCounts {
+    std::size_t edgeCrossings = 0;
+    std::size_t edgeNodeIntersections = 0;
+    std::size_t bundleEdgeIntersections = 0;
+    std::size_t routeSegments = 0;
+    std::size_t occludedCrossings = 0;
+  };
 
-      for (const NodeRecord& node : nodes) {
-        if (bundleAbsorbed.count(node.modelId)) continue;
-        if (path.endpointModelIds.count(node.modelId)) continue;
-        if (segmentIntersectsRect(
-            start, end, nodeRect(node, attributes, kRenderedCarrierVisualMargin))) {
-          ++renderedEdgeNodeIntersections;
-        }
-      }
-
-      for (std::size_t bi = 0; bi < metadata.leafBundles.size(); ++bi) {
-        if (path.bundleIndex == static_cast<int>(bi)) continue;
-        const LeafBundleRecord& bundle = metadata.leafBundles[bi];
-        if (path.endpointModelIds.count(bundle.parentModelId)) continue;
-        bool touchesBundleMember = false;
-        for (const std::string& leaf : bundle.leafModelIds) {
-          if (path.endpointModelIds.count(leaf)) {
-            touchesBundleMember = true;
-            break;
+  auto measureRenderedPaths = [&](
+      const std::vector<RenderedCarrierMetricPath>& paths) {
+    RenderedCarrierCounts counts;
+    for (std::size_t i = 0; i < paths.size(); ++i) {
+      if (paths[i].points.size() < 2) continue;
+      for (std::size_t j = i + 1; j < paths.size(); ++j) {
+        if (paths[j].points.size() < 2) continue;
+        if (pathsShareEndpoint(paths[i], paths[j])) continue;
+        bool anyCross = false;
+        for (std::size_t li = 1; li < paths[i].points.size() && !anyCross; ++li) {
+          for (std::size_t rj = 1; rj < paths[j].points.size() && !anyCross; ++rj) {
+            RoutePoint isect;
+            if (properSegmentIntersection(
+                paths[i].points[li - 1], paths[i].points[li],
+                paths[j].points[rj - 1], paths[j].points[rj], isect)) {
+              if (pointInOcclusion(isect)) {
+                ++counts.occludedCrossings;
+              } else {
+                anyCross = true;
+              }
+            }
           }
         }
-        if (touchesBundleMember) continue;
-        if (segmentIntersectsRect(start, end, bundleRects[bi])) {
-          ++renderedBundleEdgeIntersections;
+        if (anyCross) {
+          ++counts.edgeCrossings;
         }
       }
     }
+
+    for (const RenderedCarrierMetricPath& path : paths) {
+      if (path.points.size() < 2) continue;
+      for (std::size_t pointIndex = 1; pointIndex < path.points.size(); ++pointIndex) {
+        const RoutePoint& start = path.points[pointIndex - 1];
+        const RoutePoint& end = path.points[pointIndex];
+        ++counts.routeSegments;
+
+        for (const NodeRecord& node : nodes) {
+          if (bundleAbsorbed.count(node.modelId)) continue;
+          if (path.endpointModelIds.count(node.modelId)) continue;
+          if (segmentIntersectsRect(
+              start, end, nodeRect(node, attributes, kRenderedCarrierVisualMargin))) {
+            ++counts.edgeNodeIntersections;
+          }
+        }
+
+        for (std::size_t bi = 0; bi < metadata.leafBundles.size(); ++bi) {
+          if (path.bundleIndex == static_cast<int>(bi)) continue;
+          const LeafBundleRecord& bundle = metadata.leafBundles[bi];
+          if (path.endpointModelIds.count(bundle.parentModelId)) continue;
+          bool touchesBundleMember = false;
+          for (const std::string& leaf : bundle.leafModelIds) {
+            if (path.endpointModelIds.count(leaf)) {
+              touchesBundleMember = true;
+              break;
+            }
+          }
+          if (touchesBundleMember) continue;
+          if (segmentIntersectsRect(start, end, bundleRects[bi])) {
+            ++counts.bundleEdgeIntersections;
+          }
+        }
+      }
+    }
+    return counts;
+  };
+
+  double adaptiveMinX = std::numeric_limits<double>::infinity();
+  double adaptiveMinY = std::numeric_limits<double>::infinity();
+  double adaptiveMaxX = -std::numeric_limits<double>::infinity();
+  double adaptiveMaxY = -std::numeric_limits<double>::infinity();
+  auto includeAdaptiveRect = [&](const Rect& rect) {
+    adaptiveMinX = std::min(adaptiveMinX, rect.left);
+    adaptiveMinY = std::min(adaptiveMinY, rect.top);
+    adaptiveMaxX = std::max(adaptiveMaxX, rect.right);
+    adaptiveMaxY = std::max(adaptiveMaxY, rect.bottom);
+  };
+  for (const NodeRecord& node : nodes) {
+    includeAdaptiveRect(nodeRect(node, attributes, 0.0));
+  }
+  for (const LeafBundleRecord& bundle : metadata.leafBundles) {
+    includeAdaptiveRect(renderedLeafBundleRect(bundle, 0.0));
+  }
+
+  auto aggregateRenderedPaths = [&](
+      const std::vector<RenderedCarrierMetricPath>& paths,
+      int grid) {
+    struct AdaptiveGroup {
+      std::size_t count = 0;
+      double startX = 0.0;
+      double startY = 0.0;
+      double endX = 0.0;
+      double endY = 0.0;
+      std::unordered_set<std::string> endpointModelIds;
+    };
+    std::map<std::pair<long long, long long>, AdaptiveGroup> groups;
+    const double spanX = std::max(1.0, adaptiveMaxX - adaptiveMinX);
+    const double spanY = std::max(1.0, adaptiveMaxY - adaptiveMinY);
+    auto cellFor = [&](const RoutePoint& point) {
+      const int x = std::clamp(
+        static_cast<int>(std::floor(((point.x - adaptiveMinX) / spanX) * grid)),
+        0,
+        grid - 1);
+      const int y = std::clamp(
+        static_cast<int>(std::floor(((point.y - adaptiveMinY) / spanY) * grid)),
+        0,
+        grid - 1);
+      return static_cast<long long>(y) * grid + x;
+    };
+    auto pointBefore = [](const RoutePoint& left, const RoutePoint& right) {
+      return left.x < right.x || (left.x == right.x && left.y <= right.y);
+    };
+
+    for (const RenderedCarrierMetricPath& path : paths) {
+      if (path.points.size() < 2) continue;
+      RoutePoint start = path.points.front();
+      RoutePoint end = path.points.back();
+      long long startCell = cellFor(start);
+      long long endCell = cellFor(end);
+      if (
+          startCell > endCell
+          || (startCell == endCell && !pointBefore(start, end))) {
+        std::swap(start, end);
+        std::swap(startCell, endCell);
+      }
+      AdaptiveGroup& group = groups[{startCell, endCell}];
+      ++group.count;
+      group.startX += start.x;
+      group.startY += start.y;
+      group.endX += end.x;
+      group.endY += end.y;
+      group.endpointModelIds.insert(
+        path.endpointModelIds.begin(),
+        path.endpointModelIds.end());
+    }
+
+    std::vector<RenderedCarrierMetricPath> aggregated;
+    aggregated.reserve(groups.size());
+    for (auto& [key, group] : groups) {
+      if (group.count == 0) continue;
+      const double count = static_cast<double>(group.count);
+      RenderedCarrierMetricPath path;
+      path.id =
+        "G|" + std::to_string(grid) + "|" + std::to_string(key.first)
+        + "|" + std::to_string(key.second);
+      path.points = {
+        RoutePoint{
+          std::round((group.startX / count) * 100.0) / 100.0,
+          std::round((group.startY / count) * 100.0) / 100.0,
+        },
+        RoutePoint{
+          std::round((group.endX / count) * 100.0) / 100.0,
+          std::round((group.endY / count) * 100.0) / 100.0,
+        },
+      };
+      path.endpointModelIds = std::move(group.endpointModelIds);
+      aggregated.push_back(std::move(path));
+    }
+    return aggregated;
+  };
+
+  RenderedCarrierCounts renderedCounts = measureRenderedPaths(renderedPaths);
+  const char* adaptiveTargetEnv =
+    std::getenv("DJERD_ADAPTIVE_CARRIER_TARGET_FINAL");
+  const int adaptiveTarget =
+    metadata.strategy == "cluster_graph" && adaptiveTargetEnv
+      ? std::max(0, std::atoi(adaptiveTargetEnv))
+      : 0;
+  if (adaptiveTarget > 0 && std::isfinite(adaptiveMinX)) {
+    metadata.adaptiveCarrierTarget = adaptiveTarget;
+    metadata.adaptiveCarrierBaseEdges = renderedPaths.size();
+    metadata.adaptiveCarrierVisibleEdges = renderedPaths.size();
+    metadata.adaptiveCarrierMinX = adaptiveMinX;
+    metadata.adaptiveCarrierMinY = adaptiveMinY;
+    metadata.adaptiveCarrierMaxX = adaptiveMaxX;
+    metadata.adaptiveCarrierMaxY = adaptiveMaxY;
+    auto visualFor = [&](const RenderedCarrierCounts& counts) {
+      return counts.edgeCrossings
+        + counts.edgeNodeIntersections
+        + quality.nodeOverlaps
+        + counts.bundleEdgeIntersections
+        + quality.bundleNodeOverlaps;
+    };
+    std::size_t bestVisual = visualFor(renderedCounts);
+    int bestGrid = 0;
+    std::vector<RenderedCarrierMetricPath> bestPaths = renderedPaths;
+    RenderedCarrierCounts bestCounts = renderedCounts;
+    if (bestVisual > static_cast<std::size_t>(adaptiveTarget)) {
+      constexpr std::array<int, 12> kAdaptiveCarrierGrids = {
+        64, 48, 32, 24, 16, 12, 8, 6, 4, 3, 2, 1,
+      };
+      for (const int grid : kAdaptiveCarrierGrids) {
+        auto candidatePaths = aggregateRenderedPaths(renderedPaths, grid);
+        const RenderedCarrierCounts candidateCounts =
+          measureRenderedPaths(candidatePaths);
+        const std::size_t candidateVisual = visualFor(candidateCounts);
+        if (!quiet) {
+          std::fprintf(stderr,
+            "[adaptive-carrier] grid=%d visibleEdges=%zu visual=%zu/%d "
+            "edgeCross=%zu edgeNode=%zu bundleEdge=%zu.\n",
+            grid,
+            candidatePaths.size(),
+            candidateVisual,
+            adaptiveTarget,
+            candidateCounts.edgeCrossings,
+            candidateCounts.edgeNodeIntersections,
+            candidateCounts.bundleEdgeIntersections);
+        }
+        if (candidateVisual < bestVisual) {
+          bestVisual = candidateVisual;
+          bestGrid = grid;
+          bestPaths = candidatePaths;
+          bestCounts = candidateCounts;
+        }
+        if (candidateVisual <= static_cast<std::size_t>(adaptiveTarget)) {
+          bestGrid = grid;
+          bestPaths = std::move(candidatePaths);
+          bestCounts = candidateCounts;
+          break;
+        }
+      }
+    }
+    metadata.adaptiveCarrierGrid = bestGrid;
+    metadata.adaptiveCarrierVisibleEdges = bestPaths.size();
+    renderedPaths = std::move(bestPaths);
+    renderedCounts = bestCounts;
   }
 
   if (!quiet) {
@@ -10093,17 +10285,17 @@ bool applyRenderedCarrierMetricsIfRequested(
       "(occluded=%zu).\n",
       totalRouteCrossings,
       renderedPaths.size(),
-      renderedEdgeCrossings,
-      renderedEdgeNodeIntersections,
-      renderedBundleEdgeIntersections,
-      renderedRouteSegments,
-      renderedOccludedCrossings);
+      renderedCounts.edgeCrossings,
+      renderedCounts.edgeNodeIntersections,
+      renderedCounts.bundleEdgeIntersections,
+      renderedCounts.routeSegments,
+      renderedCounts.occludedCrossings);
   }
 
-  quality.edgeCrossings = renderedEdgeCrossings;
-  quality.edgeNodeIntersections = renderedEdgeNodeIntersections;
-  quality.bundleEdgeIntersections = renderedBundleEdgeIntersections;
-  quality.routeSegments = renderedRouteSegments;
+  quality.edgeCrossings = renderedCounts.edgeCrossings;
+  quality.edgeNodeIntersections = renderedCounts.edgeNodeIntersections;
+  quality.bundleEdgeIntersections = renderedCounts.bundleEdgeIntersections;
+  quality.routeSegments = renderedCounts.routeSegments;
   quality.visualCrossings =
     quality.edgeCrossings
     + quality.edgeNodeIntersections
@@ -10386,6 +10578,607 @@ bool applyFinalCarrierMetricsIfRequested(
       quiet)) {
     quality.edgeCrossings = carrierGroupedCross;
   }
+  return true;
+}
+
+bool repairCanonicalRouteObstaclesIfRequested(
+  const std::vector<NodeRecord>& nodes,
+  const std::vector<EdgeRecord>& edges,
+  std::vector<std::vector<RoutePoint>>& routes,
+  ogdf::GraphAttributes& attributes,
+  const std::unordered_map<std::string, std::string>& clusterByModelIdFull,
+  const LayoutRunMetadata& metadata) {
+  if (!readBoolEnv("DJERD_CANONICAL_ROUTE_REPAIR", false)
+      || routes.size() != edges.size() || nodes.empty()) {
+    return false;
+  }
+
+  const double clearance = readDoubleEnv(
+    "DJERD_CANONICAL_ROUTE_REPAIR_CLEARANCE", 12.0, 1.0, 480.0);
+  const int maxDetours = static_cast<int>(readDoubleEnv(
+    "DJERD_CANONICAL_ROUTE_REPAIR_MAX_DETOURS", 12.0, 1.0, 64.0));
+  const std::vector<std::vector<RoutePoint>> savedRoutes = routes;
+
+  std::unordered_map<std::string, std::size_t> nodeIndexById;
+  nodeIndexById.reserve(nodes.size());
+  for (std::size_t i = 0; i < nodes.size(); ++i) {
+    nodeIndexById[nodes[i].modelId] = i;
+  }
+  const std::size_t invalidIndex = std::numeric_limits<std::size_t>::max();
+  std::vector<std::pair<std::size_t, std::size_t>> endpointIndices(edges.size());
+  for (std::size_t e = 0; e < edges.size(); ++e) {
+    const auto source = nodeIndexById.find(edges[e].sourceModelId);
+    const auto target = nodeIndexById.find(edges[e].targetModelId);
+    endpointIndices[e] = {
+      source == nodeIndexById.end() ? invalidIndex : source->second,
+      target == nodeIndexById.end() ? invalidIndex : target->second,
+    };
+  }
+
+  std::vector<Rect> canonicalNodeRects(nodes.size());
+  std::vector<Rect> visualNodeRects(nodes.size());
+  for (std::size_t i = 0; i < nodes.size(); ++i) {
+    canonicalNodeRects[i] = nodeRect(nodes[i], attributes);
+    visualNodeRects[i] = nodeRect(nodes[i], attributes, visualNodeMargin());
+  }
+
+  std::vector<Rect> bundleRects;
+  std::vector<std::unordered_set<std::size_t>> bundleMembers;
+  bundleRects.reserve(metadata.leafBundles.size());
+  bundleMembers.reserve(metadata.leafBundles.size());
+  for (const LeafBundleRecord& bundle : metadata.leafBundles) {
+    bundleRects.push_back(renderedLeafBundleRect(bundle, leafBundleVisualMargin()));
+    std::unordered_set<std::size_t> members;
+    const auto parent = nodeIndexById.find(bundle.parentModelId);
+    if (parent != nodeIndexById.end()) members.insert(parent->second);
+    for (const std::string& leafId : bundle.leafModelIds) {
+      const auto leaf = nodeIndexById.find(leafId);
+      if (leaf != nodeIndexById.end()) members.insert(leaf->second);
+    }
+    bundleMembers.push_back(std::move(members));
+  }
+
+  auto countNodeHits = [&](std::size_t edgeIndex,
+                           const std::vector<RoutePoint>& route,
+                           const std::vector<Rect>& rects) {
+    std::size_t hits = 0;
+    if (edgeIndex >= endpointIndices.size() || route.size() < 2) return hits;
+    const auto [sourceIndex, targetIndex] = endpointIndices[edgeIndex];
+    for (std::size_t nodeIndex = 0; nodeIndex < rects.size(); ++nodeIndex) {
+      if (nodeIndex == sourceIndex || nodeIndex == targetIndex) continue;
+      for (std::size_t segmentIndex = 1;
+           segmentIndex < route.size(); ++segmentIndex) {
+        if (segmentIntersectsRect(
+            route[segmentIndex - 1], route[segmentIndex], rects[nodeIndex])) {
+          ++hits;
+          break;
+        }
+      }
+    }
+    return hits;
+  };
+
+  auto countBundleHits = [&](std::size_t edgeIndex,
+                             const std::vector<RoutePoint>& route) {
+    std::size_t hits = 0;
+    if (edgeIndex >= endpointIndices.size() || route.size() < 2) return hits;
+    const auto [sourceIndex, targetIndex] = endpointIndices[edgeIndex];
+    for (std::size_t bundleIndex = 0;
+         bundleIndex < bundleRects.size(); ++bundleIndex) {
+      if (bundleMembers[bundleIndex].count(sourceIndex) != 0
+          || bundleMembers[bundleIndex].count(targetIndex) != 0) {
+        continue;
+      }
+      for (std::size_t segmentIndex = 1;
+           segmentIndex < route.size(); ++segmentIndex) {
+        if (segmentIntersectsRect(
+            route[segmentIndex - 1], route[segmentIndex],
+            bundleRects[bundleIndex])) {
+          ++hits;
+          break;
+        }
+      }
+    }
+    return hits;
+  };
+
+  auto segmentsTouch = [](const RoutePoint& leftStart,
+                          const RoutePoint& leftEnd,
+                          const RoutePoint& rightStart,
+                          const RoutePoint& rightEnd) {
+    constexpr double coordinateEpsilon = 1e-7;
+    constexpr double parameterEpsilon = 1e-9;
+    const double scale = std::max({
+      1.0,
+      std::abs(leftStart.x), std::abs(leftStart.y),
+      std::abs(leftEnd.x), std::abs(leftEnd.y),
+      std::abs(rightStart.x), std::abs(rightStart.y),
+      std::abs(rightEnd.x), std::abs(rightEnd.y),
+    });
+    const double tolerance = coordinateEpsilon * scale;
+    if (std::max(leftStart.x, leftEnd.x) + tolerance
+          < std::min(rightStart.x, rightEnd.x)
+        || std::max(rightStart.x, rightEnd.x) + tolerance
+          < std::min(leftStart.x, leftEnd.x)
+        || std::max(leftStart.y, leftEnd.y) + tolerance
+          < std::min(rightStart.y, rightEnd.y)
+        || std::max(rightStart.y, rightEnd.y) + tolerance
+          < std::min(leftStart.y, leftEnd.y)) {
+      return false;
+    }
+    const double rx = leftEnd.x - leftStart.x;
+    const double ry = leftEnd.y - leftStart.y;
+    const double sx = rightEnd.x - rightStart.x;
+    const double sy = rightEnd.y - rightStart.y;
+    const double qpx = rightStart.x - leftStart.x;
+    const double qpy = rightStart.y - leftStart.y;
+    const double denominator = crossProduct(rx, ry, sx, sy);
+    const double parallelTolerance = coordinateEpsilon
+      * std::max(1.0, std::hypot(rx, ry) * std::hypot(sx, sy));
+    if (std::abs(denominator) > parallelTolerance) {
+      const double t = crossProduct(qpx, qpy, sx, sy) / denominator;
+      const double u = crossProduct(qpx, qpy, rx, ry) / denominator;
+      return t >= -parameterEpsilon && t <= 1.0 + parameterEpsilon
+        && u >= -parameterEpsilon && u <= 1.0 + parameterEpsilon;
+    }
+    const double collinearTolerance = coordinateEpsilon * std::max(
+      1.0, std::hypot(rx, ry) * std::hypot(qpx, qpy));
+    if (std::abs(crossProduct(qpx, qpy, rx, ry)) > collinearTolerance) {
+      return false;
+    }
+    const double lengthSquared = rx * rx + ry * ry;
+    if (lengthSquared <= 0.0) return false;
+    const double start = (qpx * rx + qpy * ry) / lengthSquared;
+    const double end = start + (sx * rx + sy * ry) / lengthSquared;
+    return std::min(1.0, std::max(start, end))
+      >= std::max(0.0, std::min(start, end)) - parameterEpsilon;
+  };
+
+  auto countAdjacentContacts = [&](std::size_t edgeIndex,
+                                   const std::vector<RoutePoint>& candidate) {
+    std::size_t contacts = 0;
+    if (candidate.size() < 2) return contacts;
+    for (std::size_t other = 0; other < edges.size(); ++other) {
+      if (other == edgeIndex || !sharesEndpoint(edges[edgeIndex], edges[other])
+          || routes[other].size() < 2) {
+        continue;
+      }
+      for (std::size_t left = 1; left < candidate.size(); ++left) {
+        for (std::size_t right = 1; right < routes[other].size(); ++right) {
+          if (segmentsTouch(
+              candidate[left - 1], candidate[left],
+              routes[other][right - 1], routes[other][right])) {
+            ++contacts;
+          }
+        }
+      }
+    }
+    return contacts;
+  };
+
+  struct NonAdjacentInteractionCounts {
+    std::size_t properCrossings = 0;
+    std::size_t nonProperContacts = 0;
+  };
+  auto countNonAdjacentInteractions = [&](
+      std::size_t edgeIndex,
+      const std::vector<RoutePoint>& candidate) {
+    NonAdjacentInteractionCounts counts;
+    if (candidate.size() < 2) return counts;
+    for (std::size_t other = 0; other < edges.size(); ++other) {
+      if (other == edgeIndex || sharesEndpoint(edges[edgeIndex], edges[other])
+          || routes[other].size() < 2) {
+        continue;
+      }
+      for (std::size_t left = 1; left < candidate.size(); ++left) {
+        for (std::size_t right = 1; right < routes[other].size(); ++right) {
+          RoutePoint intersection;
+          if (properSegmentIntersection(
+              candidate[left - 1], candidate[left],
+              routes[other][right - 1], routes[other][right], intersection)) {
+            ++counts.properCrossings;
+          } else if (segmentsTouch(
+              candidate[left - 1], candidate[left],
+              routes[other][right - 1], routes[other][right])) {
+            ++counts.nonProperContacts;
+          }
+        }
+      }
+    }
+    return counts;
+  };
+
+  auto countSelfContacts = [&](const std::vector<RoutePoint>& candidate) {
+    std::size_t contacts = 0;
+    if (candidate.size() < 4) return contacts;
+    for (std::size_t left = 1; left < candidate.size(); ++left) {
+      for (std::size_t right = left + 2; right < candidate.size(); ++right) {
+        if (segmentsTouch(
+            candidate[left - 1], candidate[left],
+            candidate[right - 1], candidate[right])) {
+          ++contacts;
+        }
+      }
+    }
+    return contacts;
+  };
+
+  auto routeLength = [](const std::vector<RoutePoint>& route) {
+    double length = 0.0;
+    for (std::size_t i = 1; i < route.size(); ++i) {
+      length += std::hypot(
+        route[i].x - route[i - 1].x,
+        route[i].y - route[i - 1].y);
+    }
+    return length;
+  };
+  auto roundedPoint = [](double x, double y) {
+    return RoutePoint{
+      std::round(x * 100.0) / 100.0,
+      std::round(y * 100.0) / 100.0,
+    };
+  };
+
+  const CanonicalCrossingMetrics beforeCanonical =
+    measureCanonicalCrossingMetrics(nodes, edges, routes, attributes);
+  auto qualityForRoutes = [&]() {
+    std::vector<std::vector<std::string>> crossingIdsByEdge;
+    std::size_t rawCrossings = 0;
+    detectRouteCrossings(edges, routes, crossingIdsByEdge, rawCrossings);
+    LayoutQualityMetrics quality = measureLayoutQuality(
+      nodes, edges, routes, attributes, &metadata.leafBundles,
+      &metadata.clusterByModelId);
+    quality.edgeCrossings = rawCrossings;
+    LayoutRunMetadata metricMetadata = metadata;
+    applyFinalCarrierMetricsIfRequested(
+      nodes, edges, routes, attributes, clusterByModelIdFull,
+      metricMetadata, quality, rawCrossings, true);
+    quality.visualCrossings =
+      quality.edgeCrossings
+      + quality.edgeNodeIntersections
+      + quality.nodeOverlaps
+      + quality.bundleEdgeIntersections
+      + quality.bundleNodeOverlaps;
+    return quality;
+  };
+  const LayoutQualityMetrics beforeQuality = qualityForRoutes();
+
+  std::vector<std::pair<std::size_t, std::size_t>> rankedEdges;
+  rankedEdges.reserve(edges.size());
+  for (std::size_t edgeIndex = 0; edgeIndex < edges.size(); ++edgeIndex) {
+    const std::size_t hits = countNodeHits(
+      edgeIndex, routes[edgeIndex], canonicalNodeRects);
+    if (hits > 0) rankedEdges.push_back({hits, edgeIndex});
+  }
+  std::sort(rankedEdges.begin(), rankedEdges.end(),
+    [](const auto& left, const auto& right) {
+      if (left.first != right.first) return left.first > right.first;
+      return left.second < right.second;
+    });
+
+  std::size_t changedEdges = 0;
+  std::size_t insertedDetours = 0;
+  std::size_t rejectedEdges = 0;
+  for (const auto& ranked : rankedEdges) {
+    const std::size_t edgeIndex = ranked.second;
+    bool edgeChanged = false;
+    for (int iteration = 0; iteration < maxDetours; ++iteration) {
+      const std::vector<RoutePoint>& current = routes[edgeIndex];
+      const std::size_t currentCanonicalHits = countNodeHits(
+        edgeIndex, current, canonicalNodeRects);
+      if (currentCanonicalHits == 0 || current.size() < 2) break;
+      const std::size_t currentVisualHits = countNodeHits(
+        edgeIndex, current, visualNodeRects);
+      const std::size_t currentBundleHits = countBundleHits(edgeIndex, current);
+      const std::size_t currentAdjacent = countAdjacentContacts(edgeIndex, current);
+      const NonAdjacentInteractionCounts currentInteractions =
+        countNonAdjacentInteractions(edgeIndex, current);
+      const std::size_t currentSelfContacts = countSelfContacts(current);
+
+      std::size_t blockedSegment = current.size();
+      std::size_t blockerIndex = nodes.size();
+      const auto [sourceIndex, targetIndex] = endpointIndices[edgeIndex];
+      for (std::size_t segmentIndex = 1;
+           segmentIndex < current.size() && blockerIndex == nodes.size();
+           ++segmentIndex) {
+        for (std::size_t nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex) {
+          if (nodeIndex == sourceIndex || nodeIndex == targetIndex) continue;
+          if (segmentIntersectsRect(
+              current[segmentIndex - 1], current[segmentIndex],
+              canonicalNodeRects[nodeIndex])) {
+            blockedSegment = segmentIndex;
+            blockerIndex = nodeIndex;
+            break;
+          }
+        }
+      }
+      if (blockerIndex == nodes.size()) break;
+
+      const RoutePoint start = current[blockedSegment - 1];
+      const RoutePoint end = current[blockedSegment];
+      const Rect& rect = canonicalNodeRects[blockerIndex];
+      const double left = rect.left - clearance;
+      const double right = rect.right + clearance;
+      const double top = rect.top - clearance;
+      const double bottom = rect.bottom + clearance;
+      std::array<std::array<RoutePoint, 2>, 4> detours;
+      if (end.x >= start.x) {
+        detours[0] = {roundedPoint(left, top), roundedPoint(right, top)};
+        detours[1] = {roundedPoint(left, bottom), roundedPoint(right, bottom)};
+      } else {
+        detours[0] = {roundedPoint(right, top), roundedPoint(left, top)};
+        detours[1] = {roundedPoint(right, bottom), roundedPoint(left, bottom)};
+      }
+      if (end.y >= start.y) {
+        detours[2] = {roundedPoint(left, top), roundedPoint(left, bottom)};
+        detours[3] = {roundedPoint(right, top), roundedPoint(right, bottom)};
+      } else {
+        detours[2] = {roundedPoint(left, bottom), roundedPoint(left, top)};
+        detours[3] = {roundedPoint(right, bottom), roundedPoint(right, top)};
+      }
+
+      std::vector<RoutePoint> bestRoute;
+      std::size_t bestCanonicalHits = currentCanonicalHits;
+      std::size_t bestAdjacent = currentAdjacent;
+      std::size_t bestCrossings = currentInteractions.properCrossings;
+      double bestLength = std::numeric_limits<double>::infinity();
+      for (const auto& detour : detours) {
+        std::vector<RoutePoint> candidate;
+        candidate.reserve(current.size() + 2);
+        candidate.insert(
+          candidate.end(), current.begin(), current.begin() + blockedSegment);
+        candidate.push_back(detour[0]);
+        candidate.push_back(detour[1]);
+        candidate.insert(
+          candidate.end(), current.begin() + blockedSegment, current.end());
+        candidate = compressRoutePoints(std::move(candidate));
+        const std::size_t canonicalHits = countNodeHits(
+          edgeIndex, candidate, canonicalNodeRects);
+        if (canonicalHits >= currentCanonicalHits) continue;
+        const std::size_t visualHits = countNodeHits(
+          edgeIndex, candidate, visualNodeRects);
+        if (visualHits > currentVisualHits
+            || countBundleHits(edgeIndex, candidate) > currentBundleHits) {
+          continue;
+        }
+        const std::size_t adjacent = countAdjacentContacts(edgeIndex, candidate);
+        const NonAdjacentInteractionCounts interactions =
+          countNonAdjacentInteractions(edgeIndex, candidate);
+        if (adjacent > currentAdjacent
+            || interactions.properCrossings
+              > currentInteractions.properCrossings
+            || interactions.nonProperContacts
+              > currentInteractions.nonProperContacts
+            || countSelfContacts(candidate) > currentSelfContacts) {
+          continue;
+        }
+        const std::size_t crossings = interactions.properCrossings;
+        const double length = routeLength(candidate);
+        const bool better = bestRoute.empty()
+          || canonicalHits < bestCanonicalHits
+          || (canonicalHits == bestCanonicalHits && adjacent < bestAdjacent)
+          || (canonicalHits == bestCanonicalHits && adjacent == bestAdjacent
+              && crossings < bestCrossings)
+          || (canonicalHits == bestCanonicalHits && adjacent == bestAdjacent
+              && crossings == bestCrossings && length < bestLength);
+        if (better) {
+          bestCanonicalHits = canonicalHits;
+          bestAdjacent = adjacent;
+          bestCrossings = crossings;
+          bestLength = length;
+          bestRoute = std::move(candidate);
+        }
+      }
+      if (bestRoute.empty()) {
+        ++rejectedEdges;
+        break;
+      }
+      routes[edgeIndex] = std::move(bestRoute);
+      edgeChanged = true;
+      ++insertedDetours;
+    }
+    if (edgeChanged) ++changedEdges;
+  }
+
+  if (insertedDetours == 0) {
+    std::fprintf(stderr,
+      "[canonical-route-repair] no safe obstacle detour candidate (%zu hit edges).\n",
+      rankedEdges.size());
+    return false;
+  }
+
+  const CanonicalCrossingMetrics afterCanonical =
+    measureCanonicalCrossingMetrics(nodes, edges, routes, attributes);
+  const LayoutQualityMetrics afterQuality = qualityForRoutes();
+  const bool canonicalSafe =
+    afterCanonical.nonIncidentNodeHits.size()
+      < beforeCanonical.nonIncidentNodeHits.size()
+    && afterCanonical.adjacentEdgeIntersectionCount
+      <= beforeCanonical.adjacentEdgeIntersectionCount
+    && afterCanonical.properCrossingPoints.size()
+      <= beforeCanonical.properCrossingPoints.size()
+    && afterCanonical.crossingEdgePairs.size()
+      <= beforeCanonical.crossingEdgePairs.size()
+    && afterCanonical.completeRouteCount >= beforeCanonical.completeRouteCount
+    && (!beforeCanonical.allCanonicalRoutesComplete
+        || afterCanonical.allCanonicalRoutesComplete)
+    && afterCanonical.invariantViolationCount
+      <= beforeCanonical.invariantViolationCount
+    && afterCanonical.degenerateSegmentCount
+      <= beforeCanonical.degenerateSegmentCount
+    && afterCanonical.collinearOverlapCount
+      <= beforeCanonical.collinearOverlapCount
+    && afterCanonical.nonProperContactCount
+      <= beforeCanonical.nonProperContactCount
+    && afterCanonical.selfIntersectionCount
+      <= beforeCanonical.selfIntersectionCount;
+  const bool visualSafe =
+    afterQuality.edgeCrossings <= beforeQuality.edgeCrossings
+    && afterQuality.edgeNodeIntersections <= beforeQuality.edgeNodeIntersections
+    && afterQuality.nodeOverlaps <= beforeQuality.nodeOverlaps
+    && afterQuality.bundleEdgeIntersections
+      <= beforeQuality.bundleEdgeIntersections
+    && afterQuality.bundleNodeOverlaps <= beforeQuality.bundleNodeOverlaps
+    && afterQuality.overlappingEdges <= beforeQuality.overlappingEdges
+    && afterQuality.edgeSegmentOverlaps <= beforeQuality.edgeSegmentOverlaps
+    && afterQuality.visualCrossings <= beforeQuality.visualCrossings;
+
+  std::vector<std::string> failedSafetyFields;
+  const auto recordSafetyFailure = [&](bool condition, const char* field) {
+    if (!condition) failedSafetyFields.emplace_back(field);
+  };
+  recordSafetyFailure(
+    afterCanonical.nonIncidentNodeHits.size()
+      < beforeCanonical.nonIncidentNodeHits.size(),
+    "canonical.nodeHitStrict");
+  recordSafetyFailure(
+    afterCanonical.adjacentEdgeIntersectionCount
+      <= beforeCanonical.adjacentEdgeIntersectionCount,
+    "canonical.adjacent");
+  recordSafetyFailure(
+    afterCanonical.properCrossingPoints.size()
+      <= beforeCanonical.properCrossingPoints.size(),
+    "canonical.properPoints");
+  recordSafetyFailure(
+    afterCanonical.crossingEdgePairs.size()
+      <= beforeCanonical.crossingEdgePairs.size(),
+    "canonical.properPairs");
+  recordSafetyFailure(
+    afterCanonical.completeRouteCount >= beforeCanonical.completeRouteCount,
+    "canonical.completeRouteCount");
+  recordSafetyFailure(
+    !beforeCanonical.allCanonicalRoutesComplete
+      || afterCanonical.allCanonicalRoutesComplete,
+    "canonical.allComplete");
+  recordSafetyFailure(
+    afterCanonical.invariantViolationCount
+      <= beforeCanonical.invariantViolationCount,
+    "canonical.invariant");
+  recordSafetyFailure(
+    afterCanonical.degenerateSegmentCount
+      <= beforeCanonical.degenerateSegmentCount,
+    "canonical.degenerate");
+  recordSafetyFailure(
+    afterCanonical.collinearOverlapCount
+      <= beforeCanonical.collinearOverlapCount,
+    "canonical.collinearOverlap");
+  recordSafetyFailure(
+    afterCanonical.nonProperContactCount
+      <= beforeCanonical.nonProperContactCount,
+    "canonical.pointContact");
+  recordSafetyFailure(
+    afterCanonical.selfIntersectionCount
+      <= beforeCanonical.selfIntersectionCount,
+    "canonical.selfIntersection");
+  recordSafetyFailure(
+    afterQuality.edgeCrossings <= beforeQuality.edgeCrossings,
+    "visual.edgeCross");
+  recordSafetyFailure(
+    afterQuality.edgeNodeIntersections <= beforeQuality.edgeNodeIntersections,
+    "visual.edgeNode");
+  recordSafetyFailure(
+    afterQuality.nodeOverlaps <= beforeQuality.nodeOverlaps,
+    "visual.nodeOverlap");
+  recordSafetyFailure(
+    afterQuality.bundleEdgeIntersections
+      <= beforeQuality.bundleEdgeIntersections,
+    "visual.bundleEdge");
+  recordSafetyFailure(
+    afterQuality.bundleNodeOverlaps <= beforeQuality.bundleNodeOverlaps,
+    "visual.bundleNode");
+  recordSafetyFailure(
+    afterQuality.overlappingEdges <= beforeQuality.overlappingEdges,
+    "visual.overlappingEdges");
+  recordSafetyFailure(
+    afterQuality.edgeSegmentOverlaps <= beforeQuality.edgeSegmentOverlaps,
+    "visual.edgeSegmentOverlap");
+  recordSafetyFailure(
+    afterQuality.visualCrossings <= beforeQuality.visualCrossings,
+    "visual.total");
+
+  const auto boundViolationFor = [&](const CanonicalCrossingMetrics& metrics) {
+    return metadata.canonicalCrossing.available
+      && metrics.properDrawing
+      && metrics.crossingEdgePairs.size()
+        < metadata.canonicalCrossing.lowerBound;
+  };
+  const bool beforeBoundViolation = boundViolationFor(beforeCanonical);
+  const bool afterBoundViolation = boundViolationFor(afterCanonical);
+  std::ostringstream failedSafetySummary;
+  if (failedSafetyFields.empty()) {
+    failedSafetySummary << "none";
+  } else {
+    for (std::size_t i = 0; i < failedSafetyFields.size(); ++i) {
+      if (i > 0) failedSafetySummary << ',';
+      failedSafetySummary << failedSafetyFields[i];
+    }
+  }
+  const auto logRepairSummary = [&](const char* outcome) {
+    std::ostringstream summary;
+    summary
+      << "[canonical-route-repair] " << outcome << ' '
+      << insertedDetours << " detours/" << changedEdges
+      << " edges (rejected=" << rejectedEdges << "): "
+      << "canonical={"
+      << "invariant=" << beforeCanonical.invariantViolationCount << "->"
+      << afterCanonical.invariantViolationCount
+      << ",degenerate=" << beforeCanonical.degenerateSegmentCount << "->"
+      << afterCanonical.degenerateSegmentCount
+      << ",collinearOverlap=" << beforeCanonical.collinearOverlapCount << "->"
+      << afterCanonical.collinearOverlapCount
+      << ",pointContact=" << beforeCanonical.nonProperContactCount << "->"
+      << afterCanonical.nonProperContactCount
+      << ",selfIntersection=" << beforeCanonical.selfIntersectionCount << "->"
+      << afterCanonical.selfIntersectionCount
+      << ",adjacent=" << beforeCanonical.adjacentEdgeIntersectionCount << "->"
+      << afterCanonical.adjacentEdgeIntersectionCount
+      << ",nodeHit=" << beforeCanonical.nonIncidentNodeHits.size() << "->"
+      << afterCanonical.nonIncidentNodeHits.size()
+      << ",properPoints=" << beforeCanonical.properCrossingPoints.size() << "->"
+      << afterCanonical.properCrossingPoints.size()
+      << ",properPairs=" << beforeCanonical.crossingEdgePairs.size() << "->"
+      << afterCanonical.crossingEdgePairs.size()
+      << ",completeRoutes=" << beforeCanonical.completeRouteCount << "->"
+      << afterCanonical.completeRouteCount
+      << ",canonicalEdges=" << beforeCanonical.canonicalEdgeCount << "->"
+      << afterCanonical.canonicalEdgeCount
+      << ",allComplete=" << (beforeCanonical.allCanonicalRoutesComplete ? 1 : 0)
+      << "->" << (afterCanonical.allCanonicalRoutesComplete ? 1 : 0)
+      << ",properDrawing=" << (beforeCanonical.properDrawing ? 1 : 0)
+      << "->" << (afterCanonical.properDrawing ? 1 : 0)
+      << ",boundViolation=" << (beforeBoundViolation ? 1 : 0)
+      << "->" << (afterBoundViolation ? 1 : 0)
+      << "}; visual={"
+      << "total=" << beforeQuality.visualCrossings << "->"
+      << afterQuality.visualCrossings
+      << ",edgeCross=" << beforeQuality.edgeCrossings << "->"
+      << afterQuality.edgeCrossings
+      << ",edgeNode=" << beforeQuality.edgeNodeIntersections << "->"
+      << afterQuality.edgeNodeIntersections
+      << ",nodeOverlap=" << beforeQuality.nodeOverlaps << "->"
+      << afterQuality.nodeOverlaps
+      << ",nodeSpacing=" << beforeQuality.nodeSpacingOverlaps << "->"
+      << afterQuality.nodeSpacingOverlaps
+      << ",bundleEdge=" << beforeQuality.bundleEdgeIntersections << "->"
+      << afterQuality.bundleEdgeIntersections
+      << ",bundleNode=" << beforeQuality.bundleNodeOverlaps << "->"
+      << afterQuality.bundleNodeOverlaps
+      << ",overlappingEdges=" << beforeQuality.overlappingEdges << "->"
+      << afterQuality.overlappingEdges
+      << ",edgeSegmentOverlap=" << beforeQuality.edgeSegmentOverlaps << "->"
+      << afterQuality.edgeSegmentOverlaps
+      << "}; failed={" << failedSafetySummary.str() << "}"
+      << " (canonicalSafe=" << (canonicalSafe ? 1 : 0)
+      << " visualSafe=" << (visualSafe ? 1 : 0) << ").";
+    std::fprintf(stderr, "%s\n", summary.str().c_str());
+  };
+  if (!canonicalSafe || !visualSafe) {
+    routes = savedRoutes;
+    logRepairSummary("reverted");
+    return false;
+  }
+
+  logRepairSummary("accepted");
   return true;
 }
 
@@ -12019,6 +12812,8 @@ int main(int argc, char** argv) {
           currentQuality.boundingBoxArea / 1e9);
       }
 
+      repairCanonicalRouteObstaclesIfRequested(
+        nodes, edges, routes, attributes, clusterByModelIdFull, metadata);
       std::vector<std::vector<std::string>> crossingIdsByEdge;
       std::size_t totalCrossings = 0;
       const std::vector<EdgeCrossingRecord> crossings =
@@ -22155,6 +22950,9 @@ int main(int argc, char** argv) {
         }
       }
 
+    repairCanonicalRouteObstaclesIfRequested(
+      nodes, edges, routes, attributes, clusterByModelIdFull, metadata);
+
     // Final route/bundle quality recompute. Several late visual passes move
     // nodes or sync route endpoints after the earlier quality snapshot, and
     // the emitted routedEdges must be scored exactly as rendered.
@@ -22169,15 +22967,25 @@ int main(int argc, char** argv) {
         &metadata.clusterByModelId);
       quality.edgeCrossings = totalRouteCrossings;
 
-      applyFinalCarrierMetricsIfRequested(
-        nodes,
-        edges,
-        routes,
-        attributes,
-        clusterByModelIdFull,
-        metadata,
-        quality,
-        totalRouteCrossings);
+      if (!applyRenderedCarrierMetricsIfRequested(
+          nodes,
+          edges,
+          routes,
+          attributes,
+          clusterByModelIdFull,
+          metadata,
+          quality,
+          totalRouteCrossings)) {
+        applyFinalCarrierMetricsIfRequested(
+          nodes,
+          edges,
+          routes,
+          attributes,
+          clusterByModelIdFull,
+          metadata,
+          quality,
+          totalRouteCrossings);
+      }
 
       quality.visualCrossings =
         quality.edgeCrossings

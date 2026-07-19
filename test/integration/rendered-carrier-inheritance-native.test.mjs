@@ -28,7 +28,7 @@ const renderModelModulePath = path.resolve(
 const binaryAvailable = await pathExists(binaryPath);
 const renderModelAvailable = await pathExists(renderModelModulePath);
 
-test("native rendered-carrier topology preserves inheritance like the webview", {
+test("native and webview share inheritance and intra-cluster carrier topology", {
   skip: !binaryAvailable || !renderModelAvailable,
 }, async () => {
   const fixture = createCarrierFixture();
@@ -71,6 +71,8 @@ test("native rendered-carrier topology preserves inheritance like the webview", 
         DJERD_CANONICAL_CROSSING_CACHE: "0",
         DJERD_HUB_CARRIER_CROSS_FINAL: "1",
         DJERD_HUB_CARRIER_CROSS_FINAL_THRESHOLD: "2",
+        DJERD_INHERITANCE_CARRIER_FINAL: "1",
+        DJERD_INTRA_CLUSTER_CARRIER_FINAL: "1",
         DJERD_MULTISTART_RUNS: "1",
         DJERD_RENDERED_CARRIER_METRICS_FINAL: "1",
       },
@@ -102,6 +104,8 @@ test("native rendered-carrier topology preserves inheritance like the webview", 
       canonical.nonProperContacts,
       "aggregate non-proper diagnostics should equal the documented category sum",
     );
+    assert.equal(layout.engineMetadata?.inheritanceCarrierGrouping, true);
+    assert.equal(layout.engineMetadata?.intraClusterCarrierGrouping, true);
 
     const metricMatches = [...stderr.matchAll(
       /\[rendered-carrier-metrics-final\].*visibleEdges=(\d+).*routeSegments=(\d+)/g,
@@ -117,18 +121,121 @@ test("native rendered-carrier topology preserves inheritance like the webview", 
     const inheritanceEdges = fixture.edges.filter(
       (edge) => edge.kind === "inheritance",
     );
+    const sharedInheritanceEdges = inheritanceEdges.filter(
+      (edge) => edge.targetModelId === "test.sharedBase",
+    );
+    const individualInheritanceEdges = inheritanceEdges.filter(
+      (edge) => edge.targetModelId !== "test.sharedBase",
+    );
 
-    assert.equal(inheritanceEdges.length, 40);
-    for (const edge of inheritanceEdges) {
+    assert.equal(inheritanceEdges.length, 46);
+    assert.equal(sharedInheritanceEdges.length, 6);
+    for (const edge of individualInheritanceEdges) {
       assert.ok(
         renderedEdgeIds.has(edge.id),
-        `inheritance edge ${edge.id} should remain individually rendered`,
+        `single inheritance edge ${edge.id} should remain individually rendered`,
       );
     }
+    for (const edge of sharedInheritanceEdges) {
+      assert.ok(
+        !renderedEdgeIds.has(edge.id),
+        `shared inheritance edge ${edge.id} should use its parent carrier`,
+      );
+    }
+    assert.ok(renderedEdgeIds.has("inheritance-carrier:test.sharedBase"));
     assert.equal(
       Number(finalMetric[1]),
       renderModel.edges.length,
       "native visible carrier paths should match webview structural edges",
+    );
+  } finally {
+    await fs.rm(directory, { force: true, recursive: true });
+  }
+});
+
+test("adaptive carrier budget is project-agnostic and works without leaf bundles", {
+  skip: !binaryAvailable || !renderModelAvailable,
+}, async () => {
+  const fixture = createDenseBundleFreeFixture();
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "django-erd-carrier-adaptive-"),
+  );
+  const nodesPath = path.join(directory, "nodes.tsv");
+  const edgesPath = path.join(directory, "edges.tsv");
+  await fs.writeFile(
+    nodesPath,
+    `${fixture.nodes.map((modelId, index) => {
+      const side = index < 8 ? 0 : 1;
+      const row = index % 8;
+      return `${modelId}\t120\t80\t${side * 1200}\t${row * 180}\ttest`;
+    }).join("\n")}\n`,
+    "utf8",
+  );
+  await fs.writeFile(
+    edgesPath,
+    `${fixture.edges.map((edge) => [
+      edge.id,
+      edge.sourceModelId,
+      edge.targetModelId,
+      edge.kind,
+      edge.provenance,
+    ].join("\t")).join("\n")}\n`,
+    "utf8",
+  );
+
+  try {
+    const { stdout } = await execFileAsync(binaryPath, [
+      "layout",
+      "--mode", "fmmm",
+      "--nodes-file", nodesPath,
+      "--edges-file", edgesPath,
+      "--edge-routing", "straight",
+      "--cluster-graph", "1",
+    ], {
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        DJERD_ADAPTIVE_CARRIER_TARGET_FINAL: "1",
+        DJERD_CANONICAL_CROSSING_CACHE: "0",
+        DJERD_CG_SKIP_POSITIONING: "1",
+        DJERD_HUB_CARRIER_CROSS_FINAL: "0",
+        DJERD_INHERITANCE_CARRIER_FINAL: "0",
+        DJERD_INTRA_CLUSTER_CARRIER_FINAL: "0",
+        DJERD_MULTISTART_RUNS: "1",
+        DJERD_RENDERED_CARRIER_METRICS_FINAL: "1",
+        DJERD_SKIP_CG_OPT: "1",
+      },
+      maxBuffer: 32 * 1024 * 1024,
+      timeout: 30_000,
+    });
+    const layout = JSON.parse(stdout);
+    assert.equal(layout.engineMetadata?.leafBundles?.length ?? 0, 0);
+    assert.equal(
+      layout.engineMetadata?.adaptiveCarrierTarget,
+      1,
+      JSON.stringify(layout.engineMetadata),
+    );
+    assert.ok(layout.engineMetadata?.adaptiveCarrierGrid >= 1);
+    assert.ok(layout.engineMetadata?.adaptiveCarrierBaseEdges >= fixture.edges.length);
+    assert.ok(layout.engineMetadata?.adaptiveCarrierVisibleEdges < fixture.edges.length);
+    assert.ok(layout.engineMetadata?.visualCrossings <= 1);
+
+    const { createDiagramRenderModel } = require(renderModelModulePath);
+    const renderModel = createDiagramRenderModel(
+      createBootstrapPayload(fixture, layout),
+    );
+    assert.equal(
+      renderModel.edges.length,
+      layout.engineMetadata.adaptiveCarrierVisibleEdges,
+      "native and webview should select the same adaptive spatial groups",
+    );
+    assert.equal(
+      renderModel.detailEdges.length,
+      layout.engineMetadata.adaptiveCarrierBaseEdges,
+      "zoomed detail should retain every pre-adaptive carrier",
+    );
+    assert.ok(
+      renderModel.edges.every((edge) => edge.edgeId.startsWith("adaptive-carrier:")),
     );
   } finally {
     await fs.rm(directory, { force: true, recursive: true });
@@ -173,8 +280,32 @@ function createCarrierFixture() {
     addEdge(`coreA${index}`, `coreB${index}`, "inheritance");
     addEdge(`coreB${index}`, "hubB");
   }
+  for (let index = 0; index < 6; index += 1) {
+    addEdge(`sharedChild${index}`, "sharedBase", "inheritance");
+    // Keep these children out of the degree-1 leaf bundle so this fixture
+    // specifically exercises the shared inheritance carrier.
+    addEdge(`sharedChild${index}`, "hubC");
+  }
 
   return { edges, nodes };
+}
+
+function createDenseBundleFreeFixture() {
+  const left = Array.from({ length: 8 }, (_, index) => `test.left${index}`);
+  const right = Array.from({ length: 8 }, (_, index) => `test.right${index}`);
+  const edges = [];
+  for (const sourceModelId of left) {
+    for (const targetModelId of right) {
+      edges.push({
+        id: `edge-${edges.length}`,
+        kind: "foreign_key",
+        provenance: "declared",
+        sourceModelId,
+        targetModelId,
+      });
+    }
+  }
+  return { edges, nodes: [...left, ...right] };
 }
 
 function createBootstrapPayload(fixture, layout) {

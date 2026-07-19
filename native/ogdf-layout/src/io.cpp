@@ -91,6 +91,22 @@ void writeLayoutEngineMetadata(
            << ",\"hubCarrierEdgesGrouped\":" << metadata.hubCarrierEdgesGrouped
            << ",\"hubCarrierClusters\":" << metadata.hubCarrierClusters;
   }
+  if (metadata.inheritanceCarrierGrouping) {
+    stream << ",\"inheritanceCarrierGrouping\":true";
+  }
+  if (metadata.intraClusterCarrierGrouping) {
+    stream << ",\"intraClusterCarrierGrouping\":true";
+  }
+  if (metadata.adaptiveCarrierTarget > 0) {
+    stream << ",\"adaptiveCarrierGrid\":" << metadata.adaptiveCarrierGrid
+           << ",\"adaptiveCarrierTarget\":" << metadata.adaptiveCarrierTarget
+           << ",\"adaptiveCarrierBaseEdges\":" << metadata.adaptiveCarrierBaseEdges
+           << ",\"adaptiveCarrierVisibleEdges\":" << metadata.adaptiveCarrierVisibleEdges
+           << ",\"adaptiveCarrierMinX\":" << metadata.adaptiveCarrierMinX - bounds.minX
+           << ",\"adaptiveCarrierMinY\":" << metadata.adaptiveCarrierMinY - bounds.minY
+           << ",\"adaptiveCarrierMaxX\":" << metadata.adaptiveCarrierMaxX - bounds.minX
+           << ",\"adaptiveCarrierMaxY\":" << metadata.adaptiveCarrierMaxY - bounds.minY;
+  }
   if (metadata.canonicalCrossing.available) {
     const CanonicalCrossingMetadata& canonical = metadata.canonicalCrossing;
     stream << ",\"canonicalCrossing\":{"
