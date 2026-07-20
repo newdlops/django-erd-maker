@@ -24,6 +24,10 @@ const renderModelModulePath = path.resolve(
   __dirname,
   "../../out/webview/state/createDiagramRenderModel.js",
 );
+const browserCanvasSourceModulePath = path.resolve(
+  __dirname,
+  "../../out/webview/interaction/runtime/browserCanvasDrawSource.js",
+);
 const runOgdfLayoutModulePath = path.resolve(
   __dirname,
   "../../out/extension/services/layout/runOgdfLayout.js",
@@ -47,6 +51,7 @@ const {
 } = require(runOgdfLayoutModulePath);
 const { renderDiagramDocument } = require(renderModulePath);
 const { loadPhaseOneSample } = require(sampleModulePath);
+const { getBrowserCanvasDrawSource } = require(browserCanvasSourceModulePath);
 
 test("phase8 document renders canvas scene metadata, routed edges, crossings, choices, properties, and methods", () => {
   const html = render();
@@ -234,10 +239,19 @@ test("phase8 document embeds every semantic carrier in one zoom-independent set"
   assert.doesNotMatch(html, /GPU_MAX_SEGMENTS_PER_FRAME/);
 });
 
-test("phase8 decoder preserves native-scored straight carrier geometry", () => {
+test("phase8 decoder preserves carrier metadata but rejects disconnected multi-endpoint trunks", () => {
   const payload = structuredClone(loadPhaseOneSample());
+  const clusterByModelId = {
+    "accounts.Author": "cluster-b",
+    "blog.Post": "cluster-a",
+    "taxonomy.Tag": "cluster-c",
+  };
+  payload.layout.nodes.forEach((node) => {
+    node.clusterId = clusterByModelId[node.modelId] ?? "cluster-other";
+  });
   payload.layout.engineMetadata = {
     ...(payload.layout.engineMetadata ?? {}),
+    hubCarrierThreshold: 1,
     renderedCarrierRoutes: [{
       carrierId: "H|cluster-a",
       memberEdgeIds: ["edge-post-author", "edge-post-tags"],
@@ -263,6 +277,44 @@ test("phase8 decoder preserves native-scored straight carrier geometry", () => {
     () => decodeLayoutSnapshot(malformed, "phase8MalformedCarrierGeometry"),
     /at least one member/,
   );
+
+  const renderModel = createDiagramRenderModel(payload);
+  const carrier = renderModel.edges.find(
+    (edge) => edge.edgeId === "hub-carrier:cluster-a",
+  );
+  assert.equal(carrier, undefined);
+  assert.ok(renderModel.edges.some((edge) => edge.edgeId === "edge-post-author"));
+  assert.ok(renderModel.edges.some((edge) => edge.edgeId === "edge-post-tags"));
+});
+
+test("phase8 cluster focus appears only after selecting a member", () => {
+  const payload = structuredClone(loadPhaseOneSample());
+  payload.layout.nodes.forEach((node) => {
+    node.clusterId = node.modelId === "audit.AuditLog"
+      ? "cluster-audit"
+      : "cluster-content";
+  });
+  const renderModel = createDiagramRenderModel(payload);
+  const content = renderModel.clusterOutlines.find(
+    (outline) => outline.clusterId === "cluster-content",
+  );
+
+  assert.ok(content);
+  assert.equal(content.colorKey, "cluster-content");
+  assert.match(content.label, / cluster$/);
+  assert.equal(content.memberCount, 3);
+
+  const html = renderDiagramDocument(payload);
+  assert.match(html, /function buildClusterOutlineRecords\(scene\)/);
+  assert.match(html, /kind: "cluster-outline"/);
+  assert.match(html, /scene\.tablesById\.get\(state\.selectedModelId\)/);
+  assert.match(html, /table\.meta\.clusterId === selectedClusterId/);
+  assert.match(html, /GPU_CLUSTER_OUTLINE_MAX_AREA_RATIO/);
+  assert.match(html, /function edgeSelectedClusterRelation\(meta\)/);
+  assert.match(html, /isModelInSelectedCluster\(record\.modelId\)/);
+  assert.match(html, /selectedModelId: value\.selectedModelId \|\| undefined/);
+  assert.match(html, /dispatch\(\{ type: "clear-selection" \}\)/);
+  assert.doesNotMatch(html, /clusterId \|\| appLabel/);
 });
 
 test("phase8 catalog mode expands high-degree tables for relation ports", () => {
@@ -392,6 +444,7 @@ test("catalog layout input and clearance audit use the exact rendered bundle geo
   assert.equal(acceptedCacheCandidate.pass, true);
   assert.equal(acceptedCacheCandidate.clearancePass, true);
   assert.equal(acceptedCacheCandidate.bendPass, true);
+  assert.equal(acceptedCacheCandidate.bundleEdgePass, true);
   assert.equal(acceptedCacheCandidate.edgeNodePass, true);
 
   const penetratingLayout = structuredClone(clearLayout);
@@ -413,6 +466,21 @@ test("catalog layout input and clearance audit use the exact rendered bundle geo
     penetratingCacheCandidate.failures.join(" "),
     /edge\/node intersections 1 exceed target 0/,
   );
+
+  const bundlePenetratingLayout = structuredClone(clearLayout);
+  bundlePenetratingLayout.engineMetadata.bundleEdgeIntersections = 1;
+  bundlePenetratingLayout.engineMetadata.visualCrossings = 1;
+  const bundlePenetratingCandidate = evaluateOptimizedLayoutHardTargets(
+    payload,
+    bundlePenetratingLayout,
+    { bboxTargetB: 10, bundleEdgeTarget: 0, visualTarget: 100 },
+  );
+  assert.equal(bundlePenetratingCandidate.bundleEdgePass, false);
+  assert.equal(bundlePenetratingCandidate.pass, false);
+  assert.match(
+    bundlePenetratingCandidate.failures.join(" "),
+    /bundle\/edge intersections 1 exceed target 0/,
+  );
 });
 
 test("rendered geometry audit detects diagonal edge penetrations independently of metadata", () => {
@@ -433,6 +501,8 @@ test("rendered geometry audit detects diagonal edge penetrations independently o
 
   const penetrating = measureRenderedEdgeNodeIntersections(renderModel);
   assert.equal(penetrating.count, 1);
+  assert.equal(penetrating.bundleCount, 0);
+  assert.equal(penetrating.nodeCount, 1);
   assert.deepEqual(penetrating.hits, [
     { edgeId: "edge-source-target", nodeModelId: "test.Blocker" },
   ]);
@@ -440,6 +510,30 @@ test("rendered geometry audit detects diagonal edge penetrations independently o
   blocker.position.y = 300;
   const clear = measureRenderedEdgeNodeIntersections(renderModel);
   assert.equal(clear.count, 0);
+});
+
+test("rendered geometry audit separates bundle hits and preserves carrier endpoints", () => {
+  const source = renderedAuditTable("test.Source", 0, 0, 100, 100);
+  const bundle = renderedAuditTable("__leafbundle.Group_0", 220, 80, 80, 80);
+  const target = renderedAuditTable("test.Target", 400, 0, 100, 100);
+  const baseModel = {
+    bundleLeavesByFakeId: { [bundle.modelId]: ["test.Leaf"] },
+    edges: [{
+      edgeId: "edge-source-target",
+      points: "100,200 400,200",
+      sourceModelId: source.modelId,
+      targetModelId: target.modelId,
+    }],
+    tables: [source, bundle, target],
+  };
+
+  const reattached = measureRenderedEdgeNodeIntersections(baseModel);
+  assert.equal(reattached.bundleCount, 1);
+  assert.equal(reattached.nodeCount, 0);
+
+  baseModel.edges[0].preserveRouteEndpoints = true;
+  const preserved = measureRenderedEdgeNodeIntersections(baseModel);
+  assert.equal(preserved.count, 0);
 });
 
 test("phase8 browser runtime renders a GPU scene with minimap and viewport-aware culling", () => {
@@ -451,9 +545,18 @@ test("phase8 browser runtime renders a GPU scene with minimap and viewport-aware
   assert.match(html, /webview\.bootstrap/);
   assert.match(html, /renderer\.selected/);
   assert.match(html, /scene\.graph\.built/);
-  assert.match(html, /clippedTablePenetrations/);
+  assert.match(html, /avoidedTablePenetrations/);
+  assert.match(html, /avoidedBundlePenetrations/);
+  assert.match(html, /avoidedNodePenetrations/);
+  assert.match(html, /unresolvedRoutePenetrations/);
+  assert.match(html, /visibilityFallbackEdges/);
   assert.match(html, /function segmentRectangleInteriorInterval\(/);
-  assert.match(html, /function createClippedLineSegments\(/);
+  assert.match(html, /function routeEdgePathAroundTables\(/);
+  assert.match(html, /function routeCollisionFreeVisibilityPath\(/);
+  assert.match(html, /function discoverVisibleDetourPoints\(/);
+  assert.match(html, /function createTableDetourCandidates\(/);
+  assert.doesNotMatch(html, /function createClippedLineSegments\(/);
+  assert.match(html, /base \+ tangent \* cap \+ normal/);
   assert.doesNotMatch(html, /if \(!vertical && !horizontal\)/);
   assert.match(html, /render\.frame/);
   assert.match(html, /render\.stats/);
@@ -493,7 +596,17 @@ test("phase8 browser runtime renders a GPU scene with minimap and viewport-aware
   assert.match(html, /function collectVisibleSegments\(scene, bounds\)/);
   assert.match(html, /function applyLiveDragTableRecord\(scene, records, bounds\)/);
   assert.match(html, /function applyLiveDragEdgeSegments\(records, bounds\)/);
-  assert.match(html, /function collectLiveDragEdgeSegments\(activeDrag, bounds\)/);
+  assert.match(
+    html,
+    /function collectLiveDragEdgeSegments\(\s*activeDrag,\s*movedModelIds,\s*bounds,\s*overrideById,/,
+  );
+  assert.match(html, /GPU_EDGE_TABLE_CLEARANCE = 10/);
+  assert.match(html, /GPU_EDGE_DETOUR_MAX_STEPS = 96/);
+  assert.match(html, /function routeEdgeRecordsAroundLiveDragTables\(/);
+  assert.match(html, /function fitFontToWidth\(context, font, text, maxWidth\)/);
+  assert.doesNotMatch(html, /function trimTextToWidth\(/);
+  assert.doesNotMatch(html, /…/);
+  assert.match(html, /overflow-wrap: anywhere/);
   assert.match(html, /drag\.currentPosition =/);
   assert.match(html, /scheduleViewportRender\(\)/);
   assert.match(html, /function queryTableMetaNearWorldPoint\(point\)/);
@@ -533,10 +646,173 @@ test("phase8 browser runtime declares layoutModes before layout variants are cre
   );
 });
 
+test("phase8 browser router keeps obstacle detours continuous and collision-free", () => {
+  const {
+    collectEdgePathCollisions,
+    routeCollisionFreeVisibilityPath,
+    routeEdgePathAroundTables,
+  } =
+    createBrowserEdgeRouter({});
+  const scene = createRoutingScene([
+    routingTable("blocker-a", 360, -70, 120, 140),
+    routingTable("blocker-b", 610, -20, 120, 140),
+  ]);
+  const meta = { sourceModelId: "source", targetModelId: "target" };
+  const routed = routeEdgePathAroundTables(
+    [{ x: 0, y: 0 }, { x: 1000, y: 0 }],
+    meta,
+    scene,
+  );
+
+  assert.equal(routed.initialCollisions.length, 2);
+  assert.equal(routed.unresolvedCollisions.length, 0);
+  assert.ok(routed.points.length > 2);
+  assert.ok(routed.points.every((point) =>
+    Number.isFinite(point.x) && Number.isFinite(point.y)));
+  assert.equal(collectEdgePathCollisions(routed.points, meta, scene).length, 0);
+
+  const denseScene = createRoutingScene(
+    Array.from({ length: 20 }, (_, index) =>
+      routingTable(`dense-${index}`, 180 + index * 145, -80, 100, 160)),
+  );
+  const denseRoute = routeEdgePathAroundTables(
+    [{ x: 0, y: 0 }, { x: 3100, y: 0 }],
+    meta,
+    denseScene,
+  );
+  assert.equal(denseRoute.initialCollisions.length, 20);
+  assert.equal(denseRoute.unresolvedCollisions.length, 0);
+  assert.equal(
+    collectEdgePathCollisions(denseRoute.points, meta, denseScene).length,
+    0,
+  );
+
+  const alternatingMaze = createRoutingScene([
+    routingTable("wall-a", 180, -420, 130, 470),
+    routingTable("wall-b", 360, -50, 130, 470),
+    routingTable("wall-c", 540, -420, 130, 470),
+    routingTable("wall-d", 720, -50, 130, 470),
+  ]);
+  const visibilityRoute = routeCollisionFreeVisibilityPath(
+    [{ x: 0, y: 0 }, { x: 1040, y: 0 }],
+    meta,
+    alternatingMaze,
+  );
+  assert.ok(visibilityRoute);
+  assert.ok(visibilityRoute.length > 2);
+  assert.equal(
+    collectEdgePathCollisions(visibilityRoute, meta, alternatingMaze).length,
+    0,
+  );
+
+  const bundleId = "__leafbundle.Parent_0";
+  const bundleRouter = createBrowserEdgeRouter({ [bundleId]: ["test.Leaf"] });
+  const bundleRoute = bundleRouter.routeEdgePathAroundTables(
+    [{ x: 0, y: 0 }, { x: 800, y: 0 }],
+    {
+      logicalEndpointModelIds: ["test.Leaf", "test.Base"],
+      sourceModelId: "test.Leaf",
+      targetModelId: "test.Base",
+    },
+    createRoutingScene([routingTable(bundleId, -40, -120, 340, 240)]),
+  );
+  assert.equal(bundleRoute.initialCollisions.length, 0);
+
+  const carrierRoute = routeEdgePathAroundTables(
+    [{ x: 40, y: 40 }, { x: 800, y: 0 }],
+    {
+      logicalEndpointModelIds: ["test.Representative", "test.Sibling", "test.Base"],
+      sourceModelId: "test.Representative",
+      targetModelId: "test.Base",
+    },
+    createRoutingScene([routingTable("test.Sibling", 0, 0, 180, 120)]),
+  );
+  assert.equal(
+    carrierRoute.initialCollisions.length,
+    0,
+    "every logical carrier endpoint must be allowed to emit its shared carrier",
+  );
+
+  const tightEndpointScene = createRoutingScene([
+    routingTable("source", 0, -50, 100, 100),
+    routingTable("target", 500, -50, 100, 100),
+    routingTable("adjacent-blocker", 390, -30, 109, 60),
+  ]);
+  const tightEndpointRoute = routeEdgePathAroundTables(
+    [{ x: 100, y: 0 }, { x: 500, y: 0 }],
+    meta,
+    tightEndpointScene,
+  );
+  assert.equal(tightEndpointRoute.initialCollisions.length, 1);
+  assert.equal(tightEndpointRoute.unresolvedCollisions.length, 0);
+  assert.equal(
+    collectEdgePathCollisions(tightEndpointRoute.points, meta, tightEndpointScene).length,
+    0,
+  );
+  assert.notDeepEqual(
+    tightEndpointRoute.points[tightEndpointRoute.points.length - 1],
+    { x: 500, y: 0 },
+    "a blocked fixed endpoint should move to a free port on the same table",
+  );
+});
+
 function render(mutatePayload) {
   const payload = structuredClone(loadPhaseOneSample());
   mutatePayload?.(payload);
   return renderDiagramDocument(payload);
+}
+
+function createBrowserEdgeRouter(bundleLeavesByFakeIdRaw) {
+  const factory = new Function(
+    "round2",
+    "normalizePoints",
+    "findSegments",
+    "rectIntersectsBounds",
+    "bundleLeavesByFakeIdRaw",
+    `${getBrowserCanvasDrawSource()}\nreturn { collectEdgePathCollisions, routeCollisionFreeVisibilityPath, routeEdgePathAroundTables };`,
+  );
+  return factory(
+    (value) => Math.round(value * 100) / 100,
+    (points) => points.filter((point, index) =>
+      index === 0
+      || point.x !== points[index - 1].x
+      || point.y !== points[index - 1].y),
+    (points) => points.slice(1).map((end, index) => ({
+      end,
+      start: points[index],
+    })),
+    (x, y, width, height, bounds, padding = 0) =>
+      x + width + padding >= bounds.left
+      && x - padding <= bounds.right
+      && y + height + padding >= bounds.top
+      && y - padding <= bounds.bottom,
+    bundleLeavesByFakeIdRaw,
+  );
+}
+
+function createRoutingScene(tables) {
+  const tableBuckets = new Map();
+  const tablesById = new Map();
+  for (const table of tables) {
+    tablesById.set(table.modelId, table);
+    const startColumn = Math.floor(table.x / 960);
+    const endColumn = Math.floor((table.x + table.width) / 960);
+    const startRow = Math.floor(table.y / 960);
+    const endRow = Math.floor((table.y + table.height) / 960);
+    for (let row = startRow; row <= endRow; row += 1) {
+      for (let column = startColumn; column <= endColumn; column += 1) {
+        const key = `${column}:${row}`;
+        const bucket = tableBuckets.get(key) ?? [];
+        bucket.push(table.modelId);
+        tableBuckets.set(key, bucket);
+      }
+    }
+  }
+  return { tableBuckets, tables, tablesById };
+}
+
+function routingTable(modelId, x, y, width, height) {
+  return { height, modelId, width, x, y };
 }
 
 function renderedAuditTable(modelId, x, y, width, height) {

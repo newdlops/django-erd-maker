@@ -36,6 +36,42 @@ export function getDocumentStyles(): string {
     button { font: inherit; }
     [hidden] { display: none !important; }
 
+    .erd-summary__title,
+    .erd-summary__meta,
+    .erd-sidebar__meta,
+    .erd-panel,
+    .erd-panel h2,
+    .erd-panel__meta,
+    .erd-panel__hint,
+    .erd-list__item,
+    .erd-method-card,
+    .erd-method-button,
+    .erd-control-pill,
+    .erd-inline-button,
+    .erd-tool,
+    .erd-relation-chip,
+    .erd-setting__header,
+    .erd-setting__label,
+    .erd-setting__value,
+    .erd-badge,
+    .erd-search__count,
+    .erd-gpu-warning__title,
+    .erd-gpu-warning__body {
+      min-width: 0;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      white-space: normal;
+    }
+
+    .erd-method-button > span:first-child,
+    .erd-control-pill > span:first-child,
+    .erd-tool > span:first-child {
+      flex: 1 1 auto;
+      min-width: 0;
+      text-align: left;
+    }
+
     .erd-shell {
       display: grid;
       gap: 18px;
@@ -141,6 +177,7 @@ export function getDocumentStyles(): string {
 
     .erd-setting__header {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
@@ -219,6 +256,7 @@ export function getDocumentStyles(): string {
     }
 
     .erd-control-pill__status {
+      flex: 0 0 auto;
       color: var(--muted);
       font-size: 11px;
       text-transform: uppercase;
@@ -247,6 +285,7 @@ export function getDocumentStyles(): string {
     .erd-relation-chip {
       display: inline-flex;
       align-items: center;
+      line-height: 1.35;
       padding: 4px 9px;
       border-radius: 999px;
       font-size: 11px;

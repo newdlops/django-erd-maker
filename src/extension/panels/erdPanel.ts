@@ -74,7 +74,13 @@ export class ErdPanel {
       ErdPanel.currentPanel = undefined;
     });
     this.panel.webview.onDidReceiveMessage((message) => {
-      void this.handleWebviewMessage(message as PanelMessage);
+      void this.handleWebviewMessage(message as PanelMessage).catch((error) => {
+        const reason = error instanceof Error ? error.message : String(error);
+        getExtensionLogger().error(
+          `Webview message handling failed: ${reason}`,
+          error,
+        );
+      });
     });
   }
 
@@ -254,6 +260,20 @@ export class ErdPanel {
         refreshKind: request?.refreshKind ?? "full",
         viewState: request?.viewState ?? this.persistedViewState,
       });
+    } catch (error) {
+      if (requestId === this.latestRefreshRequestId) {
+        await this.panel.webview.postMessage({
+          requestId,
+          status: "error",
+          type: "diagram.refresh.settled",
+        });
+      }
+      const reason = error instanceof Error ? error.message : String(error);
+      getExtensionLogger().error(
+        `Diagram refresh failed and UI state was released · requestId=${requestId} · ${reason}`,
+        error,
+      );
+      throw error;
     } finally {
       setOgdfProgressListener(undefined);
     }

@@ -26,6 +26,35 @@ export function getBrowserEventSource(): string {
 
         let minimapDrag = null;
         let resizeRenderFrame = 0;
+        let layoutRefreshPending = false;
+
+        function setLayoutRefreshPending(pending) {
+          layoutRefreshPending = Boolean(pending);
+          root.toggleAttribute("aria-busy", layoutRefreshPending);
+          for (const button of document.querySelectorAll(
+            "[data-layout-mode], [data-panel-refresh], [data-cluster-graph-toggle], " +
+            "[data-bubble-toggle], [data-optimized-toggle]",
+          )) {
+            button.disabled = layoutRefreshPending;
+          }
+          for (const button of document.querySelectorAll("[data-optimized-toggle]")) {
+            if (!button.dataset.idleLabel) {
+              button.dataset.idleLabel = button.textContent || "ML Optimized";
+            }
+            button.textContent = layoutRefreshPending && state.optimizedLayout
+              ? "ML Analyzing"
+              : button.dataset.idleLabel;
+          }
+        }
+
+        function requestDiagramRefresh(message) {
+          if (layoutRefreshPending) {
+            return false;
+          }
+          setLayoutRefreshPending(true);
+          vscode?.postMessage(message);
+          return true;
+        }
 
         function moveViewportFromMinimapEvent(event) {
           const worldPoint = getMinimapWorldPoint(event);
@@ -54,7 +83,7 @@ export function getBrowserEventSource(): string {
               layoutMode: button.dataset.layoutMode,
               renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
             });
-            vscode?.postMessage({
+            requestDiagramRefresh({
               layoutMode: button.dataset.layoutMode,
               refreshKind: "layout",
               settings: { ...state.settings },
@@ -82,7 +111,7 @@ export function getBrowserEventSource(): string {
               layoutMode: state.layoutMode,
               renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
             });
-            vscode?.postMessage({
+            requestDiagramRefresh({
               layoutMode: state.layoutMode,
               refreshKind: "full",
               settings: { ...state.settings },
@@ -124,22 +153,6 @@ export function getBrowserEventSource(): string {
           });
         }
 
-        for (const button of document.querySelectorAll("[data-edge-bends-toggle]")) {
-          if (state.useEdgeBends) {
-            button.classList.add("is-active");
-          }
-          button.addEventListener("click", () => {
-            state.useEdgeBends = !state.useEdgeBends;
-            button.classList.toggle("is-active", state.useEdgeBends);
-            logErd("info", "event.edge.bends.toggle", {
-              enabled: state.useEdgeBends,
-              renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
-            });
-            invalidateSceneGraph();
-            applyState();
-          });
-        }
-
         for (const button of document.querySelectorAll("[data-cluster-graph-toggle]")) {
           if (state.clusterGraphLayout) {
             button.classList.add("is-active");
@@ -152,7 +165,7 @@ export function getBrowserEventSource(): string {
               renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
             });
             // Cluster-graph layout is computed in C++; trigger a layout refresh.
-            vscode?.postMessage({
+            requestDiagramRefresh({
               layoutMode: state.layoutMode,
               refreshKind: "layout",
               settings: { ...state.settings },
@@ -173,7 +186,7 @@ export function getBrowserEventSource(): string {
               enabled: state.bubbleLayout,
               renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
             });
-            vscode?.postMessage({
+            requestDiagramRefresh({
               layoutMode: state.layoutMode,
               refreshKind: "layout",
               settings: { ...state.settings },
@@ -191,11 +204,10 @@ export function getBrowserEventSource(): string {
             state.optimizedLayout = !state.optimizedLayout;
             button.classList.toggle("is-active", state.optimizedLayout);
             logErd("info", "event.optimized.toggle", {
-              edgeBends: state.useEdgeBends,
               enabled: state.optimizedLayout,
               renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
             });
-            vscode?.postMessage({
+            requestDiagramRefresh({
               layoutMode: state.layoutMode,
               refreshKind: "layout",
               settings: { ...state.settings },
@@ -549,6 +561,14 @@ export function getBrowserEventSource(): string {
 
         window.addEventListener("message", function (event) {
           const msg = event && event.data;
+          if (msg && msg.type === "diagram.refresh.settled") {
+            setLayoutRefreshPending(false);
+            logErd(msg.status === "error" ? "warn" : "info", "refresh.settled", {
+              requestId: msg.requestId,
+              status: msg.status || "complete",
+            });
+            return;
+          }
           if (!msg || msg.type !== "diagram.progress" || !msg.positions) return;
           applyProgressSemanticRenderModel(msg.semanticRenderModel);
           dispatch({ type: "apply-progress-positions", positions: msg.positions });
@@ -641,6 +661,7 @@ export function getBrowserEventSource(): string {
             });
             canvas.classList.add("is-dragging-table");
           } else {
+            dispatch({ type: "clear-selection" });
             drag = {
               kind: "canvas",
               originX: event.clientX,

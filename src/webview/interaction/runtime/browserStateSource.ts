@@ -132,7 +132,10 @@ export function getBrowserStateSource(): string {
             layoutMode: value.layoutMode || "hierarchical",
             settings: normalizeInteractionSettings(value.settings),
             selectedMethodContext: value.selectedMethodContext,
-            selectedModelId: value.selectedModelId || fallbackModelId,
+            // Cluster focus is intentionally absent until a model is chosen.
+            // The inspector may still render its fallback panel, but the
+            // canvas must not look preselected on first open.
+            selectedModelId: value.selectedModelId || undefined,
             tableOptions: Array.isArray(value.tableOptions) ? value.tableOptions : [],
             viewport: isPlaceholderViewport(value.viewport)
               ? fallbackViewport
@@ -463,6 +466,12 @@ export function getBrowserStateSource(): string {
                     ? currentState.selectedMethodContext
                     : undefined,
                 selectedModelId: action.modelId,
+              };
+            case "clear-selection":
+              return {
+                ...currentState,
+                selectedMethodContext: undefined,
+                selectedModelId: undefined,
               };
             case "toggle-method":
               return {

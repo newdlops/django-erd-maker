@@ -81,7 +81,11 @@ export function getBrowserRenderSource(): string {
             action.type === "set-table-hidden" ||
             action.type === "set-table-manual-position" ||
             action.type === "apply-progress-positions" ||
-            action.type === "reset-view"
+            action.type === "reset-view" ||
+            action.type === "select-model" ||
+            action.type === "clear-selection" ||
+            action.type === "toggle-method" ||
+            action.type === "focus-model"
           ) {
             invalidateSceneGraph();
           }
@@ -201,9 +205,23 @@ export function getBrowserRenderSource(): string {
               metrics,
             );
             const isSelected = state.selectedModelId === modelId;
+            const inSelectedCluster = isModelInSelectedCluster(modelId);
+            const hasClusterFocus = Boolean(getSelectedClusterId());
 
-            context.fillStyle = isSelected ? "rgba(255, 191, 105, 0.56)" : "rgba(182, 231, 217, 0.22)";
-            context.strokeStyle = isSelected ? "rgba(255, 191, 105, 0.88)" : "rgba(182, 231, 217, 0.38)";
+            context.fillStyle = isSelected
+              ? "rgba(255, 191, 105, 0.62)"
+              : inSelectedCluster
+                ? "rgba(109, 208, 176, 0.48)"
+                : hasClusterFocus
+                  ? "rgba(104, 126, 133, 0.10)"
+                  : "rgba(182, 231, 217, 0.22)";
+            context.strokeStyle = isSelected
+              ? "rgba(255, 191, 105, 0.92)"
+              : inSelectedCluster
+                ? "rgba(109, 208, 176, 0.82)"
+                : hasClusterFocus
+                  ? "rgba(104, 126, 133, 0.18)"
+                  : "rgba(182, 231, 217, 0.38)";
             context.fillRect(rect.x, rect.y, rect.width, rect.height);
             context.strokeRect(rect.x, rect.y, rect.width, rect.height);
           }
