@@ -9,6 +9,13 @@ export function getBrowserCanvasDrawSource(): string {
         const GPU_MAX_LABELS_PER_FRAME = 2200;
         const GPU_DENSE_LABEL_ZOOM = 0.42;
         const GPU_DENSE_LABEL_TABLE_LIMIT = 520;
+        const GPU_EDGE_TABLE_CLEARANCE = 10;
+        const GPU_EDGE_DETOUR_GAP = 4;
+        const GPU_EDGE_DETOUR_MAX_STEPS = 96;
+        const GPU_EDGE_VISIBILITY_MAX_EXPANSIONS = 2048;
+        const GPU_EDGE_VISIBILITY_MAX_DISCOVERY_STEPS = 512;
+        const GPU_CLUSTER_OUTLINE_MAX_AREA_RATIO = 14;
+        const GPU_MIN_LABEL_FONT_SIZE = 9;
         const RENDER_FRAME_SAMPLE_MS = 1000;
         const RENDER_STATS_INTERVAL_MS = 1000;
         const RENDER_STATS_MIN_FRAMES = 60;
@@ -609,7 +616,10 @@ export function getBrowserCanvasDrawSource(): string {
 
           const startedAt = performance.now();
           const nextScene = {
-            clippedTablePenetrations: 0,
+            avoidedBundlePenetrations: 0,
+            avoidedNodePenetrations: 0,
+            avoidedTablePenetrations: 0,
+            detouredEdges: 0,
             edgeBuckets: new Map(),
             edgeSegments: [],
             leafBundleBuckets: new Map(),
@@ -619,6 +629,9 @@ export function getBrowserCanvasDrawSource(): string {
             tableBuckets: new Map(),
             tables: [],
             tablesById: new Map(),
+            unresolvedRouteEdges: [],
+            unresolvedRoutePenetrations: 0,
+            visibilityFallbackEdges: 0,
           };
 
           const leafTilesRaw = (renderModel.bundleLeafTiles || []);
@@ -654,11 +667,6 @@ export function getBrowserCanvasDrawSource(): string {
               recordIndex,
             );
           }
-
-          // Small leafBundle marker (280×88 with "X · N leaves" title) was
-          // a duplicate of the synthetic bundle table from
-          // createDiagramRenderModel.ts. Suppressed — edge routing still
-          // uses renderModel.leafBundles for bundle-aware paths.
 
           for (const [modelId, meta] of tableMetaById.entries()) {
             if (!isVisibleModel(modelId)) {
@@ -720,6 +728,7 @@ export function getBrowserCanvasDrawSource(): string {
               collapsedClusterKeyByModelId = result.clusterKeyByModelId;
             }
           }
+          buildClusterOutlineRecords(nextScene);
 
           const bundlingEnabled = Boolean(state.edgeBundling) && !renderModel.modelCatalogMode && !collapseEnabled;
           let bundleAppCenters = null;
@@ -793,51 +802,164 @@ export function getBrowserCanvasDrawSource(): string {
                 }));
           }
 
-          if (!state.useEdgeBends) {
-            for (const edge of renderedEdges) {
-              if (edge.points && edge.points.length > 2) {
-                edge.points = [edge.points[0], edge.points[edge.points.length - 1]];
-              }
-            }
-          }
-
           for (const edge of renderedEdges) {
-            for (const segment of findSegments(edge.points)) {
-              const clipped = clipSegmentAgainstTables(segment, edge.meta, nextScene);
-              nextScene.clippedTablePenetrations += clipped.clippedTableCount;
-              for (const visibleSegment of clipped.segments) {
-                const segmentIndex = nextScene.edgeSegments.length;
-                const bounds = {
-                  bottom: Math.max(visibleSegment.start.y, visibleSegment.end.y),
-                  left: Math.min(visibleSegment.start.x, visibleSegment.end.x),
-                  right: Math.max(visibleSegment.start.x, visibleSegment.end.x),
-                  top: Math.min(visibleSegment.start.y, visibleSegment.end.y),
-                };
+            const routed = routeEdgePathAroundTables(
+              edge.points,
+              edge.meta,
+              nextScene,
+            );
+            nextScene.avoidedTablePenetrations += routed.initialCollisions.length;
+            nextScene.avoidedBundlePenetrations += routed.initialCollisions.filter(
+              (collision) => isSyntheticBundleModelId(collision.table.modelId),
+            ).length;
+            nextScene.avoidedNodePenetrations += routed.initialCollisions.filter(
+              (collision) => !isSyntheticBundleModelId(collision.table.modelId),
+            ).length;
+            nextScene.unresolvedRoutePenetrations += routed.unresolvedCollisions.length;
+            if (routed.usedVisibilityFallback) {
+              nextScene.visibilityFallbackEdges += 1;
+            }
+            if (
+              routed.unresolvedCollisions.length > 0
+              && nextScene.unresolvedRouteEdges.length < 24
+            ) {
+              nextScene.unresolvedRouteEdges.push({
+                edgeId: edge.edgeId,
+                endPoint: edge.points[edge.points.length - 1],
+                sourceModelId: edge.meta && edge.meta.sourceModelId,
+                startPoint: edge.points[0],
+                targetModelId: edge.meta && edge.meta.targetModelId,
+                tableModelIds: [...new Set(routed.unresolvedCollisions.map(
+                  (collision) => collision.table.modelId,
+                ))],
+                collisions: routed.unresolvedCollisions.slice(0, 12).map((collision) => {
+                  const segmentStart = routed.points[collision.segmentIndex];
+                  const segmentEnd = routed.points[collision.segmentIndex + 1];
+                  return {
+                    intervalEnd: round2(collision.interval.end),
+                    intervalStart: round2(collision.interval.start),
+                    modelId: collision.table.modelId,
+                    segmentEnd,
+                    segmentEndInside: isPointInsideRoutingTable(
+                      segmentEnd,
+                      collision.table,
+                    ),
+                    segmentIndex: collision.segmentIndex,
+                    segmentStart,
+                    segmentStartInside: isPointInsideRoutingTable(
+                      segmentStart,
+                      collision.table,
+                    ),
+                  };
+                }),
+              });
+            }
+            if (routed.initialCollisions.length > 0) {
+              nextScene.detouredEdges += 1;
+            }
+            edge.points = routed.points;
 
-                nextScene.edgeSegments.push({
-                  bounds,
-                  edgeId: edge.edgeId,
-                  meta: edge.meta,
-                  points: edge.points,
-                  segment: visibleSegment,
-                  segmentIndex,
-                });
-                addToBuckets(nextScene.edgeBuckets, bounds, segmentIndex);
-              }
+            for (const visibleSegment of findSegments(edge.points)) {
+              const segmentIndex = nextScene.edgeSegments.length;
+              const bounds = {
+                bottom: Math.max(visibleSegment.start.y, visibleSegment.end.y),
+                left: Math.min(visibleSegment.start.x, visibleSegment.end.x),
+                right: Math.max(visibleSegment.start.x, visibleSegment.end.x),
+                top: Math.min(visibleSegment.start.y, visibleSegment.end.y),
+              };
+
+              nextScene.edgeSegments.push({
+                bounds,
+                edgeId: edge.edgeId,
+                meta: edge.meta,
+                points: edge.points,
+                segment: visibleSegment,
+                segmentIndex,
+              });
+              addToBuckets(nextScene.edgeBuckets, bounds, segmentIndex);
             }
           }
 
           renderedCrossings = [];
           sceneGraph = nextScene;
           logErdDuration("info", "scene.graph.built", startedAt, {
-            clippedTablePenetrations: nextScene.clippedTablePenetrations,
+            avoidedBundlePenetrations: nextScene.avoidedBundlePenetrations,
+            avoidedNodePenetrations: nextScene.avoidedNodePenetrations,
+            avoidedTablePenetrations: nextScene.avoidedTablePenetrations,
+            clusterOutlineRecords: nextScene.leafBundles.length,
+            detouredEdges: nextScene.detouredEdges,
             edgeSegments: nextScene.edgeSegments.length,
             leafBundleRecords: nextScene.leafBundles.length,
             leafBundlesInPayload: (renderModel.leafBundles || []).length,
             renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
             tables: nextScene.tables.length,
+            unresolvedRouteEdges: nextScene.unresolvedRouteEdges,
+            unresolvedRoutePenetrations: nextScene.unresolvedRoutePenetrations,
+            visibilityFallbackEdges: nextScene.visibilityFallbackEdges,
           });
           return sceneGraph;
+        }
+
+        function buildClusterOutlineRecords(scene) {
+          scene.leafBundles = [];
+          scene.leafBundleBuckets = new Map();
+          if (state.collapseClusters) {
+            return;
+          }
+
+          const selectedTable = scene.tablesById.get(state.selectedModelId);
+          const selectedClusterId =
+            selectedTable && selectedTable.meta && selectedTable.meta.clusterId;
+          if (!selectedClusterId) {
+            return;
+          }
+
+          const outlineMetaById = new Map(
+            (renderModel.clusterOutlines || []).map((outline) => [outline.clusterId, outline]),
+          );
+          const members = scene.tables.filter((table) =>
+            String(table.modelId).indexOf("__leafbundle.") !== 0
+            && table.meta
+            && table.meta.clusterId === selectedClusterId
+          );
+          if (members.length < 2) {
+            return;
+          }
+
+          const padding = 32;
+          const left = Math.min(...members.map((table) => table.x)) - padding;
+          const top = Math.min(...members.map((table) => table.y)) - padding;
+          const right = Math.max(...members.map((table) => table.x + table.width)) + padding;
+          const bottom = Math.max(...members.map((table) => table.y + table.height)) + padding;
+          const memberArea = members.reduce(
+            (sum, table) => sum + table.width * table.height,
+            0,
+          );
+          const outlineArea = (right - left) * (bottom - top);
+          // A single rectangle around a dispersed cluster becomes visual noise.
+          // In that case the member cards and their edges still carry the focus,
+          // while the oversized background outline is deliberately omitted.
+          if (outlineArea > memberArea * GPU_CLUSTER_OUTLINE_MAX_AREA_RATIO) {
+            return;
+          }
+          const outline = outlineMetaById.get(selectedClusterId) || {};
+          const record = {
+            appLabel: outline.colorKey || selectedClusterId,
+            clusterId: selectedClusterId,
+            height: bottom - top,
+            kind: "cluster-outline",
+            leafCount: members.length,
+            parentName: outline.label || selectedClusterId,
+            width: right - left,
+            x: left,
+            y: top,
+          };
+          scene.leafBundles.push(record);
+          addToBuckets(
+            scene.leafBundleBuckets,
+            { bottom, left, right, top },
+            0,
+          );
         }
 
         function addToBuckets(buckets, bounds, value) {
@@ -863,43 +985,644 @@ export function getBrowserCanvasDrawSource(): string {
           };
         }
 
-        function clipSegmentAgainstTables(segment, meta, scene) {
-          const intervals = [];
-          const padding = 5;
-          const sourceModelId = meta.sourceModelId || "";
-          const targetModelId = meta.targetModelId || "";
-          const tables = collectClipCandidateTables(scene, {
-            bottom: Math.max(segment.start.y, segment.end.y) + padding,
-            left: Math.min(segment.start.x, segment.end.x) - padding,
-            right: Math.max(segment.start.x, segment.end.x) + padding,
-            top: Math.min(segment.start.y, segment.end.y) - padding,
-          });
-          for (const table of tables) {
-            if (table.modelId === sourceModelId || table.modelId === targetModelId) {
+        function isSyntheticBundleModelId(modelId) {
+          return String(modelId || "").indexOf("__leafbundle.") === 0;
+        }
+
+        function isEdgeEndpointTable(meta, modelId) {
+          const endpointIds = Array.isArray(meta.logicalEndpointModelIds)
+            && meta.logicalEndpointModelIds.length > 0
+            ? meta.logicalEndpointModelIds
+            : [meta.sourceModelId, meta.targetModelId];
+          if (
+            modelId === meta.sourceModelId
+            || modelId === meta.targetModelId
+            || endpointIds.includes(modelId)
+          ) {
+            return true;
+          }
+          if (!isSyntheticBundleModelId(modelId)) {
+            return false;
+          }
+
+          const leaves = typeof bundleLeavesByFakeIdRaw === "object"
+            ? bundleLeavesByFakeIdRaw[modelId] || []
+            : [];
+          if (!leaves.length) {
+            return false;
+          }
+          return endpointIds.some((endpointId) => leaves.includes(endpointId));
+        }
+
+        function collectRoutingCandidateTables(scene, bounds, overrideById) {
+          const recordsById = new Map();
+          for (const table of collectStaticRoutingCandidateTables(scene, bounds)) {
+            if (overrideById && overrideById.has(table.modelId)) {
               continue;
             }
-            const interval = segmentRectangleInteriorInterval(
+            recordsById.set(table.modelId, table);
+          }
+          if (overrideById) {
+            for (const table of overrideById.values()) {
+              if (
+                rectIntersectsBounds(
+                  table.x,
+                  table.y,
+                  table.width,
+                  table.height,
+                  bounds,
+                  GPU_EDGE_TABLE_CLEARANCE + GPU_EDGE_DETOUR_GAP,
+                )
+              ) {
+                recordsById.set(table.modelId, table);
+              }
+            }
+          }
+          return [...recordsById.values()];
+        }
+
+        function collectStaticRoutingCandidateTables(scene, bounds) {
+          return collectBucketValues(scene.tableBuckets, bounds)
+            .map((modelId) => scene.tablesById.get(modelId))
+            .filter(Boolean);
+        }
+
+        function collectEdgePathCollisions(points, meta, scene, overrideById) {
+          const collisions = [];
+          const padding = GPU_EDGE_TABLE_CLEARANCE;
+          for (let segmentIndex = 0; segmentIndex + 1 < points.length; segmentIndex += 1) {
+            const segment = {
+              end: points[segmentIndex + 1],
+              start: points[segmentIndex],
+            };
+            const tables = collectRoutingCandidateTables(scene, {
+              bottom: Math.max(segment.start.y, segment.end.y) + padding,
+              left: Math.min(segment.start.x, segment.end.x) - padding,
+              right: Math.max(segment.start.x, segment.end.x) + padding,
+              top: Math.min(segment.start.y, segment.end.y) - padding,
+            }, overrideById);
+            for (const table of tables) {
+              if (isEdgeEndpointTable(meta, table.modelId)) {
+                continue;
+              }
+              const interval = segmentRectangleInteriorInterval(
+                segment,
+                table.x - padding,
+                table.x + table.width + padding,
+                table.y - padding,
+                table.y + table.height + padding,
+              );
+              if (interval) {
+                collisions.push({ interval, segmentIndex, table });
+              }
+            }
+          }
+          return collisions.sort((left, right) =>
+            left.segmentIndex - right.segmentIndex
+            || left.interval.start - right.interval.start
+            || String(left.table.modelId).localeCompare(String(right.table.modelId))
+          );
+        }
+
+        function routeEdgePathAroundTables(rawPoints, meta, scene, overrideById) {
+          let points = normalizePoints(rawPoints || []);
+          const initialCollisions = collectEdgePathCollisions(
+            points,
+            meta,
+            scene,
+            overrideById,
+          );
+          let unresolvedCollisions = initialCollisions;
+          if (initialCollisions.length === 0) {
+            return {
+              initialCollisions,
+              points,
+              unresolvedCollisions: [],
+              usedVisibilityFallback: false,
+            };
+          }
+
+          // A native endpoint can be valid on its own table boundary while
+          // still landing inside a tightly adjacent table's clearance box.
+          // Such a fixed endpoint makes a collision-free path mathematically
+          // impossible. Move only that endpoint to a free port on the same
+          // rendered table and add a short outward escape segment before the
+          // general obstacle search.
+          points = repairCollidingEndpointPorts(
+            points,
+            meta,
+            scene,
+            overrideById,
+          );
+          const seenRoutes = new Set([edgeRouteSignature(points)]);
+          unresolvedCollisions = collectEdgePathCollisions(
+            points,
+            meta,
+            scene,
+            overrideById,
+          );
+          for (
+            let step = 0;
+            step < GPU_EDGE_DETOUR_MAX_STEPS && unresolvedCollisions.length > 0;
+            step += 1
+          ) {
+            const collision = unresolvedCollisions[0];
+            const start = points[collision.segmentIndex];
+            const end = points[collision.segmentIndex + 1];
+            let best = null;
+
+            for (const detour of createTableDetourCandidates(collision.table)) {
+              const replacement = normalizePoints([start, ...detour, end]);
+              if (pathIntersectsRoutingTable(replacement, collision.table)) {
+                continue;
+              }
+              const candidatePoints = normalizePoints([
+                ...points.slice(0, collision.segmentIndex),
+                ...replacement,
+                ...points.slice(collision.segmentIndex + 2),
+              ]);
+              const signature = edgeRouteSignature(candidatePoints);
+              if (seenRoutes.has(signature)) {
+                continue;
+              }
+              const candidateCollisions = collectEdgePathCollisions(
+                candidatePoints,
+                meta,
+                scene,
+                overrideById,
+              );
+              const score = candidateCollisions.length * 1_000_000_000
+                + edgeRouteLength(candidatePoints)
+                + candidatePoints.length * 12;
+              if (!best || score < best.score) {
+                best = {
+                  collisions: candidateCollisions,
+                  points: candidatePoints,
+                  score,
+                  signature,
+                };
+              }
+            }
+
+            if (!best) {
+              break;
+            }
+            points = best.points;
+            unresolvedCollisions = best.collisions;
+            seenRoutes.add(best.signature);
+          }
+
+          if (unresolvedCollisions.length === 0) {
+            points = simplifyCollisionFreeRoute(points, meta, scene, overrideById);
+            return {
+              initialCollisions,
+              points,
+              unresolvedCollisions,
+              usedVisibilityFallback: false,
+            };
+          }
+
+          const visibilityRoute = routeCollisionFreeVisibilityPath(
+            points,
+            meta,
+            scene,
+            overrideById,
+          );
+          if (visibilityRoute) {
+            points = simplifyCollisionFreeRoute(
+              visibilityRoute,
+              meta,
+              scene,
+              overrideById,
+            );
+            unresolvedCollisions = collectEdgePathCollisions(
+              points,
+              meta,
+              scene,
+              overrideById,
+            );
+          }
+          return {
+            initialCollisions,
+            points,
+            unresolvedCollisions,
+            usedVisibilityFallback: Boolean(visibilityRoute)
+              && unresolvedCollisions.length === 0,
+          };
+        }
+
+        function repairCollidingEndpointPorts(
+          rawPoints,
+          meta,
+          scene,
+          overrideById,
+        ) {
+          let points = normalizePoints(rawPoints);
+          points = repairCollidingEndpointPort(
+            points,
+            "source",
+            meta,
+            scene,
+            overrideById,
+          );
+          points = repairCollidingEndpointPort(
+            points,
+            "target",
+            meta,
+            scene,
+            overrideById,
+          );
+          return points;
+        }
+
+        function repairCollidingEndpointPort(
+          points,
+          endpoint,
+          meta,
+          scene,
+          overrideById,
+        ) {
+          if (points.length < 2) {
+            return points;
+          }
+          const endpointTableId = endpoint === "source"
+            ? meta.sourceModelId
+            : meta.targetModelId;
+          const endpointTable = overrideById && overrideById.get(endpointTableId)
+            || scene.tablesById.get(endpointTableId);
+          if (!endpointTable) {
+            return points;
+          }
+
+          const collisions = collectEdgePathCollisions(
+            points,
+            meta,
+            scene,
+            overrideById,
+          );
+          if (countEndpointCollisions(collisions, points.length, endpoint) === 0) {
+            return points;
+          }
+
+          let best = null;
+          for (const portCandidate of createEndpointPortCandidates(endpointTable)) {
+            const candidatePoints = endpoint === "source"
+              ? normalizePoints([
+                  portCandidate.port,
+                  portCandidate.escape,
+                  ...points.slice(1),
+                ])
+              : normalizePoints([
+                  ...points.slice(0, -1),
+                  portCandidate.escape,
+                  portCandidate.port,
+                ]);
+            const candidateCollisions = collectEdgePathCollisions(
+              candidatePoints,
+              meta,
+              scene,
+              overrideById,
+            );
+            const endpointCollisionCount = countEndpointCollisions(
+              candidateCollisions,
+              candidatePoints.length,
+              endpoint,
+            );
+            const score = endpointCollisionCount * 1_000_000_000_000
+              + candidateCollisions.length * 1_000_000_000
+              + edgeRouteLength(candidatePoints)
+              + edgePointDistance(
+                endpoint === "source" ? points[0] : points[points.length - 1],
+                portCandidate.port,
+              );
+            if (!best || score < best.score) {
+              best = {
+                collisions: candidateCollisions,
+                endpointCollisionCount,
+                points: candidatePoints,
+                score,
+              };
+            }
+          }
+
+          const currentEndpointCollisionCount = countEndpointCollisions(
+            collisions,
+            points.length,
+            endpoint,
+          );
+          return best && (
+            best.endpointCollisionCount < currentEndpointCollisionCount
+            || (
+              best.endpointCollisionCount === currentEndpointCollisionCount
+              && best.collisions.length < collisions.length
+            )
+          )
+            ? best.points
+            : points;
+        }
+
+        function countEndpointCollisions(collisions, pointCount, endpoint) {
+          const endpointSegmentIndex = endpoint === "source"
+            ? 0
+            : pointCount - 2;
+          return collisions.filter((collision) =>
+            collision.segmentIndex === endpointSegmentIndex
+            && (
+              endpoint === "source"
+                ? collision.interval.start <= 0.000001
+                : collision.interval.end >= 0.999999
+            )
+          ).length;
+        }
+
+        function createEndpointPortCandidates(table) {
+          const escapeDistance = GPU_EDGE_TABLE_CLEARANCE + GPU_EDGE_DETOUR_GAP;
+          const sampleCount = 16;
+          const candidatesByKey = new Map();
+          function add(port, normal) {
+            const roundedPort = { x: round2(port.x), y: round2(port.y) };
+            const escape = {
+              x: round2(roundedPort.x + normal.x * escapeDistance),
+              y: round2(roundedPort.y + normal.y * escapeDistance),
+            };
+            candidatesByKey.set(
+              edgeRoutePointKey(roundedPort) + ":" + edgeRoutePointKey(escape),
+              { escape, port: roundedPort },
+            );
+          }
+          for (let index = 0; index <= sampleCount; index += 1) {
+            const fraction = index / sampleCount;
+            const x = table.x + table.width * fraction;
+            const y = table.y + table.height * fraction;
+            add({ x, y: table.y }, { x: 0, y: -1 });
+            add({ x, y: table.y + table.height }, { x: 0, y: 1 });
+            add({ x: table.x, y }, { x: -1, y: 0 });
+            add({ x: table.x + table.width, y }, { x: 1, y: 0 });
+          }
+          return [...candidatesByKey.values()];
+        }
+
+        function routeCollisionFreeVisibilityPath(
+          rawPoints,
+          meta,
+          scene,
+          overrideById,
+        ) {
+          const originalPoints = normalizePoints(rawPoints || []);
+          if (originalPoints.length < 2) {
+            return null;
+          }
+          const start = originalPoints[0];
+          const goal = originalPoints[originalPoints.length - 1];
+          const startKey = edgeRoutePointKey(start);
+          const goalKey = edgeRoutePointKey(goal);
+          if (startKey === goalKey) {
+            return originalPoints;
+          }
+
+          const bestCostByKey = new Map([[startKey, 0]]);
+          const parentByKey = new Map();
+          const pointByKey = new Map([[startKey, start], [goalKey, goal]]);
+          const frontier = [{
+            cost: 0,
+            estimate: edgePointDistance(start, goal),
+            key: startKey,
+            point: start,
+          }];
+          let expansions = 0;
+
+          while (
+            frontier.length > 0
+            && expansions < GPU_EDGE_VISIBILITY_MAX_EXPANSIONS
+          ) {
+            let bestIndex = 0;
+            for (let index = 1; index < frontier.length; index += 1) {
+              if (
+                frontier[index].estimate < frontier[bestIndex].estimate
+                || (
+                  frontier[index].estimate === frontier[bestIndex].estimate
+                  && frontier[index].cost < frontier[bestIndex].cost
+                )
+              ) {
+                bestIndex = index;
+              }
+            }
+            const current = frontier.splice(bestIndex, 1)[0];
+            if (current.cost > (bestCostByKey.get(current.key) ?? Infinity) + 0.001) {
+              continue;
+            }
+            expansions += 1;
+
+            if (isCollisionFreeRoutingSegment(
+              current.point,
+              goal,
+              meta,
+              scene,
+              overrideById,
+            )) {
+              parentByKey.set(goalKey, current.key);
+              return reconstructVisibilityRoute(
+                goalKey,
+                parentByKey,
+                pointByKey,
+              );
+            }
+
+            const neighbors = discoverVisibleDetourPoints(
+              current.point,
+              goal,
+              meta,
+              scene,
+              overrideById,
+            );
+            for (const neighbor of neighbors) {
+              const neighborKey = edgeRoutePointKey(neighbor);
+              if (neighborKey === current.key || neighborKey === goalKey) {
+                continue;
+              }
+              const nextCost = current.cost + edgePointDistance(current.point, neighbor);
+              if (nextCost + 0.001 >= (bestCostByKey.get(neighborKey) ?? Infinity)) {
+                continue;
+              }
+              bestCostByKey.set(neighborKey, nextCost);
+              parentByKey.set(neighborKey, current.key);
+              pointByKey.set(neighborKey, neighbor);
+              frontier.push({
+                cost: nextCost,
+                estimate: nextCost + edgePointDistance(neighbor, goal),
+                key: neighborKey,
+                point: neighbor,
+              });
+            }
+          }
+          return null;
+        }
+
+        function discoverVisibleDetourPoints(
+          origin,
+          goal,
+          meta,
+          scene,
+          overrideById,
+        ) {
+          const originKey = edgeRoutePointKey(origin);
+          const pending = [goal];
+          const pendingKeys = new Set([edgeRoutePointKey(goal)]);
+          const inspectedKeys = new Set();
+          const visibleByKey = new Map();
+          let discoverySteps = 0;
+
+          while (
+            pending.length > 0
+            && discoverySteps < GPU_EDGE_VISIBILITY_MAX_DISCOVERY_STEPS
+          ) {
+            const target = pending.shift();
+            const targetKey = edgeRoutePointKey(target);
+            pendingKeys.delete(targetKey);
+            if (targetKey === originKey || inspectedKeys.has(targetKey)) {
+              continue;
+            }
+            inspectedKeys.add(targetKey);
+            discoverySteps += 1;
+
+            const collisions = collectEdgePathCollisions(
+              [origin, target],
+              meta,
+              scene,
+              overrideById,
+            );
+            if (collisions.length === 0) {
+              visibleByKey.set(targetKey, target);
+              continue;
+            }
+
+            for (const corner of createTableDetourCornerPoints(collisions[0].table)) {
+              const cornerKey = edgeRoutePointKey(corner);
+              if (
+                cornerKey === originKey
+                || inspectedKeys.has(cornerKey)
+                || pendingKeys.has(cornerKey)
+              ) {
+                continue;
+              }
+              pending.push(corner);
+              pendingKeys.add(cornerKey);
+            }
+          }
+          return [...visibleByKey.values()];
+        }
+
+        function isCollisionFreeRoutingSegment(start, end, meta, scene, overrideById) {
+          return collectEdgePathCollisions(
+            [start, end],
+            meta,
+            scene,
+            overrideById,
+          ).length === 0;
+        }
+
+        function reconstructVisibilityRoute(goalKey, parentByKey, pointByKey) {
+          const reversed = [];
+          const seen = new Set();
+          let key = goalKey;
+          while (key && !seen.has(key)) {
+            seen.add(key);
+            const point = pointByKey.get(key);
+            if (!point) {
+              return null;
+            }
+            reversed.push(point);
+            key = parentByKey.get(key);
+          }
+          return normalizePoints(reversed.reverse());
+        }
+
+        function edgePointDistance(start, end) {
+          return Math.hypot(end.x - start.x, end.y - start.y);
+        }
+
+        function edgeRoutePointKey(point) {
+          return round2(point.x) + "," + round2(point.y);
+        }
+
+        function createTableDetourCandidates(table) {
+          const [topLeft, topRight, bottomRight, bottomLeft] =
+            createTableDetourCornerPoints(table);
+          return [
+            [topLeft],
+            [topRight],
+            [bottomRight],
+            [bottomLeft],
+            [topLeft, topRight],
+            [topRight, topLeft],
+            [topRight, bottomRight],
+            [bottomRight, topRight],
+            [bottomRight, bottomLeft],
+            [bottomLeft, bottomRight],
+            [bottomLeft, topLeft],
+            [topLeft, bottomLeft],
+          ];
+        }
+
+        function createTableDetourCornerPoints(table) {
+          const gap = GPU_EDGE_TABLE_CLEARANCE + GPU_EDGE_DETOUR_GAP;
+          const left = round2(table.x - gap);
+          const right = round2(table.x + table.width + gap);
+          const top = round2(table.y - gap);
+          const bottom = round2(table.y + table.height + gap);
+          return [
+            { x: left, y: top },
+            { x: right, y: top },
+            { x: right, y: bottom },
+            { x: left, y: bottom },
+          ];
+        }
+
+        function pathIntersectsRoutingTable(points, table) {
+          const padding = GPU_EDGE_TABLE_CLEARANCE;
+          return findSegments(points).some((segment) =>
+            Boolean(segmentRectangleInteriorInterval(
               segment,
               table.x - padding,
               table.x + table.width + padding,
               table.y - padding,
               table.y + table.height + padding,
-            );
-            if (interval) {
-              intervals.push(interval);
-            }
-          }
-
-          return {
-            clippedTableCount: intervals.length,
-            segments: createClippedLineSegments(segment, intervals),
-          };
+            ))
+          );
         }
 
-        function collectClipCandidateTables(scene, bounds) {
-          return collectBucketValues(scene.tableBuckets, bounds)
-            .map((modelId) => scene.tablesById.get(modelId))
-            .filter(Boolean);
+        function isPointInsideRoutingTable(point, table) {
+          const padding = GPU_EDGE_TABLE_CLEARANCE;
+          return point.x > table.x - padding
+            && point.x < table.x + table.width + padding
+            && point.y > table.y - padding
+            && point.y < table.y + table.height + padding;
+        }
+
+        function simplifyCollisionFreeRoute(rawPoints, meta, scene, overrideById) {
+          const points = normalizePoints(rawPoints);
+          let index = 1;
+          while (index + 1 < points.length) {
+            const direct = [points[index - 1], points[index + 1]];
+            if (collectEdgePathCollisions(direct, meta, scene, overrideById).length === 0) {
+              points.splice(index, 1);
+            } else {
+              index += 1;
+            }
+          }
+          return points;
+        }
+
+        function edgeRouteLength(points) {
+          return findSegments(points).reduce((sum, segment) =>
+            sum + Math.hypot(
+              segment.end.x - segment.start.x,
+              segment.end.y - segment.start.y,
+            ), 0);
+        }
+
+        function edgeRouteSignature(points) {
+          return points.map((point) => round2(point.x) + "," + round2(point.y)).join(" ");
         }
 
         function segmentRectangleInteriorInterval(segment, left, right, top, bottom) {
@@ -931,53 +1654,6 @@ export function getBrowserCanvasDrawSource(): string {
           return exit > 0.000001 && enter < 0.999999
             ? { end: Math.min(1, exit), start: Math.max(0, enter) }
             : null;
-        }
-
-        function interpolateSegmentPoint(segment, amount) {
-          return {
-            x: segment.start.x + (segment.end.x - segment.start.x) * amount,
-            y: segment.start.y + (segment.end.y - segment.start.y) * amount,
-          };
-        }
-
-        function createClippedLineSegments(segment, intervals) {
-          if (!intervals.length) {
-            return [segment];
-          }
-
-          const length = Math.hypot(
-            segment.end.x - segment.start.x,
-            segment.end.y - segment.start.y,
-          );
-          const sorted = intervals
-            .filter((interval) => interval.end - interval.start > 0.000001)
-            .sort((left, right) => left.start - right.start || left.end - right.end);
-          const segments = [];
-          let cursor = 0;
-
-          for (const interval of sorted) {
-            const start = Math.max(0, interval.start);
-            const end = Math.min(1, interval.end);
-            if (end <= cursor) {
-              continue;
-            }
-            if ((start - cursor) * length > 1) {
-              segments.push({
-                end: interpolateSegmentPoint(segment, start),
-                start: interpolateSegmentPoint(segment, cursor),
-              });
-            }
-            cursor = Math.max(cursor, end);
-          }
-
-          if ((1 - cursor) * length > 1) {
-            segments.push({
-              end: { ...segment.end },
-              start: interpolateSegmentPoint(segment, cursor),
-            });
-          }
-
-          return segments;
         }
 
         function queryTableMetaNearWorldPoint(point) {
@@ -1307,23 +1983,17 @@ export function getBrowserCanvasDrawSource(): string {
           return drag && drag.kind === "table" && drag.currentPosition ? drag : null;
         }
 
-        function applyLiveDragTableRecord(scene, records, bounds) {
-          const activeDrag = getActiveTableDrag();
-          if (!activeDrag) {
-            return records;
-          }
-
+        function createLiveDragTableOverrides(scene, activeDrag) {
+          const overrideById = new Map();
           const baseRecord = scene.tablesById.get(activeDrag.modelId);
           if (!baseRecord) {
-            return records;
+            return overrideById;
           }
 
           const position = activeDrag.currentPosition;
           const startPos = activeDrag.startPosition;
           const dx = position.x - (startPos ? startPos.x : baseRecord.x);
           const dy = position.y - (startPos ? startPos.y : baseRecord.y);
-
-          const overrideById = new Map();
           overrideById.set(activeDrag.modelId, {
             ...baseRecord,
             maxX: position.x + baseRecord.width,
@@ -1347,6 +2017,19 @@ export function getBrowserCanvasDrawSource(): string {
               x: newX,
               y: newY,
             });
+          }
+          return overrideById;
+        }
+
+        function applyLiveDragTableRecord(scene, records, bounds) {
+          const activeDrag = getActiveTableDrag();
+          if (!activeDrag) {
+            return records;
+          }
+
+          const overrideById = createLiveDragTableOverrides(scene, activeDrag);
+          if (overrideById.size === 0) {
+            return records;
           }
 
           const nextRecords = records.filter((record) => !overrideById.has(record.modelId));
@@ -1376,23 +2059,83 @@ export function getBrowserCanvasDrawSource(): string {
             return records;
           }
 
+          const scene = ensureSceneGraph();
+          const overrideById = createLiveDragTableOverrides(scene, activeDrag);
+          const movedModelIds = new Set(overrideById.keys());
+
           const filteredRecords = records.filter(
             (record) =>
-              record.meta.sourceModelId !== activeDrag.modelId &&
-              record.meta.targetModelId !== activeDrag.modelId,
+              !movedModelIds.has(record.meta.sourceModelId) &&
+              !movedModelIds.has(record.meta.targetModelId),
           );
 
-          const liveRecords = collectLiveDragEdgeSegments(activeDrag, bounds);
+          const liveRecords = collectLiveDragEdgeSegments(
+            activeDrag,
+            movedModelIds,
+            bounds,
+            overrideById,
+          );
           latestLiveDragSegmentCount = liveRecords.length;
-          return filteredRecords.concat(liveRecords);
+          return routeEdgeRecordsAroundLiveDragTables(
+            filteredRecords,
+            scene,
+            overrideById,
+            bounds,
+          ).concat(liveRecords);
         }
 
-        function collectLiveDragEdgeSegments(activeDrag, bounds) {
+        function routeEdgeRecordsAroundLiveDragTables(
+          records,
+          scene,
+          overrideById,
+          bounds,
+        ) {
+          const routedRecords = [];
+          for (const record of records) {
+            const routed = routeEdgePathAroundTables(
+              [record.segment.start, record.segment.end],
+              record.meta,
+              scene,
+              overrideById,
+            );
+            for (const segment of findSegments(routed.points)) {
+              if (!segmentIntersectsBounds(
+                segment.start.x,
+                segment.start.y,
+                segment.end.x,
+                segment.end.y,
+                bounds,
+                80,
+              )) {
+                continue;
+              }
+              routedRecords.push({
+                ...record,
+                bounds: {
+                  bottom: Math.max(segment.start.y, segment.end.y),
+                  left: Math.min(segment.start.x, segment.end.x),
+                  right: Math.max(segment.start.x, segment.end.x),
+                  top: Math.min(segment.start.y, segment.end.y),
+                },
+                points: routed.points,
+                segment,
+              });
+            }
+          }
+          return routedRecords;
+        }
+
+        function collectLiveDragEdgeSegments(
+          activeDrag,
+          movedModelIds,
+          bounds,
+          overrideById,
+        ) {
           const visibleEdgeEntries = [];
           for (const meta of getActiveEdgeMeta()) {
             if (
-              meta.sourceModelId !== activeDrag.modelId &&
-              meta.targetModelId !== activeDrag.modelId
+              !movedModelIds.has(meta.sourceModelId) &&
+              !movedModelIds.has(meta.targetModelId)
             ) {
               continue;
             }
@@ -1494,49 +2237,42 @@ export function getBrowserCanvasDrawSource(): string {
                 meta: entry.meta,
                 points: buildLiveEdgePath(entry),
               }));
-          if (!state.useEdgeBends) {
-            for (const edge of routedEdges) {
-              if (edge.points && edge.points.length > 2) {
-                edge.points = [edge.points[0], edge.points[edge.points.length - 1]];
-              }
-            }
-          }
           const records = [];
 
           for (const edge of routedEdges) {
-            for (const segment of findSegments(edge.points)) {
-              const clipped = clipSegmentAgainstTables(
-                segment,
-                edge.meta,
-                ensureSceneGraph(),
-              );
-              for (const visibleSegment of clipped.segments) {
-                if (
-                  !segmentIntersectsBounds(
-                    visibleSegment.start.x,
-                    visibleSegment.start.y,
-                    visibleSegment.end.x,
-                    visibleSegment.end.y,
-                    bounds,
-                    80,
-                  )
-                ) {
-                  continue;
-                }
-
-                records.push({
-                  bounds: {
-                    bottom: Math.max(visibleSegment.start.y, visibleSegment.end.y),
-                    left: Math.min(visibleSegment.start.x, visibleSegment.end.x),
-                    right: Math.max(visibleSegment.start.x, visibleSegment.end.x),
-                    top: Math.min(visibleSegment.start.y, visibleSegment.end.y),
-                  },
-                  edgeId: edge.edgeId,
-                  meta: edge.meta,
-                  points: edge.points,
-                  segment: visibleSegment,
-                });
+            const routed = routeEdgePathAroundTables(
+              edge.points,
+              edge.meta,
+              ensureSceneGraph(),
+              overrideById,
+            );
+            edge.points = routed.points;
+            for (const visibleSegment of findSegments(edge.points)) {
+              if (
+                !segmentIntersectsBounds(
+                  visibleSegment.start.x,
+                  visibleSegment.start.y,
+                  visibleSegment.end.x,
+                  visibleSegment.end.y,
+                  bounds,
+                  80,
+                )
+              ) {
+                continue;
               }
+
+              records.push({
+                bounds: {
+                  bottom: Math.max(visibleSegment.start.y, visibleSegment.end.y),
+                  left: Math.min(visibleSegment.start.x, visibleSegment.end.x),
+                  right: Math.max(visibleSegment.start.x, visibleSegment.end.x),
+                  top: Math.min(visibleSegment.start.y, visibleSegment.end.y),
+                },
+                edgeId: edge.edgeId,
+                meta: edge.meta,
+                points: edge.points,
+                segment: visibleSegment,
+              });
             }
           }
 
@@ -1553,15 +2289,15 @@ export function getBrowserCanvasDrawSource(): string {
                 sourceModelId: overlay.sourceModelId,
                 targetModelId: overlay.targetModelId,
               };
-              const clipped = clipSegmentAgainstTables(
-                {
-                  end: { x: overlay.x2, y: overlay.y2 },
-                  start: { x: overlay.x1, y: overlay.y1 },
-                },
+              const routed = routeEdgePathAroundTables(
+                [
+                  { x: overlay.x1, y: overlay.y1 },
+                  { x: overlay.x2, y: overlay.y2 },
+                ],
                 meta,
                 ensureSceneGraph(),
               );
-              return clipped.segments.map((segment) => ({ meta, segment }));
+              return findSegments(routed.points).map((segment) => ({ meta, segment }));
             })
             .filter((record) =>
               segmentIntersectsBounds(
@@ -1590,10 +2326,15 @@ export function getBrowserCanvasDrawSource(): string {
             if (!table) {
               continue;
             }
+            const selectedClusterId = getSelectedClusterId();
+            const clusterMember = isModelInSelectedCluster(record.modelId);
+            const dimmed = Boolean(selectedClusterId && !clusterMember);
+            const titleColor = dimmed ? "#708087" : "#f4f7f1";
+            const subtitleColor = dimmed ? "#5f7076" : "#9fb7b0";
 
-            labels.push(createLabelDescriptor(table.modelName, "700 14px Georgia, serif", "#f4f7f1", record.x + 14, record.y + 14, Math.max(40, record.width - 28)));
+            labels.push(createLabelDescriptor(table.modelName, "700 14px Georgia, serif", titleColor, record.x + 14, record.y + 14, Math.max(40, record.width - 28)));
             if (zoom >= GPU_TABLE_SUBTITLE_ZOOM) {
-              labels.push(createLabelDescriptor(table.databaseTableName, "500 12px Georgia, serif", "#9fb7b0", record.x + 14, record.y + 34, Math.max(40, record.width - 28)));
+              labels.push(createLabelDescriptor(table.databaseTableName, "500 12px Georgia, serif", subtitleColor, record.x + 14, record.y + 34, Math.max(40, record.width - 28)));
             }
 
             if (!allowDetails) {
@@ -1605,7 +2346,7 @@ export function getBrowserCanvasDrawSource(): string {
               if (cursorY + 16 > record.y + record.height - 12) {
                 break;
               }
-              labels.push(createLabelDescriptor(row.text, "500 12px Georgia, serif", row.tone === "enum-option" ? "#e4d3a7" : "#c7d7d4", record.x + 14, cursorY, Math.max(40, record.width - 28)));
+              labels.push(createLabelDescriptor(row.text, "500 12px Georgia, serif", dimmed ? "#596a70" : row.tone === "enum-option" ? "#e4d3a7" : "#c7d7d4", record.x + 14, cursorY, Math.max(40, record.width - 28)));
               cursorY += 16;
             }
 
@@ -1614,7 +2355,7 @@ export function getBrowserCanvasDrawSource(): string {
                 if (cursorY + 16 > record.y + record.height - 12) {
                   break;
                 }
-                labels.push(createLabelDescriptor("@ " + property, "500 12px Georgia, serif", "#a8d8ff", record.x + 14, cursorY, Math.max(40, record.width - 28)));
+                labels.push(createLabelDescriptor("@ " + property, "500 12px Georgia, serif", dimmed ? "#596a70" : "#a8d8ff", record.x + 14, cursorY, Math.max(40, record.width - 28)));
                 cursorY += 16;
               }
             }
@@ -1624,7 +2365,7 @@ export function getBrowserCanvasDrawSource(): string {
                 if (cursorY + 16 > record.y + record.height - 12) {
                   break;
                 }
-                labels.push(createLabelDescriptor("fn " + method.name, "500 12px Georgia, serif", "#ffcf8a", record.x + 14, cursorY, Math.max(40, record.width - 28)));
+                labels.push(createLabelDescriptor("fn " + method.name, "500 12px Georgia, serif", dimmed ? "#596a70" : "#ffcf8a", record.x + 14, cursorY, Math.max(40, record.width - 28)));
                 cursorY += 16;
               }
             }
@@ -1650,6 +2391,7 @@ export function getBrowserCanvasDrawSource(): string {
           for (const record of visibleTables) {
             if (
               state.selectedModelId === record.modelId ||
+              isModelInSelectedCluster(record.modelId) ||
               (state.selectedMethodContext && state.selectedMethodContext.modelId === record.modelId)
             ) {
               importantRecords.push(record);
@@ -1938,22 +2680,19 @@ export function getBrowserCanvasDrawSource(): string {
             if (!titleSource) {
               continue;
             }
-            // Cluster outline records (repurposed leafBundle slot): the
-            // parentName is the Louvain cluster id (starts with _louv_).
-            // Show '{cluster} N members' instead of '{cluster} N leaves'.
-            const isClusterOutline =
-              typeof titleSource === "string"
-              && titleSource.indexOf("_louv_") === 0;
+            const isClusterOutline = record.kind === "cluster-outline";
             const title = isClusterOutline
               ? titleSource + " · " + record.leafCount + " members"
               : titleSource + " · " + record.leafCount + " leaves";
             const titleMaxWidth = Math.max(40, record.width - 28);
             labels.push(createLabelDescriptor(
               title,
-              "700 14px Georgia, serif",
-              "#f4f7f1",
+              isClusterOutline ? "700 16px Georgia, serif" : "700 14px Georgia, serif",
+              isClusterOutline ? "#b9d6e8" : "#f4f7f1",
               record.x + 14,
-              record.y + Math.max(12, (record.height - 16) / 2),
+              isClusterOutline
+                ? record.y + 10
+                : record.y + Math.max(12, (record.height - 16) / 2),
               titleMaxWidth,
             ));
           }
@@ -1961,6 +2700,14 @@ export function getBrowserCanvasDrawSource(): string {
 
         function leafBundleColors(record) {
           const stroke = record.appLabel ? appStrokeColor(record.appLabel) : [0.66, 0.85, 1.0, 0.7];
+          if (record.kind === "cluster-outline") {
+            return {
+              borderWidth: 3.0,
+              cornerRadius: 24,
+              fill: [stroke[0], stroke[1], stroke[2], 0.055],
+              stroke: [stroke[0], stroke[1], stroke[2], 0.42],
+            };
+          }
           return {
             borderWidth: 2.0,
             cornerRadius: 16,
@@ -2184,15 +2931,30 @@ export function getBrowserCanvasDrawSource(): string {
 
         function ensureAtlasLabel(renderer, label) {
           const atlas = renderer.atlas;
-          const key = label.font + "|" + label.color + "|" + trimTextToWidth(atlas.context, label.font, label.text, label.maxWidth);
+          const fittedFont = fitFontToWidth(
+            atlas.context,
+            label.font,
+            label.text,
+            label.maxWidth,
+          );
+          atlas.context.font = fittedFont;
+          const measuredWidth = Math.ceil(
+            atlas.context.measureText(label.text).width,
+          );
+          const textWidth = Math.max(
+            2,
+            Math.min(Math.floor(label.maxWidth), measuredWidth),
+          );
+          const key = fittedFont + "|" + label.color + "|" + textWidth + "|" + label.text;
           if (atlas.map.has(key)) {
             return atlas.map.get(key);
           }
 
-          const text = key.split("|").slice(2).join("|");
-          const fontSize = Math.max(12, Number.parseInt(label.font.match(/([0-9]+)px/)?.[1] || "12", 10));
-          atlas.context.font = label.font;
-          const width = Math.max(2, Math.ceil(atlas.context.measureText(text).width));
+          const fontSize = Math.max(
+            GPU_MIN_LABEL_FONT_SIZE,
+            Number.parseFloat(fittedFont.match(/([0-9.]+)px/)?.[1] || "12"),
+          );
+          const width = textWidth;
           const height = Math.max(14, Math.ceil(fontSize * 1.5));
           const slot = allocateAtlasSlot(atlas, width + 8, height + 8);
           if (!slot) {
@@ -2200,10 +2962,19 @@ export function getBrowserCanvasDrawSource(): string {
           }
 
           atlas.context.clearRect(slot.x, slot.y, slot.width, slot.height);
-          atlas.context.font = label.font;
+          atlas.context.font = fittedFont;
           atlas.context.fillStyle = label.color;
           atlas.context.textBaseline = "top";
-          atlas.context.fillText(text, slot.x + 4, slot.y + 4);
+          // Canvas maxWidth compresses only the rare label that is still too
+          // wide at the readable minimum font. The complete text remains in
+          // the card; it is never replaced with an ellipsis or painted past
+          // the card boundary.
+          atlas.context.fillText(
+            label.text,
+            slot.x + 4,
+            slot.y + 4,
+            width,
+          );
 
           const pixels = atlas.context.getImageData(slot.x, slot.y, slot.width, slot.height);
           if (renderer.backend === "webgpu") {
@@ -2219,7 +2990,7 @@ export function getBrowserCanvasDrawSource(): string {
             u1: (slot.x + slot.width) / atlas.canvas.width,
             v0: slot.y / atlas.canvas.height,
             v1: (slot.y + slot.height) / atlas.canvas.height,
-            width: width + 2,
+            width,
           };
           atlas.map.set(key, entry);
           return entry;
@@ -2281,17 +3052,19 @@ export function getBrowserCanvasDrawSource(): string {
           return slot;
         }
 
-        function trimTextToWidth(context, font, text, maxWidth) {
+        function fitFontToWidth(context, font, text, maxWidth) {
           context.font = font;
-          if (context.measureText(text).width <= maxWidth) {
-            return text;
+          const measuredWidth = context.measureText(text).width;
+          if (measuredWidth <= maxWidth || measuredWidth <= 0) {
+            return font;
           }
-
-          let trimmed = text;
-          while (trimmed.length > 4 && context.measureText(trimmed + "…").width > maxWidth) {
-            trimmed = trimmed.slice(0, -1);
-          }
-          return trimmed + "…";
+          const match = font.match(/([0-9.]+)px/);
+          const baseSize = match ? Number.parseFloat(match[1]) : 12;
+          const fittedSize = Math.max(
+            GPU_MIN_LABEL_FONT_SIZE,
+            Math.floor(baseSize * maxWidth / measuredWidth * 10) / 10,
+          );
+          return font.replace(/([0-9.]+)px/, fittedSize + "px");
         }
 
         function hashAppToHue(label) {
@@ -2331,26 +3104,112 @@ export function getBrowserCanvasDrawSource(): string {
           return [rgb[0], rgb[1], rgb[2], 0.92];
         }
 
+        function getSelectedClusterId() {
+          if (!state.selectedModelId) {
+            return "";
+          }
+          const selectedTable = tableMetaById.get(state.selectedModelId);
+          return selectedTable && selectedTable.clusterId
+            ? selectedTable.clusterId
+            : "";
+        }
+
+        function isModelInSelectedCluster(modelId) {
+          const selectedClusterId = getSelectedClusterId();
+          if (!selectedClusterId) {
+            return false;
+          }
+          const table = tableMetaById.get(modelId);
+          return Boolean(table && table.clusterId === selectedClusterId);
+        }
+
+        function edgeLogicalEndpointIds(meta) {
+          return Array.isArray(meta.logicalEndpointModelIds)
+            && meta.logicalEndpointModelIds.length > 0
+            ? [...new Set(meta.logicalEndpointModelIds)]
+            : [...new Set([meta.sourceModelId, meta.targetModelId])];
+        }
+
+        function edgeSelectedClusterRelation(meta) {
+          if (!state.selectedModelId) {
+            return "unfocused";
+          }
+          const selectedClusterId = getSelectedClusterId();
+          if (!selectedClusterId) {
+            return edgeLogicalEndpointIds(meta).includes(state.selectedModelId)
+              ? "boundary"
+              : "unrelated";
+          }
+          const endpointIds = edgeLogicalEndpointIds(meta);
+          let knownEndpoints = 0;
+          let selectedEndpoints = 0;
+          for (const modelId of new Set(endpointIds)) {
+            const table = tableMetaById.get(modelId);
+            if (!table) {
+              continue;
+            }
+            knownEndpoints += 1;
+            if (table.clusterId === selectedClusterId) {
+              selectedEndpoints += 1;
+            }
+          }
+          if (selectedEndpoints === 0) {
+            return "unrelated";
+          }
+          return knownEndpoints > 0 && selectedEndpoints === knownEndpoints
+            ? "internal"
+            : "boundary";
+        }
+
         function tableColors(record) {
           const selected = state.selectedModelId === record.modelId;
           const methodTarget = isMethodTarget(record.modelId);
           const dragging = drag && drag.kind === "table" && drag.modelId === record.modelId;
           const appLabel = record.meta && record.meta.appLabel;
+          const clusterId = record.meta && record.meta.clusterId;
+          const selectedClusterId = getSelectedClusterId();
+          const clusterMember = Boolean(
+            selectedClusterId && clusterId === selectedClusterId,
+          );
+          const unrelated = Boolean(selectedClusterId && !clusterMember);
+          const clusterStroke = appStrokeColor(selectedClusterId || appLabel);
+          const defaultStroke = appStrokeColor(appLabel);
 
           return {
-            borderWidth: selected || dragging ? 3.2 : 2.0,
-            fill: selected ? [0.15, 0.24, 0.22, 0.98] : [0.06, 0.12, 0.18, 0.96],
+            borderWidth: selected || dragging ? 3.4 : clusterMember ? 2.8 : 2.0,
+            fill: selected
+              ? [0.15, 0.24, 0.22, 0.99]
+              : clusterMember
+                ? [0.075, 0.17, 0.19, 0.98]
+                : unrelated
+                  ? [0.035, 0.065, 0.09, 0.72]
+                  : [0.06, 0.12, 0.18, 0.96],
             stroke: dragging
               ? [0.66, 0.85, 1.0, 0.9]
               : selected
                 ? [1.0, 0.75, 0.41, 0.92]
+                : clusterMember
+                  ? [clusterStroke[0], clusterStroke[1], clusterStroke[2], 0.94]
                 : methodTarget
                   ? [0.66, 0.85, 1.0, 0.74]
-                  : appStrokeColor(appLabel),
+                  : unrelated
+                    ? [defaultStroke[0], defaultStroke[1], defaultStroke[2], 0.14]
+                    : defaultStroke,
           };
         }
 
         function edgeColor(meta) {
+          const clusterRelation = edgeSelectedClusterRelation(meta);
+          if (clusterRelation === "internal") {
+            const color = appStrokeColor(getSelectedClusterId());
+            return [color[0], color[1], color[2], 0.96];
+          }
+          if (clusterRelation === "boundary") {
+            return [1.0, 0.75, 0.41, 0.86];
+          }
+          if (clusterRelation === "unrelated") {
+            return [0.46, 0.58, 0.61, 0.10];
+          }
           if ((meta.cssKind || "").includes("many-to-many")) {
             return [0.97, 0.82, 0.54, meta.provenance === "derived_reverse" ? 0.52 : 0.72];
           }
@@ -2363,6 +3222,16 @@ export function getBrowserCanvasDrawSource(): string {
         }
 
         function edgeWidth(meta) {
+          const clusterRelation = edgeSelectedClusterRelation(meta);
+          if (clusterRelation === "internal") {
+            return 5.4;
+          }
+          if (clusterRelation === "boundary") {
+            return 4.4;
+          }
+          if (clusterRelation === "unrelated") {
+            return 2.2;
+          }
           return (meta.cssKind || "").includes("many-to-many") ? 4.2 : 3.2;
         }
 
@@ -2539,7 +3408,8 @@ export function getBrowserCanvasDrawSource(): string {
             "  let tangent = delta / len;",
             "  let normal = vec2<f32>(-tangent.y, tangent.x);",
             "  let base = mix(start, end, input.corner.x);",
-            "  let world = base + normal * input.corner.y * input.halfWidth;",
+            "  let cap = (input.corner.x * 2.0 - 1.0) * input.halfWidth;",
+            "  let world = base + tangent * cap + normal * input.corner.y * input.halfWidth;",
             "  out.position = world_to_clip(world);",
             "  out.color = input.color;",
             "  return out;",
@@ -2600,7 +3470,7 @@ export function getBrowserCanvasDrawSource(): string {
             "in vec2 a_corner; in vec4 a_segment; in float a_halfWidth; in vec4 a_color;\\n" +
             "uniform vec2 u_canvas; uniform vec2 u_pan; uniform float u_zoom; uniform float u_deviceScale;\\n" +
             "out vec4 v_color;\\n" +
-            "void main() { vec2 start = a_segment.xy; vec2 end = a_segment.zw; vec2 delta = end - start; float len = max(length(delta), 0.0001); vec2 tangent = delta / len; vec2 normal = vec2(-tangent.y, tangent.x); vec2 base = mix(start, end, a_corner.x); vec2 world = base + normal * a_corner.y * a_halfWidth; vec2 screen = (world * u_zoom + u_pan) * u_deviceScale; vec2 clip = screen / u_canvas * 2.0 - 1.0; gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0); v_color = a_color; }";
+            "void main() { vec2 start = a_segment.xy; vec2 end = a_segment.zw; vec2 delta = end - start; float len = max(length(delta), 0.0001); vec2 tangent = delta / len; vec2 normal = vec2(-tangent.y, tangent.x); vec2 base = mix(start, end, a_corner.x); float cap = (a_corner.x * 2.0 - 1.0) * a_halfWidth; vec2 world = base + tangent * cap + normal * a_corner.y * a_halfWidth; vec2 screen = (world * u_zoom + u_pan) * u_deviceScale; vec2 clip = screen / u_canvas * 2.0 - 1.0; gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0); v_color = a_color; }";
         }
 
         function segmentFragmentShaderSource() {

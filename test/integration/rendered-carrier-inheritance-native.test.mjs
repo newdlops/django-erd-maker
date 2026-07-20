@@ -28,7 +28,7 @@ const renderModelModulePath = path.resolve(
 const binaryAvailable = await pathExists(binaryPath);
 const renderModelAvailable = await pathExists(renderModelModulePath);
 
-test("native and webview share semantic bundling without zoom-only detail", {
+test("webview rejects disconnected multi-endpoint carriers without zoom-only detail", {
   skip: !binaryAvailable || !renderModelAvailable,
 }, async () => {
   const fixture = createCarrierFixture();
@@ -75,7 +75,17 @@ test("native and webview share semantic bundling without zoom-only detail", {
         DJERD_INTRA_CLUSTER_CARRIER_FINAL: "1",
         DJERD_MULTISTART_RUNS: "1",
         DJERD_RENDERED_CARRIER_GEOMETRY_OPT_FINAL: "1",
+        DJERD_RENDERED_CARRIER_BUNDLE_EDGE_TARGET: "0",
+        DJERD_RENDERED_CARRIER_EDGE_NODE_TARGET: "0",
         DJERD_RENDERED_CARRIER_METRICS_FINAL: "1",
+        DJERD_RENDERED_CARRIER_NODE_CLEAR_DIRECTIONS: "24",
+        DJERD_RENDERED_CARRIER_NODE_CLEAR_FINAL: "1",
+        DJERD_RENDERED_CARRIER_NODE_CLEAR_MAX_SHIFT: "1200",
+        DJERD_RENDERED_CARRIER_NODE_CLEAR_ROUNDS: "8",
+        DJERD_RENDERED_CARRIER_NODE_TARGET_FINAL: "1",
+        DJERD_RENDERED_CARRIER_NODE_TARGET_PORT_SAMPLES: "12",
+        DJERD_RENDERED_CARRIER_NODE_TARGET_ROUNDS: "8",
+        DJERD_RENDERED_CARRIER_VISUAL_TARGET: "1000000",
         DJERD_RENDERED_NODE_CLEARANCE_FINAL: "1",
         DJERD_RENDERED_STRAIGHT_PORT_OPT_FINAL: "1",
       },
@@ -131,6 +141,9 @@ test("native and webview share semantic bundling without zoom-only detail", {
     const finalMetric = metricMatches.at(-1);
     assert.ok(finalMetric, "native rendered-carrier metrics should be emitted");
 
+    assert.equal(layout.engineMetadata?.bundleEdgeIntersections, 0);
+    assert.equal(layout.engineMetadata?.edgeNodeIntersections, 0);
+
     const { createDiagramRenderModel } = require(renderModelModulePath);
     const renderModel = createDiagramRenderModel(
       createBootstrapPayload(fixture, layout),
@@ -156,26 +169,41 @@ test("native and webview share semantic bundling without zoom-only detail", {
     }
     for (const edge of sharedInheritanceEdges) {
       assert.ok(
-        !renderedEdgeIds.has(edge.id),
-        `shared inheritance edge ${edge.id} should use its parent carrier`,
+        renderedEdgeIds.has(edge.id),
+        `shared inheritance edge ${edge.id} must remain until branch connectors exist`,
       );
     }
-    assert.ok(renderedEdgeIds.has("inheritance-carrier:test.sharedBase"));
+    assert.ok(!renderedEdgeIds.has("inheritance-carrier:test.sharedBase"));
     assert.ok(renderModel.leafBundles.length > 0);
     assert.equal(Object.hasOwn(renderModel, "detailEdges"), false);
-    assert.equal(
-      Number(finalMetric[1]),
-      renderModel.edges.length,
-      "every scored semantic carrier should be visible without zoom",
+    assert.ok(
+      renderModel.edges.length >= Number(finalMetric[1]),
+      "expanding disconnected carriers may only add visible member edges",
     );
     assert.ok(
-      Number(finalMetric[2]) >= renderModel.edges.length,
-      "native route-segment count should cover every visible carrier",
+      Number(finalMetric[2]) >= Number(finalMetric[1]),
+      "native route-segment count should cover every native visible carrier",
     );
     const renderedEdgeById = new Map(
       renderModel.edges.map((edge) => [edge.edgeId, edge]),
     );
+    const layoutNodeById = new Map(
+      layout.nodes.map((node) => [node.modelId, node]),
+    );
+    let rejectedMultiEndpointCarriers = 0;
     for (const carrierRoute of layout.engineMetadata.renderedCarrierRoutes) {
+      // Bundle carriers are materialized through the synthetic bundle/root
+      // pair and have their own integration coverage. This regression targets
+      // semantic H/I/Cself trunks that can lose branch endpoints.
+      if (carrierRoute.carrierId.startsWith("B")) {
+        continue;
+      }
+      const logicalEndpointModelIds = new Set(
+        carrierRoute.memberEdgeIds.flatMap((edgeId) => {
+          const edge = fixture.edges.find((candidate) => candidate.id === edgeId);
+          return edge ? [edge.sourceModelId, edge.targetModelId] : [];
+        }),
+      );
       const webviewCarrierId = carrierRoute.carrierId.startsWith("H|")
         ? `hub-carrier:${carrierRoute.carrierId.slice(2)}`
         : carrierRoute.carrierId.startsWith("I|")
@@ -185,6 +213,34 @@ test("native and webview share semantic bundling without zoom-only detail", {
             : carrierRoute.carrierId.startsWith("B")
               ? carrierRoute.memberEdgeIds.find((edgeId) => renderedEdgeById.has(edgeId))
               : carrierRoute.carrierId;
+      const isSemanticCarrier = /^(?:H|I|Cself)\|/.test(carrierRoute.carrierId);
+      const connectsEveryEndpoint = carrierRouteConnectsEveryEndpoint(
+        carrierRoute,
+        logicalEndpointModelIds,
+        layoutNodeById,
+      );
+      if (
+        logicalEndpointModelIds.size > 2
+        || !connectsEveryEndpoint
+      ) {
+        if (isSemanticCarrier) {
+          if (logicalEndpointModelIds.size > 2) {
+            rejectedMultiEndpointCarriers += 1;
+          }
+          assert.ok(
+            !renderedEdgeById.has(webviewCarrierId),
+            `disconnected carrier ${webviewCarrierId} must not replace its member edges`,
+          );
+        } else {
+          for (const edgeId of carrierRoute.memberEdgeIds) {
+            assert.ok(
+              renderedEdgeById.has(edgeId),
+              `rejected route ${carrierRoute.carrierId} must keep member ${edgeId}`,
+            );
+          }
+        }
+        continue;
+      }
       const renderedEdge = renderedEdgeById.get(webviewCarrierId);
       assert.ok(renderedEdge, `missing serialized carrier ${webviewCarrierId}`);
       const nativePoints = carrierRoute.points
@@ -199,6 +255,11 @@ test("native and webview share semantic bundling without zoom-only detail", {
         || renderedEdge.points === reversedNativePoints,
         `carrier ${webviewCarrierId} should use native-scored geometry`,
       );
+      assert.equal(
+        renderedEdge.preserveRouteEndpoints,
+        true,
+        `carrier ${webviewCarrierId} must not be reattached to a representative table`,
+      );
       assert.ok(carrierRoute.memberEdgeIds.length >= 1);
       assert.equal(
         carrierRoute.points.length,
@@ -206,6 +267,10 @@ test("native and webview share semantic bundling without zoom-only detail", {
         `carrier ${webviewCarrierId} should remain a straight line`,
       );
     }
+    assert.ok(
+      rejectedMultiEndpointCarriers > 0,
+      "fixture should exercise at least one disconnected multi-endpoint carrier",
+    );
   } finally {
     await fs.rm(directory, { force: true, recursive: true });
   }
@@ -296,6 +361,7 @@ test("native final carrier pass clears table penetrations without bends or bbox 
     DJERD_NO_LEAF_UNTANGLE: "1",
     DJERD_NO_PD_KNOT: "1",
     DJERD_PERIPHERY_REROUTE: "0",
+    DJERD_RENDERED_CARRIER_BUNDLE_EDGE_TARGET: "0",
     DJERD_RENDERED_CARRIER_EDGE_NODE_TARGET: "0",
     DJERD_RENDERED_CARRIER_GEOMETRY_OPT_FINAL: "1",
     DJERD_RENDERED_CARRIER_METRICS_FINAL: "1",
@@ -576,6 +642,28 @@ function nodeBoundingBoxArea(nodes) {
     ...nodes.map((node) => node.position.y + node.size.height),
   );
   return (maxX - minX) * (maxY - minY);
+}
+
+function carrierRouteConnectsEveryEndpoint(
+  carrierRoute,
+  logicalEndpointModelIds,
+  layoutNodeById,
+) {
+  const tolerance = 1;
+  const touches = (point, modelId) => {
+    const node = layoutNodeById.get(modelId);
+    return Boolean(
+      node
+      && point.x >= node.position.x - tolerance
+      && point.x <= node.position.x + node.size.width + tolerance
+      && point.y >= node.position.y - tolerance
+      && point.y <= node.position.y + node.size.height + tolerance
+    );
+  };
+  return carrierRoute.points.every((point) =>
+    [...logicalEndpointModelIds].some((modelId) => touches(point, modelId)))
+    && [...logicalEndpointModelIds].every((modelId) =>
+      carrierRoute.points.some((point) => touches(point, modelId)));
 }
 
 async function pathExists(filePath) {

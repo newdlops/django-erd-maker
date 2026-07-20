@@ -850,6 +850,9 @@ export function getBrowserLayoutSource(): string {
           const targetAtBase = samePosition(entry.targetPosition, entry.targetTable.basePosition);
 
           if (staticPoints.length >= 2 && sourceAtBase && targetAtBase) {
+            if (entry.meta.preserveRouteEndpoints) {
+              return normalizePoints(staticPoints);
+            }
             return attachPathEndpointsToRenderedTables(entry, staticPoints);
           }
 

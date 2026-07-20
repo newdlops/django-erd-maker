@@ -95,9 +95,13 @@ ${getBrowserLayoutSource()}
           crossingIds: Array.isArray(edge.crossingIds) ? edge.crossingIds.slice() : [],
           cssKind: edge.cssKind || "",
           edgeId: edge.edgeId || "",
+          logicalEndpointModelIds: Array.isArray(edge.logicalEndpointModelIds)
+            ? edge.logicalEndpointModelIds.slice()
+            : [],
           markerEndId: edge.markerEndId || "",
           markerStartId: edge.markerStartId || "",
           points: edge.points || "",
+          preserveRouteEndpoints: edge.preserveRouteEndpoints === true,
           provenance: edge.provenance || "",
           sourceModelId: edge.sourceModelId || "",
           targetModelId: edge.targetModelId || "",

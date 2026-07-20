@@ -98,9 +98,11 @@ export interface EdgeRenderModel {
   crossingIds: string[];
   cssKind: string;
   edgeId: string;
+  logicalEndpointModelIds?: ModelId[];
   markerEndId: string;
   markerStartId: string;
   points: string;
+  preserveRouteEndpoints?: boolean;
   provenance: string;
   sourceModelId: ModelId;
   targetModelId: ModelId;
@@ -108,6 +110,7 @@ export interface EdgeRenderModel {
 
 interface HubCarrierRenderGroup {
   id: string;
+  logicalEndpointModelIds: ModelId[];
   points: Point[];
   representativeEdgeId: string;
   sourceModelId: ModelId;
@@ -126,6 +129,8 @@ export interface BundleLeafTile {
 export interface ClusterOutline {
   bbox: { x: number; y: number; width: number; height: number };
   clusterId: string;
+  colorKey: string;
+  label: string;
   memberCount: number;
 }
 
@@ -185,8 +190,10 @@ export interface RenderedEdgeNodeIntersection {
 }
 
 export interface RenderedEdgeNodeIntersectionMetrics {
+  bundleCount: number;
   count: number;
   hits: RenderedEdgeNodeIntersection[];
+  nodeCount: number;
 }
 
 /**
@@ -203,9 +210,11 @@ export function measureRenderedTableClearance(
   gapY = 42,
 ): RenderedTableClearanceMetrics {
   const serializationTolerance = 0.01;
-  const syntheticBundleIds = new Set(Object.keys(renderModel.bundleLeavesByFakeId));
+  const syntheticBundleIds = new Set(
+    Object.keys(renderModel.bundleLeavesByFakeId ?? {}),
+  );
   const bundledLeafIds = new Set(
-    Object.values(renderModel.bundleLeavesByFakeId).flat(),
+    Object.values(renderModel.bundleLeavesByFakeId ?? {}).flat(),
   );
   const objects = renderModel.tables
     .filter((table) => !bundledLeafIds.has(table.modelId))
@@ -302,9 +311,20 @@ export function measureRenderedTableClearance(
  */
 export function measureRenderedEdgeNodeIntersections(
   renderModel: DiagramRenderModel,
-  padding = 5,
+  padding = 10,
 ): RenderedEdgeNodeIntersectionMetrics {
   const tables = renderModel.tables.filter((table) => !table.hidden);
+  const syntheticBundleIds = new Set(
+    Object.keys(renderModel.bundleLeavesByFakeId ?? {}),
+  );
+  const bundleIdByLeafModelId = new Map<ModelId, string>();
+  for (const [bundleId, leafModelIds] of Object.entries(
+    renderModel.bundleLeavesByFakeId ?? {},
+  )) {
+    for (const leafModelId of leafModelIds) {
+      bundleIdByLeafModelId.set(leafModelId, bundleId);
+    }
+  }
   const tableByModelId = new Map(
     tables.map((table) => [table.modelId, table] as const),
   );
@@ -320,16 +340,28 @@ export function measureRenderedEdgeNodeIntersections(
 
     const parsedPoints = parseRenderedEdgePoints(edge.points);
     const points = parsedPoints.length >= 2
-      ? attachRenderedEdgeEndpoints(parsedPoints, sourceTable, targetTable)
+      ? edge.preserveRouteEndpoints
+        ? parsedPoints
+        : attachRenderedEdgeEndpoints(parsedPoints, sourceTable, targetTable)
       : buildStraightRenderedEdgePoints(sourceTable, targetTable);
     if (points.length < 2) {
       continue;
     }
+    const logicalEndpointModelIds = new Set<ModelId>(
+      edge.logicalEndpointModelIds
+      ?? [edge.sourceModelId, edge.targetModelId],
+    );
+    const logicalEndpointBundleIds = new Set(
+      [...logicalEndpointModelIds]
+        .map((modelId) => bundleIdByLeafModelId.get(modelId))
+        .filter((bundleId): bundleId is string => bundleId !== undefined),
+    );
 
     for (const table of tables) {
       if (
-        table.modelId === edge.sourceModelId
-        || table.modelId === edge.targetModelId
+        logicalEndpointModelIds.has(table.modelId)
+        || (syntheticBundleIds.has(table.modelId)
+          && logicalEndpointBundleIds.has(table.modelId))
       ) {
         continue;
       }
@@ -349,7 +381,15 @@ export function measureRenderedEdgeNodeIntersections(
     }
   }
 
-  return { count: hits.length, hits };
+  const bundleCount = hits.filter((hit) =>
+    syntheticBundleIds.has(hit.nodeModelId)
+  ).length;
+  return {
+    bundleCount,
+    count: hits.length,
+    hits,
+    nodeCount: hits.length - bundleCount,
+  };
 }
 
 function parseRenderedEdgePoints(value: string): Point[] {
@@ -680,7 +720,10 @@ export function createDiagramRenderModel(
   // renderer can draw a faint rectangle around each cluster, restoring
   // visual cluster grouping after cross-reduction passes (CPT, scaling,
   // etc.) move clusters as units but visually mix them with neighbors.
-  const clusterOutlines = computeClusterOutlines(renderedTables);
+  const clusterOutlines = computeClusterOutlines(
+    renderedTables,
+    payload.graph.structuralEdges,
+  );
 
   return {
     bundleLeafTiles,
@@ -738,6 +781,7 @@ function createCanonicalCrossingRenderModel(
 
 function computeClusterOutlines(
   tables: TableRenderModel[],
+  edges: StructuralGraphEdge[],
 ): ClusterOutline[] {
   // Skip synthetic bundle tables (their clusterId mirrors parent's, but
   // including the bundle frame would double-cover bundle leaves).
@@ -749,6 +793,17 @@ function computeClusterOutlines(
     const list = membersByCluster.get(t.clusterId) ?? [];
     list.push(t);
     membersByCluster.set(t.clusterId, list);
+  }
+  const degreeByModelId = new Map<ModelId, number>();
+  for (const edge of edges) {
+    degreeByModelId.set(
+      edge.sourceModelId,
+      (degreeByModelId.get(edge.sourceModelId) ?? 0) + 1,
+    );
+    degreeByModelId.set(
+      edge.targetModelId,
+      (degreeByModelId.get(edge.targetModelId) ?? 0) + 1,
+    );
   }
   const outlines: ClusterOutline[] = [];
   const PAD = 24;
@@ -762,6 +817,11 @@ function computeClusterOutlines(
       yMax = Math.max(yMax, m.position.y + m.size.height);
     }
     if (!Number.isFinite(xMin)) continue;
+    const anchor = [...members].sort((left, right) =>
+      (degreeByModelId.get(right.modelId) ?? 0)
+        - (degreeByModelId.get(left.modelId) ?? 0)
+      || left.modelName.localeCompare(right.modelName)
+    )[0];
     outlines.push({
       bbox: {
         height: yMax - yMin + 2 * PAD,
@@ -770,10 +830,16 @@ function computeClusterOutlines(
         y: yMin - PAD,
       },
       clusterId,
+      colorKey: clusterId,
+      label: `${anchor.modelName} cluster`,
       memberCount: members.length,
     });
   }
-  return outlines;
+  return outlines.sort((left, right) =>
+    right.bbox.width * right.bbox.height
+      - left.bbox.width * left.bbox.height
+    || left.clusterId.localeCompare(right.clusterId)
+  );
 }
 
 function createCatalogRelationDegreeByModel(
@@ -848,6 +914,28 @@ function createHubCarrierRenderGroups(
       if (!representativeEdge || !routeByEdgeId.has(representativeEdgeId)) {
         continue;
       }
+      const logicalEndpointModelIds = [...new Set(
+        carrierRoute.memberEdgeIds.flatMap((edgeId) => {
+          const memberEdge = structuralEdgeById.get(edgeId);
+          return memberEdge
+            ? [memberEdge.sourceModelId, memberEdge.targetModelId]
+            : [];
+        }),
+      )].sort();
+      // A single straight carrier cannot represent three or more table
+      // endpoints without explicit branch connectors. Rendering only that
+      // averaged trunk leaves the member tables visibly disconnected. Keep
+      // the original routed member edges until connector geometry is present.
+      if (logicalEndpointModelIds.length > 2) {
+        continue;
+      }
+      if (!carrierPointsConnectLogicalEndpoints(
+        carrierRoute.points,
+        logicalEndpointModelIds,
+        layoutNodesById,
+      )) {
+        continue;
+      }
       const webviewCarrierId = carrierRoute.carrierId.startsWith("H|")
         ? `hub-carrier:${carrierRoute.carrierId.slice(2)}`
         : carrierRoute.carrierId.startsWith("I|")
@@ -857,6 +945,7 @@ function createHubCarrierRenderGroups(
             : carrierRoute.carrierId;
       const group: HubCarrierRenderGroup = {
         id: webviewCarrierId,
+        logicalEndpointModelIds,
         points: carrierRoute.points,
         representativeEdgeId,
         sourceModelId: representativeEdge.sourceModelId,
@@ -868,9 +957,7 @@ function createHubCarrierRenderGroups(
         }
       }
     }
-    if (serializedGroups.size > 0) {
-      return serializedGroups;
-    }
+    return serializedGroups;
   }
 
   if (threshold === undefined || threshold < 2) {
@@ -1027,8 +1114,25 @@ function createHubCarrierRenderGroups(
           averageRouteEndpoint(members, "start"),
           averageRouteEndpoint(members, "end"),
         ];
+    const logicalEndpointModelIds = [...new Set(
+      members.flatMap((member) => [
+        member.edge.sourceModelId,
+        member.edge.targetModelId,
+      ]),
+    )].sort();
+    if (
+      logicalEndpointModelIds.length > 2
+      || !carrierPointsConnectLogicalEndpoints(
+        points,
+        logicalEndpointModelIds,
+        layoutNodesById,
+      )
+    ) {
+      continue;
+    }
     const group: HubCarrierRenderGroup = {
       id: carrierId,
+      logicalEndpointModelIds,
       points,
       representativeEdgeId: firstMember.edge.id,
       sourceModelId: firstMember.edge.sourceModelId,
@@ -1040,6 +1144,38 @@ function createHubCarrierRenderGroups(
   }
 
   return groupByEdgeId;
+}
+
+function carrierPointsConnectLogicalEndpoints(
+  points: Point[],
+  logicalEndpointModelIds: ModelId[],
+  layoutNodesById: Map<ModelId, DiagramBootstrapPayload["layout"]["nodes"][number]>,
+): boolean {
+  const tolerance = 1;
+  const touchedModelIds = new Set<ModelId>();
+  for (const point of points) {
+    let touchesEndpoint = false;
+    for (const modelId of logicalEndpointModelIds) {
+      const node = layoutNodesById.get(modelId);
+      if (!node) {
+        continue;
+      }
+      if (
+        point.x >= node.position.x - tolerance
+        && point.x <= node.position.x + node.size.width + tolerance
+        && point.y >= node.position.y - tolerance
+        && point.y <= node.position.y + node.size.height + tolerance
+      ) {
+        touchesEndpoint = true;
+        touchedModelIds.add(modelId);
+      }
+    }
+    if (!touchesEndpoint) {
+      return false;
+    }
+  }
+  return logicalEndpointModelIds.length > 0
+    && logicalEndpointModelIds.every((modelId) => touchedModelIds.has(modelId));
 }
 
 function averageRouteEndpoint(
@@ -1318,11 +1454,19 @@ function createEdgeRenderModel(
       crossingIds: [],
       cssKind: edge.kind.replaceAll("_", "-"),
       edgeId: edge.id,
+      logicalEndpointModelIds: [
+        fakeBundleId,
+        match.rootModelId,
+        ...leafBundles[match.bundleIndex].leafModelIds,
+        leafBundles[match.bundleIndex].parentModelId,
+        ...(leafBundles[match.bundleIndex].sharedRootModelIds ?? []),
+      ].filter((modelId, index, values) => values.indexOf(modelId) === index),
       markerEndId,
       markerStartId,
       points: orientedPoints
         ? orientedPoints.map((point) => `${point.x},${point.y}`).join(" ")
         : "",
+      preserveRouteEndpoints: Boolean(orientedPoints),
       provenance: edge.provenance,
       sourceModelId: match.leafIsSource ? fakeBundleId : match.rootModelId,
       targetModelId: match.leafIsSource ? match.rootModelId : fakeBundleId,
@@ -1338,9 +1482,11 @@ function createEdgeRenderModel(
       crossingIds: [],
       cssKind: edge.kind.replaceAll("_", "-"),
       edgeId: hubCarrier.id,
+      logicalEndpointModelIds: hubCarrier.logicalEndpointModelIds,
       markerEndId,
       markerStartId,
       points: hubCarrier.points.map((point) => `${point.x},${point.y}`).join(" "),
+      preserveRouteEndpoints: true,
       provenance: edge.provenance,
       sourceModelId: hubCarrier.sourceModelId,
       targetModelId: hubCarrier.targetModelId,
@@ -1385,6 +1531,11 @@ function createEdgeRenderModel(
     markerEndId,
     markerStartId,
     points: route.points.map((point) => `${point.x},${point.y}`).join(" "),
+    // These endpoints were already clipped to the table boundary and audited
+    // by the native carrier scorer. Reattaching them in the browser subtly
+    // changes the first/last segment and can recreate node penetrations that
+    // the accepted native route did not contain.
+    preserveRouteEndpoints: route.points.length >= 2,
     provenance: edge.provenance,
     sourceModelId: edge.sourceModelId,
     targetModelId: edge.targetModelId,
