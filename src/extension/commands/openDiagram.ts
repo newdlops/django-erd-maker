@@ -42,20 +42,28 @@ export async function openDiagram(
   } = {}) => {
     const refreshRunId = requestId ?? ++latestRefreshRunId;
     latestRefreshRunId = Math.max(latestRefreshRunId, refreshRunId);
+    const clusterGraphLayout = viewState?.clusterGraphLayout === true;
+    const bubbleLayout = viewState?.bubbleLayout === true;
+    const optimizedLayout = viewState?.optimizedLayout === true;
+    const optimizedBudgetMs = readPositiveIntEnv(
+      "DJERD_OPTIMIZED_TOTAL_BUDGET_MS",
+      readPositiveIntEnv(
+        "DJERD_OPTIMIZED_POST_REROUTE_POLISH_BUDGET_MS",
+        90_000,
+      ),
+    );
 
     return vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: "Loading Django ERD",
+        title: optimizedLayout
+          ? `Optimizing Django ERD (${Math.ceil(optimizedBudgetMs / 1_000)}s budget)`
+          : "Loading Django ERD",
       },
       async () => {
         await ensureOgdfBinaryInstalled(context, logger);
         const previousDiagram = cachedDiagram;
         let liveDiagram: LiveDiagramResult;
-
-        const clusterGraphLayout = viewState?.clusterGraphLayout === true;
-        const bubbleLayout = viewState?.bubbleLayout === true;
-        const optimizedLayout = viewState?.optimizedLayout === true;
 
         if (refreshKind === "layout" && previousDiagram) {
           logger.info(
@@ -212,6 +220,11 @@ function readBoolEnv(name: string, fallback: boolean): boolean {
     return false;
   }
   return fallback;
+}
+
+function readPositiveIntEnv(name: string, fallback: number): number {
+  const parsed = Number.parseInt(process.env[name] ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 function logLiveDiagramResult(

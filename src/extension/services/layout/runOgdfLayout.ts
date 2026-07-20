@@ -74,6 +74,7 @@ import {
   DEFAULT_CANONICAL_OBSTACLE_RELIEF_MAX_VISUAL_DEBT_PER_GAIN,
   DEFAULT_CANONICAL_ROUTE_REPAIR_MAX_ROUTE_BBOX_GROWTH,
   DEFAULT_EDGE_NODE_POLISH_HOLISTIC_RESERVE_MS,
+  evaluateAllEdgeCrossingNonRegression,
   evaluateCanonicalCrossingNonRegression,
   evaluateCanonicalObstacleRelief,
   evaluateCanonicalRouteRepairCandidate,
@@ -89,11 +90,15 @@ import { resolveOgdfLayoutBinaryPath } from "./resolveOgdfLayoutBinaryPath";
 
 const OGDF_LAYOUT_TIMEOUT_MS = 600_000;
 const V35_SCORER_TIMEOUT_MS = 180_000;
-const DEFAULT_POST_REROUTE_POLISH_BUDGET_MS = 90_000;
+// One wall-clock budget covers the complete ML/optimized request. Individual
+// native stages may each advertise much larger safety timeouts, but a user
+// action must never inherit their sum and look permanently stuck.
+const DEFAULT_OPTIMIZED_LAYOUT_BUDGET_MS = 90_000;
 const DEFAULT_CANONICAL_ROUTE_REPAIR_TIMEOUT_MS = 30_000;
 const DEFAULT_OPTIMIZED_BBOX_TARGET_B = 1.0;
 const DEFAULT_VISUAL_CROSS_TARGET = 100;
 const DEFAULT_EDGE_NODE_TARGET = 0;
+const DEFAULT_BUNDLE_EDGE_TARGET = 0;
 const DEFAULT_VISUAL_CROSS_POLISH_VARIANTS = [
   "route-clear",
   "knot",
@@ -1095,6 +1100,9 @@ function ogdfOptimizedBboxTargetFinalCompactEnv(
     DJERD_RENDERED_CARRIER_EDGE_NODE_TARGET:
       process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET
       ?? DEFAULT_EDGE_NODE_TARGET.toString(),
+    DJERD_RENDERED_CARRIER_BUNDLE_EDGE_TARGET:
+      process.env.DJERD_OPTIMIZED_BUNDLE_EDGE_TARGET
+      ?? DEFAULT_BUNDLE_EDGE_TARGET.toString(),
     DJERD_RENDERED_CARRIER_VISUAL_TARGET:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_TARGET
       ?? DEFAULT_VISUAL_CROSS_TARGET.toString(),
@@ -1918,6 +1926,9 @@ function ogdfFinalExportRetouchEnv(): Record<string, string | undefined> {
     DJERD_RENDERED_CARRIER_EDGE_NODE_TARGET:
       process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET
       ?? DEFAULT_EDGE_NODE_TARGET.toString(),
+    DJERD_RENDERED_CARRIER_BUNDLE_EDGE_TARGET:
+      process.env.DJERD_OPTIMIZED_BUNDLE_EDGE_TARGET
+      ?? DEFAULT_BUNDLE_EDGE_TARGET.toString(),
     DJERD_RENDERED_CARRIER_VISUAL_TARGET:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_TARGET
       ?? DEFAULT_VISUAL_CROSS_TARGET.toString(),
@@ -2587,6 +2598,7 @@ function renderedCarrierCacheKeyParts(): string[] {
     "intraClusterCarrier=1",
     "renderedCarrierGeometryOpt=1",
     `edgeNodeTarget=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET ?? DEFAULT_EDGE_NODE_TARGET}`,
+    `bundleEdgeTarget=${process.env.DJERD_OPTIMIZED_BUNDLE_EDGE_TARGET ?? DEFAULT_BUNDLE_EDGE_TARGET}`,
     `edgeNodeTargetCarrierPass=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_PASS ?? "1"}`,
     `edgeNodeTargetCarrierRounds=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_ROUNDS ?? "4"}`,
     `edgeNodeTargetPortSamples=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_PORT_SAMPLES ?? "8"}`,
@@ -2752,7 +2764,7 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedBboxTargetReliefPasses=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_RELIEF_PASSES ?? "1"}`,
     `optimizedBboxTargetReliefMaxShift=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_RELIEF_MAX_SHIFT ?? "220"}`,
     `optimizedBboxTargetReliefStrength=${process.env.DJERD_OPTIMIZED_BBOX_TARGET_RELIEF_STRENGTH ?? "0.95"}`,
-    `optimizedPostReroutePolishBudgetMs=${process.env.DJERD_OPTIMIZED_POST_REROUTE_POLISH_BUDGET_MS ?? DEFAULT_POST_REROUTE_POLISH_BUDGET_MS.toString()}`,
+    `optimizedTotalBudgetMs=${process.env.DJERD_OPTIMIZED_TOTAL_BUDGET_MS ?? process.env.DJERD_OPTIMIZED_POST_REROUTE_POLISH_BUDGET_MS ?? DEFAULT_OPTIMIZED_LAYOUT_BUDGET_MS.toString()}`,
     `optimizedEdgeNodePolish=${process.env.DJERD_OPTIMIZED_EDGE_NODE_POLISH ?? "1"}`,
     `optimizedCanonicalRouteRepair=${process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR ?? "0"}`,
     `optimizedCanonicalRouteRepairNative=${process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_NATIVE ?? "0"}`,
@@ -3166,6 +3178,7 @@ export function measureLayoutRenderedTableClearance(
 export interface OptimizedLayoutHardTargetOptions {
   bboxTargetB?: number;
   bboxTolerance?: number;
+  bundleEdgeTarget?: number;
   edgeNodeTarget?: number;
   expectedRouteEdgeIds?: readonly string[];
   visualTarget?: number;
@@ -3176,6 +3189,9 @@ export interface OptimizedLayoutHardTargetEvaluation {
   bboxPass: boolean;
   bendPass: boolean;
   bendTotal: number;
+  bundleEdgeIntersections: number;
+  bundleEdgePass: boolean;
+  bundleEdgeTarget: number;
   clearance: RenderedTableClearanceMetrics;
   clearancePass: boolean;
   edgeNodeIntersections: number;
@@ -3184,6 +3200,7 @@ export interface OptimizedLayoutHardTargetEvaluation {
   failures: string[];
   pass: boolean;
   routesPass: boolean;
+  renderedBundleEdgeIntersections: number;
   renderedEdgeNodeIntersections: number;
   visualCrossings: number;
   visualPass: boolean;
@@ -3209,8 +3226,10 @@ export function evaluateOptimizedLayoutHardTargets(
     },
   });
   const clearance = measureRenderedTableClearance(renderModel);
-  const renderedEdgeNodeIntersections =
-    measureRenderedEdgeNodeIntersections(renderModel).count;
+  const renderedIntersectionAudit =
+    measureRenderedEdgeNodeIntersections(renderModel);
+  const renderedEdgeNodeIntersections = renderedIntersectionAudit.nodeCount;
+  const renderedBundleEdgeIntersections = renderedIntersectionAudit.bundleCount;
   const renderedBundleOverlaps =
     clearance.bundleNodeOverlaps + clearance.bundleBundleOverlaps;
   const clearancePass =
@@ -3264,6 +3283,24 @@ export function evaluateOptimizedLayoutHardTargets(
   const edgeNodePass =
     Number.isFinite(edgeNodeIntersections)
     && edgeNodeIntersections <= edgeNodeTarget;
+  const reportedBundleEdge = metadata?.bundleEdgeIntersections;
+  const reportedBundleEdgeIntersections =
+    typeof reportedBundleEdge === "number"
+      && Number.isFinite(reportedBundleEdge)
+      && reportedBundleEdge >= 0
+      ? reportedBundleEdge
+      : Number.POSITIVE_INFINITY;
+  const bundleEdgeIntersections = Math.max(
+    reportedBundleEdgeIntersections,
+    renderedBundleEdgeIntersections,
+  );
+  const bundleEdgeTarget = options.bundleEdgeTarget ?? readFloatEnv(
+    "DJERD_OPTIMIZED_BUNDLE_EDGE_TARGET",
+    DEFAULT_BUNDLE_EDGE_TARGET,
+  );
+  const bundleEdgePass =
+    Number.isFinite(bundleEdgeIntersections)
+    && bundleEdgeIntersections <= bundleEdgeTarget;
 
   const expectedRouteEdgeIds = new Set(options.expectedRouteEdgeIds ?? []);
   const routedEdgeIds = new Set(layout.routedEdges.map((edge) => edge.edgeId));
@@ -3300,6 +3337,15 @@ export function evaluateOptimizedLayoutHardTargets(
         : "Optimized edge/node intersections are absent or non-finite.",
     );
   }
+  if (!bundleEdgePass) {
+    failures.push(
+      Number.isFinite(bundleEdgeIntersections)
+        ? `Optimized bundle/edge intersections ${bundleEdgeIntersections} exceed target `
+          + `${bundleEdgeTarget} by `
+          + `${Math.max(0, Math.ceil(bundleEdgeIntersections - bundleEdgeTarget))}.`
+        : "Optimized bundle/edge intersections are absent or non-finite.",
+    );
+  }
   if (!clearancePass) {
     failures.push(
       `Rendered table clearance failed with `
@@ -3329,6 +3375,9 @@ export function evaluateOptimizedLayoutHardTargets(
     bboxPass,
     bendPass,
     bendTotal,
+    bundleEdgeIntersections,
+    bundleEdgePass,
+    bundleEdgeTarget,
     clearance,
     clearancePass,
     edgeNodeIntersections,
@@ -3337,18 +3386,18 @@ export function evaluateOptimizedLayoutHardTargets(
     failures,
     pass: failures.length === 0,
     routesPass,
+    renderedBundleEdgeIntersections,
     renderedEdgeNodeIntersections,
     visualCrossings,
     visualPass,
   };
 }
 
-// Stream one ML-pipeline intermediate (a fully-parsed layout JSON) to the
-// webview as a positions preview, so the user sees each long stage (reroute,
-// each bbox-target candidate, polish) land instead of waiting for the whole
-// pipeline. No-op when no listener is registered. The node positions are
-// top-left (same convention the webview treats as basePosition); the webview
-// previews them with straight edges and snaps to the routed final on reload.
+// Stream one accepted ML-pipeline intermediate (a fully-parsed layout JSON) to
+// the webview. Exploratory candidates are never streamed: a rejected all-edge
+// crossing regression must not flash on screen while a long stage is running.
+// No-op when no listener is registered. Positions use the webview's top-left
+// convention and semanticRenderModel carries the accepted routed geometry.
 function streamIntermediateLayout(
   stage: string,
   layout: unknown,
@@ -3560,6 +3609,7 @@ export async function runOgdfLayout(
     let loadedOptimizedFinalFromCache = false;
     let optimizedCacheNeedsHardTargetReplacement = false;
     let postReroutePolishDeadline: PostReroutePolishDeadline | undefined;
+    let optimizedAllEdgeBaselineStdout: string | undefined;
     if (layoutFromFile) {
       try {
         stdout = await readFile(layoutFromFile, "utf8");
@@ -3573,6 +3623,12 @@ export async function runOgdfLayout(
           `OGDF layout file not found, running C++ binary: ${layoutFromFile}`,
         );
       }
+    }
+    if (optimizedLayout && !loadedFromFile) {
+      // Start the deadline before cache-flight acquisition. Waiting behind a
+      // stale producer is part of the user's AI request and must be bounded by
+      // the same wall clock as native/scorer work.
+      postReroutePolishDeadline = startPostReroutePolishDeadline(logger);
     }
     const precomputedOptimizedPositions =
       process.env.DJERD_OPTIMIZED_POSITIONS_TSV?.trim();
@@ -3605,7 +3661,7 @@ export async function runOgdfLayout(
         const key = fnvHash(
           nodesData,
           edgesData,
-          "optimized-layout-cache-v26-edge-node-hard-target",
+          "optimized-layout-cache-v27-bundle-edge-hard-target",
           `binary=${binaryFingerprint}`,
           `scorer=${scorerScriptFingerprint}`,
           `checkpoint=${ckptFingerprint}`,
@@ -3631,6 +3687,12 @@ export async function runOgdfLayout(
           os.tmpdir(),
           `django-erd-optimized-layout-cache-${key}.json`,
         );
+        const flightWaitMs = postReroutePolishDeadline
+          ? remainingPostReroutePolishBudgetMs(postReroutePolishDeadline)
+          : undefined;
+        if (flightWaitMs !== undefined && flightWaitMs <= 0) {
+          throw new Error("optimized layout budget exhausted before cache-flight acquisition");
+        }
         const flight = await acquireOptimizedLayoutFlight(
           optimizedCachePath,
           () => logger?.info(
@@ -3638,6 +3700,7 @@ export async function runOgdfLayout(
             + ` · requestId=${requestId ?? "absent"}`
             + ` · cache=${optimizedCachePath}`,
           ),
+          flightWaitMs,
         );
         releaseOptimizedLayoutFlight = flight.release;
         if (flight.waited) {
@@ -3759,6 +3822,15 @@ export async function runOgdfLayout(
         }, 150);
       }
       try {
+        const initialLayoutBudgetedTimeout = budgetCandidateTimeout(
+          postReroutePolishDeadline,
+          OGDF_LAYOUT_TIMEOUT_MS,
+          "initial native layout",
+          logger,
+        );
+        if (!initialLayoutBudgetedTimeout) {
+          throw new Error("optimized layout budget exhausted before initial native layout");
+        }
         ({ stderr, stdout } = await execFileAsync(
           binaryPath,
           [
@@ -3779,8 +3851,9 @@ export async function runOgdfLayout(
             env: ogdfRenderedCarrierEnv(
               progressPath ? { DJERD_PROGRESS_FILE: progressPath } : {},
             ),
+            killSignal: "SIGKILL",
             maxBuffer: 100 * 1024 * 1024,
-            timeout: OGDF_LAYOUT_TIMEOUT_MS,
+            timeout: initialLayoutBudgetedTimeout.timeoutMs,
           },
         ));
       } finally {
@@ -3899,6 +3972,17 @@ export async function runOgdfLayout(
             }
           }
           if (!baselineLoadedFromCache) {
+            const clusterBaselineBudgetedTimeout = budgetCandidateTimeout(
+              postReroutePolishDeadline,
+              OGDF_LAYOUT_TIMEOUT_MS,
+              "cluster-graph baseline",
+              logger,
+            );
+            if (!clusterBaselineBudgetedTimeout) {
+              throw new Error(
+                "optimized layout budget exhausted before cluster-graph baseline",
+              );
+            }
             const clusterBaseline = await execFileAsync(
               binaryPath,
               [
@@ -3911,8 +3995,9 @@ export async function runOgdfLayout(
               ],
               {
                 cwd: extensionRootPath,
+                killSignal: "SIGKILL",
                 maxBuffer: 100 * 1024 * 1024,
-                timeout: OGDF_LAYOUT_TIMEOUT_MS,
+                timeout: clusterBaselineBudgetedTimeout.timeoutMs,
                 env: clusterBaselineEnv,
               },
             );
@@ -3943,6 +4028,11 @@ export async function runOgdfLayout(
           );
         }
       }
+      // This complete-route snapshot is the quality floor for the entire
+      // optimized pipeline. Later carrier-oriented stages may improve their
+      // reduced metric, but they are never allowed to increase crossings in
+      // the full logical edge set that the webview actually renders.
+      optimizedAllEdgeBaselineStdout = stdout;
       const baselinePath = trackTransientPath(path.join(
         os.tmpdir(),
         `django-erd-ml-baseline-${Date.now()}.json`,
@@ -4024,10 +4114,20 @@ export async function runOgdfLayout(
             VECLIB_MAXIMUM_THREADS: process.env.VECLIB_MAXIMUM_THREADS ?? "8",
             NUMEXPR_NUM_THREADS: process.env.NUMEXPR_NUM_THREADS ?? "8",
           };
+          const mlBudgetedTimeout = budgetCandidateTimeout(
+            postReroutePolishDeadline,
+            readPositiveIntEnv("DJERD_V35_TIMEOUT_MS", V35_SCORER_TIMEOUT_MS),
+            "v36 scorer",
+            logger,
+          );
+          if (!mlBudgetedTimeout) {
+            throw new Error("optimized layout budget exhausted before v36 scorer");
+          }
           const mlRun = await execFileAsync(venvPython, mlArgs, {
             cwd: extensionRootPath,
+            killSignal: "SIGKILL",
             maxBuffer: 32 * 1024 * 1024,
-            timeout: readPositiveIntEnv("DJERD_V35_TIMEOUT_MS", V35_SCORER_TIMEOUT_MS),
+            timeout: mlBudgetedTimeout.timeoutMs,
             env: mlEnv,
           } as Parameters<typeof execFileAsync>[2]);
           const mlLines = mlRun.stdout
@@ -4074,6 +4174,15 @@ export async function runOgdfLayout(
             "--positions-tsv", effectivePositionsPath,
             ...(usePoststackReroute ? [] : ["--rigid-positions", "1"]),
           ];
+          const rerouteBudgetedTimeout = budgetCandidateTimeout(
+            postReroutePolishDeadline,
+            OGDF_LAYOUT_TIMEOUT_MS,
+            "post-scorer reroute",
+            logger,
+          );
+          if (!rerouteBudgetedTimeout) {
+            throw new Error("optimized layout budget exhausted before post-scorer reroute");
+          }
           const reroute = await execFileAsync(
             binaryPath,
             rerouteArgs,
@@ -4082,19 +4191,35 @@ export async function runOgdfLayout(
               env: usePoststackReroute
                 ? ogdfOptimizedPoststackEnv()
                 : ogdfOptimizedRerouteEnv(),
+              killSignal: "SIGKILL",
               maxBuffer: 100 * 1024 * 1024,
-              timeout: OGDF_LAYOUT_TIMEOUT_MS,
+              timeout: rerouteBudgetedTimeout.timeoutMs,
             },
           );
           if (reroute.stderr.trim().length > 0) {
             logger?.info(`[ML] OGDF stderr: ${reroute.stderr.trim()}`);
           }
           logger?.info(`[ML] reroute done in ${Date.now() - rerouteStart}ms`);
+          const rerouteBaseLayout = JSON.parse(stdout);
           const reroutedLayout = JSON.parse(reroute.stdout);
-          let acceptedStdout = reroute.stdout;
-          let acceptedLayout = reroutedLayout;
+          const rerouteAllEdgeNonRegression =
+            evaluateAllEdgeCrossingNonRegression(
+              rerouteBaseLayout?.engineMetadata,
+              reroutedLayout?.engineMetadata,
+            );
+          const rerouteAccepted = rerouteAllEdgeNonRegression.ok;
+          let acceptedStdout = rerouteAccepted ? reroute.stdout : stdout;
+          let acceptedLayout = rerouteAccepted
+            ? reroutedLayout
+            : rerouteBaseLayout;
+          logger?.info(
+            `[ML] reroute all-edge gate · rawRouteCrossings=`
+            + `${rerouteAllEdgeNonRegression.rawRouteBase ?? "missing"}`
+            + `->${rerouteAllEdgeNonRegression.rawRouteCandidate ?? "missing"}`
+            + ` · accepted=${rerouteAccepted}`,
+          );
           const visualPolishBboxCeilingSummary = summarizeLayout(
-            decodeLayoutSnapshot(reroutedLayout, "ogdfLayout"),
+            decodeLayoutSnapshot(acceptedLayout, "ogdfLayout"),
           );
           const visualPolishNodeBboxCeilingB =
             visualPolishBboxCeilingSummary.nodeBBoxWidth
@@ -4104,9 +4229,9 @@ export async function runOgdfLayout(
             visualPolishBboxCeilingSummary.routeBBoxWidth
             * visualPolishBboxCeilingSummary.routeBBoxHeight
             / 1e9;
-          // Show the routed reroute result immediately (don't wait for the
-          // long bbox-target / polish stages that follow).
-          streamIntermediateLayout("reroute", reroutedLayout, payload);
+          // Preview only the accepted route set. Rejected exploratory output
+          // must never flash a crossing-regressed layout in the webview.
+          streamIntermediateLayout("reroute", acceptedLayout, payload);
 
           if (usePoststackReroute) {
             // Strong default target: keep squeezing toward the final export
@@ -4372,6 +4497,20 @@ export async function runOgdfLayout(
                           "--cluster-graph", "1",
                           "--positions-tsv", bboxTarget.positionsPath,
                         ];
+                        const bboxConfiguredTimeoutMs = bboxFinalCompactCandidate
+                          ? Math.max(bboxCandidateTimeoutMs, 210_000)
+                          : bboxCandidateTimeoutMs;
+                        const bboxBudgetedTimeout = budgetCandidateTimeout(
+                          postReroutePolishDeadline,
+                          bboxConfiguredTimeoutMs,
+                          `bbox target:${bboxVariant}`,
+                          logger,
+                        );
+                        if (!bboxBudgetedTimeout) {
+                          throw new Error(
+                            "optimized layout budget exhausted before bbox candidate",
+                          );
+                        }
                         const bboxReroute = await execFileAsync(
                           binaryPath,
                           bboxRerouteArgs,
@@ -4382,9 +4521,7 @@ export async function runOgdfLayout(
                               : ogdfOptimizedBboxTargetEnvForVariant(bboxVariant),
                             killSignal: "SIGKILL",
                             maxBuffer: 100 * 1024 * 1024,
-                            timeout: bboxFinalCompactCandidate
-                              ? Math.max(bboxCandidateTimeoutMs, 210_000)
-                              : bboxCandidateTimeoutMs,
+                            timeout: bboxBudgetedTimeout.timeoutMs,
                           },
                         );
                         if (bboxReroute.stderr.trim().length > 0) {
@@ -4394,11 +4531,6 @@ export async function runOgdfLayout(
                           );
                         }
                         const bboxCandidate = JSON.parse(bboxReroute.stdout);
-                        // Draw every bbox-target candidate as it's computed so
-                        // the user sees progress through this long stage
-                        // (accepted or not — the final routed layout reloads
-                        // when the whole pipeline finishes).
-                        streamIntermediateLayout("bbox", bboxCandidate, payload);
                         const bboxCandidateLayout =
                           decodeLayoutSnapshot(bboxCandidate, "ogdfLayout");
                         const bboxCandidateSummary = summarizeLayout(bboxCandidateLayout);
@@ -4461,16 +4593,19 @@ export async function runOgdfLayout(
                             bboxBeforeMetadata,
                             bboxCandidateMetadata,
                           );
+                        const bboxAllEdgeNonRegression =
+                          evaluateAllEdgeCrossingNonRegression(
+                            acceptedLayout?.engineMetadata
+                              ?? bboxBeforeMetadata,
+                            bboxCandidateMetadata,
+                          );
                         const isFinalBboxStage =
                           bboxStageTargetB <= bboxTargetB + 1e-6;
-                        // Canonical raw-edge obstacle counts naturally rise
-                        // when a complete straight drawing is compressed, but
-                        // bundled members are not drawn as those raw segments.
-                        // Let the exact rendered objective arbitrate only at
-                        // the final target and only when every route, leaf
-                        // route and leaf-bundle membership is still present,
-                        // duplicate-pipeline carrier coverage is retained,
-                        // and every emitted carrier remains a straight line.
+                        // Carrier geometry may arbitrate the canonical
+                        // diagnostics at the final compact target, but every
+                        // logical edge remains drawn. Therefore the complete
+                        // raw route set is an unconditional non-regression
+                        // gate and cannot be bypassed by this override.
                         const bboxCompleteRouteSet =
                           preservesCompleteStraightRouteSet(
                             bboxStageBaseLayout,
@@ -4500,6 +4635,7 @@ export async function runOgdfLayout(
                           && bboxCompleteRouteSet
                           && bboxSemanticBundlesPreserved
                           && bboxStraightBendOk
+                          && bboxAllEdgeNonRegression.ok
                           && bboxCandidateVisual <= bboxBeforeVisual
                           && bboxCandidateVisual <= bboxVisualTarget;
                         const bboxCanonicalOk =
@@ -4603,7 +4739,8 @@ export async function runOgdfLayout(
                           && bboxBundleNodeOk
                           && bboxAbsoluteSpacingOk
                           && bboxEffectiveSpacingOk
-                          && bboxCanonicalOk;
+                          && bboxCanonicalOk
+                          && bboxAllEdgeNonRegression.ok;
                         const bboxGapBridgeVisualLimit =
                           Math.max(bboxBeforeVisual, bboxVisualTarget)
                           * bboxGapBridgeMaxVisualRatio;
@@ -4615,7 +4752,8 @@ export async function runOgdfLayout(
                           && bboxCandidateNodeOverlaps === 0
                           && bboxCompleteRouteSet
                           && bboxLeafBundlesPreserved
-                          && bboxStraightBendOk;
+                          && bboxStraightBendOk
+                          && bboxAllEdgeNonRegression.ok;
                         logger?.info(
                           `[bbox target:${bboxVariant}] candidate done in `
                           + `${Date.now() - bboxVariantStart}ms · `
@@ -4627,6 +4765,11 @@ export async function runOgdfLayout(
                           + `bboxOk=${bboxAcceptanceMode} · `
                           + `bboxGain=${bboxCompressionGainRatio.toFixed(3)} · `
                           + `visual=${bboxCandidateMetadata.visualCrossings ?? "?"} · `
+                          + `rawRouteCrossings=`
+                          + `${bboxAllEdgeNonRegression.rawRouteBase ?? "missing"}`
+                          + `->`
+                          + `${bboxAllEdgeNonRegression.rawRouteCandidate ?? "missing"}`
+                          + ` · allEdgeOk=${bboxAllEdgeNonRegression.ok} · `
                           + `visualGain=${bboxVisualGainRatio.toFixed(3)}`
                           + ` · `
                           + `visualDebt=${bboxVisualDebtRatio.toFixed(3)} · `
@@ -4681,6 +4824,11 @@ export async function runOgdfLayout(
                           );
                         }
                         if (bboxAccept) {
+                          streamIntermediateLayout(
+                            "bbox",
+                            bboxCandidate,
+                            payload,
+                          );
                           acceptedStdout = bboxReroute.stdout;
                           acceptedLayout = bboxCandidate;
                           bboxStageBestAreaB = bboxCandidateAreaB;
@@ -4949,7 +5097,7 @@ export async function runOgdfLayout(
                   ) <= 0
                 ) {
                   logger?.info(
-                    `[post-reroute polish budget] edge-node polish stopped; `
+                    `[optimized layout budget] edge-node polish stopped; `
                     + `budget exhausted after `
                     + `${Date.now() - postReroutePolishDeadline.startedMs}ms`
                     + `/${postReroutePolishDeadline.budgetMs}ms`,
@@ -5021,7 +5169,7 @@ export async function runOgdfLayout(
                   if (polishBudgetPlan.timeoutMs <= 0) {
                     if (polishBudgetPlan.holisticPending) {
                       logger?.info(
-                        `[post-reroute polish budget] edge-node polish:`
+                        `[optimized layout budget] edge-node polish:`
                         + `${polishVariant} skipped; reserving `
                         + `${polishBudgetPlan.reservedMs}ms for holistic`,
                       );
@@ -5035,7 +5183,7 @@ export async function runOgdfLayout(
                   };
                   if (polishBudgetPlan.budgetLimited) {
                     logger?.info(
-                      `[post-reroute polish budget] edge-node polish:`
+                      `[optimized layout budget] edge-node polish:`
                       + `${polishVariant} timeout capped · `
                       + `configured=${polishTimeoutMs}ms · `
                       + `timeout=${polishBudgetPlan.timeoutMs}ms · `
@@ -5069,8 +5217,6 @@ export async function runOgdfLayout(
                     );
                   }
                   const polishCandidate = JSON.parse(polishReroute.stdout);
-                  // Draw every polish candidate as it's computed.
-                  streamIntermediateLayout("polish", polishCandidate, payload);
                   const polishCandidateLayout =
                     decodeLayoutSnapshot(polishCandidate, "ogdfLayout");
                   const polishCandidateSummary = summarizeLayout(polishCandidateLayout);
@@ -5106,9 +5252,23 @@ export async function runOgdfLayout(
                     polishBaseVisual,
                     polishCandidateVisual,
                   );
+                  const polishAllEdgeNonRegression =
+                    evaluateAllEdgeCrossingNonRegression(
+                      polishBaseMetadata,
+                      polishCandidateMetadata,
+                    );
+                  const polishAllEdgeGainRatio =
+                    polishAllEdgeNonRegression.rawRouteBase !== undefined
+                    && polishAllEdgeNonRegression.rawRouteCandidate !== undefined
+                      ? ratioGain(
+                        polishAllEdgeNonRegression.rawRouteBase,
+                        polishAllEdgeNonRegression.rawRouteCandidate,
+                      )
+                      : 0;
                   const polishPrimaryGainRatio = Math.max(
                     polishEdgeNodeGainRatio,
                     polishVisualGainRatio,
+                    polishAllEdgeGainRatio,
                   );
                   const polishVisualDebtRatio = positiveDeltaRatio(
                     polishCandidateVisual,
@@ -5181,6 +5341,8 @@ export async function runOgdfLayout(
                   const polishVisualGainOk =
                     polishCandidateVisual > 0
                     && polishVisualGainRatio >= polishMinVisualGainRatio;
+                  const polishAllEdgeGainOk =
+                    polishAllEdgeNonRegression.gain > 0;
                   const polishBboxOk =
                     polishBboxGrowth <= polishEffectiveBboxGrowthLimit;
                   const polishVisualOk =
@@ -5206,11 +5368,14 @@ export async function runOgdfLayout(
                     && polishCanonicalObstacleRelief.ok;
                   const polishVisualPolicyOk =
                     polishVisualNonRegressionOk
-                    || polishCanonicalObstacleReliefOk;
+                    || polishCanonicalObstacleReliefOk
+                    || polishAllEdgeGainOk;
                   const polishSpacingOk =
                     polishSpacingDebtPerGain <= polishMaxSpacingDebtPerGain;
                   const polishAcceptReason =
-                    polishCanonicalObstacleReliefOk
+                    polishAllEdgeGainOk
+                      ? "all-edge"
+                      : polishCanonicalObstacleReliefOk
                       && !polishVisualNonRegressionOk
                       ? "canonical-obstacle-relief"
                       : polishGainOk
@@ -5219,14 +5384,15 @@ export async function runOgdfLayout(
                           ? "visual"
                           : "none";
                   const polishAccept =
-                    (polishGainOk || polishVisualGainOk)
+                    (polishGainOk || polishVisualGainOk || polishAllEdgeGainOk)
                     && polishBboxOk
                     && polishVisualOk
                     && polishVisualPolicyOk
                     && polishSpacingOk
                     && polishCandidateNodeOverlaps === 0
                     && polishCandidateBundleNode <= polishMaxBundleNode
-                    && polishCanonicalNonRegression.ok;
+                    && polishCanonicalNonRegression.ok
+                    && polishAllEdgeNonRegression.ok;
                   logger?.info(
                     `[edge-node polish:${polishVariant}] candidate done in `
                     + `${Date.now() - polishStart}ms · `
@@ -5234,6 +5400,12 @@ export async function runOgdfLayout(
                     + `edgeNodeGain=${polishEdgeNodeGainRatio.toFixed(3)}`
                     + `/${polishMinGainRatio.toFixed(3)} · `
                     + `visual=${polishBaseVisual}->${polishCandidateVisual} · `
+                    + `rawRouteCrossings=`
+                    + `${polishAllEdgeNonRegression.rawRouteBase ?? "missing"}`
+                    + `->`
+                    + `${polishAllEdgeNonRegression.rawRouteCandidate ?? "missing"}`
+                    + ` · allEdgeGain=${polishAllEdgeNonRegression.gain}`
+                    + `(${polishAllEdgeGainRatio.toFixed(3)}) · `
                     + `visualGain=${polishVisualGainRatio.toFixed(3)}`
                     + `/${polishMinVisualGainRatio.toFixed(3)} · `
                     + `visualDebtPerGain=${polishVisualDebtPerGain.toFixed(3)}`
@@ -5267,6 +5439,11 @@ export async function runOgdfLayout(
                     + `accepted=${polishAccept}`,
                   );
                   if (polishAccept) {
+                    streamIntermediateLayout(
+                      "polish",
+                      polishCandidate,
+                      payload,
+                    );
                     acceptedStdout = polishReroute.stdout;
                     acceptedLayout = polishCandidate;
                   } else {
@@ -5295,7 +5472,7 @@ export async function runOgdfLayout(
                   if (budgetFailure) {
                     if (polishBudgetPlan?.holisticPending) {
                       logger?.info(
-                        `[post-reroute polish budget] edge-node polish:`
+                        `[optimized layout budget] edge-node polish:`
                         + `${polishVariant} reached reserved boundary; `
                         + `continuing toward holistic · reserve=`
                         + `${polishBudgetPlan.reservedMs}ms`,
@@ -5303,7 +5480,7 @@ export async function runOgdfLayout(
                       continue;
                     }
                     logger?.info(
-                      `[post-reroute polish budget] edge-node polish stopped; `
+                      `[optimized layout budget] edge-node polish stopped; `
                       + `budget-limited candidate timed out · `
                       + `variant=${polishVariant}`,
                     );
@@ -5353,7 +5530,7 @@ export async function runOgdfLayout(
                   ) <= 0
                 ) {
                   logger?.info(
-                    `[post-reroute polish budget] visual-cross polish stopped; `
+                    `[optimized layout budget] visual-cross polish stopped; `
                     + `round=${visualRound}/${visualRounds} · `
                     + `budget exhausted after `
                     + `${Date.now() - postReroutePolishDeadline.startedMs}ms`
@@ -5375,19 +5552,25 @@ export async function runOgdfLayout(
                 const visualBaseMetadata = acceptedLayout?.engineMetadata ?? {};
                 const visualBaseVisual =
                   Number(visualBaseMetadata.visualCrossings ?? 0);
-                if (visualBaseVisual <= 0) {
-                  break;
-                }
-                if (visualBaseVisual <= visualTarget) {
+                const visualBaseRawRouteCrossings =
+                  Number(visualBaseMetadata.rawRouteCrossings ?? Number.NaN);
+                if (
+                  visualBaseVisual <= visualTarget
+                  && Number.isFinite(visualBaseRawRouteCrossings)
+                  && visualBaseRawRouteCrossings <= visualTarget
+                ) {
                   logger?.info(
                     `[visual-cross polish] target reached; `
                     + `visual=${visualBaseVisual}/${visualTarget} · `
+                    + `rawRouteCrossings=`
+                    + `${visualBaseRawRouteCrossings}/${visualTarget} · `
                     + `round=${visualRound}/${visualRounds}`,
                   );
                   break;
                 }
 
                 type VisualCrossPolishCandidate = {
+                  allEdgeGain: number;
                   bundleEdge: number;
                   bundleNode: number;
                   canonicalAdjacent: number | undefined;
@@ -5400,6 +5583,7 @@ export async function runOgdfLayout(
                   layout: typeof acceptedLayout;
                   overlappingEdges: number;
                   routeAreaB: number;
+                  rawRouteCross: number;
                   stdout: string;
                   variant: VisualCrossPolishVariant;
                   visual: number;
@@ -5450,6 +5634,9 @@ export async function runOgdfLayout(
                 ): boolean => {
                   if (visualBest === undefined) {
                     return true;
+                  }
+                  if (candidate.rawRouteCross !== visualBest.rawRouteCross) {
+                    return candidate.rawRouteCross < visualBest.rawRouteCross;
                   }
                   if (visualTopologyTieWins(candidate, visualBest)) {
                     return true;
@@ -5514,7 +5701,7 @@ export async function runOgdfLayout(
                   ) {
                     visualPolishBudgetStopped = true;
                     logger?.info(
-                      `[post-reroute polish budget] visual-cross polish stopped; `
+                      `[optimized layout budget] visual-cross polish stopped; `
                       + `round=${visualRound}/${visualRounds} · `
                       + `nextVariant=${visualVariant} · budget exhausted`,
                     );
@@ -5588,7 +5775,6 @@ export async function runOgdfLayout(
                       );
                     }
                     const visualCandidate = JSON.parse(visualReroute.stdout);
-                    streamIntermediateLayout("polish", visualCandidate, payload);
                     const visualCandidateLayout =
                       decodeLayoutSnapshot(visualCandidate, "ogdfLayout");
                     const visualCandidateSummary =
@@ -5603,6 +5789,11 @@ export async function runOgdfLayout(
                       / 1e9;
                     const visualCandidateMetadata =
                       visualCandidate?.engineMetadata ?? {};
+                    const visualAllEdgeNonRegression =
+                      evaluateAllEdgeCrossingNonRegression(
+                        visualBaseMetadata,
+                        visualCandidateMetadata,
+                      );
                     const visualCanonicalNonRegression =
                       evaluateCanonicalCrossingNonRegression(
                         visualBaseMetadata,
@@ -5647,6 +5838,18 @@ export async function runOgdfLayout(
                     const visualGainRatio = ratioGain(
                       visualBaseVisual,
                       visualCandidateVisual,
+                    );
+                    const visualAllEdgeGainRatio =
+                      visualAllEdgeNonRegression.rawRouteBase !== undefined
+                      && visualAllEdgeNonRegression.rawRouteCandidate !== undefined
+                        ? ratioGain(
+                          visualAllEdgeNonRegression.rawRouteBase,
+                          visualAllEdgeNonRegression.rawRouteCandidate,
+                        )
+                        : 0;
+                    const visualEffectiveGain = Math.max(
+                      visualGain,
+                      visualAllEdgeNonRegression.gain,
                     );
                     const visualMinGain = readNonNegativeIntEnv(
                       "DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_MIN_GAIN",
@@ -5720,19 +5923,19 @@ export async function runOgdfLayout(
                       visualCandidateSpacing - visualBaseSpacing,
                     );
                     const visualSpacingDebtPerGain =
-                      visualSpacingDebt / Math.max(1, visualGain);
+                      visualSpacingDebt / Math.max(1, visualEffectiveGain);
                     const visualOverlappingEdgeDebt = Math.max(
                       0,
                       visualCandidateOverlappingEdges - visualBaseOverlappingEdges,
                     );
                     const visualOverlappingEdgeDebtPerGain =
-                      visualOverlappingEdgeDebt / Math.max(1, visualGain);
+                      visualOverlappingEdgeDebt / Math.max(1, visualEffectiveGain);
                     const visualSegmentOverlapDebt = Math.max(
                       0,
                       visualCandidateEdgeSegmentOverlaps - visualBaseEdgeSegmentOverlaps,
                     );
                     const visualSegmentOverlapDebtPerGain =
-                      visualSegmentOverlapDebt / Math.max(1, visualGain);
+                      visualSegmentOverlapDebt / Math.max(1, visualEffectiveGain);
                     const visualNodeBboxGrowth =
                       visualCandidateNodeAreaB
                       / Math.max(0.001, visualBaseNodeAreaB);
@@ -5744,7 +5947,7 @@ export async function runOgdfLayout(
                       visualCandidateRouteAreaB - visualBaseRouteAreaB,
                     );
                     const visualRouteBboxDebtPerGain =
-                      visualRouteBboxDebt / Math.max(1, visualGain);
+                      visualRouteBboxDebt / Math.max(1, visualEffectiveGain);
                     const visualAllowSavedBboxHeadroom = readBoolEnv(
                       "DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_ALLOW_SAVED_BBOX_HEADROOM",
                       true,
@@ -5755,9 +5958,14 @@ export async function runOgdfLayout(
                     const visualRouteBboxHeadroomOk =
                       visualAllowSavedBboxHeadroom
                       && visualCandidateRouteAreaB <= visualPolishRouteBboxCeilingB;
-                    const visualGainOk =
+                    const visualCarrierGainOk =
                       visualGain >= visualMinGain
                       && visualGainRatio >= visualMinGainRatio;
+                    const visualAllEdgeGainOk =
+                      visualAllEdgeNonRegression.gain >= visualMinGain
+                      && visualAllEdgeGainRatio >= visualMinGainRatio;
+                    const visualGainOk =
+                      visualCarrierGainOk || visualAllEdgeGainOk;
                     const visualNodeBboxOk =
                       visualNodeBboxGrowth <= visualNodeBboxGrowthLimit
                       || visualNodeBboxHeadroomOk;
@@ -5794,8 +6002,10 @@ export async function runOgdfLayout(
                       && visualSegmentOverlapOk
                       && visualNodeOverlapOk
                       && visualBundleNodeOk
-                      && visualCanonicalNonRegression.ok;
+                      && visualCanonicalNonRegression.ok
+                      && visualAllEdgeNonRegression.ok;
                     const visualCandidateForBest: VisualCrossPolishCandidate = {
+                      allEdgeGain: visualAllEdgeNonRegression.gain,
                       bundleEdge: visualCandidateBundleEdge,
                       bundleNode: visualCandidateBundleNode,
                       canonicalAdjacent:
@@ -5810,6 +6020,9 @@ export async function runOgdfLayout(
                       layout: visualCandidate,
                       overlappingEdges: visualCandidateOverlappingEdges,
                       routeAreaB: visualCandidateRouteAreaB,
+                      rawRouteCross:
+                        visualAllEdgeNonRegression.rawRouteCandidate
+                        ?? Number.POSITIVE_INFINITY,
                       stdout: visualReroute.stdout,
                       variant: visualVariant,
                       visual: visualCandidateVisual,
@@ -5822,6 +6035,12 @@ export async function runOgdfLayout(
                       + `${Date.now() - visualStart}ms · `
                       + `round=${visualRound}/${visualRounds} · `
                       + `visual=${visualBaseVisual}->${visualCandidateVisual} · `
+                      + `rawRouteCrossings=`
+                      + `${visualAllEdgeNonRegression.rawRouteBase ?? "missing"}`
+                      + `->`
+                      + `${visualAllEdgeNonRegression.rawRouteCandidate ?? "missing"}`
+                      + ` · allEdgeGain=${visualAllEdgeNonRegression.gain}`
+                      + `(${visualAllEdgeGainRatio.toFixed(3)}) · `
                       + `visualGain=${visualGain}`
                       + `/${visualMinGain} `
                       + `(${visualGainRatio.toFixed(3)}`
@@ -5870,6 +6089,8 @@ export async function runOgdfLayout(
                       + `${visualSegmentOverlapDebtPerGain.toFixed(3)}`
                       + `/${visualMaxSegmentOverlapDebtPerGain.toFixed(3)} · `
                       + `gainOk=${visualGainOk} · `
+                      + `carrierGainOk=${visualCarrierGainOk} · `
+                      + `allEdgeOk=${visualAllEdgeNonRegression.ok} · `
                       + `nodeBboxOk=${visualNodeBboxOk} · `
                       + `routeBboxOk=${visualRouteBboxOk} · `
                       + `spacingOk=${visualSpacingOk} · `
@@ -5942,7 +6163,7 @@ export async function runOgdfLayout(
                         visualSpacingRepairHasSpacingDebt
                         || visualSpacingRepairHasNodeOverlapDebt
                       )
-                      && visualGain >= visualSpacingRepairMinGain
+                      && visualEffectiveGain >= visualSpacingRepairMinGain
                       && visualOverlappingEdgeOk
                       && visualSegmentOverlapOk
                       && visualBundleNodeOk;
@@ -6010,11 +6231,6 @@ export async function runOgdfLayout(
                           );
                         }
                         const visualRepairCandidate = JSON.parse(visualRepair.stdout);
-                        streamIntermediateLayout(
-                          "polish",
-                          visualRepairCandidate,
-                          payload,
-                        );
                         const visualRepairLayout =
                           decodeLayoutSnapshot(visualRepairCandidate, "ogdfLayout");
                         const visualRepairSummary =
@@ -6029,6 +6245,11 @@ export async function runOgdfLayout(
                           / 1e9;
                         const visualRepairMetadata =
                           visualRepairCandidate?.engineMetadata ?? {};
+                        const visualRepairAllEdgeNonRegression =
+                          evaluateAllEdgeCrossingNonRegression(
+                            visualBaseMetadata,
+                            visualRepairMetadata,
+                          );
                         const visualRepairCanonicalNonRegression =
                           evaluateCanonicalCrossingNonRegression(
                             visualBaseMetadata,
@@ -6060,19 +6281,32 @@ export async function runOgdfLayout(
                           visualBaseVisual,
                           visualRepairVisual,
                         );
+                        const visualRepairAllEdgeGainRatio =
+                          visualRepairAllEdgeNonRegression.rawRouteBase !== undefined
+                          && visualRepairAllEdgeNonRegression.rawRouteCandidate !== undefined
+                            ? ratioGain(
+                              visualRepairAllEdgeNonRegression.rawRouteBase,
+                              visualRepairAllEdgeNonRegression.rawRouteCandidate,
+                            )
+                            : 0;
+                        const visualRepairEffectiveGain = Math.max(
+                          visualRepairGain,
+                          visualRepairAllEdgeNonRegression.gain,
+                        );
                         const visualRepairSpacingDebt = Math.max(
                           0,
                           visualRepairSpacing - visualBaseSpacing,
                         );
                         const visualRepairSpacingDebtPerGain =
-                          visualRepairSpacingDebt / Math.max(1, visualRepairGain);
+                          visualRepairSpacingDebt
+                          / Math.max(1, visualRepairEffectiveGain);
                         const visualRepairOverlappingEdgeDebt = Math.max(
                           0,
                           visualRepairOverlappingEdges - visualBaseOverlappingEdges,
                         );
                         const visualRepairOverlappingEdgeDebtPerGain =
                           visualRepairOverlappingEdgeDebt
-                          / Math.max(1, visualRepairGain);
+                          / Math.max(1, visualRepairEffectiveGain);
                         const visualRepairSegmentOverlapDebt = Math.max(
                           0,
                           visualRepairEdgeSegmentOverlaps
@@ -6080,7 +6314,7 @@ export async function runOgdfLayout(
                         );
                         const visualRepairSegmentOverlapDebtPerGain =
                           visualRepairSegmentOverlapDebt
-                          / Math.max(1, visualRepairGain);
+                          / Math.max(1, visualRepairEffectiveGain);
                         const visualRepairNodeBboxGrowth =
                           visualRepairNodeAreaB
                           / Math.max(0.001, visualBaseNodeAreaB);
@@ -6093,16 +6327,21 @@ export async function runOgdfLayout(
                         );
                         const visualRepairRouteBboxDebtPerGain =
                           visualRepairRouteBboxDebt
-                          / Math.max(1, visualRepairGain);
+                          / Math.max(1, visualRepairEffectiveGain);
                         const visualRepairNodeBboxHeadroomOk =
                           visualAllowSavedBboxHeadroom
                           && visualRepairNodeAreaB <= visualPolishNodeBboxCeilingB;
                         const visualRepairRouteBboxHeadroomOk =
                           visualAllowSavedBboxHeadroom
                           && visualRepairRouteAreaB <= visualPolishRouteBboxCeilingB;
-                        const visualRepairGainOk =
+                        const visualRepairCarrierGainOk =
                           visualRepairGain >= visualMinGain
                           && visualRepairGainRatio >= visualMinGainRatio;
+                        const visualRepairAllEdgeGainOk =
+                          visualRepairAllEdgeNonRegression.gain >= visualMinGain
+                          && visualRepairAllEdgeGainRatio >= visualMinGainRatio;
+                        const visualRepairGainOk =
+                          visualRepairCarrierGainOk || visualRepairAllEdgeGainOk;
                         const visualRepairNodeBboxOk =
                           visualRepairNodeBboxGrowth <= visualNodeBboxGrowthLimit
                           || visualRepairNodeBboxHeadroomOk;
@@ -6142,9 +6381,11 @@ export async function runOgdfLayout(
                           && visualRepairSegmentOverlapOk
                           && visualRepairNodeOverlapOk
                           && visualRepairBundleNodeOk
-                          && visualRepairCanonicalNonRegression.ok;
+                          && visualRepairCanonicalNonRegression.ok
+                          && visualRepairAllEdgeNonRegression.ok;
                         const visualRepairCandidateForBest:
                           VisualCrossPolishCandidate = {
+                            allEdgeGain: visualRepairAllEdgeNonRegression.gain,
                             bundleEdge: visualRepairBundleEdge,
                             bundleNode: visualRepairBundleNode,
                             canonicalAdjacent:
@@ -6160,6 +6401,9 @@ export async function runOgdfLayout(
                             layout: visualRepairCandidate,
                             overlappingEdges: visualRepairOverlappingEdges,
                             routeAreaB: visualRepairRouteAreaB,
+                            rawRouteCross:
+                              visualRepairAllEdgeNonRegression.rawRouteCandidate
+                              ?? Number.POSITIVE_INFINITY,
                             stdout: visualRepair.stdout,
                             variant: visualVariant,
                             visual: visualRepairVisual,
@@ -6175,6 +6419,12 @@ export async function runOgdfLayout(
                           + `sourceNodeOverlaps=${visualCandidateNodeOverlaps} · `
                           + `sourceSpacingDebt=${visualSpacingDebt.toFixed(1)} · `
                           + `visual=${visualBaseVisual}->${visualRepairVisual} · `
+                          + `rawRouteCrossings=`
+                          + `${visualRepairAllEdgeNonRegression.rawRouteBase ?? "missing"}`
+                          + `->`
+                          + `${visualRepairAllEdgeNonRegression.rawRouteCandidate ?? "missing"}`
+                          + ` · allEdgeGain=${visualRepairAllEdgeNonRegression.gain}`
+                          + `(${visualRepairAllEdgeGainRatio.toFixed(3)}) · `
                           + `visualGain=${visualRepairGain}`
                           + `/${visualMinGain} `
                           + `(${visualRepairGainRatio.toFixed(3)}`
@@ -6213,6 +6463,8 @@ export async function runOgdfLayout(
                           + `${visualRepairSegmentOverlapDebt.toFixed(1)}`
                           + `/${visualMaxSegmentOverlapDebt.toFixed(1)} · `
                           + `gainOk=${visualRepairGainOk} · `
+                          + `carrierGainOk=${visualRepairCarrierGainOk} · `
+                          + `allEdgeOk=${visualRepairAllEdgeNonRegression.ok} · `
                           + `nodeBboxOk=${visualRepairNodeBboxOk} · `
                           + `routeBboxOk=${visualRepairRouteBboxOk} · `
                           + `spacingOk=${visualRepairSpacingOk} · `
@@ -6246,7 +6498,7 @@ export async function runOgdfLayout(
                         if (budgetFailure) {
                           visualPolishBudgetStopped = true;
                           logger?.info(
-                            `[post-reroute polish budget] visual-cross polish `
+                            `[optimized layout budget] visual-cross polish `
                             + `stopped; budget-limited spacing-repair timed out · `
                             + `variant=${visualVariant}`,
                           );
@@ -6270,7 +6522,7 @@ export async function runOgdfLayout(
                     if (budgetFailure) {
                       visualPolishBudgetStopped = true;
                       logger?.info(
-                        `[post-reroute polish budget] visual-cross polish stopped; `
+                        `[optimized layout budget] visual-cross polish stopped; `
                         + `budget-limited candidate timed out · `
                         + `variant=${visualVariant}`,
                       );
@@ -6294,12 +6546,20 @@ export async function runOgdfLayout(
                   break;
                 }
 
+                streamIntermediateLayout(
+                  "polish",
+                  visualBest.layout,
+                  payload,
+                );
                 acceptedStdout = visualBest.stdout;
                 acceptedLayout = visualBest.layout;
                 logger?.info(
                   `[visual-cross polish] round ${visualRound}/${visualRounds} `
                   + `accepted variant=${visualBest.variant} · `
                   + `visual=${visualBaseVisual}->${visualBest.visual} · `
+                  + `rawRouteCrossings=${visualBaseRawRouteCrossings}`
+                  + `->${visualBest.rawRouteCross} · `
+                  + `allEdgeGain=${visualBest.allEdgeGain} · `
                   + `visualGain=${visualBest.gain} `
                   + `(${visualBest.gainRatio.toFixed(3)}) · `
                   + `edgeCross=${Number(visualBaseMetadata.edgeCrossings ?? 0)}`
@@ -6348,6 +6608,11 @@ export async function runOgdfLayout(
                 Number(recompactBaseMetadata.visualCrossings ?? 0);
               const recompactBaseEdgeCross =
                 Number(recompactBaseMetadata.edgeCrossings ?? 0);
+              const recompactBaseRawRouteCrossings =
+                Number(
+                  recompactBaseMetadata.rawRouteCrossings
+                  ?? Number.POSITIVE_INFINITY,
+                );
               const recompactBaseEdgeNode =
                 Number(recompactBaseMetadata.edgeNodeIntersections ?? 0);
               const recompactBaseBundleEdge =
@@ -6475,6 +6740,7 @@ export async function runOgdfLayout(
                   layout: typeof acceptedLayout;
                   nodeAreaB: number;
                   routeAreaB: number;
+                  rawRouteCross: number;
                   safety: number;
                   stdout: string;
                   strategy: BboxTargetPositionStrategy;
@@ -6488,13 +6754,19 @@ export async function runOgdfLayout(
                   candidate: VisualCrossRecompactCandidate,
                 ): boolean =>
                   recompactBest === undefined
-                  || candidate.nodeAreaB < recompactBest.nodeAreaB
+                  || candidate.rawRouteCross < recompactBest.rawRouteCross
                   || (
-                    candidate.nodeAreaB === recompactBest.nodeAreaB
+                    candidate.rawRouteCross === recompactBest.rawRouteCross
+                    && candidate.nodeAreaB < recompactBest.nodeAreaB
+                  )
+                  || (
+                    candidate.rawRouteCross === recompactBest.rawRouteCross
+                    && candidate.nodeAreaB === recompactBest.nodeAreaB
                     && candidate.visual < recompactBest.visual
                   )
                   || (
-                    candidate.nodeAreaB === recompactBest.nodeAreaB
+                    candidate.rawRouteCross === recompactBest.rawRouteCross
+                    && candidate.nodeAreaB === recompactBest.nodeAreaB
                     && candidate.visual === recompactBest.visual
                     && candidate.edgeNode < recompactBest.edgeNode
                   );
@@ -6585,7 +6857,7 @@ export async function runOgdfLayout(
                         ) {
                           recompactBudgetStopped = true;
                           logger?.info(
-                            `[post-reroute polish budget] visual-cross `
+                            `[optimized layout budget] visual-cross `
                             + `recompact stopped; budget exhausted · `
                             + `nextVariant=${recompactSpec.variant}`,
                           );
@@ -6640,11 +6912,6 @@ export async function runOgdfLayout(
                           }
                           const recompactCandidate =
                             JSON.parse(recompactReroute.stdout);
-                          streamIntermediateLayout(
-                            "bbox",
-                            recompactCandidate,
-                            payload,
-                          );
                           const recompactCandidateLayout =
                             decodeLayoutSnapshot(
                               recompactCandidate,
@@ -6662,6 +6929,11 @@ export async function runOgdfLayout(
                             / 1e9;
                           const recompactCandidateMetadata =
                             recompactCandidate?.engineMetadata ?? {};
+                          const recompactAllEdgeNonRegression =
+                            evaluateAllEdgeCrossingNonRegression(
+                              recompactBaseMetadata,
+                              recompactCandidateMetadata,
+                            );
                           const recompactCandidateVisual =
                             Number(
                               recompactCandidateMetadata.visualCrossings ?? 0,
@@ -6746,7 +7018,8 @@ export async function runOgdfLayout(
                             && recompactVisualOk
                             && recompactEdgeNodeOk
                             && recompactRouteBboxOk
-                            && recompactDebtOk;
+                            && recompactDebtOk
+                            && recompactAllEdgeNonRegression.ok;
                           const recompactCandidateForBest:
                             VisualCrossRecompactCandidate = {
                               bboxGain: recompactBboxGain,
@@ -6754,7 +7027,10 @@ export async function runOgdfLayout(
                               edgeNode: recompactCandidateEdgeNode,
                               layout: recompactCandidate,
                               nodeAreaB: recompactCandidateNodeAreaB,
-	                              routeAreaB: recompactCandidateRouteAreaB,
+                              routeAreaB: recompactCandidateRouteAreaB,
+                              rawRouteCross:
+                                recompactAllEdgeNonRegression.rawRouteCandidate
+                                ?? Number.POSITIVE_INFINITY,
 	                              safety: recompactSafety,
 	                              stdout: recompactReroute.stdout,
 	                              strategy: recompactStrategy,
@@ -6785,6 +7061,11 @@ export async function runOgdfLayout(
                             + `/${recompactRouteBboxGrowthLimit.toFixed(3)} · `
                             + `visual=${recompactBaseVisual}`
                             + `->${recompactCandidateVisual} · `
+                            + `rawRouteCrossings=`
+                            + `${recompactAllEdgeNonRegression.rawRouteBase ?? "missing"}`
+                            + `->`
+                            + `${recompactAllEdgeNonRegression.rawRouteCandidate ?? "missing"}`
+                            + ` · allEdgeOk=${recompactAllEdgeNonRegression.ok} · `
                             + `visualDebt=${recompactVisualDebt}`
                             + `/${recompactMaxVisualDebt} · `
                             + `edgeCross=${recompactBaseEdgeCross}`
@@ -6826,7 +7107,7 @@ export async function runOgdfLayout(
                           if (budgetFailure) {
                             recompactBudgetStopped = true;
                             logger?.info(
-                              `[post-reroute polish budget] visual-cross `
+                              `[optimized layout budget] visual-cross `
                               + `recompact stopped; budget-limited candidate `
                               + `timed out · variant=${recompactSpec.variant}`,
                             );
@@ -6860,7 +7141,12 @@ export async function runOgdfLayout(
 	                }
 	                }
                 if (recompactBest) {
-	                  acceptedStdout = recompactBest.stdout;
+                  streamIntermediateLayout(
+                    "bbox",
+                    recompactBest.layout,
+                    payload,
+                  );
+                  acceptedStdout = recompactBest.stdout;
 	                  acceptedLayout = recompactBest.layout;
 	                  logger?.info(
 	                    `[visual-cross recompact] accepted `
@@ -6870,6 +7156,8 @@ export async function runOgdfLayout(
                     + `strategy=${recompactBest.strategy} · `
                     + `visual=${recompactBaseVisual}`
                     + `->${recompactBest.visual} · `
+                    + `rawRouteCrossings=${recompactBaseRawRouteCrossings}`
+                    + `->${recompactBest.rawRouteCross} · `
                     + `edgeCross=${recompactBaseEdgeCross}`
                     + `->${recompactBest.edgeCross} · `
                     + `edgeNode=${recompactBaseEdgeNode}`
@@ -6946,6 +7234,15 @@ export async function runOgdfLayout(
             logger?.info(
               `[optimized fallback] Y-scale=${Y_SCALE} applied to ${ndArr.length} nodes; rerouting via positions-tsv`,
             );
+            const fallbackBudgetedTimeout = budgetCandidateTimeout(
+              postReroutePolishDeadline,
+              OGDF_LAYOUT_TIMEOUT_MS,
+              "Y-scale fallback",
+              logger,
+            );
+            if (!fallbackBudgetedTimeout) {
+              throw new Error("optimized layout budget exhausted before Y-scale fallback");
+            }
             const reroute = await execFileAsync(
               binaryPath,
               [
@@ -6961,14 +7258,31 @@ export async function runOgdfLayout(
               {
                 cwd: extensionRootPath,
                 env: ogdfOptimizedRerouteEnv(),
+                killSignal: "SIGKILL",
                 maxBuffer: 100 * 1024 * 1024,
-                timeout: OGDF_LAYOUT_TIMEOUT_MS,
+                timeout: fallbackBudgetedTimeout.timeoutMs,
               },
             );
             if (reroute.stderr.trim().length > 0) {
               logger?.info(`[optimized fallback] OGDF stderr: ${reroute.stderr.trim()}`);
             }
-            stdout = reroute.stdout;
+            const fallbackCandidate = JSON.parse(reroute.stdout);
+            const fallbackAllEdgeNonRegression =
+              evaluateAllEdgeCrossingNonRegression(
+                firstPass?.engineMetadata,
+                fallbackCandidate?.engineMetadata,
+              );
+            if (fallbackAllEdgeNonRegression.ok) {
+              stdout = reroute.stdout;
+            } else {
+              logger?.info(
+                `[optimized fallback] rejected by all-edge gate · `
+                + `rawRouteCrossings=`
+                + `${fallbackAllEdgeNonRegression.rawRouteBase ?? "missing"}`
+                + `->`
+                + `${fallbackAllEdgeNonRegression.rawRouteCandidate ?? "missing"}`,
+              );
+            }
           }
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -6989,9 +7303,15 @@ export async function runOgdfLayout(
       "DJERD_OPTIMIZED_EDGE_NODE_TARGET",
       DEFAULT_EDGE_NODE_TARGET,
     );
+    const bundleEdgeTarget = readNonNegativeIntEnv(
+      "DJERD_OPTIMIZED_BUNDLE_EDGE_TARGET",
+      DEFAULT_BUNDLE_EDGE_TARGET,
+    );
     const preFinalVisualCrossings = readVisualCrossingsFromLayoutJson(stdout);
     const preFinalEdgeNodeIntersections =
       readEdgeNodeIntersectionsFromLayoutJson(stdout);
+    const preFinalBundleEdgeIntersections =
+      readBundleEdgeIntersectionsFromLayoutJson(stdout);
     const runExplicitFinalExportRetouch =
       readBoolEnv("DJERD_FINAL_EXPORT_RETOUCH", false);
     const skipTargetSatisfiedFinalRetouch =
@@ -7001,13 +7321,17 @@ export async function runOgdfLayout(
       && preFinalVisualCrossings !== undefined
       && preFinalVisualCrossings <= visualCrossTarget
       && preFinalEdgeNodeIntersections !== undefined
-      && preFinalEdgeNodeIntersections <= edgeNodeTarget;
+      && preFinalEdgeNodeIntersections <= edgeNodeTarget
+      && preFinalBundleEdgeIntersections !== undefined
+      && preFinalBundleEdgeIntersections <= bundleEdgeTarget;
     if (skipTargetSatisfiedFinalRetouch) {
       logger?.info(
         `[final-export retouch] skipped because visualCrossings=${preFinalVisualCrossings}`
         + ` <= target=${visualCrossTarget}`
         + ` and edgeNodeIntersections=${preFinalEdgeNodeIntersections}`
-        + ` <= target=${edgeNodeTarget}`,
+        + ` <= target=${edgeNodeTarget}`
+        + ` and bundleEdgeIntersections=${preFinalBundleEdgeIntersections}`
+        + ` <= target=${bundleEdgeTarget}`,
       );
     } else if (
       (optimizedLayout && !loadedOptimizedFinalFromCache)
@@ -7020,7 +7344,7 @@ export async function runOgdfLayout(
         ) <= 0
       ) {
         logger?.info(
-          `[post-reroute polish budget] final-export retouch skipped; `
+          `[optimized layout budget] final-export retouch skipped; `
           + `budget exhausted after `
           + `${Date.now() - postReroutePolishDeadline.startedMs}ms`
           + `/${postReroutePolishDeadline.budgetMs}ms`,
@@ -7038,6 +7362,27 @@ export async function runOgdfLayout(
           polishDeadline: postReroutePolishDeadline,
           stdout,
         });
+      }
+    }
+
+    if (optimizedLayout && optimizedAllEdgeBaselineStdout) {
+      const optimizedAllEdgeBaseline = JSON.parse(
+        optimizedAllEdgeBaselineStdout,
+      );
+      const optimizedAllEdgeCandidate = JSON.parse(stdout);
+      const optimizedAllEdgeNonRegression =
+        evaluateAllEdgeCrossingNonRegression(
+          optimizedAllEdgeBaseline?.engineMetadata,
+          optimizedAllEdgeCandidate?.engineMetadata,
+        );
+      if (!optimizedAllEdgeNonRegression.ok) {
+        logger?.warn(
+          `[optimized final] restoring complete-edge baseline because `
+          + `rawRouteCrossings regressed · `
+          + `${optimizedAllEdgeNonRegression.rawRouteBase ?? "missing"}`
+          + `->${optimizedAllEdgeNonRegression.rawRouteCandidate ?? "missing"}`,
+        );
+        stdout = optimizedAllEdgeBaselineStdout;
       }
     }
 
@@ -7123,6 +7468,10 @@ export async function runOgdfLayout(
         Number(metadata.edgeNodeIntersections ?? 0),
         finalHardTargets.renderedEdgeNodeIntersections,
       );
+      metadata.bundleEdgeIntersections = Math.max(
+        Number(metadata.bundleEdgeIntersections ?? 0),
+        finalHardTargets.renderedBundleEdgeIntersections,
+      );
       metadata.nodeOverlaps = Math.max(
         Number(metadata.nodeOverlaps ?? 0),
         renderedClearance.nodeOverlaps,
@@ -7188,6 +7537,17 @@ export async function runOgdfLayout(
         Math.ceil(finalHardTargets.edgeNodeIntersections - edgeNodeTarget),
       )
       : undefined;
+    const bundleEdgeStatus = optimizedLayout
+      ? finalHardTargets.bundleEdgePass ? "pass" : "miss"
+      : undefined;
+    const bundleEdgeOver = optimizedLayout
+      ? Math.max(
+        0,
+        Math.ceil(
+          finalHardTargets.bundleEdgeIntersections - bundleEdgeTarget,
+        ),
+      )
+      : undefined;
     const renderedClearancePass = finalHardTargets.clearancePass;
     const finalRenderedBboxAreaB = finalHardTargets.bboxAreaB;
     const finalBboxTargetB = readFloatEnv(
@@ -7239,6 +7599,7 @@ export async function runOgdfLayout(
         ...(metadata?.overlappingEdges !== undefined ? [`overlappingEdges=${metadata.overlappingEdges}`] : []),
         ...(metadata?.edgeSegmentOverlaps !== undefined ? [`edgeSegmentOverlaps=${metadata.edgeSegmentOverlaps}`] : []),
         ...(metadata?.bundleEdgeIntersections !== undefined ? [`bundleEdgeIntersections=${metadata.bundleEdgeIntersections}`] : []),
+        `renderedBundleEdgeIntersections=${finalHardTargets.renderedBundleEdgeIntersections}`,
         ...(metadata?.bundleNodeOverlaps !== undefined ? [`bundleNodeOverlaps=${metadata.bundleNodeOverlaps}`] : []),
         `renderedBundleNodeOverlaps=${renderedClearance.bundleNodeOverlaps}`,
         `renderedBundleBundleOverlaps=${renderedClearance.bundleBundleOverlaps}`,
@@ -7271,6 +7632,13 @@ export async function runOgdfLayout(
               `edgeNodeTarget=${edgeNodeTarget}`,
               `edgeNodeStatus=${edgeNodeStatus}`,
               `edgeNodeOver=${edgeNodeOver}`,
+            ]
+          : []),
+        ...(bundleEdgeStatus !== undefined
+          ? [
+              `bundleEdgeTarget=${bundleEdgeTarget}`,
+              `bundleEdgeStatus=${bundleEdgeStatus}`,
+              `bundleEdgeOver=${bundleEdgeOver}`,
             ]
           : []),
         ...(bboxTargetStatus !== undefined
@@ -7327,6 +7695,14 @@ export async function runOgdfLayout(
         + `edgeNodeIntersections=${finalHardTargets.edgeNodeIntersections} · `
         + `renderedAudit=${finalHardTargets.renderedEdgeNodeIntersections} · `
         + `target=${edgeNodeTarget} · overBy=${edgeNodeOver}`,
+      );
+    }
+    if (bundleEdgeStatus === "miss" && bundleEdgeOver !== undefined) {
+      logger?.warn(
+        `OGDF bundle/edge intersection target missed · `
+        + `bundleEdgeIntersections=${finalHardTargets.bundleEdgeIntersections} · `
+        + `renderedAudit=${finalHardTargets.renderedBundleEdgeIntersections} · `
+        + `target=${bundleEdgeTarget} · overBy=${bundleEdgeOver}`,
       );
     }
     if (optimizedLayout && !renderedClearancePass) {
@@ -7416,9 +7792,13 @@ export async function runOgdfLayout(
 function startPostReroutePolishDeadline(
   logger?: Logger,
 ): PostReroutePolishDeadline {
-  const budgetMs = readPositiveIntEnv(
+  const legacyBudgetMs = readPositiveIntEnv(
     "DJERD_OPTIMIZED_POST_REROUTE_POLISH_BUDGET_MS",
-    DEFAULT_POST_REROUTE_POLISH_BUDGET_MS,
+    DEFAULT_OPTIMIZED_LAYOUT_BUDGET_MS,
+  );
+  const budgetMs = readPositiveIntEnv(
+    "DJERD_OPTIMIZED_TOTAL_BUDGET_MS",
+    legacyBudgetMs,
   );
   const startedMs = Date.now();
   const deadline = {
@@ -7427,8 +7807,8 @@ function startPostReroutePolishDeadline(
     startedMs,
   };
   logger?.info(
-    `[post-reroute polish budget] started · budget=${budgetMs}ms · `
-    + "covers=edge-node,visual-cross,recompact,final-export-retouch",
+    `[optimized layout budget] started · budget=${budgetMs}ms · `
+    + "covers=cache-wait,baseline,scorer,reroute,bbox,polish,retouch",
   );
   return deadline;
 }
@@ -7451,7 +7831,7 @@ function budgetCandidateTimeout(
   const remainingMs = remainingPostReroutePolishBudgetMs(deadline);
   if (remainingMs <= 0) {
     logger?.info(
-      `[post-reroute polish budget] ${stage} skipped; `
+      `[optimized layout budget] ${stage} skipped; `
       + `budget exhausted after ${Date.now() - deadline.startedMs}ms`
       + `/${deadline.budgetMs}ms`,
     );
@@ -7461,7 +7841,7 @@ function budgetCandidateTimeout(
   const budgetLimited = timeoutMs < configuredTimeoutMs;
   if (budgetLimited) {
     logger?.info(
-      `[post-reroute polish budget] ${stage} timeout capped · `
+      `[optimized layout budget] ${stage} timeout capped · `
       + `configured=${configuredTimeoutMs}ms · timeout=${timeoutMs}ms · `
       + `remaining=${remainingMs}ms`,
     );
@@ -7504,6 +7884,24 @@ function readEdgeNodeIntersectionsFromLayoutJson(
     return typeof edgeNodeIntersections === "number"
       && Number.isFinite(edgeNodeIntersections)
       ? edgeNodeIntersections
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function readBundleEdgeIntersectionsFromLayoutJson(
+  layoutJson: string,
+): number | undefined {
+  try {
+    const parsed = JSON.parse(layoutJson) as {
+      engineMetadata?: { bundleEdgeIntersections?: unknown };
+    };
+    const bundleEdgeIntersections =
+      parsed.engineMetadata?.bundleEdgeIntersections;
+    return typeof bundleEdgeIntersections === "number"
+      && Number.isFinite(bundleEdgeIntersections)
+      ? bundleEdgeIntersections
       : undefined;
   } catch {
     return undefined;
@@ -7697,6 +8095,12 @@ async function runFinalExportRetouch(options: {
         Number(candidateMetadata.edgeSegmentOverlaps ?? 0);
       const candidateRawRouteCross =
         Number(candidateMetadata.rawRouteCrossings ?? candidateEdgeCross);
+      const retouchAllEdgeNonRegression =
+        evaluateAllEdgeCrossingNonRegression(
+          baseMetadata,
+          candidateMetadata,
+        );
+      const retouchAllEdgeOk = retouchAllEdgeNonRegression.ok;
       const visualGain = Math.max(0, baseVisual - candidateVisual);
       const edgeCrossGain = Math.max(0, baseEdgeCross - candidateEdgeCross);
       const rawRouteGain =
@@ -7750,6 +8154,8 @@ async function runFinalExportRetouch(options: {
         candidateEdgeNode - baseEdgeNode,
       );
       const retouchBundleNodeOk = candidateBundleNode <= baseBundleNode;
+      const retouchBundleEdgeOk = candidateBundleEdge <= baseBundleEdge;
+      const retouchEdgeNodeOk = candidateEdgeNode <= baseEdgeNode;
       const retouchSpacingOk =
         retouchSpacingDebt <= retouchMaxSpacingDebt
         && retouchSpacingDebtPerGain <= retouchMaxSpacingDebtPerGain;
@@ -7765,30 +8171,42 @@ async function runFinalExportRetouch(options: {
         "DJERD_OPTIMIZED_EDGE_NODE_TARGET",
         DEFAULT_EDGE_NODE_TARGET,
       );
+      const retouchBundleEdgeTarget = readNonNegativeIntEnv(
+        "DJERD_OPTIMIZED_BUNDLE_EDGE_TARGET",
+        DEFAULT_BUNDLE_EDGE_TARGET,
+      );
       const retouchVisualTarget = readPositiveIntEnv(
         "DJERD_OPTIMIZED_VISUAL_CROSS_TARGET",
         DEFAULT_VISUAL_CROSS_TARGET,
       );
       const retouchEdgeNodeTargetAccept =
-        candidateEdgeNode < baseEdgeNode
+        (candidateEdgeNode < baseEdgeNode
+          || candidateBundleEdge < baseBundleEdge)
         && candidateEdgeNode <= retouchEdgeNodeTarget
+        && candidateBundleEdge <= retouchBundleEdgeTarget
         && candidateVisual <= retouchVisualTarget
         && retouchNodeBboxOk
         && retouchRouteBboxOk
         && retouchNodeOverlapOk
         && retouchBundleNodeOk
+        && retouchBundleEdgeOk
+        && retouchEdgeNodeOk
         && retouchSpacingOk
         && retouchOverlappingEdgeOk
-        && retouchSegmentOverlapOk;
+        && retouchSegmentOverlapOk
+        && retouchAllEdgeOk;
       const retouchStrictAccept =
         retouchGainOk
         && retouchNodeBboxOk
         && retouchRouteBboxOk
         && retouchNodeOverlapOk
         && retouchBundleNodeOk
+        && retouchBundleEdgeOk
+        && retouchEdgeNodeOk
         && retouchSpacingOk
         && retouchOverlappingEdgeOk
-        && retouchSegmentOverlapOk;
+        && retouchSegmentOverlapOk
+        && retouchAllEdgeOk;
       const retouchSalvageAccept =
         retouchSalvage
         && visualGain >= retouchSalvageMinGain
@@ -7796,6 +8214,8 @@ async function runFinalExportRetouch(options: {
         && retouchNodeBboxOk
         && retouchRouteBboxOk
         && retouchNodeOverlapOk
+        && retouchBundleEdgeOk
+        && retouchEdgeNodeOk
         && retouchSpacingOk
         && retouchBundleNodeDebt <= retouchSalvageAcceptMaxBundleNodeDebt
         && retouchOverlappingEdgeDebt
@@ -7805,13 +8225,14 @@ async function runFinalExportRetouch(options: {
         && retouchSegmentOverlapDebt
         <= retouchSalvageAcceptMaxSegmentOverlapDebt
         && retouchSegmentOverlapDebtPerGain
-        <= retouchMaxSegmentOverlapDebtPerGain;
+        <= retouchMaxSegmentOverlapDebtPerGain
+        && retouchAllEdgeOk;
       const retouchAccept =
         retouchEdgeNodeTargetAccept
         || retouchStrictAccept
         || retouchSalvageAccept;
       const retouchAcceptMode = retouchEdgeNodeTargetAccept
-        ? "edge-node-target"
+        ? "obstacle-target"
         : retouchStrictAccept
         ? "strict"
         : retouchSalvageAccept
@@ -7834,6 +8255,15 @@ async function runFinalExportRetouch(options: {
           : undefined,
         !retouchBundleNodeOk
           ? `bundleNode ${baseBundleNode}->${candidateBundleNode}`
+          : undefined,
+        !retouchBundleEdgeOk
+          ? `bundleEdge ${baseBundleEdge}->${candidateBundleEdge}`
+          : undefined,
+        !retouchEdgeNodeOk
+          ? `edgeNode ${baseEdgeNode}->${candidateEdgeNode}`
+          : undefined,
+        !retouchAllEdgeOk
+          ? `rawRouteCrossings ${baseRawRouteCross}->${candidateRawRouteCross}`
           : undefined,
         !retouchSpacingOk
           ? `spacingDebt ${retouchSpacingDebt}`
@@ -7862,6 +8292,7 @@ async function runFinalExportRetouch(options: {
         + `rawRouteCross=${baseRawRouteCross}->${candidateRawRouteCross} · `
         + `rawRouteGain=${rawRouteGain} · `
         + `rawRouteDelta=${rawRouteDelta} · `
+        + `allEdgeOk=${retouchAllEdgeOk} · `
         + `edgeNode=${baseEdgeNode}->${candidateEdgeNode} · `
         + `bundleEdge=${baseBundleEdge}->${candidateBundleEdge} · `
         + `nodeOverlaps=${baseNodeOverlaps}->${candidateNodeOverlaps} · `
@@ -8640,7 +9071,7 @@ async function runFinalExportRetouch(options: {
       && remainingPostReroutePolishBudgetMs(options.polishDeadline) <= 0;
     if (budgetExhausted) {
       options.logger?.info(
-        `[post-reroute polish budget] final-export retouch stopped; `
+        `[optimized layout budget] final-export retouch stopped; `
         + "budget-limited candidate consumed the remaining deadline; "
         + "skipping sibling repairs",
       );
@@ -8669,33 +9100,51 @@ function execFileAsync(
   },
 ): Promise<{ stderr: string; stdout: string }> {
   return new Promise((resolve, reject) => {
-    // execFile's `timeout` sends `killSignal` (default SIGTERM) after the
-    // configured duration, but a misbehaving native binary can ignore
-    // SIGTERM and keep running for minutes while Node waits on its
-    // stdout/stderr drain. Track a hard wall-clock deadline ourselves and
-    // escalate to SIGKILL after a short grace period to guarantee the
-    // process actually exits.
-    let forceKillTimer: { unref?: () => void } | undefined;
+    // A timed-out parent can leave a Python/native descendant holding stdout
+    // open, which prevents execFile's callback (and the VS Code progress UI)
+    // from ever settling. On POSIX, make the child a process-group leader and
+    // kill the complete group at the hard deadline. Settle our Promise even if
+    // Node never delivers its callback after that kill.
+    let settled = false;
+    let forceKillTimer: ReturnType<typeof setTimeout> | undefined;
+    const finish = (
+      error: OgdfExecError | undefined,
+      value?: { stderr: string; stdout: string },
+    ): void => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (forceKillTimer !== undefined) {
+        clearTimeout(forceKillTimer);
+        forceKillTimer = undefined;
+      }
+      if (error) {
+        reject(error);
+      } else if (value) {
+        resolve(value);
+      }
+    };
+    const useProcessGroup = process.platform !== "win32";
     const child: {
-      killed?: boolean;
       pid?: number;
       kill: (signal?: string) => boolean;
     } = execFile(
       filePath,
       args,
-      options,
+      {
+        ...options,
+        detached: useProcessGroup,
+        killSignal: options.killSignal ?? "SIGKILL",
+      },
       (error, stdout, stderr) => {
-        if (forceKillTimer !== undefined) {
-          clearTimeout(forceKillTimer as unknown as Parameters<typeof clearTimeout>[0]);
-          forceKillTimer = undefined;
-        }
         if (error) {
           const signal =
             "signal" in error && typeof error.signal === "string"
               ? error.signal
               : undefined;
           const killed = "killed" in error ? Boolean(error.killed) : false;
-          reject(
+          finish(
             new OgdfExecError(
               buildExecFailureMessage(error, stderr),
               {
@@ -8704,6 +9153,7 @@ function execFileAsync(
                 signal,
                 stderr,
                 stdout,
+                timeoutMs: options.timeout,
                 timedOut:
                   error.message.includes("timed out")
                   || (killed
@@ -8714,27 +9164,41 @@ function execFileAsync(
           return;
         }
 
-        resolve({ stderr, stdout });
+        finish(undefined, { stderr, stdout });
       },
     ) as unknown as {
-      killed?: boolean;
       pid?: number;
       kill: (signal?: string) => boolean;
     };
     if (options.timeout > 0 && child.pid !== undefined) {
-      const timer = setTimeout(() => {
-        if (!child.killed) {
+      forceKillTimer = setTimeout(() => {
+        const pid = child.pid;
+        if (useProcessGroup && pid !== undefined) {
           try {
-            child.kill("SIGKILL");
+            process.kill(-pid, "SIGKILL");
           } catch {
-            // Process already gone; ignore.
+            // The group may already be gone. Fall through to the direct kill.
           }
         }
-      }, options.timeout + 5_000);
-      forceKillTimer = timer as unknown as { unref?: () => void };
-      if (typeof forceKillTimer.unref === "function") {
-        forceKillTimer.unref();
-      }
+        try {
+          child.kill("SIGKILL");
+        } catch {
+          // Process already gone; the hard timeout still settles the caller.
+        }
+        finish(
+          new OgdfExecError(
+            `native process exceeded hard timeout of ${options.timeout}ms`,
+            {
+              killed: true,
+              signal: "SIGKILL",
+              stderr: "",
+              stdout: "",
+              timeoutMs: options.timeout,
+              timedOut: true,
+            },
+          ),
+        );
+      }, options.timeout + 1_000);
     }
   });
 }
@@ -10248,6 +10712,7 @@ class OgdfExecError extends Error {
       signal?: string;
       stderr: string;
       stdout: string;
+      timeoutMs?: number;
       timedOut: boolean;
     },
   ) {
@@ -10264,7 +10729,7 @@ function buildExecFailureMessage(error: Error, stderr: string): string {
 function formatOgdfFailureReason(error: unknown): string {
   if (error instanceof OgdfExecError) {
     if (error.details.timedOut) {
-      return `native layout timed out after ${OGDF_LAYOUT_TIMEOUT_MS}ms`;
+      return `native layout timed out after ${error.details.timeoutMs ?? OGDF_LAYOUT_TIMEOUT_MS}ms`;
     }
 
     const fragments = ["native layout process failed"];

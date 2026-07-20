@@ -46,6 +46,21 @@ test("optimized layout flights serialize identical keys but not distinct keys", 
   afterRelease.release();
 });
 
+test("optimized layout flight wait times out without poisoning later requests", async () => {
+  const key = `timeout-${process.pid}-${Date.now()}`;
+  const producer = await acquireOptimizedLayoutFlight(key);
+
+  await assert.rejects(
+    acquireOptimizedLayoutFlight(key, undefined, 25),
+    /in-flight wait timed out after 25ms/,
+  );
+
+  producer.release();
+  const retry = await acquireOptimizedLayoutFlight(key, undefined, 25);
+  assert.equal(retry.waited, false);
+  retry.release();
+});
+
 test("optimized cache quality keeps the lower visual-crossing result", () => {
   const better = snapshot(446, { edgeNodeIntersections: 150 });
   const worse = snapshot(535, { edgeNodeIntersections: 99 });
@@ -61,6 +76,30 @@ test("optimized cache quality keeps the lower visual-crossing result", () => {
   assert.ok(compareOptimizedLayoutQuality(
     better.engineMetadata,
     worse.engineMetadata,
+  ) < 0);
+});
+
+test("optimized cache prioritizes the complete edge set over carrier crossings", () => {
+  const existing = snapshot(133, { rawRouteCrossings: 5_430 });
+  const cleanerCarrierButWorseAllEdges = snapshot(64, {
+    rawRouteCrossings: 6_738,
+  });
+  const rejected = selectPreferredOptimizedLayoutJson(
+    JSON.stringify(existing),
+    JSON.stringify(cleanerCarrierButWorseAllEdges),
+  );
+  assert.equal(rejected.source, "existing");
+  assert.equal(rejected.preservationReason, "all-edge-non-regression");
+
+  const betterAllEdges = snapshot(180, { rawRouteCrossings: 5_200 });
+  const accepted = selectPreferredOptimizedLayoutJson(
+    JSON.stringify(existing),
+    JSON.stringify(betterAllEdges),
+  );
+  assert.equal(accepted.source, "candidate");
+  assert.ok(compareOptimizedLayoutQuality(
+    betterAllEdges.engineMetadata,
+    existing.engineMetadata,
   ) < 0);
 });
 

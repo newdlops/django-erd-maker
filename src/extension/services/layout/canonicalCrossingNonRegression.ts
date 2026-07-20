@@ -14,6 +14,21 @@ export interface CanonicalCrossingNonRegression {
   ok: boolean;
 }
 
+/**
+ * Non-regression gate for the complete, unbundled route set.
+ *
+ * `visualCrossings` and `edgeCrossings` describe reduced carrier geometry in
+ * optimized layouts. `rawRouteCrossings` is the metric that still represents
+ * every logical edge, which is also what the webview must keep visible at
+ * every zoom level.
+ */
+export interface AllEdgeCrossingNonRegression {
+  gain: number;
+  ok: boolean;
+  rawRouteBase: number | undefined;
+  rawRouteCandidate: number | undefined;
+}
+
 export interface CanonicalObstacleRelief extends CanonicalCrossingNonRegression {
   adjacentGain: number;
   canonicalGain: number;
@@ -86,6 +101,30 @@ function finiteNonNegativeCount(value: unknown): number | undefined {
     && value >= 0
     ? value
     : undefined;
+}
+
+export function evaluateAllEdgeCrossingNonRegression(
+  baseMetadata: LayoutEngineMetadata | undefined,
+  candidateMetadata: LayoutEngineMetadata | undefined,
+): AllEdgeCrossingNonRegression {
+  const rawRouteBase = finiteNonNegativeCount(
+    baseMetadata?.rawRouteCrossings,
+  );
+  const rawRouteCandidate = finiteNonNegativeCount(
+    candidateMetadata?.rawRouteCrossings,
+  );
+  const ok = rawRouteBase === undefined
+    ? true
+    : rawRouteCandidate !== undefined && rawRouteCandidate <= rawRouteBase;
+  return {
+    gain:
+      rawRouteBase !== undefined && rawRouteCandidate !== undefined
+        ? Math.max(0, rawRouteBase - rawRouteCandidate)
+        : 0,
+    ok,
+    rawRouteBase,
+    rawRouteCandidate,
+  };
 }
 
 const CANONICAL_ROUTE_REPAIR_COUNT_KEYS: ReadonlyArray<

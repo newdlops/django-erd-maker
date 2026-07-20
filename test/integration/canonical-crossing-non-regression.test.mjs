@@ -16,12 +16,47 @@ const {
   DEFAULT_CANONICAL_OBSTACLE_RELIEF_MAX_VISUAL_DEBT_PER_GAIN,
   DEFAULT_CANONICAL_ROUTE_REPAIR_MAX_ROUTE_BBOX_GROWTH,
   DEFAULT_EDGE_NODE_POLISH_HOLISTIC_RESERVE_MS,
+  evaluateAllEdgeCrossingNonRegression,
   evaluateCanonicalCrossingNonRegression,
   evaluateCanonicalObstacleRelief,
   evaluateCanonicalRouteRepairCandidate,
   planEdgeNodePolishCandidateBudget,
   shouldSkipEdgeNodePolishVariantAfterVisualBlowup,
 } = require(gateModulePath);
+
+test("complete-edge crossings cannot regress behind a cleaner carrier score", () => {
+  const base = { rawRouteCrossings: 5_430, visualCrossings: 133 };
+  const cleanerCarrierButWorseAllEdges = {
+    rawRouteCrossings: 6_738,
+    visualCrossings: 64,
+  };
+  const improvedAllEdges = {
+    rawRouteCrossings: 5_200,
+    visualCrossings: 180,
+  };
+
+  assert.equal(
+    evaluateAllEdgeCrossingNonRegression(
+      base,
+      cleanerCarrierButWorseAllEdges,
+    ).ok,
+    false,
+  );
+  const improved = evaluateAllEdgeCrossingNonRegression(
+    base,
+    improvedAllEdges,
+  );
+  assert.equal(improved.ok, true);
+  assert.equal(improved.gain, 230);
+  assert.equal(
+    evaluateAllEdgeCrossingNonRegression(base, {}).ok,
+    false,
+  );
+  assert.equal(
+    evaluateAllEdgeCrossingNonRegression({}, {}).ok,
+    true,
+  );
+});
 
 function metadata(visualCrossings, adjacentEdgeIntersections, nonIncidentNodeHits) {
   return {
@@ -368,7 +403,7 @@ test("route-repair-only gate requires strict node-hit gain and every canonical c
   );
 });
 
-test("v26 orchestration targets 1B and caches only penetration-free straight carriers", async () => {
+test("v27 orchestration targets 1B and caches only obstacle-free straight carriers", async () => {
   const source = await fs.readFile(
     path.resolve(
       __dirname,
@@ -377,7 +412,8 @@ test("v26 orchestration targets 1B and caches only penetration-free straight car
     "utf8",
   );
 
-  assert.match(source, /"optimized-layout-cache-v26-edge-node-hard-target"/);
+  assert.match(source, /"optimized-layout-cache-v27-bundle-edge-hard-target"/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v26-edge-node-hard-target"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v25-hard-target-cache"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v24-render-size-reroute"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v23-render-size"/);
@@ -392,6 +428,7 @@ test("v26 orchestration targets 1B and caches only penetration-free straight car
   assert.doesNotMatch(source, /"optimized-layout-cache-v15"/);
   assert.match(source, /const DEFAULT_VISUAL_CROSS_TARGET = 100;/);
   assert.match(source, /const DEFAULT_EDGE_NODE_TARGET = 0;/);
+  assert.match(source, /const DEFAULT_BUNDLE_EDGE_TARGET = 0;/);
   assert.doesNotMatch(source, /DJERD_ADAPTIVE_CARRIER_TARGET_FINAL/);
   assert.match(
     source,
@@ -460,6 +497,10 @@ test("v26 orchestration targets 1B and caches only penetration-free straight car
   assert.match(
     source,
     /preFinalEdgeNodeIntersections[\s\S]*?preFinalEdgeNodeIntersections <= edgeNodeTarget/,
+  );
+  assert.match(
+    source,
+    /preFinalBundleEdgeIntersections[\s\S]*?preFinalBundleEdgeIntersections <= bundleEdgeTarget/,
   );
   assert.match(
     source,
@@ -591,6 +632,31 @@ test("v26 orchestration targets 1B and caches only penetration-free straight car
     source,
     /DJERD_NODE_PAIR_RETOUCH_BUDGET_MS:[\s\S]*?45000/,
   );
+  assert.match(
+    source,
+    /const DEFAULT_OPTIMIZED_LAYOUT_BUDGET_MS = 90_000;/,
+  );
+  assert.match(
+    source,
+    /DJERD_OPTIMIZED_TOTAL_BUDGET_MS[\s\S]*covers=cache-wait,baseline,scorer,reroute,bbox,polish,retouch/,
+  );
+  assert.match(
+    source,
+    /startPostReroutePolishDeadline\(logger\)[\s\S]*acquireOptimizedLayoutFlight\(/,
+  );
+  for (const stage of [
+    "initial native layout",
+    "cluster-graph baseline",
+    "v36 scorer",
+    "post-scorer reroute",
+    "bbox target:",
+    "Y-scale fallback",
+  ]) {
+    assert.match(source, new RegExp(`budgetCandidateTimeout\\([\\s\\S]*?${stage}`));
+  }
+  assert.match(source, /detached: useProcessGroup/);
+  assert.match(source, /process\.kill\(-pid, "SIGKILL"\)/);
+  assert.match(source, /native process exceeded hard timeout/);
 });
 
 test("node-pair retouch honors its native time budget", async () => {

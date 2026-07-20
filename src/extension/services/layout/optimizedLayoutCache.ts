@@ -7,6 +7,7 @@ import type {
 import { decodeLayoutSnapshot } from "../../../shared/protocol/decodeDiagramBootstrap";
 import {
   DEFAULT_CANONICAL_OBSTACLE_RELIEF_MAX_VISUAL_DEBT_PER_GAIN,
+  evaluateAllEdgeCrossingNonRegression,
   evaluateCanonicalCrossingNonRegression,
   evaluateCanonicalObstacleRelief,
 } from "./canonicalCrossingNonRegression";
@@ -21,7 +22,10 @@ export interface OptimizedLayoutCacheSelection {
   readonly candidateVisualCrossings?: number;
   readonly existingVisualCrossings?: number;
   readonly json: string;
-  readonly preservationReason?: "canonical-non-regression" | "quality";
+  readonly preservationReason?:
+    | "all-edge-non-regression"
+    | "canonical-non-regression"
+    | "quality";
   readonly source: "candidate" | "existing";
 }
 
@@ -37,6 +41,7 @@ const optimizedLayoutFlights = new Map<string, Promise<void>>();
 export async function acquireOptimizedLayoutFlight(
   key: string,
   onWait?: () => void,
+  maxWaitMs?: number,
 ): Promise<OptimizedLayoutFlightLease> {
   const previous = optimizedLayoutFlights.get(key);
   let resolveCurrent: (() => void) | undefined;
@@ -47,7 +52,18 @@ export async function acquireOptimizedLayoutFlight(
 
   if (previous) {
     onWait?.();
-    await previous;
+    try {
+      await waitForPreviousFlight(previous, key, maxWaitMs);
+    } catch (error) {
+      // Do not leave this follower as another permanently-pending queue head.
+      // A timed-out producer may never release, so remove the follower and let
+      // a later request make progress after the native process is reaped.
+      resolveCurrent?.();
+      if (optimizedLayoutFlights.get(key) === current) {
+        optimizedLayoutFlights.delete(key);
+      }
+      throw error;
+    }
   }
 
   let released = false;
@@ -66,15 +82,52 @@ export async function acquireOptimizedLayoutFlight(
   };
 }
 
+async function waitForPreviousFlight(
+  previous: Promise<void>,
+  key: string,
+  maxWaitMs: number | undefined,
+): Promise<void> {
+  if (
+    maxWaitMs === undefined
+    || !Number.isFinite(maxWaitMs)
+    || maxWaitMs <= 0
+  ) {
+    await previous;
+    return;
+  }
+
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      previous,
+      new Promise<never>((_resolve, reject) => {
+        timeout = setTimeout(() => {
+          reject(
+            new Error(
+              `optimized layout in-flight wait timed out after ${Math.round(maxWaitMs)}ms`
+              + ` · key=${key}`,
+            ),
+          );
+        }, maxWaitMs);
+      }),
+    ]);
+  } finally {
+    if (timeout !== undefined) {
+      clearTimeout(timeout);
+    }
+  }
+}
+
 // Negative means left is preferable, positive means right is preferable.
-// visualCrossings is the optimized layout's acceptance metric; the remaining
-// fields are deterministic tie-breakers that avoid replacing an equally clean
-// cache entry with one that regresses another reported conflict metric.
+// Every logical edge remains visible at every zoom level, so rawRouteCrossings
+// is the primary quality metric. Carrier-only visualCrossings is a secondary
+// tie-breaker and must never hide a regression in the complete route set.
 export function compareOptimizedLayoutQuality(
   left: LayoutEngineMetadata | undefined,
   right: LayoutEngineMetadata | undefined,
 ): number {
   const lowerIsBetter: Array<keyof LayoutEngineMetadata> = [
+    "rawRouteCrossings",
     "visualCrossings",
     "nodeOverlaps",
     "bundleNodeOverlaps",
@@ -84,7 +137,6 @@ export function compareOptimizedLayoutQuality(
     "overlappingEdges",
     "edgeSegmentOverlaps",
     "nodeSpacingOverlaps",
-    "rawRouteCrossings",
     "boundingBoxArea",
   ];
   for (const key of lowerIsBetter) {
@@ -125,6 +177,19 @@ export function selectPreferredOptimizedLayoutJson(
     );
   } catch {
     return selection("candidate", candidateJson, undefined, candidate);
+  }
+
+  if (!evaluateAllEdgeCrossingNonRegression(
+    existing.engineMetadata,
+    candidate.engineMetadata,
+  ).ok) {
+    return selection(
+      "existing",
+      existingJson,
+      existing,
+      candidate,
+      "all-edge-non-regression",
+    );
   }
 
   if (!evaluateCanonicalCrossingNonRegression(
@@ -229,7 +294,10 @@ function selection(
   json: string,
   existing: LayoutSnapshot | undefined,
   candidate: LayoutSnapshot,
-  preservationReason?: "canonical-non-regression" | "quality",
+  preservationReason?:
+    | "all-edge-non-regression"
+    | "canonical-non-regression"
+    | "quality",
   candidateReason?: "canonical-obstacle-relief" | "quality",
 ): OptimizedLayoutCacheSelection {
   return {
