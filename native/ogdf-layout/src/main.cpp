@@ -10352,17 +10352,62 @@ bool applyRenderedCarrierMetricsIfRequested(
       auto sourceIt = nodeByModelId.find(edges[edgeIndex].sourceModelId);
       auto targetIt = nodeByModelId.find(edges[edgeIndex].targetModelId);
       if (sourceIt != nodeByModelId.end() && targetIt != nodeByModelId.end()) {
-        const auto [sourcePoint, targetPoint] =
-          sourceTargetRouteEndpoints(edgeIndex);
-        path.points = {sourcePoint, targetPoint};
+        const auto sourceBundleIt =
+          leafToBundleIdx.find(edges[edgeIndex].sourceModelId);
+        const auto targetBundleIt =
+          leafToBundleIdx.find(edges[edgeIndex].targetModelId);
+        const bool bundleAnchoredInheritance =
+          edges[edgeIndex].kind == "inheritance"
+          && (sourceBundleIt != leafToBundleIdx.end()
+              || targetBundleIt != leafToBundleIdx.end());
+        const Rect sourceRect = sourceBundleIt != leafToBundleIdx.end()
+          ? renderedLeafBundleRect(
+              metadata.leafBundles[sourceBundleIt->second], 0.0)
+          : nodeRect(*sourceIt->second, attributes, 0.0);
+        const Rect targetRect = targetBundleIt != leafToBundleIdx.end()
+          ? renderedLeafBundleRect(
+              metadata.leafBundles[targetBundleIt->second], 0.0)
+          : nodeRect(*targetIt->second, attributes, 0.0);
+        if (bundleAnchoredInheritance) {
+          const RoutePoint sourceCenter = rectCenterPoint(sourceRect);
+          const RoutePoint targetCenter = rectCenterPoint(targetRect);
+          path.points = {
+            boundaryPort(sourceRect, targetCenter),
+            boundaryPort(targetRect, sourceCenter),
+          };
+          auto addBundleEndpointIds = [&](std::size_t bundleIndex) {
+            const LeafBundleRecord& bundle = metadata.leafBundles[bundleIndex];
+            // This is an individual inheritance line from a compact leaf to
+            // some external base, not the leaf bundle's parent carrier. The
+            // bundle rectangle itself is an endpoint, but its parent/root card
+            // remains a visible obstacle and must never be exempted.
+            for (const std::string& leaf : bundle.leafModelIds) {
+              path.endpointModelIds.insert(leaf);
+            }
+          };
+          if (sourceBundleIt != leafToBundleIdx.end()) {
+            path.bundleIndex = static_cast<int>(sourceBundleIt->second);
+            addBundleEndpointIds(sourceBundleIt->second);
+          }
+          if (targetBundleIt != leafToBundleIdx.end()) {
+            if (path.bundleIndex < 0) {
+              path.bundleIndex = static_cast<int>(targetBundleIt->second);
+            }
+            addBundleEndpointIds(targetBundleIt->second);
+          }
+        } else {
+          const auto [sourcePoint, targetPoint] =
+            sourceTargetRouteEndpoints(edgeIndex);
+          path.points = {sourcePoint, targetPoint};
+        }
         path.hasStraightEndpointRects = true;
-        path.straightStartRect = nodeRect(*sourceIt->second, attributes, 0.0);
-        path.straightEndRect = nodeRect(*targetIt->second, attributes, 0.0);
+        path.straightStartRect = sourceRect;
+        path.straightEndRect = targetRect;
         path.straightCandidates.push_back(path.points);
         const std::vector<RoutePoint> sourcePorts = rectBoundaryCandidates(
-          nodeRect(*sourceIt->second, attributes, 0.0));
+          sourceRect);
         const std::vector<RoutePoint> targetPorts = rectBoundaryCandidates(
-          nodeRect(*targetIt->second, attributes, 0.0));
+          targetRect);
         for (const RoutePoint& sourcePort : sourcePorts) {
           for (const RoutePoint& targetPort : targetPorts) {
             path.straightCandidates.push_back({sourcePort, targetPort});
@@ -10584,7 +10629,9 @@ bool applyRenderedCarrierMetricsIfRequested(
     return false;
   };
 
-  constexpr double kRenderedCarrierVisualMargin = 8.0;
+  // Stay slightly stricter than the canvas's ten-unit clip guard so coordinate
+  // serialization cannot turn a native tangent into a visible card graze.
+  constexpr double kRenderedCarrierVisualMargin = 12.0;
   std::vector<Rect> bundleRects;
   bundleRects.reserve(metadata.leafBundles.size());
   for (const LeafBundleRecord& bundle : metadata.leafBundles) {
@@ -10646,16 +10693,6 @@ bool applyRenderedCarrierMetricsIfRequested(
 
         for (std::size_t bi = 0; bi < metadata.leafBundles.size(); ++bi) {
           if (path.bundleIndex == static_cast<int>(bi)) continue;
-          const LeafBundleRecord& bundle = metadata.leafBundles[bi];
-          if (path.endpointModelIds.count(bundle.parentModelId)) continue;
-          bool touchesBundleMember = false;
-          for (const std::string& leaf : bundle.leafModelIds) {
-            if (path.endpointModelIds.count(leaf)) {
-              touchesBundleMember = true;
-              break;
-            }
-          }
-          if (touchesBundleMember) continue;
           if (segmentIntersectsRect(start, end, bundleRects[bi])) {
             ++counts.bundleEdgeIntersections;
           }
@@ -10690,6 +10727,25 @@ bool applyRenderedCarrierMetricsIfRequested(
     }
     RenderedCarrierMetricPath candidatePath = paths[pathIndex];
     candidatePath.points = candidatePoints;
+    if (
+        candidatePath.hasStraightEndpointRects
+        && (segmentIntersectsRect(
+              candidatePoints.front(), candidatePoints.back(),
+              candidatePath.straightStartRect)
+            || segmentIntersectsRect(
+              candidatePoints.front(), candidatePoints.back(),
+              candidatePath.straightEndRect))) {
+      // A port on the far side of an endpoint can look attractive when that
+      // endpoint is excluded from obstacle scoring, but the resulting line
+      // travels through its own table (or through sibling tiles inside its
+      // leaf bundle) before exiting. Such a route is never renderable as a
+      // collision-free straight carrier.
+      return RenderedPathVisualCost{
+        std::numeric_limits<std::size_t>::max() / 4,
+        std::numeric_limits<std::size_t>::max() / 4,
+        std::numeric_limits<std::size_t>::max() / 4,
+      };
+    }
     RenderedPathVisualCost cost;
     for (std::size_t otherIndex = 0; otherIndex < paths.size(); ++otherIndex) {
       if (
@@ -10739,20 +10795,7 @@ bool applyRenderedCarrierMetricsIfRequested(
         if (candidatePath.bundleIndex == static_cast<int>(bundleIndex)) {
           continue;
         }
-        const LeafBundleRecord& bundle = metadata.leafBundles[bundleIndex];
-        if (candidatePath.endpointModelIds.count(bundle.parentModelId)) {
-          continue;
-        }
-        bool touchesBundleMember = false;
-        for (const std::string& leaf : bundle.leafModelIds) {
-          if (candidatePath.endpointModelIds.count(leaf)) {
-            touchesBundleMember = true;
-            break;
-          }
-        }
-        if (
-            !touchesBundleMember
-            && segmentIntersectsRect(start, end, bundleRects[bundleIndex])) {
+        if (segmentIntersectsRect(start, end, bundleRects[bundleIndex])) {
           ++cost.bundleEdgeIntersections;
         }
       }
@@ -10835,6 +10878,8 @@ bool applyRenderedCarrierMetricsIfRequested(
       && readBoolEnv("DJERD_RENDERED_CARRIER_NODE_TARGET_FINAL", false)) {
     const std::size_t edgeNodeTarget = static_cast<std::size_t>(readDoubleEnv(
       "DJERD_RENDERED_CARRIER_EDGE_NODE_TARGET", 0.0, 0.0, 1'000'000.0));
+    const std::size_t bundleEdgeTarget = static_cast<std::size_t>(readDoubleEnv(
+      "DJERD_RENDERED_CARRIER_BUNDLE_EDGE_TARGET", 0.0, 0.0, 1'000'000.0));
     const std::size_t visualTarget = static_cast<std::size_t>(readDoubleEnv(
       "DJERD_RENDERED_CARRIER_VISUAL_TARGET", 100.0, 0.0, 1'000'000.0));
     const int targetRounds = static_cast<int>(readDoubleEnv(
@@ -10872,10 +10917,18 @@ bool applyRenderedCarrierMetricsIfRequested(
 
     RenderedCarrierCounts targetCounts = measureRenderedPaths(renderedPaths);
     const RenderedCarrierCounts beforeTargetCounts = targetCounts;
+    auto obstacleExcess = [&](std::size_t edgeNode, std::size_t bundleEdge) {
+      return (edgeNode > edgeNodeTarget ? edgeNode - edgeNodeTarget : 0)
+        + (bundleEdge > bundleEdgeTarget
+            ? bundleEdge - bundleEdgeTarget
+            : 0);
+    };
     for (
         int round = 0;
         round < targetRounds
-          && targetCounts.edgeNodeIntersections > edgeNodeTarget;
+          && obstacleExcess(
+            targetCounts.edgeNodeIntersections,
+            targetCounts.bundleEdgeIntersections) > 0;
         ++round) {
       std::vector<std::pair<std::size_t, std::size_t>> order;
       order.reserve(renderedPaths.size());
@@ -10885,8 +10938,11 @@ bool applyRenderedCarrierMetricsIfRequested(
         if (path.points.size() != 2 || path.straightCandidates.empty()) continue;
         const RenderedPathVisualCost currentCost =
           renderedPathCost(renderedPaths, pathIndex, path.points);
-        if (currentCost.edgeNodeIntersections == 0) continue;
-        order.push_back({currentCost.edgeNodeIntersections, pathIndex});
+        const std::size_t currentObstacleHits =
+          currentCost.edgeNodeIntersections
+          + currentCost.bundleEdgeIntersections;
+        if (currentObstacleHits == 0) continue;
+        order.push_back({currentObstacleHits, pathIndex});
       }
       std::sort(
         order.begin(),
@@ -10902,11 +10958,19 @@ bool applyRenderedCarrierMetricsIfRequested(
         RenderedCarrierMetricPath& path = renderedPaths[pathIndex];
         const RenderedPathVisualCost currentCost =
           renderedPathCost(renderedPaths, pathIndex, path.points);
-        if (currentCost.edgeNodeIntersections == 0) continue;
+        const std::size_t currentObstacleHits =
+          currentCost.edgeNodeIntersections
+          + currentCost.bundleEdgeIntersections;
+        if (currentObstacleHits == 0) continue;
 
         std::vector<RoutePoint> bestPoints = path.points;
         RenderedPathVisualCost bestCost = currentCost;
+        std::size_t bestGlobalObstacleExcess = obstacleExcess(
+          targetCounts.edgeNodeIntersections,
+          targetCounts.bundleEdgeIntersections);
         std::size_t bestGlobalEdgeNode = targetCounts.edgeNodeIntersections;
+        std::size_t bestGlobalBundleEdge =
+          targetCounts.bundleEdgeIntersections;
         std::size_t bestGlobalVisual =
           targetCounts.edgeCrossings
           + targetCounts.edgeNodeIntersections
@@ -10916,8 +10980,10 @@ bool applyRenderedCarrierMetricsIfRequested(
           if (candidate.size() != 2) return;
           const RenderedPathVisualCost candidateCost =
             renderedPathCost(renderedPaths, pathIndex, candidate);
-          if (candidateCost.edgeNodeIntersections
-              >= currentCost.edgeNodeIntersections) {
+          const std::size_t candidateObstacleHits =
+            candidateCost.edgeNodeIntersections
+            + candidateCost.bundleEdgeIntersections;
+          if (candidateObstacleHits >= currentObstacleHits) {
             return;
           }
           const std::size_t nextEdgeCrossings =
@@ -10935,13 +11001,17 @@ bool applyRenderedCarrierMetricsIfRequested(
           const std::size_t nextVisual =
             nextEdgeCrossings + nextEdgeNode + nextBundleEdge;
           if (nextVisual > visualTarget) return;
+          const std::size_t nextObstacleExcess = obstacleExcess(
+            nextEdgeNode, nextBundleEdge);
           if (
-              nextEdgeNode < bestGlobalEdgeNode
-              || (nextEdgeNode == bestGlobalEdgeNode
+              nextObstacleExcess < bestGlobalObstacleExcess
+              || (nextObstacleExcess == bestGlobalObstacleExcess
                   && nextVisual < bestGlobalVisual)) {
             bestPoints = candidate;
             bestCost = candidateCost;
+            bestGlobalObstacleExcess = nextObstacleExcess;
             bestGlobalEdgeNode = nextEdgeNode;
+            bestGlobalBundleEdge = nextBundleEdge;
             bestGlobalVisual = nextVisual;
           }
         };
@@ -10962,7 +11032,9 @@ bool applyRenderedCarrierMetricsIfRequested(
         }
 
         if (
-            bestGlobalEdgeNode < targetCounts.edgeNodeIntersections
+            bestGlobalObstacleExcess < obstacleExcess(
+              targetCounts.edgeNodeIntersections,
+              targetCounts.bundleEdgeIntersections)
             && (std::abs(bestPoints[0].x - path.points[0].x) >= 0.005
                 || std::abs(bestPoints[0].y - path.points[0].y) >= 0.005
                 || std::abs(bestPoints[1].x - path.points[1].x) >= 0.005
@@ -10972,10 +11044,7 @@ bool applyRenderedCarrierMetricsIfRequested(
             - currentCost.edgeCrossings
             + bestCost.edgeCrossings;
           targetCounts.edgeNodeIntersections = bestGlobalEdgeNode;
-          targetCounts.bundleEdgeIntersections =
-            targetCounts.bundleEdgeIntersections
-            - currentCost.bundleEdgeIntersections
-            + bestCost.bundleEdgeIntersections;
+          targetCounts.bundleEdgeIntersections = bestGlobalBundleEdge;
           path.points = std::move(bestPoints);
           ++movedThisRound;
           ++carrierNodeTargetMoves;
@@ -11000,14 +11069,14 @@ bool applyRenderedCarrierMetricsIfRequested(
       std::fprintf(stderr,
         "[rendered-carrier-node-target] moved=%zu straight carriers, "
         "visual=%zu -> %zu/%zu, edgeCross=%zu -> %zu, edgeNode=%zu -> %zu/%zu, "
-        "bundleEdge=%zu -> %zu.\n",
+        "bundleEdge=%zu -> %zu/%zu.\n",
         carrierNodeTargetMoves,
         beforeVisual, afterVisual, visualTarget,
         beforeTargetCounts.edgeCrossings, targetCounts.edgeCrossings,
         beforeTargetCounts.edgeNodeIntersections,
         targetCounts.edgeNodeIntersections, edgeNodeTarget,
         beforeTargetCounts.bundleEdgeIntersections,
-        targetCounts.bundleEdgeIntersections);
+        targetCounts.bundleEdgeIntersections, bundleEdgeTarget);
     }
   }
 
@@ -11108,7 +11177,7 @@ bool clearRenderedCarrierNodeIntersectionsIfRequested(
     "DJERD_RENDERED_CARRIER_NODE_CLEAR_BBOX_TARGET_B", 1.0, 0.0, 1000.0);
   const double bboxTolerance = readDoubleEnv(
     "DJERD_RENDERED_CARRIER_NODE_CLEAR_BBOX_TOLERANCE", 1.02, 1.0, 2.0);
-  constexpr double kCarrierNodeMargin = 8.0;
+  constexpr double kCarrierNodeMargin = 12.0;
 
   auto reroute = [&]() {
     routes = routeAllEdgesStraight(edges, attributes);
