@@ -428,6 +428,13 @@ export interface RoutedEdgePath {
   crossingIds: string[];
   edgeId: string;
   points: Point[];
+  /**
+   * Logical endpoints are emitted by the native layout and retained for
+   * position-only optimization. They remain optional so analyzer fixtures and
+   * older layout caches can still be decoded and enriched from structuralEdges.
+   */
+  sourceModelId?: ModelId;
+  targetModelId?: ModelId;
 }
 
 export interface EdgeCrossing {
@@ -498,9 +505,17 @@ export interface LayoutEngineMetadata {
   actualMode?: LayoutMode;
   aspectRatio?: number;
   boundingBoxArea?: number;
+  bundleBundleOverlaps?: number;
   bundleEdgeIntersections?: number;
   bundleNodeOverlaps?: number;
   canonicalCrossing?: CanonicalCrossingMetadata;
+  carrierBundleEdgeIntersections?: number;
+  carrierBundleNodeOverlaps?: number;
+  carrierEdgeCrossings?: number;
+  carrierEdgeNodeIntersections?: number;
+  carrierNodeOverlaps?: number;
+  carrierRouteSegments?: number;
+  carrierVisualCrossings?: number;
   edgeCrossings?: number;
   edgeLengthStddev?: number;
   edgeNodeIntersections?: number;
@@ -519,12 +534,21 @@ export interface LayoutEngineMetadata {
   overlappingEdges?: number;
   rawRouteCrossings?: number;
   renderedCarrierRoutes?: RenderedCarrierRoute[];
+  renderedEdgeCount?: number;
   requestedAlgorithm?: string;
   requestedMode?: LayoutMode;
   routeSegments?: number;
+  semanticCarrierBundledRelationships?: number;
+  semanticCarrierDisconnectedRelationships?: number;
+  semanticCarrierFallbackRelationships?: number;
+  semanticCarrierMissingRelationships?: number;
+  semanticCarrierObstacleIntersections?: number;
+  semanticCarrierRelationships?: number;
+  semanticCarrierSegments?: number;
   strategy?: string;
   strategyReason?: string;
   visualCrossings?: number;
+  visualCrossingsScope?: string;
   // ML evaluation signals (Gansner 2005 stress + distribution stats).
   // All metrics are dataset-agnostic — no per-graph thresholds.
   stressScore?: number;
