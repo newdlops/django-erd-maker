@@ -50,6 +50,8 @@ export function getBrowserControllerScript(nonce: string): string {
           const minimapCanvas = document.querySelector("[data-erd-minimap-canvas]");
           const minimapViewport = document.querySelector("[data-erd-minimap-viewport]");
           const panelHost = document.querySelector("[data-model-panel-host]");
+          const sidebarTabButtons = Array.from(document.querySelectorAll("[data-sidebar-tab]"));
+          const sidebarSheets = Array.from(document.querySelectorAll("[data-sidebar-sheet]"));
           const hiddenModelList = document.querySelector("[data-hidden-model-list]");
           const layoutButtons = Array.from(document.querySelectorAll("[data-layout-mode]"));
           const resetViewButtons = Array.from(document.querySelectorAll("[data-reset-view]"));
@@ -92,6 +94,8 @@ ${getBrowserStateSource()}
 ${getBrowserLayoutSource()}
         const renderModel = readEmbeddedJson(renderModelElement);
         const readEdgeMeta = (edge) => ({
+          carrierFamily: edge.carrierFamily || "",
+          carrierRole: edge.carrierRole || "",
           crossingIds: Array.isArray(edge.crossingIds) ? edge.crossingIds.slice() : [],
           cssKind: edge.cssKind || "",
           edgeId: edge.edgeId || "",
@@ -100,6 +104,12 @@ ${getBrowserLayoutSource()}
             : [],
           markerEndId: edge.markerEndId || "",
           markerStartId: edge.markerStartId || "",
+          memberEdgeIds: Array.isArray(edge.memberEdgeIds)
+            ? edge.memberEdgeIds.slice()
+            : [],
+          physicalEndpointModelIds: Array.isArray(edge.physicalEndpointModelIds)
+            ? edge.physicalEndpointModelIds.slice()
+            : [],
           points: edge.points || "",
           preserveRouteEndpoints: edge.preserveRouteEndpoints === true,
           provenance: edge.provenance || "",

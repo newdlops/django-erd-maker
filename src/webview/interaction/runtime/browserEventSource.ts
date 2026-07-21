@@ -77,6 +77,22 @@ export function getBrowserEventSource(): string {
           });
         }
 
+        for (const button of sidebarTabButtons) {
+          button.addEventListener("click", () => {
+            setSidebarSheet(button.dataset.sidebarTab || "model", false);
+          });
+          button.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+              return;
+            }
+            event.preventDefault();
+            const currentIndex = sidebarTabButtons.indexOf(button);
+            const direction = event.key === "ArrowRight" ? 1 : -1;
+            const nextIndex = (currentIndex + direction + sidebarTabButtons.length) % sidebarTabButtons.length;
+            setSidebarSheet(sidebarTabButtons[nextIndex]?.dataset.sidebarTab || "model", true);
+          });
+        }
+
         for (const button of layoutButtons) {
           button.addEventListener("click", () => {
             logErd("info", "event.layout.click", {
@@ -118,22 +134,6 @@ export function getBrowserEventSource(): string {
               viewState: createRefreshViewStateSnapshot(state),
               type: "diagram.requestRefresh",
             });
-          });
-        }
-
-        for (const button of document.querySelectorAll("[data-edge-bundle-toggle]")) {
-          if (state.edgeBundling) {
-            button.classList.add("is-active");
-          }
-          button.addEventListener("click", () => {
-            state.edgeBundling = !state.edgeBundling;
-            button.classList.toggle("is-active", state.edgeBundling);
-            logErd("info", "event.edge.bundle.toggle", {
-              enabled: state.edgeBundling,
-              renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
-            });
-            invalidateSceneGraph();
-            applyState();
           });
         }
 

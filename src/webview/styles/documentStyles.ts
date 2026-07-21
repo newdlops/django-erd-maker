@@ -96,6 +96,50 @@ export function getDocumentStyles(): string {
       padding: 20px;
       max-height: calc(100dvh - 36px);
       overflow: auto;
+      overflow-x: hidden;
+    }
+
+    .erd-sidebar__tabs {
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid rgba(122, 163, 177, 0.18);
+      border-radius: 16px;
+      background: rgba(7, 18, 28, 0.96);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+    }
+
+    .erd-sidebar__tab {
+      min-width: 0;
+      padding: 9px 10px;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      overflow-wrap: anywhere;
+    }
+
+    .erd-sidebar__tab.is-active {
+      border-color: rgba(109, 208, 176, 0.34);
+      background: rgba(22, 56, 67, 0.92);
+      color: var(--text);
+    }
+
+    .erd-sidebar__tab:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .erd-sidebar__sheet {
+      display: grid;
+      align-content: start;
+      gap: 16px;
+      min-width: 0;
     }
 
     .erd-summary__eyebrow,

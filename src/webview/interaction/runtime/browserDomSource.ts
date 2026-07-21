@@ -42,8 +42,27 @@ export function getBrowserDomSource(): string {
           };
         }
 
+        function setSidebarSheet(sheetId, focusTab) {
+          if (!sidebarSheets.some((sheet) => sheet.dataset.sidebarSheet === sheetId)) {
+            return;
+          }
+
+          for (const button of sidebarTabButtons) {
+            const active = button.dataset.sidebarTab === sheetId;
+            button.classList.toggle("is-active", active);
+            button.setAttribute("aria-selected", String(active));
+            button.tabIndex = active ? 0 : -1;
+            if (active && focusTab) {
+              button.focus();
+            }
+          }
+          for (const sheet of sidebarSheets) {
+            sheet.hidden = sheet.dataset.sidebarSheet !== sheetId;
+          }
+        }
+
         function getSelectedPanelModelId() {
-          return state.selectedModelId || (tableMetaList[0] && tableMetaList[0].modelId) || "";
+          return state.selectedModelId || "";
         }
 
         function renderInspectorToggleButton(table, toggle, label, options) {
@@ -139,6 +158,18 @@ export function getBrowserDomSource(): string {
         }
 
         function renderInspectorPanelMarkup(modelId) {
+          if (!modelId) {
+            return (
+              '<section class="erd-panel erd-panel--empty" data-model-panel>' +
+              '<header class="erd-panel__header">' +
+              '<p class="erd-panel__eyebrow">No Selection</p>' +
+              "<h2>Select a model</h2>" +
+              '<p class="erd-panel__meta">Click a node in the diagram to inspect its model details.</p>' +
+              "</header>" +
+              "</section>"
+            );
+          }
+
           const table = tableRenderById.get(modelId);
           if (!table) {
             return (

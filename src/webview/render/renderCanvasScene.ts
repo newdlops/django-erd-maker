@@ -48,7 +48,6 @@ export function renderCanvasScene(viewModel: DiagramRenderModel, appVersion: str
           ).join("")}
         </div>
         <div class="erd-toolbar-group">
-          <button type="button" class="erd-tool" data-edge-bundle-toggle title="Bundle edges between distinct table groups (curved Bezier paths)">Bundle</button>
           <button type="button" class="erd-tool" data-cluster-collapse-toggle title="Collapse clusters into super-nodes; aggregate edges between clusters">Collapse</button>
           <button type="button" class="erd-tool" data-cluster-graph-toggle title="Cluster-graph layout: per-cluster radial inner (root + leaf/internal/bridge rings) with super-graph cross-min. Connectors are pulled out of clusters and placed on inter-cluster edges.">ClusterGraph</button>
           <button type="button" class="erd-tool" data-bubble-toggle title="Bubble layout: each cluster forms a circular bubble with root at centre and ALL members (leaves, wings, internals, bridges) packed in concentric rings (full 360°). Bubbles may overlap based on inter-cluster connectivity.">Bubble</button>

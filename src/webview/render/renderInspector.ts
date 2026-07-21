@@ -16,52 +16,42 @@ export function renderInspector(
 
   return `
     <aside class="erd-sidebar">
-      <section class="erd-summary">
-        <p class="erd-summary__eyebrow">Mock Diagram</p>
-        <h1 class="erd-summary__title">Django ERD</h1>
-        <p class="erd-summary__meta">${viewModel.tables.length} tables · ${viewModel.edges.length} structural edges · ${viewModel.overlays.length} method links</p>
-        <p class="erd-summary__meta">
-          Layout: <span data-layout-readout>${escapeHtml(layoutLabel)}</span>
-          · <span data-hidden-count>${viewModel.tables.filter((table) => table.hidden).length}</span> hidden
-          · ${viewModel.crossings.length} crossings
-        </p>
-        ${renderCrossingReadouts(viewModel)}
-        ${layoutExecution.status === "fallback"
-          ? `
-            <p class="erd-summary__meta">
-              Requested ${escapeHtml(layoutExecution.requestedLabel)}
-              · Applied ${escapeHtml(layoutExecution.appliedLabel)}
-              · Fallback active
-            </p>
-            ${
-              layoutExecution.reason
-                ? `<p class="erd-summary__meta">${escapeHtml(layoutExecution.reason)}</p>`
-                : ""
-            }
-          `
-          : layoutExecution.status === "quality-degraded"
-            ? `
-              <p class="erd-summary__meta">
-                Optimized layout applied · Quality target missed
-              </p>
-              ${
-                layoutExecution.reason
-                  ? `<p class="erd-summary__meta">${escapeHtml(layoutExecution.reason)}</p>`
-                  : ""
-              }
-            `
-            : ""}
-        ${viewModel.modelCatalogMode ? "<p class=\"erd-summary__meta\">Model catalog mode: model and DB table names only.</p>" : ""}
-        ${renderTimingSummary(viewModel)}
+      <nav class="erd-sidebar__tabs" role="tablist" aria-label="Inspector views">
+        <button id="erd-sidebar-tab-model" class="erd-sidebar__tab is-active" type="button" role="tab" aria-controls="erd-sidebar-sheet-model" aria-selected="true" data-sidebar-tab="model">Model</button>
+        <button id="erd-sidebar-tab-diagram" class="erd-sidebar__tab" type="button" role="tab" aria-controls="erd-sidebar-sheet-diagram" aria-selected="false" tabindex="-1" data-sidebar-tab="diagram">Diagram</button>
+      </nav>
+      <section id="erd-sidebar-sheet-model" class="erd-sidebar__sheet" role="tabpanel" aria-labelledby="erd-sidebar-tab-model" data-sidebar-sheet="model">
+        <section class="erd-inspector" data-model-panel-host>
+          ${renderInitialModelPanel(viewModel)}
+        </section>
       </section>
-      ${renderLayoutFailures(viewModel)}
-      ${renderSetupSection(initialState)}
-      <section class="erd-inspector" data-model-panel-host>
-        ${renderInitialModelPanel(viewModel)}
+      <section id="erd-sidebar-sheet-diagram" class="erd-sidebar__sheet" role="tabpanel" aria-labelledby="erd-sidebar-tab-diagram" data-sidebar-sheet="diagram" hidden>
+        <section class="erd-summary">
+          <p class="erd-summary__eyebrow">Diagram</p>
+          <h1 class="erd-summary__title">Django ERD</h1>
+          <p class="erd-summary__meta">${viewModel.tables.length} tables · ${viewModel.edges.length} structural edges · ${viewModel.overlays.length} method links</p>
+          <p class="erd-summary__meta">
+            Layout: <span data-layout-readout>${escapeHtml(layoutLabel)}</span>
+            · <span data-hidden-count>${viewModel.tables.filter((table) => table.hidden).length}</span> hidden
+            · ${viewModel.crossings.length} crossings
+          </p>
+          ${renderCrossingReadouts(viewModel)}
+          ${layoutExecution.status === "fallback" ? `
+              <p class="erd-summary__meta">Requested ${escapeHtml(layoutExecution.requestedLabel)} · Applied ${escapeHtml(layoutExecution.appliedLabel)} · Fallback active</p>
+              ${layoutExecution.reason ? `<p class="erd-summary__meta">${escapeHtml(layoutExecution.reason)}</p>` : ""}
+            ` : layoutExecution.status === "quality-degraded" ? `
+              <p class="erd-summary__meta">Optimized layout applied · Quality target missed</p>
+              ${layoutExecution.reason ? `<p class="erd-summary__meta">${escapeHtml(layoutExecution.reason)}</p>` : ""}
+            ` : ""}
+          ${viewModel.modelCatalogMode ? "<p class=\"erd-summary__meta\">Model catalog mode: model and DB table names only.</p>" : ""}
+          ${renderTimingSummary(viewModel)}
+        </section>
+        ${renderLayoutFailures(viewModel)}
+        ${renderSetupSection(initialState)}
+        ${renderHiddenTables(viewModel)}
+        ${renderDiscovery(viewModel)}
+        ${renderDiagnostics(viewModel)}
       </section>
-      ${renderHiddenTables(viewModel)}
-      ${renderDiscovery(viewModel)}
-      ${renderDiagnostics(viewModel)}
     </aside>
   `;
 }
@@ -291,17 +281,16 @@ function renderHiddenTables(viewModel: DiagramRenderModel): string {
 }
 
 function renderInitialModelPanel(viewModel: DiagramRenderModel): string {
-  const selectedTable =
-    viewModel.tables.find((table) => table.selected) ??
-    viewModel.tables[0];
+  const selectedTable = viewModel.tables.find((table) => table.selected);
 
   if (!selectedTable) {
+    const hasModels = viewModel.tables.length > 0;
     return `
-      <section class="erd-panel" data-model-panel hidden>
+      <section class="erd-panel erd-panel--empty" data-model-panel>
         <header class="erd-panel__header">
           <p class="erd-panel__eyebrow">No Selection</p>
-          <h2>No models available</h2>
-          <p class="erd-panel__meta">The current diagram has no visible models.</p>
+          <h2>${hasModels ? "Select a model" : "No models available"}</h2>
+          <p class="erd-panel__meta">${hasModels ? "Click a node in the diagram to inspect its model details." : "The current diagram has no models."}</p>
         </header>
       </section>
     `;

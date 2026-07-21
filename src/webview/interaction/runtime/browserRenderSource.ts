@@ -67,6 +67,13 @@ export function getBrowserRenderSource(): string {
         function dispatch(action) {
           state = reduceState(state, action);
           if (
+            action.type === "select-model" ||
+            action.type === "focus-model" ||
+            action.type === "toggle-method"
+          ) {
+            setSidebarSheet("model", false);
+          }
+          if (
             action.type === "set-viewport-pan" ||
             action.type === "set-viewport-zoom" ||
             action.type === "fit-viewport" ||
