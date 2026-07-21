@@ -10,10 +10,6 @@ export function getBrowserCanvasDrawSource(): string {
         const GPU_DENSE_LABEL_ZOOM = 0.42;
         const GPU_DENSE_LABEL_TABLE_LIMIT = 520;
         const GPU_EDGE_TABLE_CLEARANCE = 10;
-        const GPU_EDGE_DETOUR_GAP = 4;
-        const GPU_EDGE_DETOUR_MAX_STEPS = 96;
-        const GPU_EDGE_VISIBILITY_MAX_EXPANSIONS = 2048;
-        const GPU_EDGE_VISIBILITY_MAX_DISCOVERY_STEPS = 512;
         const GPU_CLUSTER_OUTLINE_MAX_AREA_RATIO = 14;
         const GPU_MIN_LABEL_FONT_SIZE = 9;
         const RENDER_FRAME_SAMPLE_MS = 1000;
@@ -616,10 +612,6 @@ export function getBrowserCanvasDrawSource(): string {
 
           const startedAt = performance.now();
           const nextScene = {
-            avoidedBundlePenetrations: 0,
-            avoidedNodePenetrations: 0,
-            avoidedTablePenetrations: 0,
-            detouredEdges: 0,
             edgeBuckets: new Map(),
             edgeSegments: [],
             leafBundleBuckets: new Map(),
@@ -629,9 +621,11 @@ export function getBrowserCanvasDrawSource(): string {
             tableBuckets: new Map(),
             tables: [],
             tablesById: new Map(),
-            unresolvedRouteEdges: [],
-            unresolvedRoutePenetrations: 0,
-            visibilityFallbackEdges: 0,
+            straightBundlePenetrations: 0,
+            straightCollisionEdges: 0,
+            straightCollisionSamples: [],
+            straightNodePenetrations: 0,
+            straightTablePenetrations: 0,
           };
 
           const leafTilesRaw = (renderModel.bundleLeafTiles || []);
@@ -730,62 +724,6 @@ export function getBrowserCanvasDrawSource(): string {
           }
           buildClusterOutlineRecords(nextScene);
 
-          const bundlingEnabled = Boolean(state.edgeBundling) && !renderModel.modelCatalogMode && !collapseEnabled;
-          let bundleAppCenters = null;
-          let bundleSpatial = null;
-          if (bundlingEnabled) {
-            bundleAppCenters = computeAppClusterCenters(visibleEdgeEntries);
-            const distinctApps = new Set();
-            for (const entry of visibleEdgeEntries) {
-              if (entry.sourceTable && entry.sourceTable.appLabel) {
-                distinctApps.add(entry.sourceTable.appLabel);
-              }
-            }
-            if (distinctApps.size < 3) {
-              bundleSpatial = computeSpatialClusterContext(visibleEdgeEntries);
-            }
-          }
-
-          function buildEdgePathWithBundle(entry) {
-            const fallbackPath = getStaticOrLiveEdgePath(entry);
-            if (!bundlingEnabled || !entry.sourceTable || !entry.targetTable) {
-              return fallbackPath;
-            }
-            const sourceLabel = entry.sourceTable.appLabel || "";
-            const targetLabel = entry.targetTable.appLabel || "";
-            if (bundleAppCenters && sourceLabel && targetLabel && sourceLabel !== targetLabel) {
-              const sourceCluster = bundleAppCenters.get(sourceLabel);
-              const targetCluster = bundleAppCenters.get(targetLabel);
-              if (sourceCluster && targetCluster) {
-                return buildBundledPath(
-                  entry.sourcePosition,
-                  entry.sourceTable,
-                  entry.targetPosition,
-                  entry.targetTable,
-                  sourceCluster,
-                  targetCluster,
-                  0.85,
-                );
-              }
-            }
-            if (bundleSpatial) {
-              const sourceCellKey = bundleSpatial.cellKey(entry.sourcePosition, entry.sourceTable);
-              const targetCellKey = bundleSpatial.cellKey(entry.targetPosition, entry.targetTable);
-              if (sourceCellKey !== targetCellKey) {
-                return buildBundledPath(
-                  entry.sourcePosition,
-                  entry.sourceTable,
-                  entry.targetPosition,
-                  entry.targetTable,
-                  bundleSpatial.cellCenter(sourceCellKey),
-                  bundleSpatial.cellCenter(targetCellKey),
-                  0.7,
-                );
-              }
-            }
-            return fallbackPath;
-          }
-
           if (collapseEnabled && collapsedAggregates) {
             renderedEdges = collapsedAggregates.superEdges.map((edge) => ({
               edgeId: edge.edgeId,
@@ -798,66 +736,54 @@ export function getBrowserCanvasDrawSource(): string {
               : visibleEdgeEntries.map((entry) => ({
                   edgeId: entry.meta.edgeId,
                   meta: entry.meta,
-                  points: buildEdgePathWithBundle(entry),
+                  points: getStaticOrLiveEdgePath(entry),
                 }));
           }
 
           for (const edge of renderedEdges) {
-            const routed = routeEdgePathAroundTables(
+            const straight = createStraightEdgePath(
               edge.points,
               edge.meta,
               nextScene,
             );
-            nextScene.avoidedTablePenetrations += routed.initialCollisions.length;
-            nextScene.avoidedBundlePenetrations += routed.initialCollisions.filter(
+            nextScene.straightTablePenetrations += straight.collisions.length;
+            nextScene.straightBundlePenetrations += straight.collisions.filter(
               (collision) => isSyntheticBundleModelId(collision.table.modelId),
             ).length;
-            nextScene.avoidedNodePenetrations += routed.initialCollisions.filter(
+            nextScene.straightNodePenetrations += straight.collisions.filter(
               (collision) => !isSyntheticBundleModelId(collision.table.modelId),
             ).length;
-            nextScene.unresolvedRoutePenetrations += routed.unresolvedCollisions.length;
-            if (routed.usedVisibilityFallback) {
-              nextScene.visibilityFallbackEdges += 1;
-            }
             if (
-              routed.unresolvedCollisions.length > 0
-              && nextScene.unresolvedRouteEdges.length < 24
+              straight.collisions.length > 0
+              && nextScene.straightCollisionSamples.length < 24
             ) {
-              nextScene.unresolvedRouteEdges.push({
+              nextScene.straightCollisionSamples.push({
                 edgeId: edge.edgeId,
-                endPoint: edge.points[edge.points.length - 1],
+                endPoint: straight.points[straight.points.length - 1],
                 sourceModelId: edge.meta && edge.meta.sourceModelId,
-                startPoint: edge.points[0],
+                startPoint: straight.points[0],
                 targetModelId: edge.meta && edge.meta.targetModelId,
-                tableModelIds: [...new Set(routed.unresolvedCollisions.map(
+                tableModelIds: [...new Set(straight.collisions.map(
                   (collision) => collision.table.modelId,
                 ))],
-                collisions: routed.unresolvedCollisions.slice(0, 12).map((collision) => {
-                  const segmentStart = routed.points[collision.segmentIndex];
-                  const segmentEnd = routed.points[collision.segmentIndex + 1];
+                collisions: straight.collisions.slice(0, 12).map((collision) => {
+                  const segmentStart = straight.points[collision.segmentIndex];
+                  const segmentEnd = straight.points[collision.segmentIndex + 1];
                   return {
                     intervalEnd: round2(collision.interval.end),
                     intervalStart: round2(collision.interval.start),
                     modelId: collision.table.modelId,
                     segmentEnd,
-                    segmentEndInside: isPointInsideRoutingTable(
-                      segmentEnd,
-                      collision.table,
-                    ),
                     segmentIndex: collision.segmentIndex,
                     segmentStart,
-                    segmentStartInside: isPointInsideRoutingTable(
-                      segmentStart,
-                      collision.table,
-                    ),
                   };
                 }),
               });
             }
-            if (routed.initialCollisions.length > 0) {
-              nextScene.detouredEdges += 1;
+            if (straight.collisions.length > 0) {
+              nextScene.straightCollisionEdges += 1;
             }
-            edge.points = routed.points;
+            edge.points = straight.points;
 
             for (const visibleSegment of findSegments(edge.points)) {
               const segmentIndex = nextScene.edgeSegments.length;
@@ -883,19 +809,18 @@ export function getBrowserCanvasDrawSource(): string {
           renderedCrossings = [];
           sceneGraph = nextScene;
           logErdDuration("info", "scene.graph.built", startedAt, {
-            avoidedBundlePenetrations: nextScene.avoidedBundlePenetrations,
-            avoidedNodePenetrations: nextScene.avoidedNodePenetrations,
-            avoidedTablePenetrations: nextScene.avoidedTablePenetrations,
+            bendPolicy: "straight-only",
             clusterOutlineRecords: nextScene.leafBundles.length,
-            detouredEdges: nextScene.detouredEdges,
             edgeSegments: nextScene.edgeSegments.length,
             leafBundleRecords: nextScene.leafBundles.length,
             leafBundlesInPayload: (renderModel.leafBundles || []).length,
             renderer: gpuRenderer ? gpuRenderer.backend : "unknown",
+            straightBundlePenetrations: nextScene.straightBundlePenetrations,
+            straightCollisionEdges: nextScene.straightCollisionEdges,
+            straightCollisionSamples: nextScene.straightCollisionSamples,
+            straightNodePenetrations: nextScene.straightNodePenetrations,
+            straightTablePenetrations: nextScene.straightTablePenetrations,
             tables: nextScene.tables.length,
-            unresolvedRouteEdges: nextScene.unresolvedRouteEdges,
-            unresolvedRoutePenetrations: nextScene.unresolvedRoutePenetrations,
-            visibilityFallbackEdges: nextScene.visibilityFallbackEdges,
           });
           return sceneGraph;
         }
@@ -990,9 +915,9 @@ export function getBrowserCanvasDrawSource(): string {
         }
 
         function isEdgeEndpointTable(meta, modelId) {
-          const endpointIds = Array.isArray(meta.logicalEndpointModelIds)
-            && meta.logicalEndpointModelIds.length > 0
-            ? meta.logicalEndpointModelIds
+          const endpointIds = Array.isArray(meta.physicalEndpointModelIds)
+            && meta.physicalEndpointModelIds.length > 0
+            ? meta.physicalEndpointModelIds
             : [meta.sourceModelId, meta.targetModelId];
           if (
             modelId === meta.sourceModelId
@@ -1031,7 +956,7 @@ export function getBrowserCanvasDrawSource(): string {
                   table.width,
                   table.height,
                   bounds,
-                  GPU_EDGE_TABLE_CLEARANCE + GPU_EDGE_DETOUR_GAP,
+                  GPU_EDGE_TABLE_CLEARANCE,
                 )
               ) {
                 recordsById.set(table.modelId, table);
@@ -1084,545 +1009,36 @@ export function getBrowserCanvasDrawSource(): string {
           );
         }
 
-        function routeEdgePathAroundTables(rawPoints, meta, scene, overrideById) {
-          let points = normalizePoints(rawPoints || []);
-          const initialCollisions = collectEdgePathCollisions(
-            points,
-            meta,
-            scene,
-            overrideById,
-          );
-          let unresolvedCollisions = initialCollisions;
-          if (initialCollisions.length === 0) {
-            return {
-              initialCollisions,
-              points,
-              unresolvedCollisions: [],
-              usedVisibilityFallback: false,
-            };
-          }
-
-          // A native endpoint can be valid on its own table boundary while
-          // still landing inside a tightly adjacent table's clearance box.
-          // Such a fixed endpoint makes a collision-free path mathematically
-          // impossible. Move only that endpoint to a free port on the same
-          // rendered table and add a short outward escape segment before the
-          // general obstacle search.
-          points = repairCollidingEndpointPorts(
-            points,
-            meta,
-            scene,
-            overrideById,
-          );
-          const seenRoutes = new Set([edgeRouteSignature(points)]);
-          unresolvedCollisions = collectEdgePathCollisions(
-            points,
-            meta,
-            scene,
-            overrideById,
-          );
-          for (
-            let step = 0;
-            step < GPU_EDGE_DETOUR_MAX_STEPS && unresolvedCollisions.length > 0;
-            step += 1
+        function createStraightEdgePath(rawPoints, meta, scene, overrideById) {
+          const normalized = normalizePoints(rawPoints || []);
+          let points = normalized.length > 2
+            ? [normalized[0], normalized[normalized.length - 1]]
+            : normalized;
+          if (
+            points.length < 2
+            && meta
+            && meta.sourceModelId === meta.targetModelId
           ) {
-            const collision = unresolvedCollisions[0];
-            const start = points[collision.segmentIndex];
-            const end = points[collision.segmentIndex + 1];
-            let best = null;
-
-            for (const detour of createTableDetourCandidates(collision.table)) {
-              const replacement = normalizePoints([start, ...detour, end]);
-              if (pathIntersectsRoutingTable(replacement, collision.table)) {
-                continue;
-              }
-              const candidatePoints = normalizePoints([
-                ...points.slice(0, collision.segmentIndex),
-                ...replacement,
-                ...points.slice(collision.segmentIndex + 2),
-              ]);
-              const signature = edgeRouteSignature(candidatePoints);
-              if (seenRoutes.has(signature)) {
-                continue;
-              }
-              const candidateCollisions = collectEdgePathCollisions(
-                candidatePoints,
-                meta,
-                scene,
-                overrideById,
-              );
-              const score = candidateCollisions.length * 1_000_000_000
-                + edgeRouteLength(candidatePoints)
-                + candidatePoints.length * 12;
-              if (!best || score < best.score) {
-                best = {
-                  collisions: candidateCollisions,
-                  points: candidatePoints,
-                  score,
-                  signature,
-                };
-              }
+            const table = overrideById && overrideById.get(meta.sourceModelId)
+              || scene.tablesById.get(meta.sourceModelId);
+            if (table) {
+              const inset = Math.min(24, Math.max(8, table.height * 0.2));
+              const x = round2(table.x + table.width);
+              points = [
+                { x, y: round2(table.y + inset) },
+                { x, y: round2(table.y + table.height - inset) },
+              ];
             }
-
-            if (!best) {
-              break;
-            }
-            points = best.points;
-            unresolvedCollisions = best.collisions;
-            seenRoutes.add(best.signature);
-          }
-
-          if (unresolvedCollisions.length === 0) {
-            points = simplifyCollisionFreeRoute(points, meta, scene, overrideById);
-            return {
-              initialCollisions,
-              points,
-              unresolvedCollisions,
-              usedVisibilityFallback: false,
-            };
-          }
-
-          const visibilityRoute = routeCollisionFreeVisibilityPath(
-            points,
-            meta,
-            scene,
-            overrideById,
-          );
-          if (visibilityRoute) {
-            points = simplifyCollisionFreeRoute(
-              visibilityRoute,
-              meta,
-              scene,
-              overrideById,
-            );
-            unresolvedCollisions = collectEdgePathCollisions(
-              points,
-              meta,
-              scene,
-              overrideById,
-            );
           }
           return {
-            initialCollisions,
+            collisions: collectEdgePathCollisions(
+              points,
+              meta,
+              scene,
+              overrideById,
+            ),
             points,
-            unresolvedCollisions,
-            usedVisibilityFallback: Boolean(visibilityRoute)
-              && unresolvedCollisions.length === 0,
           };
-        }
-
-        function repairCollidingEndpointPorts(
-          rawPoints,
-          meta,
-          scene,
-          overrideById,
-        ) {
-          let points = normalizePoints(rawPoints);
-          points = repairCollidingEndpointPort(
-            points,
-            "source",
-            meta,
-            scene,
-            overrideById,
-          );
-          points = repairCollidingEndpointPort(
-            points,
-            "target",
-            meta,
-            scene,
-            overrideById,
-          );
-          return points;
-        }
-
-        function repairCollidingEndpointPort(
-          points,
-          endpoint,
-          meta,
-          scene,
-          overrideById,
-        ) {
-          if (points.length < 2) {
-            return points;
-          }
-          const endpointTableId = endpoint === "source"
-            ? meta.sourceModelId
-            : meta.targetModelId;
-          const endpointTable = overrideById && overrideById.get(endpointTableId)
-            || scene.tablesById.get(endpointTableId);
-          if (!endpointTable) {
-            return points;
-          }
-
-          const collisions = collectEdgePathCollisions(
-            points,
-            meta,
-            scene,
-            overrideById,
-          );
-          if (countEndpointCollisions(collisions, points.length, endpoint) === 0) {
-            return points;
-          }
-
-          let best = null;
-          for (const portCandidate of createEndpointPortCandidates(endpointTable)) {
-            const candidatePoints = endpoint === "source"
-              ? normalizePoints([
-                  portCandidate.port,
-                  portCandidate.escape,
-                  ...points.slice(1),
-                ])
-              : normalizePoints([
-                  ...points.slice(0, -1),
-                  portCandidate.escape,
-                  portCandidate.port,
-                ]);
-            const candidateCollisions = collectEdgePathCollisions(
-              candidatePoints,
-              meta,
-              scene,
-              overrideById,
-            );
-            const endpointCollisionCount = countEndpointCollisions(
-              candidateCollisions,
-              candidatePoints.length,
-              endpoint,
-            );
-            const score = endpointCollisionCount * 1_000_000_000_000
-              + candidateCollisions.length * 1_000_000_000
-              + edgeRouteLength(candidatePoints)
-              + edgePointDistance(
-                endpoint === "source" ? points[0] : points[points.length - 1],
-                portCandidate.port,
-              );
-            if (!best || score < best.score) {
-              best = {
-                collisions: candidateCollisions,
-                endpointCollisionCount,
-                points: candidatePoints,
-                score,
-              };
-            }
-          }
-
-          const currentEndpointCollisionCount = countEndpointCollisions(
-            collisions,
-            points.length,
-            endpoint,
-          );
-          return best && (
-            best.endpointCollisionCount < currentEndpointCollisionCount
-            || (
-              best.endpointCollisionCount === currentEndpointCollisionCount
-              && best.collisions.length < collisions.length
-            )
-          )
-            ? best.points
-            : points;
-        }
-
-        function countEndpointCollisions(collisions, pointCount, endpoint) {
-          const endpointSegmentIndex = endpoint === "source"
-            ? 0
-            : pointCount - 2;
-          return collisions.filter((collision) =>
-            collision.segmentIndex === endpointSegmentIndex
-            && (
-              endpoint === "source"
-                ? collision.interval.start <= 0.000001
-                : collision.interval.end >= 0.999999
-            )
-          ).length;
-        }
-
-        function createEndpointPortCandidates(table) {
-          const escapeDistance = GPU_EDGE_TABLE_CLEARANCE + GPU_EDGE_DETOUR_GAP;
-          const sampleCount = 16;
-          const candidatesByKey = new Map();
-          function add(port, normal) {
-            const roundedPort = { x: round2(port.x), y: round2(port.y) };
-            const escape = {
-              x: round2(roundedPort.x + normal.x * escapeDistance),
-              y: round2(roundedPort.y + normal.y * escapeDistance),
-            };
-            candidatesByKey.set(
-              edgeRoutePointKey(roundedPort) + ":" + edgeRoutePointKey(escape),
-              { escape, port: roundedPort },
-            );
-          }
-          for (let index = 0; index <= sampleCount; index += 1) {
-            const fraction = index / sampleCount;
-            const x = table.x + table.width * fraction;
-            const y = table.y + table.height * fraction;
-            add({ x, y: table.y }, { x: 0, y: -1 });
-            add({ x, y: table.y + table.height }, { x: 0, y: 1 });
-            add({ x: table.x, y }, { x: -1, y: 0 });
-            add({ x: table.x + table.width, y }, { x: 1, y: 0 });
-          }
-          return [...candidatesByKey.values()];
-        }
-
-        function routeCollisionFreeVisibilityPath(
-          rawPoints,
-          meta,
-          scene,
-          overrideById,
-        ) {
-          const originalPoints = normalizePoints(rawPoints || []);
-          if (originalPoints.length < 2) {
-            return null;
-          }
-          const start = originalPoints[0];
-          const goal = originalPoints[originalPoints.length - 1];
-          const startKey = edgeRoutePointKey(start);
-          const goalKey = edgeRoutePointKey(goal);
-          if (startKey === goalKey) {
-            return originalPoints;
-          }
-
-          const bestCostByKey = new Map([[startKey, 0]]);
-          const parentByKey = new Map();
-          const pointByKey = new Map([[startKey, start], [goalKey, goal]]);
-          const frontier = [{
-            cost: 0,
-            estimate: edgePointDistance(start, goal),
-            key: startKey,
-            point: start,
-          }];
-          let expansions = 0;
-
-          while (
-            frontier.length > 0
-            && expansions < GPU_EDGE_VISIBILITY_MAX_EXPANSIONS
-          ) {
-            let bestIndex = 0;
-            for (let index = 1; index < frontier.length; index += 1) {
-              if (
-                frontier[index].estimate < frontier[bestIndex].estimate
-                || (
-                  frontier[index].estimate === frontier[bestIndex].estimate
-                  && frontier[index].cost < frontier[bestIndex].cost
-                )
-              ) {
-                bestIndex = index;
-              }
-            }
-            const current = frontier.splice(bestIndex, 1)[0];
-            if (current.cost > (bestCostByKey.get(current.key) ?? Infinity) + 0.001) {
-              continue;
-            }
-            expansions += 1;
-
-            if (isCollisionFreeRoutingSegment(
-              current.point,
-              goal,
-              meta,
-              scene,
-              overrideById,
-            )) {
-              parentByKey.set(goalKey, current.key);
-              return reconstructVisibilityRoute(
-                goalKey,
-                parentByKey,
-                pointByKey,
-              );
-            }
-
-            const neighbors = discoverVisibleDetourPoints(
-              current.point,
-              goal,
-              meta,
-              scene,
-              overrideById,
-            );
-            for (const neighbor of neighbors) {
-              const neighborKey = edgeRoutePointKey(neighbor);
-              if (neighborKey === current.key || neighborKey === goalKey) {
-                continue;
-              }
-              const nextCost = current.cost + edgePointDistance(current.point, neighbor);
-              if (nextCost + 0.001 >= (bestCostByKey.get(neighborKey) ?? Infinity)) {
-                continue;
-              }
-              bestCostByKey.set(neighborKey, nextCost);
-              parentByKey.set(neighborKey, current.key);
-              pointByKey.set(neighborKey, neighbor);
-              frontier.push({
-                cost: nextCost,
-                estimate: nextCost + edgePointDistance(neighbor, goal),
-                key: neighborKey,
-                point: neighbor,
-              });
-            }
-          }
-          return null;
-        }
-
-        function discoverVisibleDetourPoints(
-          origin,
-          goal,
-          meta,
-          scene,
-          overrideById,
-        ) {
-          const originKey = edgeRoutePointKey(origin);
-          const pending = [goal];
-          const pendingKeys = new Set([edgeRoutePointKey(goal)]);
-          const inspectedKeys = new Set();
-          const visibleByKey = new Map();
-          let discoverySteps = 0;
-
-          while (
-            pending.length > 0
-            && discoverySteps < GPU_EDGE_VISIBILITY_MAX_DISCOVERY_STEPS
-          ) {
-            const target = pending.shift();
-            const targetKey = edgeRoutePointKey(target);
-            pendingKeys.delete(targetKey);
-            if (targetKey === originKey || inspectedKeys.has(targetKey)) {
-              continue;
-            }
-            inspectedKeys.add(targetKey);
-            discoverySteps += 1;
-
-            const collisions = collectEdgePathCollisions(
-              [origin, target],
-              meta,
-              scene,
-              overrideById,
-            );
-            if (collisions.length === 0) {
-              visibleByKey.set(targetKey, target);
-              continue;
-            }
-
-            for (const corner of createTableDetourCornerPoints(collisions[0].table)) {
-              const cornerKey = edgeRoutePointKey(corner);
-              if (
-                cornerKey === originKey
-                || inspectedKeys.has(cornerKey)
-                || pendingKeys.has(cornerKey)
-              ) {
-                continue;
-              }
-              pending.push(corner);
-              pendingKeys.add(cornerKey);
-            }
-          }
-          return [...visibleByKey.values()];
-        }
-
-        function isCollisionFreeRoutingSegment(start, end, meta, scene, overrideById) {
-          return collectEdgePathCollisions(
-            [start, end],
-            meta,
-            scene,
-            overrideById,
-          ).length === 0;
-        }
-
-        function reconstructVisibilityRoute(goalKey, parentByKey, pointByKey) {
-          const reversed = [];
-          const seen = new Set();
-          let key = goalKey;
-          while (key && !seen.has(key)) {
-            seen.add(key);
-            const point = pointByKey.get(key);
-            if (!point) {
-              return null;
-            }
-            reversed.push(point);
-            key = parentByKey.get(key);
-          }
-          return normalizePoints(reversed.reverse());
-        }
-
-        function edgePointDistance(start, end) {
-          return Math.hypot(end.x - start.x, end.y - start.y);
-        }
-
-        function edgeRoutePointKey(point) {
-          return round2(point.x) + "," + round2(point.y);
-        }
-
-        function createTableDetourCandidates(table) {
-          const [topLeft, topRight, bottomRight, bottomLeft] =
-            createTableDetourCornerPoints(table);
-          return [
-            [topLeft],
-            [topRight],
-            [bottomRight],
-            [bottomLeft],
-            [topLeft, topRight],
-            [topRight, topLeft],
-            [topRight, bottomRight],
-            [bottomRight, topRight],
-            [bottomRight, bottomLeft],
-            [bottomLeft, bottomRight],
-            [bottomLeft, topLeft],
-            [topLeft, bottomLeft],
-          ];
-        }
-
-        function createTableDetourCornerPoints(table) {
-          const gap = GPU_EDGE_TABLE_CLEARANCE + GPU_EDGE_DETOUR_GAP;
-          const left = round2(table.x - gap);
-          const right = round2(table.x + table.width + gap);
-          const top = round2(table.y - gap);
-          const bottom = round2(table.y + table.height + gap);
-          return [
-            { x: left, y: top },
-            { x: right, y: top },
-            { x: right, y: bottom },
-            { x: left, y: bottom },
-          ];
-        }
-
-        function pathIntersectsRoutingTable(points, table) {
-          const padding = GPU_EDGE_TABLE_CLEARANCE;
-          return findSegments(points).some((segment) =>
-            Boolean(segmentRectangleInteriorInterval(
-              segment,
-              table.x - padding,
-              table.x + table.width + padding,
-              table.y - padding,
-              table.y + table.height + padding,
-            ))
-          );
-        }
-
-        function isPointInsideRoutingTable(point, table) {
-          const padding = GPU_EDGE_TABLE_CLEARANCE;
-          return point.x > table.x - padding
-            && point.x < table.x + table.width + padding
-            && point.y > table.y - padding
-            && point.y < table.y + table.height + padding;
-        }
-
-        function simplifyCollisionFreeRoute(rawPoints, meta, scene, overrideById) {
-          const points = normalizePoints(rawPoints);
-          let index = 1;
-          while (index + 1 < points.length) {
-            const direct = [points[index - 1], points[index + 1]];
-            if (collectEdgePathCollisions(direct, meta, scene, overrideById).length === 0) {
-              points.splice(index, 1);
-            } else {
-              index += 1;
-            }
-          }
-          return points;
-        }
-
-        function edgeRouteLength(points) {
-          return findSegments(points).reduce((sum, segment) =>
-            sum + Math.hypot(
-              segment.end.x - segment.start.x,
-              segment.end.y - segment.start.y,
-            ), 0);
-        }
-
-        function edgeRouteSignature(points) {
-          return points.map((point) => round2(point.x) + "," + round2(point.y)).join(" ");
         }
 
         function segmentRectangleInteriorInterval(segment, left, right, top, bottom) {
@@ -2076,53 +1492,7 @@ export function getBrowserCanvasDrawSource(): string {
             overrideById,
           );
           latestLiveDragSegmentCount = liveRecords.length;
-          return routeEdgeRecordsAroundLiveDragTables(
-            filteredRecords,
-            scene,
-            overrideById,
-            bounds,
-          ).concat(liveRecords);
-        }
-
-        function routeEdgeRecordsAroundLiveDragTables(
-          records,
-          scene,
-          overrideById,
-          bounds,
-        ) {
-          const routedRecords = [];
-          for (const record of records) {
-            const routed = routeEdgePathAroundTables(
-              [record.segment.start, record.segment.end],
-              record.meta,
-              scene,
-              overrideById,
-            );
-            for (const segment of findSegments(routed.points)) {
-              if (!segmentIntersectsBounds(
-                segment.start.x,
-                segment.start.y,
-                segment.end.x,
-                segment.end.y,
-                bounds,
-                80,
-              )) {
-                continue;
-              }
-              routedRecords.push({
-                ...record,
-                bounds: {
-                  bottom: Math.max(segment.start.y, segment.end.y),
-                  left: Math.min(segment.start.x, segment.end.x),
-                  right: Math.max(segment.start.x, segment.end.x),
-                  top: Math.min(segment.start.y, segment.end.y),
-                },
-                points: routed.points,
-                segment,
-              });
-            }
-          }
-          return routedRecords;
+          return filteredRecords.concat(liveRecords);
         }
 
         function collectLiveDragEdgeSegments(
@@ -2167,65 +1537,6 @@ export function getBrowserCanvasDrawSource(): string {
           }
           latestLiveDragEdgeCount = visibleEdgeEntries.length;
 
-          const liveBundlingEnabled = Boolean(state.edgeBundling) && !renderModel.modelCatalogMode;
-          let liveBundleAppCenters = null;
-          let liveBundleSpatial = null;
-          if (liveBundlingEnabled) {
-            liveBundleAppCenters = computeAppClusterCenters(visibleEdgeEntries);
-            const distinctApps = new Set();
-            for (const entry of visibleEdgeEntries) {
-              if (entry.sourceTable && entry.sourceTable.appLabel) {
-                distinctApps.add(entry.sourceTable.appLabel);
-              }
-            }
-            if (distinctApps.size < 3) {
-              liveBundleSpatial = computeSpatialClusterContext(visibleEdgeEntries);
-            }
-          }
-
-          function buildLiveEdgePath(entry) {
-            if (liveBundlingEnabled && entry.sourceTable && entry.targetTable) {
-              const sourceLabel = entry.sourceTable.appLabel || "";
-              const targetLabel = entry.targetTable.appLabel || "";
-              if (liveBundleAppCenters && sourceLabel && targetLabel && sourceLabel !== targetLabel) {
-                const sourceCluster = liveBundleAppCenters.get(sourceLabel);
-                const targetCluster = liveBundleAppCenters.get(targetLabel);
-                if (sourceCluster && targetCluster) {
-                  return buildBundledPath(
-                    entry.sourcePosition,
-                    entry.sourceTable,
-                    entry.targetPosition,
-                    entry.targetTable,
-                    sourceCluster,
-                    targetCluster,
-                    0.85,
-                  );
-                }
-              }
-              if (liveBundleSpatial) {
-                const srcKey = liveBundleSpatial.cellKey(entry.sourcePosition, entry.sourceTable);
-                const tgtKey = liveBundleSpatial.cellKey(entry.targetPosition, entry.targetTable);
-                if (srcKey !== tgtKey) {
-                  return buildBundledPath(
-                    entry.sourcePosition,
-                    entry.sourceTable,
-                    entry.targetPosition,
-                    entry.targetTable,
-                    liveBundleSpatial.cellCenter(srcKey),
-                    liveBundleSpatial.cellCenter(tgtKey),
-                    0.7,
-                  );
-                }
-              }
-            }
-            return buildStraightPath(
-              entry.sourcePosition,
-              entry.sourceTable,
-              entry.targetPosition,
-              entry.targetTable,
-            );
-          }
-
           const routedEdges = renderModel.modelCatalogMode
             ? routeCatalogEdgesWithPorts(visibleEdgeEntries).map((routed) => ({
                 edgeId: routed.entry.meta.edgeId,
@@ -2235,18 +1546,23 @@ export function getBrowserCanvasDrawSource(): string {
             : visibleEdgeEntries.map((entry) => ({
                 edgeId: entry.meta.edgeId,
                 meta: entry.meta,
-                points: buildLiveEdgePath(entry),
+                points: buildStraightPath(
+                  entry.sourcePosition,
+                  entry.sourceTable,
+                  entry.targetPosition,
+                  entry.targetTable,
+                ),
               }));
           const records = [];
 
           for (const edge of routedEdges) {
-            const routed = routeEdgePathAroundTables(
+            const straight = createStraightEdgePath(
               edge.points,
               edge.meta,
               ensureSceneGraph(),
               overrideById,
             );
-            edge.points = routed.points;
+            edge.points = straight.points;
             for (const visibleSegment of findSegments(edge.points)) {
               if (
                 !segmentIntersectsBounds(
@@ -2289,7 +1605,7 @@ export function getBrowserCanvasDrawSource(): string {
                 sourceModelId: overlay.sourceModelId,
                 targetModelId: overlay.targetModelId,
               };
-              const routed = routeEdgePathAroundTables(
+              const straight = createStraightEdgePath(
                 [
                   { x: overlay.x1, y: overlay.y1 },
                   { x: overlay.x2, y: overlay.y2 },
@@ -2297,7 +1613,7 @@ export function getBrowserCanvasDrawSource(): string {
                 meta,
                 ensureSceneGraph(),
               );
-              return findSegments(routed.points).map((segment) => ({ meta, segment }));
+              return findSegments(straight.points).map((segment) => ({ meta, segment }));
             })
             .filter((record) =>
               segmentIntersectsBounds(
@@ -3210,6 +2526,15 @@ export function getBrowserCanvasDrawSource(): string {
           if (clusterRelation === "unrelated") {
             return [0.46, 0.58, 0.61, 0.10];
           }
+          if (meta.carrierFamily === "inheritance") {
+            return [0.66, 0.85, 1.0, 0.72];
+          }
+          if (meta.carrierFamily === "mixed") {
+            return [0.91, 0.76, 0.55, 0.74];
+          }
+          if (meta.carrierFamily === "association") {
+            return [0.71, 0.91, 0.85, 0.66];
+          }
           if ((meta.cssKind || "").includes("many-to-many")) {
             return [0.97, 0.82, 0.54, meta.provenance === "derived_reverse" ? 0.52 : 0.72];
           }
@@ -3231,6 +2556,12 @@ export function getBrowserCanvasDrawSource(): string {
           }
           if (clusterRelation === "unrelated") {
             return 2.2;
+          }
+          if (meta.carrierRole === "semantic-tree") {
+            const relationshipCount = Array.isArray(meta.memberEdgeIds)
+              ? meta.memberEdgeIds.length
+              : 1;
+            return Math.min(7.2, 3.0 + Math.log2(Math.max(1, relationshipCount)) * 0.55);
           }
           return (meta.cssKind || "").includes("many-to-many") ? 4.2 : 3.2;
         }

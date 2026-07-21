@@ -359,64 +359,6 @@ export function getBrowserLayoutSource(): string {
           return normalizePoints([sourcePort, targetPort]);
         }
 
-        function buildBundledPath(
-          sourcePosition,
-          sourceTable,
-          targetPosition,
-          targetTable,
-          sourceCluster,
-          targetCluster,
-          bundleStrength,
-        ) {
-          const sourceCenter = getCenter(sourcePosition, sourceTable);
-          const targetCenter = getCenter(targetPosition, targetTable);
-          const sourcePort = computeBoundaryPort(sourcePosition, sourceTable, targetCenter);
-          const targetPort = computeBoundaryPort(targetPosition, targetTable, sourceCenter);
-
-          const dx = targetCluster.x - sourceCluster.x;
-          const dy = targetCluster.y - sourceCluster.y;
-          const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-          const ux = dx / dist;
-          const uy = dy / dist;
-          const sourceRadius = (sourceCluster.radius || 0) + 80;
-          const targetRadius = (targetCluster.radius || 0) + 80;
-          const sourceBoundary = {
-            x: sourceCluster.x + ux * Math.min(sourceRadius, dist * 0.45),
-            y: sourceCluster.y + uy * Math.min(sourceRadius, dist * 0.45),
-          };
-          const targetBoundary = {
-            x: targetCluster.x - ux * Math.min(targetRadius, dist * 0.45),
-            y: targetCluster.y - uy * Math.min(targetRadius, dist * 0.45),
-          };
-          const t = Math.max(0, Math.min(1, bundleStrength == null ? 0.85 : bundleStrength));
-          const c1 = {
-            x: sourcePort.x * (1 - t) + sourceBoundary.x * t,
-            y: sourcePort.y * (1 - t) + sourceBoundary.y * t,
-          };
-          const c2 = {
-            x: targetPort.x * (1 - t) + targetBoundary.x * t,
-            y: targetPort.y * (1 - t) + targetBoundary.y * t,
-          };
-          const samples = 14;
-          const points = [];
-          for (let i = 0; i <= samples; i += 1) {
-            const u = i / samples;
-            const v = 1 - u;
-            const x =
-              v * v * v * sourcePort.x +
-              3 * v * v * u * c1.x +
-              3 * v * u * u * c2.x +
-              u * u * u * targetPort.x;
-            const y =
-              v * v * v * sourcePort.y +
-              3 * v * v * u * c1.y +
-              3 * v * u * u * c2.y +
-              u * u * u * targetPort.y;
-            points.push({ x: round2(x), y: round2(y) });
-          }
-          return normalizePoints(points);
-        }
-
         function attachPathEndpointsToRenderedTables(entry, points) {
           if (!Array.isArray(points) || points.length < 2) {
             return points;
@@ -465,50 +407,6 @@ export function getBrowserLayoutSource(): string {
             x: round2(Math.max(left, Math.min(right, peerPoint.x))),
             y: round2(dy >= 0 ? bottom : top),
           };
-        }
-
-        function computeAppClusterCenters(visibleEdgeEntries) {
-          const accumulators = new Map();
-          function accumulate(table, position) {
-            if (!table || !table.appLabel) {
-              return;
-            }
-            const key = table.appLabel;
-            const center = getCenter(position, table);
-            if (!accumulators.has(key)) {
-              accumulators.set(key, {
-                sumX: 0,
-                sumY: 0,
-                count: 0,
-                positions: [],
-              });
-            }
-            const acc = accumulators.get(key);
-            acc.sumX += center.x;
-            acc.sumY += center.y;
-            acc.count += 1;
-            acc.positions.push(center);
-          }
-          for (const entry of visibleEdgeEntries) {
-            accumulate(entry.sourceTable, entry.sourcePosition);
-            accumulate(entry.targetTable, entry.targetPosition);
-          }
-          const centers = new Map();
-          for (const [key, acc] of accumulators.entries()) {
-            if (acc.count > 0) {
-              const cx = acc.sumX / acc.count;
-              const cy = acc.sumY / acc.count;
-              let radius = 0;
-              for (const p of acc.positions) {
-                const dx = p.x - cx;
-                const dy = p.y - cy;
-                const d = Math.sqrt(dx * dx + dy * dy);
-                if (d > radius) radius = d;
-              }
-              centers.set(key, { x: cx, y: cy, radius });
-            }
-          }
-          return centers;
         }
 
         function computeSpatialClusterContext(visibleEdgeEntries) {
@@ -801,49 +699,6 @@ export function getBrowserLayoutSource(): string {
           };
         }
 
-        function buildOrthogonalPath(sourcePosition, sourceTable, targetPosition, targetTable) {
-          const sourceCenter = getCenter(sourcePosition, sourceTable);
-          const targetCenter = getCenter(targetPosition, targetTable);
-          const deltaX = targetCenter.x - sourceCenter.x;
-          const deltaY = targetCenter.y - sourceCenter.y;
-
-          if (Math.abs(deltaX) >= Math.abs(deltaY)) {
-            const start = {
-              x: deltaX >= 0 ? round2(sourcePosition.x + sourceTable.width) : round2(sourcePosition.x),
-              y: sourceCenter.y,
-            };
-            const end = {
-              x: deltaX >= 0 ? round2(targetPosition.x) : round2(targetPosition.x + targetTable.width),
-              y: targetCenter.y,
-            };
-            const midX = round2((start.x + end.x) / 2);
-
-            return normalizePoints([
-              start,
-              { x: midX, y: start.y },
-              { x: midX, y: end.y },
-              end,
-            ]);
-          }
-
-          const start = {
-            x: sourceCenter.x,
-            y: deltaY >= 0 ? round2(sourcePosition.y + sourceTable.height) : round2(sourcePosition.y),
-          };
-          const end = {
-            x: targetCenter.x,
-            y: deltaY >= 0 ? round2(targetPosition.y) : round2(targetPosition.y + targetTable.height),
-          };
-          const midY = round2((start.y + end.y) / 2);
-
-          return normalizePoints([
-            start,
-            { x: start.x, y: midY },
-            { x: end.x, y: midY },
-            end,
-          ]);
-        }
-
         function getStaticEdgePath(entry) {
           const staticPoints = parseEdgePoints(entry.meta.points);
           const sourceAtBase = samePosition(entry.sourcePosition, entry.sourceTable.basePosition);
@@ -981,7 +836,7 @@ export function getBrowserLayoutSource(): string {
 
             return {
               entry: route.entry,
-              points: buildOrthogonalPathFromPorts(start, route.sourceSide, end, route.targetSide),
+              points: normalizePoints([start, end]),
             };
           });
         }
@@ -1038,43 +893,6 @@ export function getBrowserLayoutSource(): string {
             case "bottom":
             default:
               return { x: round2(position.x + offset), y: round2(position.y + table.height) };
-          }
-        }
-
-        function buildOrthogonalPathFromPorts(start, sourceSide, end, targetSide) {
-          const sourceExit = offsetPointBySide(start, sourceSide, 24);
-          const targetExit = offsetPointBySide(end, targetSide, 24);
-          const points = [start, sourceExit];
-          const sourceHorizontal = sourceSide === "left" || sourceSide === "right";
-          const targetHorizontal = targetSide === "left" || targetSide === "right";
-
-          if (sourceHorizontal && targetHorizontal) {
-            const midX = round2((sourceExit.x + targetExit.x) / 2);
-            points.push({ x: midX, y: sourceExit.y }, { x: midX, y: targetExit.y });
-          } else if (!sourceHorizontal && !targetHorizontal) {
-            const midY = round2((sourceExit.y + targetExit.y) / 2);
-            points.push({ x: sourceExit.x, y: midY }, { x: targetExit.x, y: midY });
-          } else if (sourceHorizontal) {
-            points.push({ x: targetExit.x, y: sourceExit.y });
-          } else {
-            points.push({ x: sourceExit.x, y: targetExit.y });
-          }
-
-          points.push(targetExit, end);
-          return normalizePoints(points);
-        }
-
-        function offsetPointBySide(point, side, distance) {
-          switch (side) {
-            case "left":
-              return { x: round2(point.x - distance), y: point.y };
-            case "right":
-              return { x: round2(point.x + distance), y: point.y };
-            case "top":
-              return { x: point.x, y: round2(point.y - distance) };
-            case "bottom":
-            default:
-              return { x: point.x, y: round2(point.y + distance) };
           }
         }
 

@@ -12,7 +12,7 @@ const sourceModulePath = path.resolve(
   "../../out/webview/interaction/runtime/browserEventSource.js",
 );
 
-test("enabling optimized layout preserves the user's edge-bend preference", () => {
+test("enabling optimized layout does not revive the retired bend preference", () => {
   const { getBrowserEventSource } = require(sourceModulePath);
   const source = getBrowserEventSource();
 
@@ -56,8 +56,15 @@ test("optimized refresh locks duplicate controls and always has an error settlem
   assert.match(commandSource, /Optimizing Django ERD \([^`]+s budget\)/);
 });
 
-test("bend controls cannot flatten verified routed polylines", async () => {
-  const [canvasScene, svgScene, canvasRuntime] = await Promise.all([
+test("every renderer path is straight-only and bend-producing controls are absent", async () => {
+  const [
+    canvasScene,
+    svgScene,
+    canvasRuntime,
+    layoutRuntime,
+    renderModelSource,
+    nativeRuntime,
+  ] = await Promise.all([
     fs.readFile(
       path.resolve(__dirname, "../../src/webview/render/renderCanvasScene.ts"),
       "utf8",
@@ -73,9 +80,64 @@ test("bend controls cannot flatten verified routed polylines", async () => {
       ),
       "utf8",
     ),
+    fs.readFile(
+      path.resolve(
+        __dirname,
+        "../../src/webview/interaction/runtime/browserLayoutSource.ts",
+      ),
+      "utf8",
+    ),
+    fs.readFile(
+      path.resolve(
+        __dirname,
+        "../../src/webview/state/createDiagramRenderModel.ts",
+      ),
+      "utf8",
+    ),
+    fs.readFile(
+      path.resolve(
+        __dirname,
+        "../../src/extension/services/layout/runOgdfLayout.ts",
+      ),
+      "utf8",
+    ),
   ]);
 
   assert.doesNotMatch(canvasScene, /data-edge-bends-toggle/);
   assert.doesNotMatch(svgScene, /data-edge-bends-toggle/);
-  assert.doesNotMatch(canvasRuntime, /if \(!state\.useEdgeBends\)/);
+  assert.doesNotMatch(canvasScene, /data-edge-bundle-toggle/);
+  assert.doesNotMatch(svgScene, /data-edge-bundle-toggle/);
+  assert.match(canvasRuntime, /function createStraightEdgePath\(/);
+  assert.match(canvasRuntime, /normalized\.length > 2/);
+  assert.doesNotMatch(canvasRuntime, /routeEdgePathAroundTables/);
+  assert.doesNotMatch(canvasRuntime, /createTableDetourCandidates/);
+  assert.doesNotMatch(layoutRuntime, /function buildBundledPath\(/);
+  assert.doesNotMatch(layoutRuntime, /function buildOrthogonalPath/);
+  assert.match(layoutRuntime, /points: normalizePoints\(\[start, end\]\)/);
+  assert.match(renderModelSource, /\.map\(enforceStraightRenderedEdge\)/);
+  assert.match(nativeRuntime, /Straight-only is a hard output contract/);
+  assert.match(
+    nativeRuntime,
+    /scorer accepted no moves; skipping redundant reroute/,
+  );
+  assert.match(
+    nativeRuntime,
+    /DJERD_RENDERED_NODE_CLEARANCE_FINAL_BATCHES/,
+  );
+  assert.match(
+    nativeRuntime,
+    /DJERD_SEMANTIC_CARRIER_TARGET_SHORT_CIRCUIT/,
+  );
+  assert.match(nativeRuntime, /&& !semanticCarrierTargetSatisfied/);
+  for (const key of [
+    "DJERD_CANONICAL_ROUTE_REPAIR",
+    "DJERD_EDGE_DETOUR",
+    "DJERD_EDGE_DETOUR_FINAL",
+    "DJERD_L_BEND_REROUTE",
+    "DJERD_PERIPHERY_REROUTE",
+    "DJERD_XINGS_DETOUR",
+    "DJERD_XINGS_DETOUR_FINAL",
+  ]) {
+    assert.match(nativeRuntime, new RegExp(`${key}: "0"`));
+  }
 });

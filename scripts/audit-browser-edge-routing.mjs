@@ -10,6 +10,7 @@ const repositoryRoot = path.resolve(scriptDirectory, "..");
 const layoutPath = process.argv[2];
 const edgesPath = process.argv[3]?.startsWith("--") ? undefined : process.argv[3];
 const useDirectMemberRoutes = process.argv.includes("--direct-members");
+const summaryOnly = process.argv.includes("--summary");
 
 if (!layoutPath) {
   console.error(
@@ -31,31 +32,48 @@ if (!layoutPath) {
         nodes: layout.nodes ?? [],
         routes: layout.routedEdges ?? [],
       };
-  const routeEdgePathAroundTables = createBrowserRouter(
+  const createStraightEdgePath = createBrowserStraightEdgePath(
     getBrowserCanvasDrawSource,
     renderInput.bundleLeavesByFakeId,
   );
   const scene = createRoutingScene(renderInput.nodes);
   const result = auditRoutes(
     renderInput.routes,
-    routeEdgePathAroundTables,
+    createStraightEdgePath,
     scene,
   );
+  if (renderInput.renderedVisual) {
+    result.renderedVisual = renderInput.renderedVisual;
+  }
+  if (renderInput.routeParity) {
+    result.routeParity = renderInput.routeParity;
+  }
 
-  console.log(JSON.stringify(result, null, 2));
-  if (result.unresolvedPenetrations > 0 || result.invalidRoutes > 0) {
+  console.log(JSON.stringify(
+    summaryOnly ? { ...result, collisionSamples: undefined } : result,
+    null,
+    2,
+  ));
+  if (
+    result.bentEdges > 0
+    || result.invalidRoutes > 0
+    || result.straightPenetrations > 0
+  ) {
     process.exitCode = 1;
   }
 }
 
-function createBrowserRouter(getBrowserCanvasDrawSource, bundleLeavesByFakeIdRaw = {}) {
+function createBrowserStraightEdgePath(
+  getBrowserCanvasDrawSource,
+  bundleLeavesByFakeIdRaw = {},
+) {
   const factory = new Function(
     "round2",
     "normalizePoints",
     "findSegments",
     "rectIntersectsBounds",
     "bundleLeavesByFakeIdRaw",
-    `${getBrowserCanvasDrawSource()}\nreturn routeEdgePathAroundTables;`,
+    `${getBrowserCanvasDrawSource()}\nreturn createStraightEdgePath;`,
   );
   return factory(
     (value) => Math.round(value * 100) / 100,
@@ -66,14 +84,13 @@ function createBrowserRouter(getBrowserCanvasDrawSource, bundleLeavesByFakeIdRaw
   );
 }
 
-function auditRoutes(routes, routeEdgePathAroundTables, scene) {
-  let avoidedPenetrations = 0;
-  let detouredEdges = 0;
+function auditRoutes(routes, createStraightEdgePath, scene) {
+  let bentEdges = 0;
+  let collisionEdges = 0;
   let invalidRoutes = 0;
   let routedSegments = 0;
-  let unresolvedPenetrations = 0;
-  let visibilityFallbackEdges = 0;
-  const unresolvedEdges = [];
+  let straightPenetrations = 0;
+  const collisionSamples = [];
   const routedRoutes = [];
 
   for (const route of routes) {
@@ -82,43 +99,52 @@ function auditRoutes(routes, routeEdgePathAroundTables, scene) {
       invalidRoutes += 1;
       continue;
     }
-    const routed = routeEdgePathAroundTables(
+    const sourceModelId = route.sourceModelId
+      ?? inferEndpointTableId(inputPoints[0], scene);
+    const targetModelId = route.targetModelId
+      ?? inferEndpointTableId(inputPoints[inputPoints.length - 1], scene);
+    const logicalEndpointModelIds = route.logicalEndpointModelIds
+      ?? [sourceModelId, targetModelId].filter(Boolean);
+    const straight = createStraightEdgePath(
       inputPoints,
       {
         edgeId: route.edgeId,
-        logicalEndpointModelIds: route.logicalEndpointModelIds,
-        sourceModelId: route.sourceModelId,
-        targetModelId: route.targetModelId,
+        logicalEndpointModelIds,
+        sourceModelId,
+        targetModelId,
       },
       scene,
     );
-    assert.ok(Array.isArray(routed.points));
-    avoidedPenetrations += routed.initialCollisions.length;
-    unresolvedPenetrations += routed.unresolvedCollisions.length;
-    routedSegments += Math.max(0, routed.points.length - 1);
-    if (routed.initialCollisions.length > 0) {
-      detouredEdges += 1;
+    assert.ok(Array.isArray(straight.points));
+    straightPenetrations += straight.collisions.length;
+    routedSegments += Math.max(0, straight.points.length - 1);
+    if (straight.points.length > 2) {
+      bentEdges += 1;
     }
-    if (routed.usedVisibilityFallback) {
-      visibilityFallbackEdges += 1;
+    if (straight.collisions.length > 0) {
+      collisionEdges += 1;
     }
-    routedRoutes.push({ edgeId: route.edgeId, points: routed.points });
-    if (routed.unresolvedCollisions.length > 0 && unresolvedEdges.length < 32) {
-      unresolvedEdges.push({
+    routedRoutes.push({
+      edgeId: route.edgeId,
+      logicalEndpointModelIds,
+      points: straight.points,
+    });
+    if (straight.collisions.length > 0 && collisionSamples.length < 32) {
+      collisionSamples.push({
         edgeId: route.edgeId,
         inputPoints,
-        logicalEndpointModelIds: route.logicalEndpointModelIds,
-        routedPoints: routed.points,
-        sourceModelId: route.sourceModelId,
-        tableModelIds: [...new Set(routed.unresolvedCollisions.map(
+        logicalEndpointModelIds,
+        straightPoints: straight.points,
+        sourceModelId,
+        tableModelIds: [...new Set(straight.collisions.map(
           (collision) => collision.table.modelId,
         ))],
-        targetModelId: route.targetModelId,
-        collisions: routed.unresolvedCollisions.map((collision) => ({
+        targetModelId,
+        collisions: straight.collisions.map((collision) => ({
           interval: collision.interval,
           segment: {
-            end: routed.points[collision.segmentIndex + 1],
-            start: routed.points[collision.segmentIndex],
+            end: straight.points[collision.segmentIndex + 1],
+            start: straight.points[collision.segmentIndex],
           },
           table: collision.table,
         })),
@@ -128,18 +154,43 @@ function auditRoutes(routes, routeEdgePathAroundTables, scene) {
 
   const crossingAudit = measureProperEdgeCrossings(routedRoutes);
   return {
-    avoidedPenetrations,
-    detouredEdges,
+    bendPolicy: "straight-only",
+    bentEdges,
+    collisionEdges,
+    collisionSamples,
     inputEdges: routes.length,
     invalidRoutes,
+    nonAdjacentCrossings: crossingAudit.nonAdjacentCrossings,
     routedSegments,
     properEdgeCrossings: crossingAudit.count,
+    sharedEndpointCrossings: crossingAudit.sharedEndpointCrossings,
+    straightPenetrations,
     tables: scene.tables.length,
     topCrossingEdges: crossingAudit.topEdges,
-    unresolvedEdges,
-    unresolvedPenetrations,
-    visibilityFallbackEdges,
   };
+}
+
+function inferEndpointTableId(point, scene) {
+  const epsilon = 0.01;
+  const candidates = scene.tables.filter((table) =>
+    point.x >= table.x - epsilon
+    && point.x <= table.x + table.width + epsilon
+    && point.y >= table.y - epsilon
+    && point.y <= table.y + table.height + epsilon
+  );
+  candidates.sort((left, right) => {
+    const leftCenterDistance = Math.hypot(
+      point.x - (left.x + left.width / 2),
+      point.y - (left.y + left.height / 2),
+    );
+    const rightCenterDistance = Math.hypot(
+      point.x - (right.x + right.width / 2),
+      point.y - (right.y + right.height / 2),
+    );
+    return leftCenterDistance - rightCenterDistance
+      || String(left.modelId).localeCompare(String(right.modelId));
+  });
+  return candidates[0]?.modelId;
 }
 
 function createRoutingScene(nodes) {
@@ -187,7 +238,10 @@ function createRenderedAuditInput(layout, edgesFilePath, directMemberRoutes) {
       properties: [],
     };
   });
-  const { createDiagramRenderModel } = require(
+  const {
+    createDiagramRenderModel,
+    measureRenderedVisualConflicts,
+  } = require(
     path.join(repositoryRoot, "out/webview/state/createDiagramRenderModel.js"),
   );
   const renderModel = createDiagramRenderModel({
@@ -218,6 +272,8 @@ function createRenderedAuditInput(layout, edgesFilePath, directMemberRoutes) {
   return {
     bundleLeavesByFakeId: renderModel.bundleLeavesByFakeId,
     nodes: renderModel.tables,
+    renderedVisual: measureRenderedVisualConflicts(renderModel),
+    routeParity: compareNativeAndBrowserGeometry(layout, renderModel.edges),
     routes: renderModel.edges.map((edge) => ({
       ...edge,
       points: directMemberRoutes && originalRouteById.has(edge.edgeId)
@@ -225,6 +281,47 @@ function createRenderedAuditInput(layout, edgesFilePath, directMemberRoutes) {
         : parseEdgePointString(edge.points),
     })),
   };
+}
+
+function compareNativeAndBrowserGeometry(layout, renderedEdges) {
+  const nativeKeys = (layout.engineMetadata?.renderedCarrierRoutes ?? [])
+    .map((route) => geometryKey(route.points));
+  const browserKeys = renderedEdges
+    .map((edge) => geometryKey(parseEdgePointString(edge.points)));
+  const nativeCounts = frequencyMap(nativeKeys);
+  const browserCounts = frequencyMap(browserKeys);
+  let matched = 0;
+  for (const [key, count] of nativeCounts) {
+    matched += Math.min(count, browserCounts.get(key) ?? 0);
+  }
+  return {
+    browserOnly: browserKeys.length - matched,
+    browserRoutes: browserKeys.length,
+    matched,
+    nativeOnly: nativeKeys.length - matched,
+    nativeRoutes: nativeKeys.length,
+  };
+}
+
+function geometryKey(points) {
+  if (!Array.isArray(points) || points.length < 2) {
+    return "invalid";
+  }
+  const first = points[0];
+  const last = points[points.length - 1];
+  const cells = [
+    `${Number(first.x).toFixed(2)},${Number(first.y).toFixed(2)}`,
+    `${Number(last.x).toFixed(2)},${Number(last.y).toFixed(2)}`,
+  ].sort();
+  return cells.join("|");
+}
+
+function frequencyMap(values) {
+  const counts = new Map();
+  for (const value of values) {
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  return counts;
 }
 
 function parseEdgePointString(value) {
@@ -279,7 +376,12 @@ function measureProperEdgeCrossings(routes) {
       const start = route.points[index];
       const end = route.points[index + 1];
       if (start.x === end.x && start.y === end.y) continue;
-      segments.push({ edgeId: route.edgeId, end, start });
+      segments.push({
+        edgeId: route.edgeId,
+        end,
+        logicalEndpointModelIds: new Set(route.logicalEndpointModelIds ?? []),
+        start,
+      });
     }
   }
   const cellSize = 480;
@@ -301,6 +403,7 @@ function measureProperEdgeCrossings(routes) {
   const testedPairs = new Set();
   const crossingsByEdge = new Map();
   let count = 0;
+  let sharedEndpointCrossings = 0;
   for (const bucket of buckets.values()) {
     for (let leftIndex = 0; leftIndex < bucket.length; leftIndex += 1) {
       for (let rightIndex = leftIndex + 1; rightIndex < bucket.length; rightIndex += 1) {
@@ -316,6 +419,13 @@ function measureProperEdgeCrossings(routes) {
         const right = segments[high];
         if (left.edgeId === right.edgeId || !properSegmentsCross(left, right)) continue;
         count += 1;
+        const [smallerEndpoints, largerEndpoints] =
+          left.logicalEndpointModelIds.size <= right.logicalEndpointModelIds.size
+            ? [left.logicalEndpointModelIds, right.logicalEndpointModelIds]
+            : [right.logicalEndpointModelIds, left.logicalEndpointModelIds];
+        if ([...smallerEndpoints].some((endpoint) => largerEndpoints.has(endpoint))) {
+          sharedEndpointCrossings += 1;
+        }
         crossingsByEdge.set(left.edgeId, (crossingsByEdge.get(left.edgeId) ?? 0) + 1);
         crossingsByEdge.set(right.edgeId, (crossingsByEdge.get(right.edgeId) ?? 0) + 1);
       }
@@ -323,6 +433,8 @@ function measureProperEdgeCrossings(routes) {
   }
   return {
     count,
+    nonAdjacentCrossings: count - sharedEndpointCrossings,
+    sharedEndpointCrossings,
     topEdges: [...crossingsByEdge.entries()]
       .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
       .slice(0, 12)
