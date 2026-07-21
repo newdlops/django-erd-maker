@@ -2656,7 +2656,7 @@ function ogdfOptimizedVisualCrossPolishVariantEnv(
 function renderedCarrierCacheKeyParts(): string[] {
   return [
     "renderedCarrier=1",
-    "semanticCarrierTree=family-v1",
+    "relationshipCarrier=faithful-v1",
     "hubCarrier=1",
     "hubThreshold=2",
     "inheritanceCarrier=1",
@@ -3195,7 +3195,7 @@ export function measureLayoutRenderedTableClearance(
   return measureRenderedTableClearance(renderModel);
 }
 
-const RENDERED_VISUAL_CROSSINGS_SCOPE = "rendered-semantic-carrier-v2";
+const RENDERED_VISUAL_CROSSINGS_SCOPE = "rendered-relationship-faithful-v3";
 
 export function measureLayoutRenderedVisualConflicts(
   payload: DiagramBootstrapPayload,
@@ -3805,7 +3805,7 @@ export async function runOgdfLayout(
         const key = fnvHash(
           nodesData,
           edgesData,
-          "optimized-layout-cache-v29-semantic-carrier-v2",
+          "optimized-layout-cache-v30-relationship-faithful-v3",
           `binary=${binaryFingerprint}`,
           `scorer=${scorerScriptFingerprint}`,
           `checkpoint=${ckptFingerprint}`,

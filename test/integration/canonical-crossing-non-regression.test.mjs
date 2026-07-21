@@ -403,7 +403,7 @@ test("route-repair-only gate requires strict node-hit gain and every canonical c
   );
 });
 
-test("v29 orchestration caches authoritative semantic-carrier metrics", async () => {
+test("v30 orchestration caches relationship-faithful rendered metrics", async () => {
   const source = await fs.readFile(
     path.resolve(
       __dirname,
@@ -412,8 +412,9 @@ test("v29 orchestration caches authoritative semantic-carrier metrics", async ()
     "utf8",
   );
 
-  assert.match(source, /"optimized-layout-cache-v29-semantic-carrier-v2"/);
-  assert.match(source, /"semanticCarrierTree=family-v1"/);
+  assert.match(source, /"optimized-layout-cache-v30-relationship-faithful-v3"/);
+  assert.match(source, /"relationshipCarrier=faithful-v1"/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v29-semantic-carrier-v2"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v28-rendered-visual-v1"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v27-bundle-edge-hard-target"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v26-edge-node-hard-target"/);
