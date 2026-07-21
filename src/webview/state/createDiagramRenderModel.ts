@@ -25,6 +25,9 @@ import type {
 import type { StructuralGraphEdge, MethodAssociation } from "../../shared/graph/diagramGraph";
 
 const MODEL_CATALOG_MODE_THRESHOLD = 500;
+const SEMANTIC_CARRIER_NEIGHBOR_LIMIT = 64;
+const SEMANTIC_CARRIER_OBSTACLE_PADDING = 10;
+const SEMANTIC_CARRIER_SPATIAL_CELL = 1024;
 const CATALOG_BASE_TABLE_HEIGHT = 74;
 const CATALOG_BASE_TABLE_WIDTH = 236;
 const CATALOG_MAX_TABLE_HEIGHT = 434;
@@ -95,12 +98,16 @@ export interface TableRenderModel {
 }
 
 export interface EdgeRenderModel {
+  carrierFamily?: "association" | "inheritance" | "mixed";
+  carrierRole?: "direct" | "semantic-tree";
   crossingIds: string[];
   cssKind: string;
   edgeId: string;
   logicalEndpointModelIds?: ModelId[];
   markerEndId: string;
   markerStartId: string;
+  memberEdgeIds?: string[];
+  physicalEndpointModelIds?: ModelId[];
   points: string;
   preserveRouteEndpoints?: boolean;
   provenance: string;
@@ -111,6 +118,7 @@ export interface EdgeRenderModel {
 interface HubCarrierRenderGroup {
   id: string;
   logicalEndpointModelIds: ModelId[];
+  memberEdgeIds: string[];
   points: Point[];
   representativeEdgeId: string;
   sourceModelId: ModelId;
@@ -169,7 +177,19 @@ export interface DiagramRenderModel {
   overlays: MethodOverlayRenderModel[];
   timings: DiagramBootstrapPayload["timings"];
   tables: TableRenderModel[];
+  semanticCarriers?: SemanticCarrierDiagnostics;
   visualCrossings?: number;
+}
+
+export interface SemanticCarrierDiagnostics {
+  active: boolean;
+  bundledRelationships: number;
+  carrierSegments: number;
+  disconnectedRelationships: string[];
+  fallbackRelationships: number;
+  missingRelationships: string[];
+  obstacleIntersections: number;
+  relationships: number;
 }
 
 export interface RenderedTableClearanceMetrics {
@@ -196,6 +216,23 @@ export interface RenderedEdgeNodeIntersectionMetrics {
   nodeCount: number;
 }
 
+export interface RenderedVisualConflictMetrics {
+  bundleBundleOverlaps: number;
+  bundleEdgeIntersections: number;
+  bundleNodeOverlaps: number;
+  edgeCount: number;
+  edgeCrossings: number;
+  edgeNodeIntersections: number;
+  nodeOverlaps: number;
+  routeSegments: number;
+  visualCrossings: number;
+}
+
+interface ResolvedRenderedEdgeGeometry {
+  edge: EdgeRenderModel;
+  points: Point[];
+}
+
 /**
  * Measures the table rectangles that the canvas actually receives.
  *
@@ -217,7 +254,9 @@ export function measureRenderedTableClearance(
     Object.values(renderModel.bundleLeavesByFakeId ?? {}).flat(),
   );
   const objects = renderModel.tables
-    .filter((table) => !bundledLeafIds.has(table.modelId))
+    .filter((table) =>
+      !table.hidden && !bundledLeafIds.has(table.modelId)
+    )
     .map((table) => ({
       bottom: table.position.y + table.size.height,
       bundle: syntheticBundleIds.has(table.modelId),
@@ -313,7 +352,6 @@ export function measureRenderedEdgeNodeIntersections(
   renderModel: DiagramRenderModel,
   padding = 10,
 ): RenderedEdgeNodeIntersectionMetrics {
-  const tables = renderModel.tables.filter((table) => !table.hidden);
   const syntheticBundleIds = new Set(
     Object.keys(renderModel.bundleLeavesByFakeId ?? {}),
   );
@@ -325,41 +363,29 @@ export function measureRenderedEdgeNodeIntersections(
       bundleIdByLeafModelId.set(leafModelId, bundleId);
     }
   }
-  const tableByModelId = new Map(
-    tables.map((table) => [table.modelId, table] as const),
-  );
+  // Bundle leaf cards are nested inside their synthetic outer table, but they
+  // are still painted and still obstruct unrelated edges. Count them here just
+  // as the browser collision audit does. The endpoint checks below exempt the
+  // logical endpoint leaf and its outer bundle, without exempting its visible
+  // sibling cards.
+  const tables = renderModel.tables.filter((table) => !table.hidden);
   const hits: RenderedEdgeNodeIntersection[] = [];
   const seen = new Set<string>();
 
-  for (const edge of renderModel.edges) {
-    const sourceTable = tableByModelId.get(edge.sourceModelId);
-    const targetTable = tableByModelId.get(edge.targetModelId);
-    if (!sourceTable || !targetTable) {
-      continue;
-    }
-
-    const parsedPoints = parseRenderedEdgePoints(edge.points);
-    const points = parsedPoints.length >= 2
-      ? edge.preserveRouteEndpoints
-        ? parsedPoints
-        : attachRenderedEdgeEndpoints(parsedPoints, sourceTable, targetTable)
-      : buildStraightRenderedEdgePoints(sourceTable, targetTable);
-    if (points.length < 2) {
-      continue;
-    }
-    const logicalEndpointModelIds = new Set<ModelId>(
-      edge.logicalEndpointModelIds
+  for (const { edge, points } of resolveRenderedEdgeGeometries(renderModel)) {
+    const physicalEndpointModelIds = new Set<ModelId>(
+      edge.physicalEndpointModelIds
       ?? [edge.sourceModelId, edge.targetModelId],
     );
     const logicalEndpointBundleIds = new Set(
-      [...logicalEndpointModelIds]
+      [...physicalEndpointModelIds]
         .map((modelId) => bundleIdByLeafModelId.get(modelId))
         .filter((bundleId): bundleId is string => bundleId !== undefined),
     );
 
     for (const table of tables) {
       if (
-        logicalEndpointModelIds.has(table.modelId)
+        physicalEndpointModelIds.has(table.modelId)
         || (syntheticBundleIds.has(table.modelId)
           && logicalEndpointBundleIds.has(table.modelId))
       ) {
@@ -392,6 +418,135 @@ export function measureRenderedEdgeNodeIntersections(
   };
 }
 
+/**
+ * Counts proper segment/segment crossings in the exact edge geometry supplied
+ * to the canvas. Endpoint touches and collinear contacts are deliberately not
+ * counted here; they remain separate overlap/contact diagnostics.
+ */
+export function measureRenderedEdgeCrossings(
+  renderModel: DiagramRenderModel,
+): { edgeCount: number; edgeCrossings: number; routeSegments: number } {
+  const geometries = resolveRenderedEdgeGeometries(renderModel);
+  const segments = geometries.flatMap(({ edge, points }) =>
+    points.slice(1).flatMap((end, index) => {
+      const start = points[index];
+      return sameRenderedPoint(start, end)
+        ? []
+        : [{ edgeId: edge.edgeId, end, start }];
+    })
+  );
+  let edgeCrossings = 0;
+  for (let leftIndex = 0; leftIndex < segments.length; leftIndex += 1) {
+    const left = segments[leftIndex];
+    for (let rightIndex = leftIndex + 1; rightIndex < segments.length; rightIndex += 1) {
+      const right = segments[rightIndex];
+      if (left.edgeId === right.edgeId) {
+        continue;
+      }
+      if (segmentsProperlyCross(left.start, left.end, right.start, right.end)) {
+        edgeCrossings += 1;
+      }
+    }
+  }
+  return {
+    edgeCount: geometries.length,
+    edgeCrossings,
+    routeSegments: segments.length,
+  };
+}
+
+/**
+ * Authoritative visual-conflict audit for the initial canvas scene.
+ *
+ * Every component is measured from one DiagramRenderModel, so a reduced
+ * native carrier score can never be exposed as though it described the
+ * expanded edge/table geometry that the user actually sees.
+ */
+export function measureRenderedVisualConflicts(
+  renderModel: DiagramRenderModel,
+  edgeTablePadding = 10,
+): RenderedVisualConflictMetrics {
+  const clearance = measureRenderedTableClearance(renderModel);
+  const edgeTable = measureRenderedEdgeNodeIntersections(
+    renderModel,
+    edgeTablePadding,
+  );
+  const edgeGeometry = measureRenderedEdgeCrossings(renderModel);
+  const visualCrossings =
+    edgeGeometry.edgeCrossings
+    + edgeTable.nodeCount
+    + edgeTable.bundleCount
+    + clearance.nodeOverlaps
+    + clearance.bundleNodeOverlaps
+    + clearance.bundleBundleOverlaps;
+  return {
+    bundleBundleOverlaps: clearance.bundleBundleOverlaps,
+    bundleEdgeIntersections: edgeTable.bundleCount,
+    bundleNodeOverlaps: clearance.bundleNodeOverlaps,
+    edgeCount: edgeGeometry.edgeCount,
+    edgeCrossings: edgeGeometry.edgeCrossings,
+    edgeNodeIntersections: edgeTable.nodeCount,
+    nodeOverlaps: clearance.nodeOverlaps,
+    routeSegments: edgeGeometry.routeSegments,
+    visualCrossings,
+  };
+}
+
+function resolveRenderedEdgeGeometries(
+  renderModel: DiagramRenderModel,
+): ResolvedRenderedEdgeGeometry[] {
+  const visibleTableByModelId = new Map(
+    renderModel.tables
+      .filter((table) => !table.hidden)
+      .map((table) => [table.modelId, table] as const),
+  );
+  const geometries: ResolvedRenderedEdgeGeometry[] = [];
+  for (const edge of renderModel.edges) {
+    const sourceTable = visibleTableByModelId.get(edge.sourceModelId);
+    const targetTable = visibleTableByModelId.get(edge.targetModelId);
+    if (!sourceTable || !targetTable) {
+      continue;
+    }
+    const parsedPoints = parseRenderedEdgePoints(edge.points);
+    const points = parsedPoints.length >= 2
+      ? edge.preserveRouteEndpoints
+        ? parsedPoints
+        : attachRenderedEdgeEndpoints(parsedPoints, sourceTable, targetTable)
+      : buildStraightRenderedEdgePoints(sourceTable, targetTable);
+    if (points.length >= 2) {
+      geometries.push({ edge, points });
+    }
+  }
+  return geometries;
+}
+
+function sameRenderedPoint(left: Point, right: Point): boolean {
+  return Math.abs(left.x - right.x) <= 1e-9
+    && Math.abs(left.y - right.y) <= 1e-9;
+}
+
+function segmentsProperlyCross(
+  firstStart: Point,
+  firstEnd: Point,
+  secondStart: Point,
+  secondEnd: Point,
+): boolean {
+  const epsilon = 1e-9;
+  const firstA = renderedOrientation(firstStart, firstEnd, secondStart);
+  const firstB = renderedOrientation(firstStart, firstEnd, secondEnd);
+  const secondA = renderedOrientation(secondStart, secondEnd, firstStart);
+  const secondB = renderedOrientation(secondStart, secondEnd, firstEnd);
+  return (
+    firstA * firstB < -epsilon
+    && secondA * secondB < -epsilon
+  );
+}
+
+function renderedOrientation(start: Point, end: Point, point: Point): number {
+  return (end.x - start.x) * (point.y - start.y)
+    - (end.y - start.y) * (point.x - start.x);
+}
+
 function parseRenderedEdgePoints(value: string): Point[] {
   if (!value.trim()) {
     return [];
@@ -402,6 +557,18 @@ function parseRenderedEdgePoints(value: string): Point[] {
     const y = Number(rawY);
     return Number.isFinite(x) && Number.isFinite(y) ? [{ x, y }] : [];
   });
+}
+
+function enforceStraightRenderedEdge(edge: EdgeRenderModel): EdgeRenderModel {
+  const points = parseRenderedEdgePoints(edge.points);
+  if (points.length <= 2) {
+    return edge;
+  }
+  const straightPoints = [points[0], points[points.length - 1]];
+  return {
+    ...edge,
+    points: straightPoints.map((point) => `${point.x},${point.y}`).join(" "),
+  };
 }
 
 function attachRenderedEdgeEndpoints(
@@ -526,6 +693,112 @@ function segmentPenetratesRenderedTable(
   return exit > 1e-9 && enter < 1 - 1e-9;
 }
 
+function resolveRenderedBundleTableOverlaps(
+  tables: TableRenderModel[],
+  bundleLeavesByFakeId: Record<string, ModelId[]>,
+): {
+  offsetByBundleId: Map<ModelId, Point>;
+  tables: TableRenderModel[];
+} {
+  const bundleIds = new Set<ModelId>(
+    Object.keys(bundleLeavesByFakeId) as ModelId[],
+  );
+  if (bundleIds.size === 0) {
+    return { offsetByBundleId: new Map(), tables };
+  }
+  const bundledLeafIds = new Set<ModelId>(
+    Object.values(bundleLeavesByFakeId).flat(),
+  );
+  const tableByModelId = new Map(
+    tables.map((table) => [table.modelId, table] as const),
+  );
+  const placedObstacles = tables
+    .filter((table) =>
+      !table.hidden
+      && !bundleIds.has(table.modelId)
+      && !bundledLeafIds.has(table.modelId)
+    )
+    .map((table) => ({
+      bottom: table.position.y + table.size.height,
+      left: table.position.x,
+      right: table.position.x + table.size.width,
+      top: table.position.y,
+    }));
+  const offsetByBundleId = new Map<ModelId, Point>();
+  const overlapsObstacle = (
+    table: TableRenderModel,
+    position: Point,
+    padding = 12,
+  ): boolean => {
+    const left = position.x - padding;
+    const right = position.x + table.size.width + padding;
+    const top = position.y - padding;
+    const bottom = position.y + table.size.height + padding;
+    return placedObstacles.some((obstacle) =>
+      Math.min(right, obstacle.right) - Math.max(left, obstacle.left) > 0
+      && Math.min(bottom, obstacle.bottom) - Math.max(top, obstacle.top) > 0
+    );
+  };
+
+  const bundleTables = tables
+    .filter((table) => bundleIds.has(table.modelId) && !table.hidden)
+    .sort((left, right) =>
+      right.size.width * right.size.height - left.size.width * left.size.height
+      || String(left.modelId).localeCompare(String(right.modelId))
+    );
+  for (const bundleTable of bundleTables) {
+    const original = bundleTable.position;
+    let chosen = original;
+    if (overlapsObstacle(bundleTable, original)) {
+      const radialStep = Math.max(
+        96,
+        Math.min(280, Math.min(bundleTable.size.width, bundleTable.size.height) / 2),
+      );
+      let found = false;
+      for (let ring = 1; ring <= 48 && !found; ring += 1) {
+        const radius = radialStep * ring;
+        const candidateCount = Math.max(16, ring * 8);
+        for (let candidateIndex = 0; candidateIndex < candidateCount; candidateIndex += 1) {
+          const angle = candidateIndex / candidateCount * Math.PI * 2;
+          const candidate = {
+            x: round2(Math.max(16, original.x + Math.cos(angle) * radius)),
+            y: round2(Math.max(16, original.y + Math.sin(angle) * radius)),
+          };
+          if (overlapsObstacle(bundleTable, candidate)) {
+            continue;
+          }
+          chosen = candidate;
+          found = true;
+          break;
+        }
+      }
+    }
+    const offset = {
+      x: round2(chosen.x - original.x),
+      y: round2(chosen.y - original.y),
+    };
+    offsetByBundleId.set(bundleTable.modelId, offset);
+    bundleTable.position = chosen;
+    for (const leafModelId of bundleLeavesByFakeId[bundleTable.modelId] ?? []) {
+      const leafTable = tableByModelId.get(leafModelId);
+      if (!leafTable) {
+        continue;
+      }
+      leafTable.position = {
+        x: round2(leafTable.position.x + offset.x),
+        y: round2(leafTable.position.y + offset.y),
+      };
+    }
+    placedObstacles.push({
+      bottom: chosen.y + bundleTable.size.height,
+      left: chosen.x,
+      right: chosen.x + bundleTable.size.width,
+      top: chosen.y,
+    });
+  }
+  return { offsetByBundleId, tables };
+}
+
 export function createDiagramRenderModel(
   payload: DiagramBootstrapPayload,
   discovery?: DjangoWorkspaceDiscoveryResult,
@@ -551,7 +824,7 @@ export function createDiagramRenderModel(
     }
   });
   const tableByModelId = new Map(allTables.map((table) => [table.modelId, table] as const));
-  const leafBundles = packLeafBundles(rawLeafBundles, tableByModelId).leafBundles;
+  let leafBundles = packLeafBundles(rawLeafBundles, tableByModelId).leafBundles;
   const bundleLeafTiles: BundleLeafTile[] = [];
   const bundleFakeIdByIndex = new Map<number, ModelId>();
   const bundleLeavesByFakeId: Record<string, ModelId[]> = {};
@@ -636,16 +909,62 @@ export function createDiagramRenderModel(
   const catalogDegreeByModel = modelCatalogMode
     ? createCatalogRelationDegreeByModel(payload.graph.structuralEdges, layoutNodesById)
     : new Map<ModelId, number>();
-  const renderedTables = modelCatalogMode
+  let renderedTables = modelCatalogMode
     ? tables.map((table) =>
         String(table.modelId).startsWith("__leafbundle.")
         || bundleIndexByLeafModelId.has(table.modelId)
           ? table
           : toCatalogTable(table, catalogDegreeByModel.get(table.modelId) ?? 0))
     : tables;
+  const bundlePlacement = modelCatalogMode
+    ? resolveRenderedBundleTableOverlaps(
+        renderedTables,
+        bundleLeavesByFakeId,
+      )
+    : {
+        offsetByBundleId: new Map<ModelId, Point>(),
+        tables: renderedTables,
+      };
+  renderedTables = bundlePlacement.tables;
+  leafBundles = leafBundles.map((bundle, bundleIndex) => {
+    const fakeBundleId = bundleFakeIdByIndex.get(bundleIndex);
+    const offset = fakeBundleId
+      ? bundlePlacement.offsetByBundleId.get(fakeBundleId)
+      : undefined;
+    return offset
+      ? {
+          ...bundle,
+          anchor: {
+            x: bundle.anchor.x + offset.x,
+            y: bundle.anchor.y + offset.y,
+          },
+          bbox: {
+            ...bundle.bbox,
+            x: bundle.bbox.x + offset.x,
+            y: bundle.bbox.y + offset.y,
+          },
+        }
+      : bundle;
+  });
   const structuralEdgeById = new Map(
     payload.graph.structuralEdges.map((edge) => [edge.id, edge] as const),
   );
+  const memberEdgeIdsByBundleRoot = new Map<string, string[]>();
+  for (const edge of payload.graph.structuralEdges) {
+    const match = bundleEdgeMatch(
+      edge.sourceModelId,
+      edge.targetModelId,
+      leafBundles,
+      bundleIndexByLeafModelId,
+    );
+    if (!match) {
+      continue;
+    }
+    const carrierKey = `${match.bundleIndex}|${match.rootModelId}`;
+    const memberEdgeIds = memberEdgeIdsByBundleRoot.get(carrierKey) ?? [];
+    memberEdgeIds.push(edge.id);
+    memberEdgeIdsByBundleRoot.set(carrierKey, memberEdgeIds);
+  }
   const hubCarrierByEdgeId = createHubCarrierRenderGroups(
     payload.layout.routedEdges,
     structuralEdgeById,
@@ -658,10 +977,18 @@ export function createDiagramRenderModel(
     payload.layout.engineMetadata?.renderedCarrierRoutes,
   );
   const renderedBundleCarrierPointsByKey = new Map<string, Point[]>();
+  const renderedDirectCarrierPointsByEdgeId = new Map<string, Point[]>();
   for (const route of payload.layout.engineMetadata?.renderedCarrierRoutes ?? []) {
     const match = /^B(\d+)\|(.+)$/.exec(route.carrierId);
     if (match && route.points.length >= 2) {
       renderedBundleCarrierPointsByKey.set(`${match[1]}|${match[2]}`, route.points);
+    }
+    if (
+      route.points.length >= 2
+      && route.memberEdgeIds.length === 1
+      && route.carrierId === route.memberEdgeIds[0]
+    ) {
+      renderedDirectCarrierPointsByEdgeId.set(route.carrierId, route.points);
     }
   }
   // Set of `${bundleIndex}|${rootModelId}` keys: ensures ONE carrier edge
@@ -678,7 +1005,10 @@ export function createDiagramRenderModel(
         carrierAssignedByBundleRoot,
         bundleFakeIdByIndex,
         hubCarrierByEdgeId,
+        memberEdgeIdsByBundleRoot,
+        modelCatalogMode,
         renderedBundleCarrierPointsByKey,
+        renderedDirectCarrierPointsByEdgeId,
       ),
     )
     .filter((edge): edge is EdgeRenderModel => Boolean(edge));
@@ -688,9 +1018,25 @@ export function createDiagramRenderModel(
         .map((edge) => createCatalogEdgeRenderModel(edge, layoutNodesById))
         .filter((edge): edge is EdgeRenderModel => Boolean(edge))
     : [];
-  const renderedEdges = modelCatalogMode && routedEdges.length === 0
-    ? catalogEdges
-    : routedEdges;
+  const straightRenderedEdges = (
+    modelCatalogMode && routedEdges.length === 0
+      ? catalogEdges
+      : routedEdges
+  ).map(enforceStraightRenderedEdge);
+  const semanticCarrierResult = modelCatalogMode
+    ? createSemanticCarrierEdges(
+        straightRenderedEdges,
+        renderedTables,
+        structuralEdgeById,
+        new Map(
+          [...bundleIndexByLeafModelId].flatMap(([leafModelId, bundleIndex]) => {
+            const fakeBundleId = bundleFakeIdByIndex.get(bundleIndex);
+            return fakeBundleId ? [[leafModelId, fakeBundleId] as const] : [];
+          }),
+        ),
+      )
+    : undefined;
+  const renderedEdges = semanticCarrierResult?.edges ?? straightRenderedEdges;
 
   const overlays = modelCatalogMode
     ? []
@@ -749,6 +1095,7 @@ export function createDiagramRenderModel(
     overlays,
     timings: payload.timings,
     tables: renderedTables,
+    semanticCarriers: semanticCarrierResult?.diagnostics,
     visualCrossings: payload.layout.engineMetadata?.visualCrossings,
   };
 }
@@ -884,11 +1231,769 @@ function createCatalogEdgeRenderModel(
     edgeId: edge.id,
     markerEndId,
     markerStartId,
+    memberEdgeIds: [edge.id],
     points: "",
     provenance: edge.provenance,
     sourceModelId: edge.sourceModelId,
     targetModelId: edge.targetModelId,
   };
+}
+
+type SemanticCarrierFamily = "association" | "inheritance" | "mixed";
+
+interface SemanticCarrierSourceEdge {
+  family: Exclude<SemanticCarrierFamily, "mixed">;
+  memberEdgeIds: string[];
+  renderEdge: EdgeRenderModel;
+  sourceModelId: ModelId;
+  targetModelId: ModelId;
+}
+
+interface SemanticCarrierSegment {
+  family: SemanticCarrierFamily;
+  memberEdgeIds: Set<string>;
+  role: "direct" | "semantic-tree";
+  sourceModelId: ModelId;
+  targetModelId: ModelId;
+  templateEdge?: EdgeRenderModel;
+}
+
+interface SemanticCarrierTreeLink {
+  sourceModelId: ModelId;
+  targetModelId: ModelId;
+}
+
+interface SemanticCarrierForest {
+  passthroughEdges: EdgeRenderModel[];
+  segments: SemanticCarrierSegment[];
+}
+
+interface SemanticCarrierResult {
+  diagnostics: SemanticCarrierDiagnostics;
+  edges: EdgeRenderModel[];
+}
+
+interface RenderedObstacleIndex {
+  byCell: Map<string, TableRenderModel[]>;
+  visibleTables: TableRenderModel[];
+}
+
+/**
+ * Builds a confluent carrier drawing for very large diagrams.
+ *
+ * Every original rendered relationship remains a member of a continuous path
+ * between its two rendered endpoints. Association and inheritance components
+ * receive independent physical trees, so repeated strokes are drawn once
+ * without pretending that one disconnected average line reaches every table.
+ * If a semantic-family tree has an unavoidable table penetration, only the
+ * affected relationships are rerouted over a collision-aware component tree.
+ */
+function createSemanticCarrierEdges(
+  sourceEdges: EdgeRenderModel[],
+  tables: TableRenderModel[],
+  structuralEdgeById: Map<string, StructuralGraphEdge>,
+  renderedEndpointByModelId: Map<ModelId, ModelId>,
+): SemanticCarrierResult {
+  const visibleTableByModelId = new Map(
+    tables
+      .filter((table) => !table.hidden)
+      .map((table) => [table.modelId, table] as const),
+  );
+  const sourceCarrierEdges: SemanticCarrierSourceEdge[] = [];
+  const passthroughEdges: EdgeRenderModel[] = [];
+  const endpointPairByMemberEdgeId = new Map<string, [ModelId, ModelId]>();
+
+  for (const renderEdge of sourceEdges) {
+    const sourceModelId = renderedEndpointByModelId.get(renderEdge.sourceModelId)
+      ?? renderEdge.sourceModelId;
+    const targetModelId = renderedEndpointByModelId.get(renderEdge.targetModelId)
+      ?? renderEdge.targetModelId;
+    const sourceTable = visibleTableByModelId.get(sourceModelId);
+    const targetTable = visibleTableByModelId.get(targetModelId);
+    const memberEdgeIds = [...new Set(
+      renderEdge.memberEdgeIds && renderEdge.memberEdgeIds.length > 0
+        ? renderEdge.memberEdgeIds
+        : [renderEdge.edgeId],
+    )].sort();
+    for (const memberEdgeId of memberEdgeIds) {
+      if (!endpointPairByMemberEdgeId.has(memberEdgeId)) {
+        endpointPairByMemberEdgeId.set(
+          memberEdgeId,
+          sourceModelId === targetModelId
+            ? [renderEdge.sourceModelId, renderEdge.targetModelId]
+            : [sourceModelId, targetModelId],
+        );
+      }
+    }
+    if (
+      !sourceTable
+      || !targetTable
+      || sourceModelId === targetModelId
+    ) {
+      passthroughEdges.push({ ...renderEdge, memberEdgeIds });
+      continue;
+    }
+
+    const family = memberEdgeIds.every(
+      (edgeId) => structuralEdgeById.get(edgeId)?.kind === "inheritance",
+    )
+      ? "inheritance"
+      : "association";
+    sourceCarrierEdges.push({
+      family,
+      memberEdgeIds,
+      renderEdge,
+      sourceModelId,
+      targetModelId,
+    });
+  }
+
+  const obstacleIndex = createRenderedObstacleIndex(
+    [...visibleTableByModelId.values()],
+  );
+  const primary = buildSemanticCarrierForest(
+    sourceCarrierEdges,
+    visibleTableByModelId,
+    obstacleIndex,
+    true,
+  );
+  primary.passthroughEdges.push(...passthroughEdges);
+
+  const fallbackMemberEdgeIds = new Set<string>();
+  for (const segment of primary.segments) {
+    if (
+      countSemanticCarrierSegmentObstacles(
+        segment,
+        visibleTableByModelId,
+        obstacleIndex,
+      ) === 0
+    ) {
+      continue;
+    }
+    for (const memberEdgeId of segment.memberEdgeIds) {
+      fallbackMemberEdgeIds.add(memberEdgeId);
+    }
+  }
+
+  let carrierSegments = primary.segments;
+  if (fallbackMemberEdgeIds.size > 0) {
+    const globalFallback = buildSemanticCarrierForest(
+      sourceCarrierEdges,
+      visibleTableByModelId,
+      obstacleIndex,
+      false,
+    );
+    const primaryWithoutFallback = primary.segments.flatMap((segment) => {
+      const memberEdgeIds = new Set(
+        [...segment.memberEdgeIds].filter(
+          (edgeId) => !fallbackMemberEdgeIds.has(edgeId),
+        ),
+      );
+      return memberEdgeIds.size > 0 ? [{ ...segment, memberEdgeIds }] : [];
+    });
+    const fallbackSegments = globalFallback.segments.flatMap((segment) => {
+      const memberEdgeIds = new Set(
+        [...segment.memberEdgeIds].filter(
+          (edgeId) => fallbackMemberEdgeIds.has(edgeId),
+        ),
+      );
+      return memberEdgeIds.size > 0 ? [{ ...segment, memberEdgeIds }] : [];
+    });
+    carrierSegments = mergeCoincidentSemanticCarrierSegments([
+      ...primaryWithoutFallback,
+      ...fallbackSegments,
+    ]);
+  } else {
+    carrierSegments = mergeCoincidentSemanticCarrierSegments(carrierSegments);
+  }
+
+  const renderedCarrierEdges = carrierSegments
+    .sort(compareSemanticCarrierSegments)
+    .map((segment, index) =>
+      createSemanticCarrierRenderEdge(
+        segment,
+        index,
+        visibleTableByModelId,
+        structuralEdgeById,
+      ))
+    .filter((edge): edge is EdgeRenderModel => edge !== undefined);
+  const finalSegmentsByMemberEdgeId = new Map<string, SemanticCarrierSegment[]>();
+  for (const segment of carrierSegments) {
+    for (const memberEdgeId of segment.memberEdgeIds) {
+      const members = finalSegmentsByMemberEdgeId.get(memberEdgeId) ?? [];
+      members.push(segment);
+      finalSegmentsByMemberEdgeId.set(memberEdgeId, members);
+    }
+  }
+  for (const passthroughEdge of primary.passthroughEdges) {
+    const memberEdgeIds = passthroughEdge.memberEdgeIds ?? [passthroughEdge.edgeId];
+    const segment: SemanticCarrierSegment = {
+      family: passthroughEdge.carrierFamily ?? "mixed",
+      memberEdgeIds: new Set(memberEdgeIds),
+      role: "direct",
+      sourceModelId: passthroughEdge.sourceModelId,
+      targetModelId: passthroughEdge.targetModelId,
+      templateEdge: passthroughEdge,
+    };
+    for (const memberEdgeId of memberEdgeIds) {
+      const members = finalSegmentsByMemberEdgeId.get(memberEdgeId) ?? [];
+      members.push(segment);
+      finalSegmentsByMemberEdgeId.set(memberEdgeId, members);
+    }
+  }
+  const missingRelationships: string[] = [];
+  const disconnectedRelationships: string[] = [];
+  let bundledRelationships = 0;
+  for (const [memberEdgeId, endpointPair] of endpointPairByMemberEdgeId) {
+    const segments = finalSegmentsByMemberEdgeId.get(memberEdgeId) ?? [];
+    if (segments.length === 0) {
+      missingRelationships.push(memberEdgeId);
+      continue;
+    }
+    if (
+      segments.length > 1
+      || segments.some((segment) => segment.memberEdgeIds.size > 1)
+    ) {
+      bundledRelationships += 1;
+    }
+    if (!semanticCarrierSegmentsConnectEndpoints(segments, endpointPair)) {
+      disconnectedRelationships.push(memberEdgeId);
+    }
+  }
+  let obstacleIntersections = 0;
+  for (const segment of carrierSegments) {
+    obstacleIntersections += countSemanticCarrierSegmentObstacles(
+      segment,
+      visibleTableByModelId,
+      obstacleIndex,
+    );
+  }
+
+  return {
+    diagnostics: {
+      active: true,
+      bundledRelationships,
+      carrierSegments: renderedCarrierEdges.length + primary.passthroughEdges.length,
+      disconnectedRelationships: disconnectedRelationships.sort(),
+      fallbackRelationships: fallbackMemberEdgeIds.size,
+      missingRelationships: missingRelationships.sort(),
+      obstacleIntersections,
+      relationships: endpointPairByMemberEdgeId.size,
+    },
+    edges: [...renderedCarrierEdges, ...primary.passthroughEdges],
+  };
+}
+
+function buildSemanticCarrierForest(
+  sourceEdges: SemanticCarrierSourceEdge[],
+  tableByModelId: Map<ModelId, TableRenderModel>,
+  obstacleIndex: RenderedObstacleIndex,
+  separateSemanticFamilies: boolean,
+): SemanticCarrierForest {
+  const sourcesByFamily = new Map<SemanticCarrierFamily, SemanticCarrierSourceEdge[]>();
+  for (const sourceEdge of sourceEdges) {
+    const family = separateSemanticFamilies ? sourceEdge.family : "mixed";
+    const members = sourcesByFamily.get(family) ?? [];
+    members.push(sourceEdge);
+    sourcesByFamily.set(family, members);
+  }
+
+  const segments: SemanticCarrierSegment[] = [];
+  for (const [family, familyEdges] of sourcesByFamily) {
+    for (const component of collectSemanticCarrierComponents(familyEdges)) {
+      const modelIds = [...new Set(component.flatMap((edge) => [
+        edge.sourceModelId,
+        edge.targetModelId,
+      ]))].sort();
+      if (component.length < 2 || modelIds.length < 3) {
+        for (const sourceEdge of component) {
+          segments.push({
+            family,
+            memberEdgeIds: new Set(sourceEdge.memberEdgeIds),
+            role: "direct",
+            sourceModelId: sourceEdge.sourceModelId,
+            targetModelId: sourceEdge.targetModelId,
+            templateEdge: sourceEdge.renderEdge,
+          });
+        }
+        continue;
+      }
+
+      const links = buildCollisionAwareSemanticSpanningTree(
+        modelIds,
+        component,
+        tableByModelId,
+        obstacleIndex,
+      );
+      const treeAdjacency = new Map<
+        ModelId,
+        Array<{ linkIndex: number; modelId: ModelId }>
+      >(modelIds.map((modelId) => [modelId, []]));
+      const memberEdgeIdsByLink = links.map(() => new Set<string>());
+      links.forEach((link, linkIndex) => {
+        treeAdjacency.get(link.sourceModelId)?.push({
+          linkIndex,
+          modelId: link.targetModelId,
+        });
+        treeAdjacency.get(link.targetModelId)?.push({
+          linkIndex,
+          modelId: link.sourceModelId,
+        });
+      });
+
+      for (const sourceEdge of component) {
+        const pathLinkIndices = findSemanticCarrierTreePath(
+          sourceEdge.sourceModelId,
+          sourceEdge.targetModelId,
+          treeAdjacency,
+        );
+        for (const linkIndex of pathLinkIndices) {
+          for (const memberEdgeId of sourceEdge.memberEdgeIds) {
+            memberEdgeIdsByLink[linkIndex].add(memberEdgeId);
+          }
+        }
+      }
+      links.forEach((link, linkIndex) => {
+        if (memberEdgeIdsByLink[linkIndex].size === 0) {
+          return;
+        }
+        segments.push({
+          family,
+          memberEdgeIds: memberEdgeIdsByLink[linkIndex],
+          role: "semantic-tree",
+          sourceModelId: link.sourceModelId,
+          targetModelId: link.targetModelId,
+        });
+      });
+    }
+  }
+
+  return { passthroughEdges: [], segments };
+}
+
+function collectSemanticCarrierComponents(
+  sourceEdges: SemanticCarrierSourceEdge[],
+): SemanticCarrierSourceEdge[][] {
+  const edgeIndicesByModelId = new Map<ModelId, number[]>();
+  sourceEdges.forEach((edge, edgeIndex) => {
+    const sourceIndices = edgeIndicesByModelId.get(edge.sourceModelId) ?? [];
+    sourceIndices.push(edgeIndex);
+    edgeIndicesByModelId.set(edge.sourceModelId, sourceIndices);
+    const targetIndices = edgeIndicesByModelId.get(edge.targetModelId) ?? [];
+    targetIndices.push(edgeIndex);
+    edgeIndicesByModelId.set(edge.targetModelId, targetIndices);
+  });
+
+  const unseenEdgeIndices = new Set(sourceEdges.map((_, index) => index));
+  const components: SemanticCarrierSourceEdge[][] = [];
+  while (unseenEdgeIndices.size > 0) {
+    const seedIndex = unseenEdgeIndices.values().next().value as number;
+    const queuedModelIds: ModelId[] = [sourceEdges[seedIndex].sourceModelId];
+    const seenModelIds = new Set<ModelId>();
+    const componentEdgeIndices = new Set<number>();
+    for (let queueIndex = 0; queueIndex < queuedModelIds.length; queueIndex += 1) {
+      const modelId = queuedModelIds[queueIndex];
+      if (seenModelIds.has(modelId)) {
+        continue;
+      }
+      seenModelIds.add(modelId);
+      for (const edgeIndex of edgeIndicesByModelId.get(modelId) ?? []) {
+        if (componentEdgeIndices.has(edgeIndex)) {
+          continue;
+        }
+        componentEdgeIndices.add(edgeIndex);
+        unseenEdgeIndices.delete(edgeIndex);
+        const edge = sourceEdges[edgeIndex];
+        queuedModelIds.push(edge.sourceModelId, edge.targetModelId);
+      }
+    }
+    components.push(
+      [...componentEdgeIndices]
+        .sort((left, right) => left - right)
+        .map((edgeIndex) => sourceEdges[edgeIndex]),
+    );
+  }
+  return components;
+}
+
+function buildCollisionAwareSemanticSpanningTree(
+  modelIds: ModelId[],
+  componentEdges: SemanticCarrierSourceEdge[],
+  tableByModelId: Map<ModelId, TableRenderModel>,
+  obstacleIndex: RenderedObstacleIndex,
+): SemanticCarrierTreeLink[] {
+  interface Candidate extends SemanticCarrierTreeLink {
+    distanceSquared: number;
+    obstacleIntersections: number;
+  }
+
+  const candidateByPair = new Map<string, Candidate>();
+  const addCandidate = (leftModelId: ModelId, rightModelId: ModelId): void => {
+    if (leftModelId === rightModelId) {
+      return;
+    }
+    const [sourceModelId, targetModelId] = String(leftModelId) < String(rightModelId)
+      ? [leftModelId, rightModelId]
+      : [rightModelId, leftModelId];
+    const key = `${sourceModelId}\u0000${targetModelId}`;
+    if (candidateByPair.has(key)) {
+      return;
+    }
+    const sourceTable = tableByModelId.get(sourceModelId);
+    const targetTable = tableByModelId.get(targetModelId);
+    if (!sourceTable || !targetTable) {
+      return;
+    }
+    const sourceCenter = renderedTableCenter(sourceTable);
+    const targetCenter = renderedTableCenter(targetTable);
+    const dx = sourceCenter.x - targetCenter.x;
+    const dy = sourceCenter.y - targetCenter.y;
+    candidateByPair.set(key, {
+      distanceSquared: dx * dx + dy * dy,
+      obstacleIntersections: countStraightRenderedTableIntersections(
+        sourceTable,
+        targetTable,
+        obstacleIndex,
+      ),
+      sourceModelId,
+      targetModelId,
+    });
+  };
+
+  const neighborLimit = Math.min(
+    Math.max(0, modelIds.length - 1),
+    SEMANTIC_CARRIER_NEIGHBOR_LIMIT,
+  );
+  for (const sourceModelId of modelIds) {
+    const sourceTable = tableByModelId.get(sourceModelId);
+    if (!sourceTable) {
+      continue;
+    }
+    const sourceCenter = renderedTableCenter(sourceTable);
+    const nearest = modelIds.flatMap((targetModelId) => {
+      if (targetModelId === sourceModelId) {
+        return [];
+      }
+      const targetTable = tableByModelId.get(targetModelId);
+      if (!targetTable) {
+        return [];
+      }
+      const targetCenter = renderedTableCenter(targetTable);
+      const dx = sourceCenter.x - targetCenter.x;
+      const dy = sourceCenter.y - targetCenter.y;
+      return [{
+        distanceSquared: dx * dx + dy * dy,
+        targetModelId,
+      }];
+    });
+    nearest.sort((left, right) =>
+      left.distanceSquared - right.distanceSquared
+      || String(left.targetModelId).localeCompare(String(right.targetModelId))
+    );
+    for (const neighbor of nearest.slice(0, neighborLimit)) {
+      addCandidate(sourceModelId, neighbor.targetModelId);
+    }
+  }
+  // The original semantic edges guarantee a connected candidate graph even
+  // when a component contains two distant geometric islands.
+  for (const edge of componentEdges) {
+    addCandidate(edge.sourceModelId, edge.targetModelId);
+  }
+
+  const parentByModelId = new Map(modelIds.map((modelId) => [modelId, modelId]));
+  const findRoot = (modelId: ModelId): ModelId => {
+    let root = modelId;
+    while (parentByModelId.get(root) !== root) {
+      root = parentByModelId.get(root) ?? root;
+    }
+    let cursor = modelId;
+    while (parentByModelId.get(cursor) !== cursor) {
+      const next = parentByModelId.get(cursor) ?? root;
+      parentByModelId.set(cursor, root);
+      cursor = next;
+    }
+    return root;
+  };
+  const union = (leftModelId: ModelId, rightModelId: ModelId): boolean => {
+    const leftRoot = findRoot(leftModelId);
+    const rightRoot = findRoot(rightModelId);
+    if (leftRoot === rightRoot) {
+      return false;
+    }
+    parentByModelId.set(leftRoot, rightRoot);
+    return true;
+  };
+
+  const candidates = [...candidateByPair.values()].sort((left, right) =>
+    left.obstacleIntersections - right.obstacleIntersections
+    || left.distanceSquared - right.distanceSquared
+    || String(left.sourceModelId).localeCompare(String(right.sourceModelId))
+    || String(left.targetModelId).localeCompare(String(right.targetModelId))
+  );
+  const links: SemanticCarrierTreeLink[] = [];
+  for (const candidate of candidates) {
+    if (!union(candidate.sourceModelId, candidate.targetModelId)) {
+      continue;
+    }
+    links.push({
+      sourceModelId: candidate.sourceModelId,
+      targetModelId: candidate.targetModelId,
+    });
+    if (links.length + 1 === modelIds.length) {
+      break;
+    }
+  }
+  return links;
+}
+
+function findSemanticCarrierTreePath(
+  sourceModelId: ModelId,
+  targetModelId: ModelId,
+  adjacency: Map<ModelId, Array<{ linkIndex: number; modelId: ModelId }>>,
+): number[] {
+  const previous = new Map<
+    ModelId,
+    { linkIndex: number; modelId: ModelId } | undefined
+  >([[sourceModelId, undefined]]);
+  const queue: ModelId[] = [sourceModelId];
+  for (
+    let queueIndex = 0;
+    queueIndex < queue.length && !previous.has(targetModelId);
+    queueIndex += 1
+  ) {
+    const modelId = queue[queueIndex];
+    for (const step of adjacency.get(modelId) ?? []) {
+      if (previous.has(step.modelId)) {
+        continue;
+      }
+      previous.set(step.modelId, { linkIndex: step.linkIndex, modelId });
+      queue.push(step.modelId);
+    }
+  }
+
+  const linkIndices: number[] = [];
+  let cursor = targetModelId;
+  while (cursor !== sourceModelId) {
+    const step = previous.get(cursor);
+    if (!step) {
+      return [];
+    }
+    linkIndices.push(step.linkIndex);
+    cursor = step.modelId;
+  }
+  return linkIndices;
+}
+
+function createRenderedObstacleIndex(
+  visibleTables: TableRenderModel[],
+): RenderedObstacleIndex {
+  const byCell = new Map<string, TableRenderModel[]>();
+  for (const table of visibleTables) {
+    const startColumn = Math.floor(table.position.x / SEMANTIC_CARRIER_SPATIAL_CELL);
+    const endColumn = Math.floor(
+      (table.position.x + table.size.width) / SEMANTIC_CARRIER_SPATIAL_CELL,
+    );
+    const startRow = Math.floor(table.position.y / SEMANTIC_CARRIER_SPATIAL_CELL);
+    const endRow = Math.floor(
+      (table.position.y + table.size.height) / SEMANTIC_CARRIER_SPATIAL_CELL,
+    );
+    for (let row = startRow; row <= endRow; row += 1) {
+      for (let column = startColumn; column <= endColumn; column += 1) {
+        const key = `${column}:${row}`;
+        const members = byCell.get(key) ?? [];
+        members.push(table);
+        byCell.set(key, members);
+      }
+    }
+  }
+  return { byCell, visibleTables };
+}
+
+function queryRenderedObstacles(
+  index: RenderedObstacleIndex,
+  start: Point,
+  end: Point,
+): TableRenderModel[] {
+  const padding = SEMANTIC_CARRIER_OBSTACLE_PADDING;
+  const startColumn = Math.floor(
+    (Math.min(start.x, end.x) - padding) / SEMANTIC_CARRIER_SPATIAL_CELL,
+  );
+  const endColumn = Math.floor(
+    (Math.max(start.x, end.x) + padding) / SEMANTIC_CARRIER_SPATIAL_CELL,
+  );
+  const startRow = Math.floor(
+    (Math.min(start.y, end.y) - padding) / SEMANTIC_CARRIER_SPATIAL_CELL,
+  );
+  const endRow = Math.floor(
+    (Math.max(start.y, end.y) + padding) / SEMANTIC_CARRIER_SPATIAL_CELL,
+  );
+  const tableByModelId = new Map<ModelId, TableRenderModel>();
+  for (let row = startRow; row <= endRow; row += 1) {
+    for (let column = startColumn; column <= endColumn; column += 1) {
+      for (const table of index.byCell.get(`${column}:${row}`) ?? []) {
+        tableByModelId.set(table.modelId, table);
+      }
+    }
+  }
+  return [...tableByModelId.values()];
+}
+
+function countStraightRenderedTableIntersections(
+  sourceTable: TableRenderModel,
+  targetTable: TableRenderModel,
+  obstacleIndex: RenderedObstacleIndex,
+): number {
+  const [start, end] = buildStraightRenderedEdgePoints(sourceTable, targetTable);
+  return queryRenderedObstacles(obstacleIndex, start, end).filter((table) =>
+    table.modelId !== sourceTable.modelId
+    && table.modelId !== targetTable.modelId
+    && segmentPenetratesRenderedTable(
+      start,
+      end,
+      table,
+      SEMANTIC_CARRIER_OBSTACLE_PADDING,
+    )
+  ).length;
+}
+
+function countSemanticCarrierSegmentObstacles(
+  segment: SemanticCarrierSegment,
+  tableByModelId: Map<ModelId, TableRenderModel>,
+  obstacleIndex: RenderedObstacleIndex,
+): number {
+  const sourceTable = tableByModelId.get(segment.sourceModelId);
+  const targetTable = tableByModelId.get(segment.targetModelId);
+  return sourceTable && targetTable
+    ? countStraightRenderedTableIntersections(sourceTable, targetTable, obstacleIndex)
+    : 0;
+}
+
+function mergeCoincidentSemanticCarrierSegments(
+  segments: SemanticCarrierSegment[],
+): SemanticCarrierSegment[] {
+  const segmentByKey = new Map<string, SemanticCarrierSegment>();
+  for (const segment of segments) {
+    const [sourceModelId, targetModelId] =
+      String(segment.sourceModelId) < String(segment.targetModelId)
+        ? [segment.sourceModelId, segment.targetModelId]
+        : [segment.targetModelId, segment.sourceModelId];
+    const key = `${sourceModelId}\u0000${targetModelId}`;
+    const existing = segmentByKey.get(key);
+    if (!existing) {
+      segmentByKey.set(key, {
+        ...segment,
+        sourceModelId,
+        targetModelId,
+        memberEdgeIds: new Set(segment.memberEdgeIds),
+      });
+      continue;
+    }
+    for (const memberEdgeId of segment.memberEdgeIds) {
+      existing.memberEdgeIds.add(memberEdgeId);
+    }
+    if (existing.family !== segment.family) {
+      existing.family = "mixed";
+    }
+    if (existing.role !== segment.role) {
+      existing.role = "semantic-tree";
+      existing.templateEdge = undefined;
+    }
+  }
+  return [...segmentByKey.values()];
+}
+
+function compareSemanticCarrierSegments(
+  left: SemanticCarrierSegment,
+  right: SemanticCarrierSegment,
+): number {
+  return left.family.localeCompare(right.family)
+    || String(left.sourceModelId).localeCompare(String(right.sourceModelId))
+    || String(left.targetModelId).localeCompare(String(right.targetModelId));
+}
+
+function createSemanticCarrierRenderEdge(
+  segment: SemanticCarrierSegment,
+  index: number,
+  tableByModelId: Map<ModelId, TableRenderModel>,
+  structuralEdgeById: Map<string, StructuralGraphEdge>,
+): EdgeRenderModel | undefined {
+  const sourceTable = tableByModelId.get(segment.sourceModelId);
+  const targetTable = tableByModelId.get(segment.targetModelId);
+  if (!sourceTable || !targetTable) {
+    return undefined;
+  }
+  const points = buildStraightRenderedEdgePoints(sourceTable, targetTable);
+  const memberEdgeIds = [...segment.memberEdgeIds].sort();
+  const logicalEndpointModelIds = [...new Set<ModelId>([
+    segment.sourceModelId,
+    segment.targetModelId,
+    ...memberEdgeIds.flatMap((edgeId) => {
+      const edge = structuralEdgeById.get(edgeId);
+      return edge ? [edge.sourceModelId, edge.targetModelId] : [];
+    }),
+  ])].sort();
+  if (segment.role === "direct" && segment.templateEdge) {
+    return {
+      ...segment.templateEdge,
+      carrierFamily: segment.family,
+      carrierRole: "direct",
+      logicalEndpointModelIds,
+      memberEdgeIds,
+      physicalEndpointModelIds: [segment.sourceModelId, segment.targetModelId],
+      points: points.map((point) => `${round2(point.x)},${round2(point.y)}`).join(" "),
+      preserveRouteEndpoints: true,
+      sourceModelId: segment.sourceModelId,
+      targetModelId: segment.targetModelId,
+    };
+  }
+  return {
+    carrierFamily: segment.family,
+    carrierRole: "semantic-tree",
+    crossingIds: [],
+    cssKind: `semantic-carrier-${segment.family}`,
+    edgeId: `semantic-carrier:${index}`,
+    logicalEndpointModelIds,
+    markerEndId: "",
+    markerStartId: "",
+    memberEdgeIds,
+    physicalEndpointModelIds: [segment.sourceModelId, segment.targetModelId],
+    points: points.map((point) => `${round2(point.x)},${round2(point.y)}`).join(" "),
+    preserveRouteEndpoints: true,
+    provenance: "semantic_bundle",
+    sourceModelId: segment.sourceModelId,
+    targetModelId: segment.targetModelId,
+  };
+}
+
+function semanticCarrierSegmentsConnectEndpoints(
+  segments: SemanticCarrierSegment[],
+  [sourceModelId, targetModelId]: [ModelId, ModelId],
+): boolean {
+  const adjacency = new Map<ModelId, ModelId[]>();
+  for (const segment of segments) {
+    const sourceNeighbors = adjacency.get(segment.sourceModelId) ?? [];
+    sourceNeighbors.push(segment.targetModelId);
+    adjacency.set(segment.sourceModelId, sourceNeighbors);
+    const targetNeighbors = adjacency.get(segment.targetModelId) ?? [];
+    targetNeighbors.push(segment.sourceModelId);
+    adjacency.set(segment.targetModelId, targetNeighbors);
+  }
+  const seen = new Set<ModelId>([sourceModelId]);
+  const queue: ModelId[] = [sourceModelId];
+  for (let index = 0; index < queue.length; index += 1) {
+    const modelId = queue[index];
+    if (modelId === targetModelId) {
+      return true;
+    }
+    for (const neighbor of adjacency.get(modelId) ?? []) {
+      if (seen.has(neighbor)) {
+        continue;
+      }
+      seen.add(neighbor);
+      queue.push(neighbor);
+    }
+  }
+  return seen.has(targetModelId);
 }
 
 function createHubCarrierRenderGroups(
@@ -946,6 +2051,7 @@ function createHubCarrierRenderGroups(
       const group: HubCarrierRenderGroup = {
         id: webviewCarrierId,
         logicalEndpointModelIds,
+        memberEdgeIds: [...carrierRoute.memberEdgeIds],
         points: carrierRoute.points,
         representativeEdgeId,
         sourceModelId: representativeEdge.sourceModelId,
@@ -1133,6 +2239,7 @@ function createHubCarrierRenderGroups(
     const group: HubCarrierRenderGroup = {
       id: carrierId,
       logicalEndpointModelIds,
+      memberEdgeIds: members.map((member) => member.edge.id),
       points,
       representativeEdgeId: firstMember.edge.id,
       sourceModelId: firstMember.edge.sourceModelId,
@@ -1418,7 +2525,10 @@ function createEdgeRenderModel(
   carrierAssignedByBundleRoot: Set<string>,
   bundleFakeIdByIndex: Map<number, ModelId>,
   hubCarrierByEdgeId: Map<string, HubCarrierRenderGroup>,
+  memberEdgeIdsByBundleRoot: Map<string, string[]>,
+  retainBundledLeafRelations: boolean,
   renderedBundleCarrierPointsByKey: Map<string, Point[]>,
+  renderedDirectCarrierPointsByEdgeId: Map<string, Point[]>,
 ): EdgeRenderModel | undefined {
   const edge = structuralEdgeById.get(route.edgeId);
   if (!edge) {
@@ -1463,6 +2573,7 @@ function createEdgeRenderModel(
       ].filter((modelId, index, values) => values.indexOf(modelId) === index),
       markerEndId,
       markerStartId,
+      memberEdgeIds: memberEdgeIdsByBundleRoot.get(carrierKey) ?? [edge.id],
       points: orientedPoints
         ? orientedPoints.map((point) => `${point.x},${point.y}`).join(" ")
         : "",
@@ -1485,6 +2596,7 @@ function createEdgeRenderModel(
       logicalEndpointModelIds: hubCarrier.logicalEndpointModelIds,
       markerEndId,
       markerStartId,
+      memberEdgeIds: hubCarrier.memberEdgeIds,
       points: hubCarrier.points.map((point) => `${point.x},${point.y}`).join(" "),
       preserveRouteEndpoints: true,
       provenance: edge.provenance,
@@ -1498,24 +2610,28 @@ function createEdgeRenderModel(
   ) {
     // An edge whose endpoint is a bundled leaf but which is NOT a carrier
     // match (the other endpoint is not the bundle's shared root/parent)
-    // would otherwise be dropped. For most edge kinds that is intentional —
-    // a leaf's incidental relations collapse into the bundle. But an
-    // inheritance ("is-a") edge to a parent OTHER than the bundle root must
-    // stay visible (e.g. CmeBulkEmailRecipient → BulkEmailRecipient, where
-    // the child is a topological leaf bundled under a different FK parent).
+    // used to be dropped. Compact diagrams retain that legacy simplification,
+    // except that inheritance ("is-a") must stay visible. Large semantic-
+    // carrier diagrams keep every one of these relationships; their physical
+    // leaf endpoint is normalized to the enclosing bundle boundary later.
     // The bundled leaf is still a rendered compact pill (modifiedLeafTables
     // keeps its modelId in `tables`), so emit a direct edge with empty
     // points: the renderer's getStaticOrLiveEdgePath falls back to
     // buildStraightPath between the two rendered tables at their current
     // (compact) positions — the same path mechanism the bundle carrier uses.
-    if (edge.kind === "inheritance") {
+    if (edge.kind === "inheritance" || retainBundledLeafRelations) {
+      const optimizedPoints = renderedDirectCarrierPointsByEdgeId.get(edge.id);
       return {
         crossingIds: [],
         cssKind: edge.kind.replaceAll("_", "-"),
         edgeId: edge.id,
         markerEndId,
         markerStartId,
-        points: "",
+        memberEdgeIds: [edge.id],
+        points: optimizedPoints
+          ? optimizedPoints.map((point) => `${point.x},${point.y}`).join(" ")
+          : "",
+        preserveRouteEndpoints: Boolean(optimizedPoints),
         provenance: edge.provenance,
         sourceModelId: edge.sourceModelId,
         targetModelId: edge.targetModelId,
@@ -1524,18 +2640,22 @@ function createEdgeRenderModel(
     return undefined;
   }
 
+  const optimizedPoints = renderedDirectCarrierPointsByEdgeId.get(edge.id);
   return {
     crossingIds: route.crossingIds,
     cssKind: edge.kind.replaceAll("_", "-"),
     edgeId: edge.id,
     markerEndId,
     markerStartId,
-    points: route.points.map((point) => `${point.x},${point.y}`).join(" "),
+    memberEdgeIds: [edge.id],
+    points: (optimizedPoints ?? route.points)
+      .map((point) => `${point.x},${point.y}`)
+      .join(" "),
     // These endpoints were already clipped to the table boundary and audited
     // by the native carrier scorer. Reattaching them in the browser subtly
     // changes the first/last segment and can recreate node penetrations that
     // the accepted native route did not contain.
-    preserveRouteEndpoints: route.points.length >= 2,
+    preserveRouteEndpoints: (optimizedPoints ?? route.points).length >= 2,
     provenance: edge.provenance,
     sourceModelId: edge.sourceModelId,
     targetModelId: edge.targetModelId,
