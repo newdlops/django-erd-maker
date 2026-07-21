@@ -134,18 +134,37 @@ test("phase8 model sheet asks for a node instead of choosing one implicitly", ()
   assert.doesNotMatch(modelSheet, /data-model-id="blog\.Post"/);
 });
 
-test("phase8 document respects method and property visibility state in the inspector", () => {
-  const taxonomyHtml = render((payload) => {
-    payload.view.selectedModelId = "taxonomy.Tag";
-    payload.view.selectedMethodContext = undefined;
-  });
-  const auditHtml = render((payload) => {
-    payload.view.selectedModelId = "audit.AuditLog";
-    payload.view.selectedMethodContext = undefined;
+test("phase8 model inspector stays complete when canvas detail toggles are off", () => {
+  const html = render((payload) => {
+    payload.view.selectedModelId = "blog.Post";
+    const options = payload.view.tableOptions.find(
+      (candidate) => candidate.modelId === "blog.Post",
+    );
+    options.showMethods = false;
+    options.showProperties = false;
   });
 
-  assert.match(taxonomyHtml, /Methods are hidden by the current table view state\./);
-  assert.match(auditHtml, /Properties are hidden by the current table view state\./);
+  assert.match(html, /fn publish/);
+  assert.match(html, /@ display_title -&gt; str/);
+  assert.doesNotMatch(html, /Methods are hidden by the current table view state\./);
+  assert.doesNotMatch(html, /Properties are hidden by the current table view state\./);
+});
+
+test("phase8 model inspector explains declared relationship kind, field, and direction", () => {
+  const postHtml = render((payload) => {
+    payload.view.selectedModelId = "blog.Post";
+  });
+  const authorHtml = render((payload) => {
+    payload.view.selectedModelId = "accounts.Author";
+  });
+
+  assert.match(postHtml, /erd-badge--relation-foreign-key">FK<\/span>/);
+  assert.match(postHtml, /author → accounts\.Author/);
+  assert.match(postHtml, /erd-badge--relation-many-to-many">M2M<\/span>/);
+  assert.match(postHtml, /tags → taxonomy\.Tag/);
+  assert.match(authorHtml, /← blog\.Post\.author/);
+  assert.doesNotMatch(authorHtml, />REV FK<\/span>/);
+  assert.match(postHtml, /relationshipColor\(kinds, alpha\)/);
 });
 
 test("phase8 document surfaces layout fallback state and disables failed layout buttons", () => {
@@ -470,6 +489,64 @@ test("phase8 catalog mode expands high-degree tables for relation ports", () => 
   assert.ok(hubSize.width > leafSize.width, "hub table should be wider than leaf tables");
 });
 
+test("phase8 catalog mode keeps full field and property values in the model sheet", () => {
+  const payload = createCatalogPayload();
+  const hubModel = payload.analyzer.models.find(
+    (model) => model.identity.id === "catalog.Hub",
+  );
+  assert.ok(hubModel);
+  hubModel.fields = [
+    {
+      fieldType: "ForeignKey",
+      name: "owner",
+      nullable: false,
+      persistence: "stored",
+      primaryKey: false,
+      relation: {
+        kind: "foreign_key",
+        target: {
+          rawReference: "catalog.Leaf1",
+          resolutionState: "resolved",
+          resolvedModelId: "catalog.Leaf1",
+        },
+      },
+    },
+    {
+      choiceMetadata: {
+        isChoiceField: true,
+        isFullyResolved: true,
+        options: [{ label: "Live", value: "live", valueKind: "string" }],
+      },
+      fieldType: "CharField",
+      name: "status",
+      nullable: false,
+      persistence: "stored",
+      primaryKey: false,
+    },
+  ];
+  hubModel.properties = [{ name: "display_label", returnType: "str" }];
+
+  const html = renderDiagramDocument(payload);
+  const renderModel = readRenderModel(html);
+  const canvasHub = renderModel.tables.find((table) => table.modelId === "catalog.Hub");
+  const inspectorHub = renderModel.inspectorModels.find(
+    (model) => model.modelId === "catalog.Hub",
+  );
+  const modelSheet = html.slice(
+    html.indexOf('data-sidebar-sheet="model"'),
+    html.indexOf('data-sidebar-sheet="diagram"'),
+  );
+
+  assert.deepEqual(canvasHub.fieldRows, [], "catalog canvas cards must stay compact");
+  assert.equal(inspectorHub.fieldRows.length, 3);
+  assert.deepEqual(inspectorHub.properties, ["display_label -> str"]);
+  assert.match(modelSheet, /owner: ForeignKey -&gt; catalog\.Leaf1/);
+  assert.match(modelSheet, /Live = live/);
+  assert.match(modelSheet, /@ display_label -&gt; str/);
+  assert.match(html, /const inspectorModelById = new Map/);
+  assert.match(html, /const table = inspectorModelById\.get\(modelId\)/);
+});
+
 test("catalog layout input resolves and audits the exact rendered bundle geometry", () => {
   const payload = createCatalogPayload();
   payload.layout.nodes.forEach((node, index) => {
@@ -677,7 +754,7 @@ test("rendered visual metrics preserve carrier scores under an explicit scope", 
   assert.deepEqual(actual, expected);
   assert.equal(
     payload.layout.engineMetadata.visualCrossingsScope,
-    "rendered-semantic-carrier-v2",
+    "rendered-relationship-faithful-v3",
   );
   assert.equal(payload.layout.engineMetadata.carrierVisualCrossings, 88);
   assert.equal(payload.layout.engineMetadata.carrierEdgeCrossings, 26);

@@ -117,9 +117,9 @@ export function getBrowserDomSource(): string {
           );
         }
 
-        function renderInspectorMethodButtons(table, options) {
+        function renderInspectorMethodButtons(table) {
           const methods = Array.isArray(table.methods) ? table.methods : [];
-          const methodListHidden = !options.showMethods || methods.length === 0;
+          const methodListHidden = methods.length === 0;
 
           return (
             '<div class="erd-method-buttons" data-method-list ' +
@@ -157,6 +157,56 @@ export function getBrowserDomSource(): string {
           );
         }
 
+        function inspectorRelationshipKindLabel(kind) {
+          switch (kind) {
+            case "foreign_key": return "FK";
+            case "one_to_one": return "O2O";
+            case "many_to_many": return "M2M";
+            case "inheritance": return "IS-A";
+            case "reverse_foreign_key": return "REV FK";
+            case "reverse_one_to_one": return "REV O2O";
+            case "reverse_many_to_many": return "REV M2M";
+            default: return String(kind || "REL").toUpperCase();
+          }
+        }
+
+        function renderInspectorRelationships(table) {
+          const relationships = Array.isArray(table.relationships) ? table.relationships : [];
+          if (relationships.length === 0) {
+            return '<p class="erd-panel__hint">No declared database relationships.</p>';
+          }
+
+          return (
+            '<ul class="erd-list erd-relationship-list">' +
+            relationships.map((relationship) => {
+              const direction = relationship.direction === "incoming"
+                ? "incoming"
+                : relationship.direction === "self" ? "self" : "outgoing";
+              const label = direction === "incoming"
+                ? "← " + relationship.otherModelId + "." + relationship.fieldName
+                : direction === "self"
+                  ? relationship.fieldName + " ↻ " + table.modelId
+                  : relationship.fieldName + " → " + relationship.otherModelId;
+              return (
+                '<li class="erd-list__item erd-relationship">' +
+                '<span class="erd-relationship__header">' +
+                '<span class="erd-badge erd-badge--relation-' +
+                escapeInspectorHtml(String(relationship.kind || "relation").replaceAll("_", "-")) +
+                '">' +
+                escapeInspectorHtml(inspectorRelationshipKindLabel(relationship.kind)) +
+                "</span>" +
+                '<span class="erd-sidebar__meta">' + direction + "</span>" +
+                "</span>" +
+                '<button type="button" class="erd-relationship__target" data-focus-related-model data-model-id="' +
+                escapeInspectorHtml(relationship.otherModelId) +
+                '">' + escapeInspectorHtml(label) + "</button>" +
+                "</li>"
+              );
+            }).join("") +
+            "</ul>"
+          );
+        }
+
         function renderInspectorPanelMarkup(modelId) {
           if (!modelId) {
             return (
@@ -170,7 +220,7 @@ export function getBrowserDomSource(): string {
             );
           }
 
-          const table = tableRenderById.get(modelId);
+          const table = inspectorModelById.get(modelId);
           if (!table) {
             return (
               '<section class="erd-panel" data-model-panel hidden>' +
@@ -187,8 +237,13 @@ export function getBrowserDomSource(): string {
           const fields = Array.isArray(table.fieldRows) ? table.fieldRows : [];
           const properties = Array.isArray(table.properties) ? table.properties : [];
           const methods = Array.isArray(table.methods) ? table.methods : [];
+          const relationships = Array.isArray(table.relationships) ? table.relationships : [];
           const selectedClass = state.selectedModelId === modelId ? " is-selected" : "";
-          const noDetails = fields.length === 0 && properties.length === 0 && methods.length === 0;
+          const noDetails =
+            fields.length === 0
+            && properties.length === 0
+            && methods.length === 0
+            && relationships.length === 0;
 
           if (noDetails) {
             return (
@@ -229,8 +284,12 @@ export function getBrowserDomSource(): string {
             escapeInspectorHtml(table.modelName) +
             "</h2>" +
             '<p class="erd-panel__meta">' +
+            escapeInspectorHtml(table.databaseTableName) +
+            "</p>" +
+            '<p class="erd-panel__meta">' +
             escapeInspectorHtml(
-              fields.length + " rows · " + properties.length + " properties · " + methods.length + " methods",
+              fields.length + " rows · " + relationships.length + " relationships · " +
+              properties.length + " properties · " + methods.length + " methods",
             ) +
             "</p>" +
             "</header>" +
@@ -241,35 +300,10 @@ export function getBrowserDomSource(): string {
             renderInspectorToggleButton(table, "showMethodHighlights", "Method Links", options) +
             "</div>" +
             '<div class="erd-panel__section">' +
-            "<h3>Methods</h3>" +
-            '<p class="erd-panel__hint" data-method-hidden-hint ' +
-            (options.showMethods ? "hidden" : "") +
-            '>Methods are hidden by the current table view state.</p>' +
-            '<p class="erd-panel__hint" data-empty-method-hint ' +
-            (methods.length > 0 ? "hidden" : "") +
-            '>No user-defined methods.</p>' +
-            renderInspectorMethodButtons(table, options) +
-            "</div>" +
-            '<div class="erd-panel__section">' +
-            "<h3>Properties</h3>" +
-            '<p class="erd-panel__hint" data-property-hidden-hint ' +
-            (options.showProperties ? "hidden" : "") +
-            '>Properties are hidden by the current table view state.</p>' +
-            '<p class="erd-panel__hint" data-empty-property-hint ' +
-            (properties.length > 0 ? "hidden" : "") +
-            '>No computed properties.</p>' +
-            '<ul class="erd-list" data-property-list ' +
-            (options.showProperties && properties.length > 0 ? "" : "hidden") +
-            ">" +
-            properties
-              .map((property) =>
-                '<li class="erd-list__item"><span>@ ' + escapeInspectorHtml(property) + "</span></li>",
-              )
-              .join("") +
-            "</ul>" +
-            "</div>" +
-            '<div class="erd-panel__section">' +
-            "<h3>Field Summary</h3>" +
+            "<h3>Fields &amp; Choices</h3>" +
+            '<p class="erd-panel__hint" ' +
+            (fields.length > 0 ? "hidden" : "") +
+            '>No model fields.</p>' +
             '<ul class="erd-list">' +
             fields
               .map((row) =>
@@ -281,6 +315,32 @@ export function getBrowserDomSource(): string {
               )
               .join("") +
             "</ul>" +
+            "</div>" +
+            '<div class="erd-panel__section">' +
+            "<h3>Relationships</h3>" +
+            renderInspectorRelationships(table) +
+            "</div>" +
+            '<div class="erd-panel__section">' +
+            "<h3>Properties</h3>" +
+            '<p class="erd-panel__hint" data-empty-property-hint ' +
+            (properties.length > 0 ? "hidden" : "") +
+            '>No computed properties.</p>' +
+            '<ul class="erd-list" data-property-list ' +
+            (properties.length > 0 ? "" : "hidden") +
+            ">" +
+            properties
+              .map((property) =>
+                '<li class="erd-list__item"><span>@ ' + escapeInspectorHtml(property) + "</span></li>",
+              )
+              .join("") +
+            "</ul>" +
+            "</div>" +
+            '<div class="erd-panel__section">' +
+            "<h3>Methods</h3>" +
+            '<p class="erd-panel__hint" data-empty-method-hint ' +
+            (methods.length > 0 ? "hidden" : "") +
+            '>No user-defined methods.</p>' +
+            renderInspectorMethodButtons(table) +
             "</div>" +
             "</section>"
           );

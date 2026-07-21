@@ -108,7 +108,7 @@ const scenarioHandlers = {
     });
 
     assert.equal(requireTableSnapshot(postHiddenSnapshot, "blog.Post").showMethods, false);
-    assert.equal(requirePanelSnapshot(postHiddenSnapshot, "blog.Post").methodListHidden, true);
+    assert.equal(requirePanelSnapshot(postHiddenSnapshot, "blog.Post").methodListHidden, false);
 
     await runWebviewAction({ modelId: "accounts.Author", type: "clickTable" });
     const authorSnapshot = await runWebviewAction({
@@ -128,7 +128,7 @@ const scenarioHandlers = {
     });
 
     assert.equal(requireTableSnapshot(postHiddenSnapshot, "blog.Post").showProperties, false);
-    assert.equal(requirePanelSnapshot(postHiddenSnapshot, "blog.Post").propertyListHidden, true);
+    assert.equal(requirePanelSnapshot(postHiddenSnapshot, "blog.Post").propertyListHidden, false);
 
     await runWebviewAction({ modelId: "accounts.Author", type: "clickTable" });
     const authorSnapshot = await runWebviewAction({ type: "snapshot" });

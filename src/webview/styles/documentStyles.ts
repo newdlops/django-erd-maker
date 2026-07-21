@@ -258,6 +258,49 @@ export function getDocumentStyles(): string {
 
     .erd-badge--warning { color: var(--accent-2); background: rgba(255, 191, 105, 0.14); }
     .erd-badge--error { color: var(--danger); background: rgba(255, 124, 112, 0.16); }
+    .erd-badge--relation-foreign-key,
+    .erd-badge--relation-reverse-foreign-key { color: #72e0b1; background: rgba(86, 205, 157, 0.16); }
+    .erd-badge--relation-one-to-one,
+    .erd-badge--relation-reverse-one-to-one { color: #82bdff; background: rgba(91, 157, 235, 0.16); }
+    .erd-badge--relation-many-to-many,
+    .erd-badge--relation-reverse-many-to-many { color: #ffd07a; background: rgba(238, 173, 66, 0.16); }
+    .erd-badge--relation-inheritance { color: #c6a4ff; background: rgba(167, 119, 235, 0.16); }
+
+    .erd-relationship-list { gap: 10px; }
+    .erd-relationship {
+      gap: 7px;
+      padding: 10px;
+      border: 1px solid rgba(122, 163, 177, 0.16);
+      border-radius: 12px;
+      background: rgba(16, 31, 44, 0.58);
+    }
+    .erd-relationship__header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .erd-relationship__target {
+      width: 100%;
+      min-width: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      white-space: normal;
+    }
+    .erd-relationship__target:hover { color: var(--accent-2); }
+    .erd-relationship__target:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
 
     .erd-method-buttons {
       display: grid;

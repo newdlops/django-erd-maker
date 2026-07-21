@@ -143,6 +143,21 @@ ${getBrowserLayoutSource()}
         const tableRenderById = new Map(
           (renderModel.tables || []).map((table) => [table.modelId, table]),
         );
+        const inspectorModelById = new Map(
+          (renderModel.inspectorModels || renderModel.tables || [])
+            .map((model) => [model.modelId, model]),
+        );
+        const relationshipByEdgeId = new Map();
+        const relationshipsByModelId = new Map();
+        for (const model of inspectorModelById.values()) {
+          const relationships = Array.isArray(model.relationships) ? model.relationships : [];
+          relationshipsByModelId.set(model.modelId, relationships);
+          for (const relationship of relationships) {
+            if (relationship && relationship.edgeId && !relationshipByEdgeId.has(relationship.edgeId)) {
+              relationshipByEdgeId.set(relationship.edgeId, relationship);
+            }
+          }
+        }
         const bundleLeafToFakeId = {};
         const bundleLeavesByFakeIdRaw = renderModel.bundleLeavesByFakeId || {};
         for (const fakeId of Object.keys(bundleLeavesByFakeIdRaw)) {

@@ -2446,6 +2446,65 @@ export function getBrowserCanvasDrawSource(): string {
             : [...new Set([meta.sourceModelId, meta.targetModelId])];
         }
 
+        function edgeRelationshipKinds(meta, selectedModelId) {
+          const memberEdgeIds = Array.isArray(meta.memberEdgeIds) && meta.memberEdgeIds.length > 0
+            ? meta.memberEdgeIds
+            : [meta.edgeId];
+          const kinds = new Set();
+          for (const edgeId of memberEdgeIds) {
+            const relationship = relationshipByEdgeId.get(edgeId);
+            if (!relationship) {
+              continue;
+            }
+            if (
+              selectedModelId &&
+              relationship.sourceModelId !== selectedModelId &&
+              relationship.targetModelId !== selectedModelId
+            ) {
+              continue;
+            }
+            kinds.add(relationship.kind);
+          }
+          return [...kinds];
+        }
+
+        function relationshipKindsForRelatedModel(modelId) {
+          if (!state.selectedModelId || state.selectedModelId === modelId) {
+            return [];
+          }
+          const kinds = new Set();
+          for (const relationship of relationshipsByModelId.get(state.selectedModelId) || []) {
+            if (relationship.otherModelId === modelId) {
+              kinds.add(relationship.kind);
+            }
+          }
+          return [...kinds];
+        }
+
+        function relationshipColor(kinds, alpha) {
+          if (!Array.isArray(kinds) || kinds.length === 0) {
+            return null;
+          }
+          if (kinds.length > 1) {
+            return [0.91, 0.64, 0.92, alpha];
+          }
+          switch (kinds[0]) {
+            case "one_to_one":
+            case "reverse_one_to_one":
+              return [0.45, 0.72, 1.0, alpha];
+            case "many_to_many":
+            case "reverse_many_to_many":
+              return [1.0, 0.76, 0.34, alpha];
+            case "inheritance":
+              return [0.76, 0.58, 1.0, alpha];
+            case "foreign_key":
+            case "reverse_foreign_key":
+              return [0.38, 0.88, 0.66, alpha];
+            default:
+              return [0.71, 0.91, 0.85, alpha];
+          }
+        }
+
         function edgeSelectedClusterRelation(meta) {
           if (!state.selectedModelId) {
             return "unfocused";
@@ -2490,9 +2549,13 @@ export function getBrowserCanvasDrawSource(): string {
           const unrelated = Boolean(selectedClusterId && !clusterMember);
           const clusterStroke = appStrokeColor(selectedClusterId || appLabel);
           const defaultStroke = appStrokeColor(appLabel);
+          const relatedStroke = relationshipColor(
+            relationshipKindsForRelatedModel(record.modelId),
+            0.96,
+          );
 
           return {
-            borderWidth: selected || dragging ? 3.4 : clusterMember ? 2.8 : 2.0,
+            borderWidth: selected || dragging ? 3.4 : relatedStroke ? 3.0 : clusterMember ? 2.8 : 2.0,
             fill: selected
               ? [0.15, 0.24, 0.22, 0.99]
               : clusterMember
@@ -2504,6 +2567,8 @@ export function getBrowserCanvasDrawSource(): string {
               ? [0.66, 0.85, 1.0, 0.9]
               : selected
                 ? [1.0, 0.75, 0.41, 0.92]
+                : relatedStroke
+                  ? relatedStroke
                 : clusterMember
                   ? [clusterStroke[0], clusterStroke[1], clusterStroke[2], 0.94]
                 : methodTarget
@@ -2515,6 +2580,11 @@ export function getBrowserCanvasDrawSource(): string {
         }
 
         function edgeColor(meta) {
+          const selectedKinds = edgeRelationshipKinds(meta, state.selectedModelId || "");
+          const selectedRelationshipColor = relationshipColor(selectedKinds, 0.96);
+          if (selectedRelationshipColor) {
+            return selectedRelationshipColor;
+          }
           const clusterRelation = edgeSelectedClusterRelation(meta);
           if (clusterRelation === "internal") {
             const color = appStrokeColor(getSelectedClusterId());
@@ -2525,6 +2595,13 @@ export function getBrowserCanvasDrawSource(): string {
           }
           if (clusterRelation === "unrelated") {
             return [0.46, 0.58, 0.61, 0.10];
+          }
+          const memberRelationshipColor = relationshipColor(
+            edgeRelationshipKinds(meta, ""),
+            0.68,
+          );
+          if (memberRelationshipColor) {
+            return memberRelationshipColor;
           }
           if (meta.carrierFamily === "inheritance") {
             return [0.66, 0.85, 1.0, 0.72];
@@ -2547,6 +2624,9 @@ export function getBrowserCanvasDrawSource(): string {
         }
 
         function edgeWidth(meta) {
+          if (edgeRelationshipKinds(meta, state.selectedModelId || "").length > 0) {
+            return 5.2;
+          }
           const clusterRelation = edgeSelectedClusterRelation(meta);
           if (clusterRelation === "internal") {
             return 5.4;

@@ -253,6 +253,14 @@ export function getBrowserEventSource(): string {
             return;
           }
 
+          if (button.matches("[data-focus-related-model]")) {
+            const modelId = button.dataset.modelId;
+            if (modelId) {
+              dispatch({ type: "focus-model", modelId, zoom: 1 });
+            }
+            return;
+          }
+
           if (!button.matches("[data-table-toggle]")) {
             return;
           }

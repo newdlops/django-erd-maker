@@ -1,5 +1,8 @@
 import { getOgdfLayoutDefinition, normalizeLayoutMode } from "../../shared/graph/layoutContract";
-import type { DiagramRenderModel } from "../state/createDiagramRenderModel";
+import type {
+  DiagramRenderModel,
+  InspectorModelRenderModel,
+} from "../state/createDiagramRenderModel";
 import type { DiagramInteractionState } from "../state/diagramInteractionState";
 import {
   formatInteractionSettingValue,
@@ -281,10 +284,10 @@ function renderHiddenTables(viewModel: DiagramRenderModel): string {
 }
 
 function renderInitialModelPanel(viewModel: DiagramRenderModel): string {
-  const selectedTable = viewModel.tables.find((table) => table.selected);
+  const selectedTable = viewModel.inspector.models.find((table) => table.selected);
 
   if (!selectedTable) {
-    const hasModels = viewModel.tables.length > 0;
+    const hasModels = viewModel.inspector.models.length > 0;
     return `
       <section class="erd-panel erd-panel--empty" data-model-panel>
         <header class="erd-panel__header">
@@ -299,9 +302,9 @@ function renderInitialModelPanel(viewModel: DiagramRenderModel): string {
   return renderModelPanel(selectedTable);
 }
 
-function renderMethodButtons(table: DiagramRenderModel["tables"][number]): string {
+function renderMethodButtons(table: InspectorModelRenderModel): string {
   return `
-    <div class="erd-method-buttons" data-method-list ${table.showMethods && table.methods.length > 0 ? "" : "hidden"}>
+    <div class="erd-method-buttons" data-method-list ${table.methods.length > 0 ? "" : "hidden"}>
       ${table.methods
         .map((method) => {
           const active =
@@ -328,9 +331,14 @@ function renderMethodButtons(table: DiagramRenderModel["tables"][number]): strin
   `;
 }
 
-function renderModelPanel(table: DiagramRenderModel["tables"][number]): string {
+function renderModelPanel(table: InspectorModelRenderModel): string {
   const selectedClass = table.selected ? " is-selected" : "";
-  if (table.fieldRows.length === 0 && table.properties.length === 0 && table.methods.length === 0) {
+  if (
+    table.fieldRows.length === 0
+    && table.properties.length === 0
+    && table.methods.length === 0
+    && table.relationships.length === 0
+  ) {
     return `
       <section
         class="erd-panel${selectedClass}"
@@ -360,7 +368,8 @@ function renderModelPanel(table: DiagramRenderModel["tables"][number]): string {
       <header class="erd-panel__header">
         <p class="erd-panel__eyebrow">${escapeHtml(table.appLabel)}</p>
         <h2>${escapeHtml(table.modelName)}</h2>
-        <p class="erd-panel__meta">${table.fieldRows.length} rows · ${table.properties.length} properties · ${table.methods.length} methods</p>
+        <p class="erd-panel__meta">${escapeHtml(table.databaseTableName)}</p>
+        <p class="erd-panel__meta">${table.fieldRows.length} rows · ${table.relationships.length} relationships · ${table.properties.length} properties · ${table.methods.length} methods</p>
       </header>
       <div class="erd-panel__controls">
         ${renderToggleButton(table, "hidden", table.hidden ? "Show Table" : "Hide Table")}
@@ -369,23 +378,8 @@ function renderModelPanel(table: DiagramRenderModel["tables"][number]): string {
         ${renderToggleButton(table, "showMethodHighlights", "Method Links")}
       </div>
       <div class="erd-panel__section">
-        <h3>Methods</h3>
-        <p class="erd-panel__hint" data-method-hidden-hint ${table.showMethods ? "hidden" : ""}>Methods are hidden by the current table view state.</p>
-        <p class="erd-panel__hint" data-empty-method-hint ${table.methods.length > 0 ? "hidden" : ""}>No user-defined methods.</p>
-        ${renderMethodButtons(table)}
-      </div>
-      <div class="erd-panel__section">
-        <h3>Properties</h3>
-        <p class="erd-panel__hint" data-property-hidden-hint ${table.showProperties ? "hidden" : ""}>Properties are hidden by the current table view state.</p>
-        <p class="erd-panel__hint" data-empty-property-hint ${table.properties.length > 0 ? "hidden" : ""}>No computed properties.</p>
-        <ul class="erd-list" data-property-list ${table.showProperties && table.properties.length > 0 ? "" : "hidden"}>
-          ${table.properties
-            .map((property) => `<li class="erd-list__item"><span>@ ${escapeHtml(property)}</span></li>`)
-            .join("")}
-        </ul>
-      </div>
-      <div class="erd-panel__section">
-        <h3>Field Summary</h3>
+        <h3>Fields &amp; Choices</h3>
+        <p class="erd-panel__hint" ${table.fieldRows.length > 0 ? "hidden" : ""}>No model fields.</p>
         <ul class="erd-list">
           ${table.fieldRows
             .map(
@@ -398,12 +392,90 @@ function renderModelPanel(table: DiagramRenderModel["tables"][number]): string {
             .join("")}
         </ul>
       </div>
+      <div class="erd-panel__section">
+        <h3>Relationships</h3>
+        ${renderModelRelationships(table)}
+      </div>
+      <div class="erd-panel__section">
+        <h3>Properties</h3>
+        <p class="erd-panel__hint" data-empty-property-hint ${table.properties.length > 0 ? "hidden" : ""}>No computed properties.</p>
+        <ul class="erd-list" data-property-list ${table.properties.length > 0 ? "" : "hidden"}>
+          ${table.properties
+            .map((property) => `<li class="erd-list__item"><span>@ ${escapeHtml(property)}</span></li>`)
+            .join("")}
+        </ul>
+      </div>
+      <div class="erd-panel__section">
+        <h3>Methods</h3>
+        <p class="erd-panel__hint" data-empty-method-hint ${table.methods.length > 0 ? "hidden" : ""}>No user-defined methods.</p>
+        ${renderMethodButtons(table)}
+      </div>
     </section>
   `;
 }
 
+function renderModelRelationships(table: InspectorModelRenderModel): string {
+  if (table.relationships.length === 0) {
+    return "<p class=\"erd-panel__hint\">No declared database relationships.</p>";
+  }
+
+  return `
+    <ul class="erd-list erd-relationship-list">
+      ${table.relationships.map((relationship) => `
+        <li class="erd-list__item erd-relationship">
+          <span class="erd-relationship__header">
+            <span class="erd-badge erd-badge--relation-${escapeHtml(relationship.kind.replaceAll("_", "-"))}">${escapeHtml(relationshipKindLabel(relationship.kind))}</span>
+            <span class="erd-sidebar__meta">${escapeHtml(relationshipDirectionLabel(relationship.direction))}</span>
+          </span>
+          <button
+            type="button"
+            class="erd-relationship__target"
+            data-focus-related-model
+            data-model-id="${escapeHtml(relationship.otherModelId)}"
+          >${escapeHtml(relationshipDisplayLabel(table.modelId, relationship))}</button>
+        </li>
+      `).join("")}
+    </ul>
+  `;
+}
+
+function relationshipKindLabel(
+  kind: InspectorModelRenderModel["relationships"][number]["kind"],
+): string {
+  switch (kind) {
+    case "foreign_key": return "FK";
+    case "one_to_one": return "O2O";
+    case "many_to_many": return "M2M";
+    case "inheritance": return "IS-A";
+    case "reverse_foreign_key": return "REV FK";
+    case "reverse_one_to_one": return "REV O2O";
+    case "reverse_many_to_many": return "REV M2M";
+  }
+}
+
+function relationshipDirectionLabel(
+  direction: InspectorModelRenderModel["relationships"][number]["direction"],
+): string {
+  return direction === "outgoing" ? "outgoing"
+    : direction === "incoming" ? "incoming"
+      : "self";
+}
+
+function relationshipDisplayLabel(
+  selectedModelId: string,
+  relationship: InspectorModelRenderModel["relationships"][number],
+): string {
+  if (relationship.direction === "incoming") {
+    return `← ${relationship.otherModelId}.${relationship.fieldName}`;
+  }
+  if (relationship.direction === "self") {
+    return `${relationship.fieldName} ↻ ${selectedModelId}`;
+  }
+  return `${relationship.fieldName} → ${relationship.otherModelId}`;
+}
+
 function renderToggleButton(
-  table: DiagramRenderModel["tables"][number],
+  table: InspectorModelRenderModel,
   toggle: "hidden" | "showMethodHighlights" | "showMethods" | "showProperties",
   label: string,
 ): string {
@@ -424,14 +496,14 @@ function renderToggleButton(
 }
 
 function viewMethodSelection(
-  table: DiagramRenderModel["tables"][number],
+  table: InspectorModelRenderModel,
   methodName: string,
 ): boolean {
   return table.selected && table.activeMethodName === methodName;
 }
 
 function renderMethodRelations(
-  method: DiagramRenderModel["tables"][number]["methods"][number],
+  method: InspectorModelRenderModel["methods"][number],
 ): string {
   if (method.relatedModels.length === 0) {
     return "<p class=\"erd-panel__hint\">No related models inferred for this method.</p>";
@@ -453,7 +525,7 @@ function renderMethodRelations(
 }
 
 function methodRelationLabel(
-  reference: DiagramRenderModel["tables"][number]["methods"][number]["relatedModels"][number],
+  reference: InspectorModelRenderModel["methods"][number]["relatedModels"][number],
 ): string {
   if (reference.targetModelId) {
     return reference.targetModelId;
