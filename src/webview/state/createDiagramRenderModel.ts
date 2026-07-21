@@ -44,8 +44,36 @@ export interface DiscoveryRenderModel {
 export interface InspectorRenderModel {
   diagnostics: Array<{ code: string; message: string; severity: string }>;
   discovery?: DiscoveryRenderModel;
+  models: InspectorModelRenderModel[];
   selectedMethodName?: string;
   selectedModelId?: string;
+}
+
+export interface InspectorModelRenderModel {
+  activeMethodName?: string;
+  appLabel: string;
+  databaseTableName: string;
+  fieldRows: Array<{ key: string; text: string; tone: "enum-option" | "field" }>;
+  hidden: boolean;
+  methods: UserMethod[];
+  modelId: ModelId;
+  modelName: string;
+  properties: string[];
+  relationships: InspectorRelationshipRenderModel[];
+  selected: boolean;
+  showMethodHighlights: boolean;
+  showMethods: boolean;
+  showProperties: boolean;
+}
+
+export interface InspectorRelationshipRenderModel {
+  direction: "incoming" | "outgoing" | "self";
+  edgeId: string;
+  fieldName: string;
+  kind: StructuralGraphEdge["kind"];
+  otherModelId: ModelId;
+  sourceModelId: ModelId;
+  targetModelId: ModelId;
 }
 
 export interface LayoutExecutionRenderModel {
@@ -815,6 +843,10 @@ export function createDiagramRenderModel(
   const allTables = payload.layout.nodes
     .map((layoutNode) => createTableRenderModel(layoutNode, payload, modelsById, tableOptionsById))
     .filter(isDefined);
+  const inspectorRelationshipsByModelId = createInspectorRelationshipsByModelId(
+    payload.graph.structuralEdges,
+    modelsById,
+  );
   const modelCatalogMode = allTables.length > MODEL_CATALOG_MODE_THRESHOLD;
   const rawLeafBundles = payload.layout.engineMetadata?.leafBundles ?? [];
   const bundleIndexByLeafModelId = new Map<ModelId, number>();
@@ -1024,7 +1056,7 @@ export function createDiagramRenderModel(
       : routedEdges
   ).map(enforceStraightRenderedEdge);
   const semanticCarrierResult = modelCatalogMode
-    ? createSemanticCarrierEdges(
+    ? createRelationshipFaithfulCarrierEdges(
         straightRenderedEdges,
         renderedTables,
         structuralEdgeById,
@@ -1084,6 +1116,13 @@ export function createDiagramRenderModel(
     inspector: {
       diagnostics: createDiagnostics(payload),
       discovery: discovery ? createDiscoveryRenderModel(discovery) : undefined,
+      // The canvas may use catalog cards with their rows removed, but the
+      // inspector must retain the analyzer's complete model data so users can
+      // audit every relationship represented by the rendered carrier graph.
+      models: allTables.map((table) => createInspectorModelRenderModel(
+        table,
+        inspectorRelationshipsByModelId.get(table.modelId) ?? [],
+      )),
       selectedMethodName: payload.view.selectedMethodContext?.methodName,
       selectedModelId: payload.view.selectedModelId,
     },
@@ -1241,6 +1280,171 @@ function createCatalogEdgeRenderModel(
 
 type SemanticCarrierFamily = "association" | "inheritance" | "mixed";
 
+/**
+ * Preserves the declared ERD topology in catalog mode.
+ *
+ * A previous confluent-tree experiment rewrote every connected association
+ * component into an MST. That produced a very low crossing count, but a real
+ * FK could then appear to travel through unrelated model nodes. Here a
+ * relationship remains a direct connection between its rendered endpoints.
+ * We merge only already-coincident carriers (for example an intentional leaf
+ * bundle emitted upstream), never merely because edges share a component.
+ */
+function createRelationshipFaithfulCarrierEdges(
+  sourceEdges: EdgeRenderModel[],
+  tables: TableRenderModel[],
+  structuralEdgeById: Map<string, StructuralGraphEdge>,
+  renderedEndpointByModelId: Map<ModelId, ModelId>,
+): SemanticCarrierResult {
+  const visibleTableByModelId = new Map(
+    tables
+      .filter((table) => !table.hidden)
+      .map((table) => [table.modelId, table] as const),
+  );
+  const expectedRelationshipIds = new Set<string>();
+  const directEdges: EdgeRenderModel[] = [];
+
+  for (const renderEdge of sourceEdges) {
+    const memberEdgeIds = [...new Set(
+      renderEdge.memberEdgeIds && renderEdge.memberEdgeIds.length > 0
+        ? renderEdge.memberEdgeIds
+        : [renderEdge.edgeId],
+    )].sort();
+    memberEdgeIds.forEach((edgeId) => expectedRelationshipIds.add(edgeId));
+    const memberRelationships = memberEdgeIds
+      .map((edgeId) => structuralEdgeById.get(edgeId))
+      .filter((edge): edge is StructuralGraphEdge => edge !== undefined);
+    let sourceModelId = renderedEndpointByModelId.get(renderEdge.sourceModelId)
+      ?? renderEdge.sourceModelId;
+    let targetModelId = renderedEndpointByModelId.get(renderEdge.targetModelId)
+      ?? renderEdge.targetModelId;
+
+    // A relationship whose two models live in the same synthetic leaf bundle
+    // must still be drawn between the real model tiles. Mapping both ends to
+    // the bundle shell produces an empty route and makes the FK disappear.
+    const soleRelationship = memberRelationships.length === 1
+      ? memberRelationships[0]
+      : undefined;
+    if (
+      sourceModelId === targetModelId
+      && soleRelationship
+      && soleRelationship.sourceModelId !== soleRelationship.targetModelId
+      && visibleTableByModelId.has(soleRelationship.sourceModelId)
+      && visibleTableByModelId.has(soleRelationship.targetModelId)
+    ) {
+      sourceModelId = soleRelationship.sourceModelId;
+      targetModelId = soleRelationship.targetModelId;
+    }
+
+    const sourceTable = visibleTableByModelId.get(sourceModelId);
+    const targetTable = visibleTableByModelId.get(targetModelId);
+    const memberKinds = new Set(memberRelationships.map((edge) => edge.kind));
+    const family: SemanticCarrierFamily = memberKinds.size === 1
+      && memberKinds.has("inheritance")
+      ? "inheritance"
+      : memberKinds.has("inheritance")
+        ? "mixed"
+        : "association";
+    const logicalEndpointModelIds = [...new Set<ModelId>(
+      memberRelationships.flatMap((edge) => [edge.sourceModelId, edge.targetModelId]),
+    )].sort();
+    const points = sourceTable && targetTable && sourceModelId !== targetModelId
+      ? buildStraightRenderedEdgePoints(sourceTable, targetTable)
+      : parseRenderedEdgePoints(renderEdge.points).slice(0, 2);
+
+    directEdges.push({
+      ...renderEdge,
+      carrierFamily: family,
+      carrierRole: "direct",
+      logicalEndpointModelIds,
+      memberEdgeIds,
+      physicalEndpointModelIds: [sourceModelId, targetModelId],
+      points: points.map((point) => `${round2(point.x)},${round2(point.y)}`).join(" "),
+      preserveRouteEndpoints: true,
+      sourceModelId,
+      targetModelId,
+    });
+  }
+
+  const edgeByCoincidentKey = new Map<string, EdgeRenderModel>();
+  for (const edge of directEdges) {
+    const memberKinds = [...new Set(
+      (edge.memberEdgeIds ?? [edge.edgeId]).flatMap((edgeId) => {
+        const relationship = structuralEdgeById.get(edgeId);
+        return relationship ? [relationship.kind] : [];
+      }),
+    )].sort();
+    const key = [
+      edge.sourceModelId,
+      edge.targetModelId,
+      edge.points,
+      memberKinds.join(","),
+    ].join("\u0000");
+    const existing = edgeByCoincidentKey.get(key);
+    if (!existing) {
+      edgeByCoincidentKey.set(key, edge);
+      continue;
+    }
+    existing.memberEdgeIds = [...new Set([
+      ...(existing.memberEdgeIds ?? [existing.edgeId]),
+      ...(edge.memberEdgeIds ?? [edge.edgeId]),
+    ])].sort();
+    existing.logicalEndpointModelIds = [...new Set([
+      ...(existing.logicalEndpointModelIds ?? []),
+      ...(edge.logicalEndpointModelIds ?? []),
+    ])].sort() as ModelId[];
+  }
+
+  const edges = [...edgeByCoincidentKey.values()];
+  const representedRelationshipIds = new Set(
+    edges.flatMap((edge) => edge.memberEdgeIds ?? [edge.edgeId]),
+  );
+  const missingRelationships = [...expectedRelationshipIds]
+    .filter((edgeId) => !representedRelationshipIds.has(edgeId))
+    .sort();
+  const disconnectedRelationships = edges.flatMap((edge) => {
+    const points = parseRenderedEdgePoints(edge.points);
+    return points.length >= 2
+      ? []
+      : (edge.memberEdgeIds ?? [edge.edgeId]);
+  }).sort();
+  const bundledRelationshipIds = new Set(
+    edges.flatMap((edge) => {
+      const members = edge.memberEdgeIds ?? [edge.edgeId];
+      return members.length > 1 ? members : [];
+    }),
+  );
+  const obstacleIndex = createRenderedObstacleIndex(
+    [...visibleTableByModelId.values()],
+  );
+  let obstacleIntersections = 0;
+  for (const edge of edges) {
+    const sourceTable = visibleTableByModelId.get(edge.sourceModelId);
+    const targetTable = visibleTableByModelId.get(edge.targetModelId);
+    if (sourceTable && targetTable && sourceTable.modelId !== targetTable.modelId) {
+      obstacleIntersections += countStraightRenderedTableIntersections(
+        sourceTable,
+        targetTable,
+        obstacleIndex,
+      );
+    }
+  }
+
+  return {
+    diagnostics: {
+      active: true,
+      bundledRelationships: bundledRelationshipIds.size,
+      carrierSegments: edges.length,
+      disconnectedRelationships,
+      fallbackRelationships: 0,
+      missingRelationships,
+      obstacleIntersections,
+      relationships: expectedRelationshipIds.size,
+    },
+    edges,
+  };
+}
+
 interface SemanticCarrierSourceEdge {
   family: Exclude<SemanticCarrierFamily, "mixed">;
   memberEdgeIds: string[];
@@ -1288,7 +1492,8 @@ interface RenderedObstacleIndex {
  * If a semantic-family tree has an unavoidable table penetration, only the
  * affected relationships are rerouted over a collision-aware component tree.
  */
-function createSemanticCarrierEdges(
+/** @deprecated Research-only confluent tree; production uses the relationship-faithful carrier path. */
+export function createSemanticCarrierEdges(
   sourceEdges: EdgeRenderModel[],
   tables: TableRenderModel[],
   structuralEdgeById: Map<string, StructuralGraphEdge>,
@@ -2377,6 +2582,119 @@ function toCatalogTable(table: TableRenderModel, relationDegree: number): TableR
       width,
     },
   };
+}
+
+function createInspectorModelRenderModel(
+  table: TableRenderModel,
+  relationships: InspectorRelationshipRenderModel[],
+): InspectorModelRenderModel {
+  return {
+    activeMethodName: table.activeMethodName,
+    appLabel: table.appLabel,
+    databaseTableName: table.databaseTableName,
+    fieldRows: table.fieldRows,
+    hidden: table.hidden,
+    methods: table.methods,
+    modelId: table.modelId,
+    modelName: table.modelName,
+    properties: table.properties,
+    relationships,
+    selected: table.selected,
+    showMethodHighlights: table.showMethodHighlights,
+    showMethods: table.showMethods,
+    showProperties: table.showProperties,
+  };
+}
+
+function createInspectorRelationshipsByModelId(
+  structuralEdges: StructuralGraphEdge[],
+  modelsById: Map<ModelId, ExtractedModel>,
+): Map<ModelId, InspectorRelationshipRenderModel[]> {
+  const relationshipsByModelId = new Map<ModelId, InspectorRelationshipRenderModel[]>();
+  const append = (
+    modelId: ModelId,
+    relationship: InspectorRelationshipRenderModel,
+  ): void => {
+    const relationships = relationshipsByModelId.get(modelId) ?? [];
+    relationships.push(relationship);
+    relationshipsByModelId.set(modelId, relationships);
+  };
+
+  for (const edge of structuralEdges) {
+    // A declared relation already appears as an incoming entry on its target;
+    // including derived_reverse would show the same database relationship twice.
+    if (edge.provenance !== "declared") {
+      continue;
+    }
+    const fieldName = declaredRelationshipFieldName(edge, modelsById.get(edge.sourceModelId));
+    if (edge.sourceModelId === edge.targetModelId) {
+      append(edge.sourceModelId, {
+        direction: "self",
+        edgeId: edge.id,
+        fieldName,
+        kind: edge.kind,
+        otherModelId: edge.targetModelId,
+        sourceModelId: edge.sourceModelId,
+        targetModelId: edge.targetModelId,
+      });
+      continue;
+    }
+    append(edge.sourceModelId, {
+      direction: "outgoing",
+      edgeId: edge.id,
+      fieldName,
+      kind: edge.kind,
+      otherModelId: edge.targetModelId,
+      sourceModelId: edge.sourceModelId,
+      targetModelId: edge.targetModelId,
+    });
+    append(edge.targetModelId, {
+      direction: "incoming",
+      edgeId: edge.id,
+      fieldName,
+      kind: edge.kind,
+      otherModelId: edge.sourceModelId,
+      sourceModelId: edge.sourceModelId,
+      targetModelId: edge.targetModelId,
+    });
+  }
+
+  for (const relationships of relationshipsByModelId.values()) {
+    relationships.sort((left, right) =>
+      relationshipDirectionRank(left.direction) - relationshipDirectionRank(right.direction)
+      || left.kind.localeCompare(right.kind)
+      || String(left.otherModelId).localeCompare(String(right.otherModelId))
+      || left.fieldName.localeCompare(right.fieldName)
+    );
+  }
+  return relationshipsByModelId;
+}
+
+function declaredRelationshipFieldName(
+  edge: StructuralGraphEdge,
+  sourceModel: ExtractedModel | undefined,
+): string {
+  if (edge.kind === "inheritance") {
+    return "extends";
+  }
+  const prefix = `edge:declared:${edge.sourceModelId}:`;
+  const encodedFieldName = edge.id.startsWith(prefix)
+    ? edge.id.slice(prefix.length)
+    : undefined;
+  const matchingFields = sourceModel?.fields.filter((field) =>
+    field.relation?.kind === edge.kind
+    && field.relation.target.resolvedModelId === edge.targetModelId
+  ) ?? [];
+  return matchingFields.find((field) => field.name === encodedFieldName)?.name
+    ?? (matchingFields.length === 1 ? matchingFields[0].name : undefined)
+    ?? encodedFieldName
+    ?? edge.id;
+}
+
+function relationshipDirectionRank(
+  direction: InspectorRelationshipRenderModel["direction"],
+): number {
+  return direction === "outgoing" ? 0 : direction === "self" ? 1 : 2;
 }
 
 function databaseTableName(model: ExtractedModel): string {

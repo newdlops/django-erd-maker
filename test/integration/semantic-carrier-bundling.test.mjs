@@ -16,7 +16,7 @@ const {
   "../../out/webview/state/createDiagramRenderModel.js",
 ));
 
-test("large diagrams render every relationship through continuous straight semantic carriers", () => {
+test("large diagrams never collapse distinct FK relationships into fabricated tree paths", () => {
   const payload = createLargeCarrierPayload();
   const renderModel = createDiagramRenderModel(payload);
   const expectedEdgeIds = new Set(
@@ -30,12 +30,38 @@ test("large diagrams render every relationship through continuous straight seman
   assert.equal(renderModel.semanticCarriers?.relationships, expectedEdgeIds.size);
   assert.deepEqual(renderModel.semanticCarriers?.missingRelationships, []);
   assert.deepEqual(renderModel.semanticCarriers?.disconnectedRelationships, []);
-  assert.equal(renderModel.semanticCarriers?.obstacleIntersections, 0);
+  assert.equal(renderModel.semanticCarriers?.bundledRelationships, 0);
   assert.deepEqual(representedEdgeIds, expectedEdgeIds);
-  assert.ok(renderModel.edges.length < payload.layout.routedEdges.length);
+  assert.equal(renderModel.edges.length, payload.layout.routedEdges.length);
   assert.ok(renderModel.edges.every((edge) =>
     edge.points.trim().split(/\s+/).length === 2));
-  assert.equal(measureRenderedEdgeNodeIntersections(renderModel).count, 0);
+  assert.ok(
+    measureRenderedEdgeNodeIntersections(renderModel).count > 0,
+    "the audit must expose real straight-line node penetrations instead of hiding them behind an unrelated-node tree",
+  );
+});
+
+test("relationships between models inside one leaf bundle keep their real endpoints", () => {
+  const payload = createLargeCarrierPayload();
+  payload.layout.engineMetadata.leafBundles = [{
+    anchor: { x: 360, y: 220 },
+    bbox: { height: 180, width: 440, x: 140, y: 130 },
+    leafModelIds: ["carrier.Model000", "carrier.Model001"],
+    parentModelId: "carrier.Model500",
+    sharedRootModelIds: ["carrier.Model500"],
+  }];
+
+  const renderModel = createDiagramRenderModel(payload);
+  const relationship = renderModel.edges.find((edge) =>
+    (edge.memberEdgeIds ?? [edge.edgeId]).includes("edge-chain-0")
+  );
+
+  assert.ok(relationship, "the internal FK must remain represented");
+  assert.equal(relationship.sourceModelId, "carrier.Model000");
+  assert.equal(relationship.targetModelId, "carrier.Model001");
+  assert.equal(relationship.points.trim().split(/\s+/).length, 2);
+  assert.deepEqual(renderModel.semanticCarriers?.missingRelationships, []);
+  assert.deepEqual(renderModel.semanticCarriers?.disconnectedRelationships, []);
 });
 
 function createLargeCarrierPayload() {
