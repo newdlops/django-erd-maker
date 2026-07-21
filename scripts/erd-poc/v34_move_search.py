@@ -108,6 +108,7 @@ class CollisionGeometry:
     raw_node_widths: np.ndarray
     raw_node_heights: np.ndarray
     rect_bundle_leaves: tuple[np.ndarray, ...]
+    rect_bundle_offsets: np.ndarray
     rect_effect_nodes_by_rect: tuple[tuple[int, ...], ...]
     rect_effect_nodes_by_node: tuple[tuple[int, ...], ...]
     rect_edge_exempt_nodes: tuple[frozenset[int], ...]
@@ -437,7 +438,10 @@ def graph_edges(layout: dict) -> np.ndarray:
         if s is None or t is None or s == t:
             continue
         edges.append((s, t))
-    return np.array(edges, dtype=np.int32)
+    # Preserve the evaluator contract even for a disconnected/invalid snapshot.
+    # np.array([]) has shape (0,), which previously caused a misleading 2-D
+    # indexing crash before the caller could report the actual missing edges.
+    return np.asarray(edges, dtype=np.int32).reshape((-1, 2))
 
 
 def node_model_ids(layout: dict) -> list[str]:
@@ -596,8 +600,10 @@ def build_render_collision_geometry(
     rect_raw_widths: list[float] = []
     rect_raw_heights: list[float] = []
     rect_bundle_leaves: list[np.ndarray] = []
+    rect_bundle_offsets: list[tuple[float, float]] = []
     rect_effect_sets: list[set[int]] = []
     rect_edge_exempt_nodes: list[frozenset[int]] = []
+    rect_overlap_active: list[bool] = []
 
     for idx, nd in enumerate(nodes):
         model_id = str(nd.get("modelId") or "")
@@ -609,8 +615,10 @@ def build_render_collision_geometry(
         rect_raw_widths.append(float(raw_w[idx]))
         rect_raw_heights.append(float(raw_h[idx]))
         rect_bundle_leaves.append(np.zeros(0, dtype=np.int32))
+        rect_bundle_offsets.append((0.0, 0.0))
         rect_effect_sets.append({idx})
         rect_edge_exempt_nodes.append(frozenset({idx}))
+        rect_overlap_active.append(True)
 
     for bundle in bundles:
         leaf_indices = np.array(
@@ -638,8 +646,47 @@ def build_render_collision_geometry(
         rect_raw_widths.append(0.0)
         rect_raw_heights.append(0.0)
         rect_bundle_leaves.append(leaf_indices)
+        rect_bundle_offsets.append((0.0, 0.0))
         rect_effect_sets.append(set(int(i) for i in leaf_indices.tolist()))
         rect_edge_exempt_nodes.append(frozenset(exempt))
+        rect_overlap_active.append(True)
+
+        # The webview paints every leaf as a visible 200×56 card nested inside
+        # the synthetic bundle table. These cards are intentionally omitted
+        # from table/table overlap scoring (the outer bundle represents them),
+        # but unrelated straight edges must still be checked against each one.
+        # Their centres are fixed offsets from the bundle centre, which itself
+        # follows the raw leaf-group bounds during position search.
+        cols = max(1, math.ceil(math.sqrt(int(leaf_indices.size))))
+        outer_left = -width / 2.0
+        outer_top = -height / 2.0
+        effect_set = set(int(i) for i in leaf_indices.tolist())
+        for tile_index, leaf_index_raw in enumerate(leaf_indices):
+            col = tile_index % cols
+            row = tile_index // cols
+            tile_offset_x = (
+                outer_left
+                + BUNDLE_PAD
+                + col * (LEAF_CELL_W + LEAF_GAP_X)
+                + LEAF_CELL_W / 2.0
+            )
+            tile_offset_y = (
+                outer_top
+                + BUNDLE_HEADER
+                + row * (LEAF_CELL_H + LEAF_GAP_Y)
+                + LEAF_CELL_H / 2.0
+            )
+            leaf_index = int(leaf_index_raw)
+            rect_node.append(-1)
+            rect_widths.append(LEAF_CELL_W)
+            rect_heights.append(LEAF_CELL_H)
+            rect_raw_widths.append(0.0)
+            rect_raw_heights.append(0.0)
+            rect_bundle_leaves.append(leaf_indices)
+            rect_bundle_offsets.append((tile_offset_x, tile_offset_y))
+            rect_effect_sets.append(set(effect_set))
+            rect_edge_exempt_nodes.append(frozenset({leaf_index}))
+            rect_overlap_active.append(False)
 
     rect_count = len(rect_node)
     effect_by_node: list[list[int]] = [[] for _ in range(n_nodes)]
@@ -648,7 +695,9 @@ def build_render_collision_geometry(
             if 0 <= node_idx < n_nodes:
                 effect_by_node[node_idx].append(rect_idx)
 
-    overlap_pairs = build_overlap_pairs(np.ones(rect_count, dtype=bool))
+    overlap_pairs = build_overlap_pairs(
+        np.asarray(rect_overlap_active, dtype=bool)
+    )
     edge_node_pairs = build_render_edge_node_pairs(
         edges,
         tuple(rect_edge_exempt_nodes),
@@ -662,6 +711,7 @@ def build_render_collision_geometry(
         raw_node_widths=raw_w.astype(np.float64, copy=True),
         raw_node_heights=raw_h.astype(np.float64, copy=True),
         rect_bundle_leaves=tuple(rect_bundle_leaves),
+        rect_bundle_offsets=np.asarray(rect_bundle_offsets, dtype=np.float64),
         rect_effect_nodes_by_rect=tuple(tuple(sorted(xs)) for xs in rect_effect_sets),
         rect_effect_nodes_by_node=tuple(tuple(xs) for xs in effect_by_node),
         rect_edge_exempt_nodes=tuple(rect_edge_exempt_nodes),
@@ -736,7 +786,11 @@ def collision_position_for_rect(
         max_x = max(max_x, positions[lf, 0] + w / 2.0)
         min_y = min(min_y, positions[lf, 1] - h / 2.0)
         max_y = max(max_y, positions[lf, 1] + h / 2.0)
-    return np.array([(min_x + max_x) / 2.0, (min_y + max_y) / 2.0], dtype=np.float64)
+    bundle_center = np.array(
+        [(min_x + max_x) / 2.0, (min_y + max_y) / 2.0],
+        dtype=np.float64,
+    )
+    return bundle_center + geometry.rect_bundle_offsets[rect_idx]
 
 
 def moved_collision_positions(
@@ -4444,6 +4498,17 @@ def main() -> None:
         else layout_positions(layout)
     )
     edges = graph_edges(layout)
+    missing_endpoint_routes = [
+        str(route.get("edgeId", "<unknown>"))
+        for route in layout.get("routedEdges", [])
+        if not route.get("sourceModelId") or not route.get("targetModelId")
+    ]
+    if missing_endpoint_routes:
+        preview = ", ".join(missing_endpoint_routes[:5])
+        raise RuntimeError(
+            f"{len(missing_endpoint_routes)} routed edges are missing logical "
+            f"sourceModelId/targetModelId endpoints (first: {preview})"
+        )
     widths, heights = render_node_sizes(layout, edges)
     active_mask = render_active_overlap_mask(layout, args.count_bundle_nodes)
     collision_geometry = build_render_collision_geometry(

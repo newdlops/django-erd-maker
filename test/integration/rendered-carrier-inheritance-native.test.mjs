@@ -28,7 +28,7 @@ const renderModelModulePath = path.resolve(
 const binaryAvailable = await pathExists(binaryPath);
 const renderModelAvailable = await pathExists(renderModelModulePath);
 
-test("webview rejects disconnected multi-endpoint carriers without zoom-only detail", {
+test("native and webview share one complete straight carrier scene", {
   skip: !binaryAvailable || !renderModelAvailable,
 }, async () => {
   const fixture = createCarrierFixture();
@@ -141,12 +141,25 @@ test("webview rejects disconnected multi-endpoint carriers without zoom-only det
     const finalMetric = metricMatches.at(-1);
     assert.ok(finalMetric, "native rendered-carrier metrics should be emitted");
 
-    assert.equal(layout.engineMetadata?.bundleEdgeIntersections, 0);
     assert.equal(layout.engineMetadata?.edgeNodeIntersections, 0);
 
-    const { createDiagramRenderModel } = require(renderModelModulePath);
+    const {
+      createDiagramRenderModel,
+      measureRenderedVisualConflicts,
+    } = require(renderModelModulePath);
     const renderModel = createDiagramRenderModel(
       createBootstrapPayload(fixture, layout),
+    );
+    const renderedMetrics = measureRenderedVisualConflicts(renderModel);
+    assert.equal(
+      layout.engineMetadata?.bundleEdgeIntersections,
+      renderedMetrics.bundleEdgeIntersections,
+      "native and webview must audit the same visible bundle/edge geometry",
+    );
+    assert.equal(
+      layout.engineMetadata?.edgeNodeIntersections,
+      renderedMetrics.edgeNodeIntersections,
+      "native and webview must audit the same visible table/edge geometry",
     );
     const renderedEdgeIds = new Set(renderModel.edges.map((edge) => edge.edgeId));
     const inheritanceEdges = fixture.edges.filter(
@@ -176,13 +189,15 @@ test("webview rejects disconnected multi-endpoint carriers without zoom-only det
     assert.ok(!renderedEdgeIds.has("inheritance-carrier:test.sharedBase"));
     assert.ok(renderModel.leafBundles.length > 0);
     assert.equal(Object.hasOwn(renderModel, "detailEdges"), false);
-    assert.ok(
-      renderModel.edges.length >= Number(finalMetric[1]),
-      "expanding disconnected carriers may only add visible member edges",
+    assert.equal(
+      renderModel.edges.length,
+      Number(finalMetric[1]),
+      "native metrics and the canvas must expose the same complete edge set",
     );
-    assert.ok(
-      Number(finalMetric[2]) >= Number(finalMetric[1]),
-      "native route-segment count should cover every native visible carrier",
+    assert.equal(
+      Number(finalMetric[2]),
+      Number(finalMetric[1]),
+      "every optimized carrier must remain one straight segment",
     );
     const renderedEdgeById = new Map(
       renderModel.edges.map((edge) => [edge.edgeId, edge]),
@@ -190,7 +205,7 @@ test("webview rejects disconnected multi-endpoint carriers without zoom-only det
     const layoutNodeById = new Map(
       layout.nodes.map((node) => [node.modelId, node]),
     );
-    let rejectedMultiEndpointCarriers = 0;
+    let serializedDisconnectedSemanticCarriers = 0;
     for (const carrierRoute of layout.engineMetadata.renderedCarrierRoutes) {
       // Bundle carriers are materialized through the synthetic bundle/root
       // pair and have their own integration coverage. This regression targets
@@ -225,7 +240,7 @@ test("webview rejects disconnected multi-endpoint carriers without zoom-only det
       ) {
         if (isSemanticCarrier) {
           if (logicalEndpointModelIds.size > 2) {
-            rejectedMultiEndpointCarriers += 1;
+            serializedDisconnectedSemanticCarriers += 1;
           }
           assert.ok(
             !renderedEdgeById.has(webviewCarrierId),
@@ -267,9 +282,10 @@ test("webview rejects disconnected multi-endpoint carriers without zoom-only det
         `carrier ${webviewCarrierId} should remain a straight line`,
       );
     }
-    assert.ok(
-      rejectedMultiEndpointCarriers > 0,
-      "fixture should exercise at least one disconnected multi-endpoint carrier",
+    assert.equal(
+      serializedDisconnectedSemanticCarriers,
+      0,
+      "native must expand a multi-endpoint bucket before serialization",
     );
   } finally {
     await fs.rm(directory, { force: true, recursive: true });

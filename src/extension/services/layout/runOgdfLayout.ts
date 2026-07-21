@@ -62,11 +62,12 @@ import { decodeLayoutSnapshot } from "../../../shared/protocol/decodeDiagramBoot
 import type { DiagramBootstrapPayload } from "../../../shared/protocol/webviewContract";
 import {
   createDiagramRenderModel,
-  measureRenderedEdgeNodeIntersections,
   measureRenderedTableClearance,
+  measureRenderedVisualConflicts,
   type BundleLeafTile,
   type EdgeRenderModel,
   type RenderedTableClearanceMetrics,
+  type RenderedVisualConflictMetrics,
   type TableRenderModel,
 } from "../../../webview/state/createDiagramRenderModel";
 import type { Logger } from "../logging/logger";
@@ -94,9 +95,17 @@ const V35_SCORER_TIMEOUT_MS = 180_000;
 // native stages may each advertise much larger safety timeouts, but a user
 // action must never inherit their sum and look permanently stuck.
 const DEFAULT_OPTIMIZED_LAYOUT_BUDGET_MS = 90_000;
+// A stage may only consume the part of the shared deadline that is not
+// reserved for the stages after it. Without these floors a cold multistart
+// baseline can use the full 90 seconds and make the exact final-scene repair
+// unreachable even though that repair is the only stage able to certify the
+// user-visible collision targets.
+const DEFAULT_OPTIMIZED_AFTER_BASELINE_RESERVE_MS = 40_000;
+const DEFAULT_OPTIMIZED_AFTER_SCORER_RESERVE_MS = 20_000;
+const DEFAULT_OPTIMIZED_AFTER_REROUTE_RESERVE_MS = 10_000;
 const DEFAULT_CANONICAL_ROUTE_REPAIR_TIMEOUT_MS = 30_000;
 const DEFAULT_OPTIMIZED_BBOX_TARGET_B = 1.0;
-const DEFAULT_VISUAL_CROSS_TARGET = 100;
+const DEFAULT_VISUAL_CROSS_TARGET = 500;
 const DEFAULT_EDGE_NODE_TARGET = 0;
 const DEFAULT_BUNDLE_EDGE_TARGET = 0;
 const DEFAULT_VISUAL_CROSS_POLISH_VARIANTS = [
@@ -112,8 +121,6 @@ type VisualCrossPolishVariant =
   | "route-clear-wide"
   | "route-clear-short"
   | "route-clear-deep"
-  | "route-clear-lbend"
-  | "route-clear-deep-lbend"
   | "route-clear-periphery"
   | "route-clear-deep-periphery"
   | "route-retouch"
@@ -163,7 +170,6 @@ function ogdfRenderedCarrierEnv(
     ...process.env,
     DJERD_DIAGONAL_RETOUCH: "0",
     DJERD_NODE_PAIR_RETOUCH: "0",
-    DJERD_DIAGONAL_RETOUCH_ROUTE_SEGMENTS: "0",
     // Semantic bundling stays enabled for leaf groups and repeated pipelines.
     // Spatial-grid aggregation and zoom-dependent detail replacement are not
     // part of this path: every resulting carrier is visible at every zoom.
@@ -173,6 +179,14 @@ function ogdfRenderedCarrierEnv(
     DJERD_INTRA_CLUSTER_CARRIER_FINAL: "1",
     DJERD_NO_CARRIER_CROSS: "0",
     DJERD_RENDERED_CARRIER_GEOMETRY_OPT_FINAL: "1",
+    DJERD_RENDERED_CARRIER_GEOMETRY_OPT_BUDGET_MS:
+      process.env.DJERD_RENDERED_CARRIER_GEOMETRY_OPT_BUDGET_MS ?? "5000",
+    DJERD_RENDERED_CARRIER_GEOMETRY_OPT_QUIET_BUDGET_MS:
+      process.env.DJERD_RENDERED_CARRIER_GEOMETRY_OPT_QUIET_BUDGET_MS ?? "500",
+    DJERD_RENDERED_CARRIER_NODE_TARGET_QUIET_BUDGET_MS:
+      process.env.DJERD_RENDERED_CARRIER_NODE_TARGET_QUIET_BUDGET_MS ?? "500",
+    DJERD_RENDERED_CARRIER_NODE_TARGET_EXHAUSTIVE_PORTS:
+      process.env.DJERD_RENDERED_CARRIER_NODE_TARGET_EXHAUSTIVE_PORTS ?? "1",
     // Stress majorization post-pass — DEFAULT OFF (= 0). Initial
     // bundle-less binary tests on Captain looked promising (bbox -26%,
     // visualCross -0.8%) but the production VS Code path with
@@ -192,13 +206,20 @@ function ogdfRenderedCarrierEnv(
     DJERD_RENDERED_NODE_CLEARANCE_FINAL:
       process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL ?? "1",
     DJERD_RENDERED_NODE_CLEARANCE_FINAL_PASSES:
-      process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_PASSES ?? "12",
+      process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_PASSES ?? "24",
+    DJERD_RENDERED_NODE_CLEARANCE_FINAL_BATCHES:
+      process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_BATCHES ?? "3",
     DJERD_RENDERED_NODE_CLEARANCE_FINAL_MAX_SHIFT:
       process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_MAX_SHIFT ?? "1200",
     DJERD_RENDERED_NODE_CLEARANCE_FINAL_EXTRA:
       process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_EXTRA ?? "2",
     DJERD_RENDERED_NODE_CLEARANCE_FINAL_BBOX_LIMIT:
       process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_BBOX_LIMIT ?? "1.01",
+    // Exact table spacing is a hard readability invariant. Permit only a
+    // small, explicit crossing trade when the projection reaches zero
+    // spacing violations and does not worsen table/edge penetration.
+    DJERD_RENDERED_NODE_CLEARANCE_FINAL_VISUAL_SLACK:
+      process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_VISUAL_SLACK ?? "32",
     // Multi-start cluster_graph: run FMMM N times with different OGDF
     // seeds and keep the layout with the fewest straight-line edge
     // crossings. Unlike local search it explores *global* alternative
@@ -223,15 +244,16 @@ function ogdfRenderedCarrierEnv(
       process.env.DJERD_MULTISTART_RUNS ?? "8",
     DJERD_MULTISTART_SEED_BASE:
       process.env.DJERD_MULTISTART_SEED_BASE ?? "42",
-    // Candidate C: multistart winner = min(straight-line crossings +
-    // BBOX_WEIGHT · bbox-area-in-billions). Default 0 ⇒ pure-crossings
-    // selection (byte-identical to before; raw crossings already tracks
-    // the visualCrossings winner on the Captain corpus). Raise it to
-    // trade a few crossings for a more compact seed — a Pareto knob, not
-    // a free win, and routing-based metrics aren't available at selection
-    // time so this is a cheap position-only proxy.
+    // Optional compactness term for the position-only multistart score. Keep
+    // zero in production: crossing and node-penetration quality must not be
+    // traded away merely to shrink the bounding box.
     DJERD_MULTISTART_BBOX_WEIGHT:
       process.env.DJERD_MULTISTART_BBOX_WEIGHT ?? "0",
+    // Score the visible defect that raw crossing-only seed selection ignored:
+    // a straight edge passing through a non-endpoint table. The weight matches
+    // visualCrossings, where one edge/table hit costs the same as one crossing.
+    DJERD_MULTISTART_EDGE_NODE_WEIGHT:
+      process.env.DJERD_MULTISTART_EDGE_NODE_WEIGHT ?? "1",
     // Periphery reroute: for the worst high-crossing edges, route them around
     // the layout bbox periphery instead of straight through the dense centre,
     // keeping the candidate that minimises that edge's crossings (greedy
@@ -250,8 +272,6 @@ function ogdfRenderedCarrierEnv(
     // orientation now aligning inter-cluster members, periphery may no longer
     // be needed; measure visualCross/bbox on reload, then keep off / restore /
     // tune TOPK down.
-    DJERD_PERIPHERY_REROUTE:
-      process.env.DJERD_PERIPHERY_REROUTE ?? "0",
     DJERD_PERIPHERY_TOPK:
       process.env.DJERD_PERIPHERY_TOPK ?? "400",
     // Cap the outward lane offset of peripheral arcs. Each rerouted edge was
@@ -277,19 +297,11 @@ function ogdfRenderedCarrierEnv(
     // weighted like a crossing (the metric's own weighting). W=0 = crossings-only.
     DJERD_PERIPHERY_EDGE_NODE_WEIGHT:
       process.env.DJERD_PERIPHERY_EDGE_NODE_WEIGHT ?? "1",
-    // Carrier-aware multistart: score each seed by distinct CARRIER-PAIR
-    // crossings (leaf bundles + cluster-pair "bus" carriers) instead of raw
-    // straight-line crossings — i.e. the rendered carrier-grouped crossing the
-    // user actually sees. Offline proxy (real-main-1301, RUNS=8): picks seed 46
-    // vs raw's seed 48 — carrier-grouped 1508 vs 1559 (-3.3%), edgeCross
-    // 1275 vs 1355 (-5.9%), bbox -10%, BUT edgeNode 819 vs 703 (+16%) and
-    // visualCross ~tie. A Pareto knob (fewer edge-crossings + more compact, at
-    // the cost of more edge-node collisions). ON for production validation —
-    // production is 96% inter-cluster so the cluster-pair-bus grouping should
-    // help more; measure real visualCross/edgeCross/edgeNode on reload, then
-    // keep or set to 0.
+    // Carrier grouping is available as an experiment, but the production seed
+    // winner is chosen from every actual straight edge. This prevents a reduced
+    // carrier quotient from hiding crossings that remain in the canvas scene.
     DJERD_MULTISTART_BUNDLE_AWARE:
-      process.env.DJERD_MULTISTART_BUNDLE_AWARE ?? "1",
+      process.env.DJERD_MULTISTART_BUNDLE_AWARE ?? "0",
     // Multi-level Louvain coarsening. The single-level Louvain leaves the
     // cluster graph badly over-fragmented (394 raw communities on the captain
     // 3435-edge graph; production shows 289 louvainClusters with 68 singletons
@@ -351,6 +363,19 @@ function ogdfRenderedCarrierEnv(
     DJERD_CLUSTER_SWAP:
       process.env.DJERD_CLUSTER_SWAP ?? "1",
     ...overrides,
+    // Straight-only is a hard output contract. Collision reduction must move
+    // tables or choose straight endpoint ports; no native stage may hide a
+    // placement defect by adding detour, periphery, L-bend, or retouch points.
+    DJERD_CANONICAL_ROUTE_REPAIR: "0",
+    DJERD_CROSS_AWARE_ROUTING: "0",
+    DJERD_DIAGONAL_RETOUCH_ROUTE_SEGMENTS: "0",
+    DJERD_DIAGONAL_RETOUCH_TWO_BEND: "0",
+    DJERD_EDGE_DETOUR: "0",
+    DJERD_EDGE_DETOUR_FINAL: "0",
+    DJERD_L_BEND_REROUTE: "0",
+    DJERD_PERIPHERY_REROUTE: "0",
+    DJERD_XINGS_DETOUR: "0",
+    DJERD_XINGS_DETOUR_FINAL: "0",
   };
 }
 
@@ -1110,14 +1135,33 @@ function ogdfOptimizedBboxTargetFinalCompactEnv(
       process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_ROUNDS ?? "4",
     DJERD_RENDERED_CARRIER_NODE_TARGET_PORT_SAMPLES:
       process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_PORT_SAMPLES ?? "8",
+    DJERD_RENDERED_CARRIER_NODE_TARGET_BUDGET_MS:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_BUDGET_MS ?? "5000",
     DJERD_RENDERED_CARRIER_NODE_CLEAR_FINAL:
       process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR ?? "1",
     DJERD_RENDERED_CARRIER_NODE_CLEAR_ROUNDS:
-      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_ROUNDS ?? "6",
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_ROUNDS ?? "16",
     DJERD_RENDERED_CARRIER_NODE_CLEAR_DIRECTIONS:
       process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_DIRECTIONS ?? "24",
     DJERD_RENDERED_CARRIER_NODE_CLEAR_MAX_SHIFT:
       process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_MAX_SHIFT ?? "1200",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_BATCH_SIZE:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_BATCH_SIZE ?? "8",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_FOLLOWUP_BATCH_SIZE:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_FOLLOWUP_BATCH_SIZE
+      ?? "8",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_MIN_BATCH_SIZE:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_MIN_BATCH_SIZE
+      ?? "1",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_BUDGET_MS:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_BUDGET_MS ?? "12000",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_VISUAL_SLACK:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_VISUAL_SLACK
+      ?? "32",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_MIN_GAIN_PER_VISUAL_DEBT:
+      process.env
+        .DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_MIN_GAIN_PER_VISUAL_DEBT
+      ?? "8",
     DJERD_RENDERED_CARRIER_NODE_CLEAR_BBOX_TARGET_B:
       process.env.DJERD_OPTIMIZED_BBOX_TARGET_B
       ?? DEFAULT_OPTIMIZED_BBOX_TARGET_B.toString(),
@@ -1480,9 +1524,9 @@ function ogdfOptimizedVisualCrossPolishEnv(
     DJERD_HOT_REGION_SA: "0",
     DJERD_STUCK_LEAF_2D: "0",
 
-    // The default visual contract renders every relationship as a straight
-    // semantic carrier. Route detours can still be enabled explicitly for
-    // experiments, but they must never appear in the default candidate set.
+    // Every relationship is a straight semantic carrier. These knobs remain
+    // present for native compatibility, but ogdfRenderedCarrierEnv hard-locks
+    // all route-mutating flags to zero after candidate-specific overrides.
     DJERD_XINGS_DETOUR:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR ?? "0",
     DJERD_XINGS_DETOUR_PHASE:
@@ -1830,6 +1874,34 @@ function ogdfOptimizedVisualCrossRecompactPreserveEnv(): Record<string, string |
   });
 }
 
+function ogdfOptimizedNativeCrossRelocateEnv(): Record<string, string | undefined> {
+  return {
+    ...ogdfOptimizedVisualCrossRecompactPreserveEnv(),
+    // Spend the shared deadline on exact straight-line geometry. The legacy
+    // swap passes are intentionally skipped; relocation can use empty space
+    // and accepts a candidate only when every collision class is
+    // non-regressing.
+    DJERD_NO_KNOT_MIN: "1",
+    DJERD_KNOT_RELOCATE: "1",
+    DJERD_KNOT_RELOCATE_ROUNDS:
+      process.env.DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE_ROUNDS ?? "5",
+    DJERD_KNOT_RELOCATE_TOP:
+      process.env.DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE_TOP ?? "500",
+    DJERD_KNOT_RELOCATE_ANGLES:
+      process.env.DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE_ANGLES ?? "4",
+    DJERD_KNOT_RELOCATE_UNTANGLE_TOP:
+      process.env.DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE_UNTANGLE_TOP ?? "96",
+    DJERD_KNOT_RELOCATE_BUDGET_MS:
+      process.env.DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE_BUDGET_MS ?? "32000",
+    // Keep this candidate position-only. The accepted scene is subsequently
+    // audited and the ordinary final export repair receives its reserved time.
+    DJERD_RENDERED_CARRIER_GEOMETRY_OPT_FINAL: "0",
+    DJERD_RENDERED_CARRIER_NODE_TARGET_FINAL: "0",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_FINAL: "0",
+    DJERD_RENDERED_NODE_CLEARANCE_FINAL: "0",
+  };
+}
+
 function ogdfOptimizedCanonicalRouteRepairEnv(): Record<string, string | undefined> {
   return {
     ...ogdfOptimizedVisualCrossRecompactPreserveEnv(),
@@ -1844,8 +1916,7 @@ function ogdfOptimizedCanonicalRouteRepairEnv(): Record<string, string | undefin
     DJERD_EDGE_DETOUR: "0",
     DJERD_CROSS_AWARE_ROUTING: "0",
     DJERD_RIGID_NODE_EDGE_RELIEF_FINAL: "0",
-    DJERD_CANONICAL_ROUTE_REPAIR:
-      process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_NATIVE ?? "0",
+    DJERD_CANONICAL_ROUTE_REPAIR: "0",
     DJERD_CANONICAL_ROUTE_REPAIR_CLEARANCE:
       process.env.DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR_CLEARANCE ?? "12",
     DJERD_CANONICAL_ROUTE_REPAIR_MAX_DETOURS:
@@ -1936,23 +2007,47 @@ function ogdfFinalExportRetouchEnv(): Record<string, string | undefined> {
       process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_ROUNDS ?? "4",
     DJERD_RENDERED_CARRIER_NODE_TARGET_PORT_SAMPLES:
       process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_PORT_SAMPLES ?? "8",
+    DJERD_RENDERED_CARRIER_NODE_TARGET_BUDGET_MS:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_BUDGET_MS ?? "5000",
 
     DJERD_RENDERED_CARRIER_NODE_CLEAR_FINAL:
       process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR ?? "1",
     DJERD_RENDERED_CARRIER_NODE_CLEAR_ROUNDS:
-      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_ROUNDS ?? "6",
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_ROUNDS ?? "16",
     DJERD_RENDERED_CARRIER_NODE_CLEAR_DIRECTIONS:
       process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_DIRECTIONS ?? "24",
     DJERD_RENDERED_CARRIER_NODE_CLEAR_MAX_SHIFT:
       process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_MAX_SHIFT ?? "1200",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_BATCH_SIZE:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_BATCH_SIZE ?? "8",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_FOLLOWUP_BATCH_SIZE:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_FOLLOWUP_BATCH_SIZE
+      ?? "8",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_MIN_BATCH_SIZE:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_MIN_BATCH_SIZE
+      ?? "1",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_BUDGET_MS:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_BUDGET_MS ?? "12000",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_VISUAL_SLACK:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_VISUAL_SLACK
+      ?? "32",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_MIN_GAIN_PER_VISUAL_DEBT:
+      process.env
+        .DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_MIN_GAIN_PER_VISUAL_DEBT
+      ?? "8",
     DJERD_RENDERED_CARRIER_NODE_CLEAR_BBOX_TARGET_B:
       process.env.DJERD_OPTIMIZED_BBOX_TARGET_B
       ?? DEFAULT_OPTIMIZED_BBOX_TARGET_B.toString(),
     DJERD_RENDERED_CARRIER_NODE_CLEAR_BBOX_TOLERANCE:
       process.env.DJERD_OPTIMIZED_BBOX_TARGET_TOLERANCE ?? "1.02",
 
-    DJERD_DIAGONAL_RETOUCH: "1",
-    DJERD_NODE_PAIR_RETOUCH: "1",
+    // Run the exact clearance/carrier collision repair before spending the
+    // bounded final window on broad O(E^2) pair search. The latter can still
+    // be enabled explicitly for offline experiments.
+    DJERD_DIAGONAL_RETOUCH:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DIAGONAL ?? "0",
+    DJERD_NODE_PAIR_RETOUCH:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_NODE_PAIR ?? "0",
     DJERD_NODE_PAIR_RETOUCH_TOPK:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_NODE_PAIR_TOPK
       ?? process.env.DJERD_NODE_PAIR_RETOUCH_TOPK
@@ -2175,9 +2270,7 @@ function ogdfFinalExportRetouchDebtRepairEnv(): Record<string, string | undefine
       ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_ENDPOINT_STEPS
       ?? "80,160,300,600",
 
-    DJERD_EDGE_DETOUR_FINAL:
-      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_EDGE_DETOUR
-      ?? "0",
+    DJERD_EDGE_DETOUR_FINAL: "0",
     DJERD_EDGE_DETOUR_FINAL_PASSES:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_EDGE_DETOUR_PASSES
       ?? "1",
@@ -2191,9 +2284,7 @@ function ogdfFinalExportRetouchDebtRepairEnv(): Record<string, string | undefine
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_EDGE_DETOUR_CLEARANCE
       ?? "36",
 
-    DJERD_L_BEND_REROUTE:
-      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_L_BEND
-      ?? "0",
+    DJERD_L_BEND_REROUTE: "0",
     DJERD_L_BEND_REROUTE_TOPK:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_L_BEND_TOPK
       ?? process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_L_BEND_TOPK
@@ -2275,6 +2366,13 @@ function ogdfFinalExportRetouchDebtRepairEnv(): Record<string, string | undefine
     DJERD_LEAF_BUNDLE_NODE_CLEAR_AFTER_RELOCATE_FINAL_BBOX_LIMIT:
       process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BUNDLE_AFTER_CLEAR_BBOX_LIMIT
       ?? "1.02",
+    DJERD_CANONICAL_ROUTE_REPAIR: "0",
+    DJERD_DIAGONAL_RETOUCH_ROUTE_SEGMENTS: "0",
+    DJERD_DIAGONAL_RETOUCH_TWO_BEND: "0",
+    DJERD_EDGE_DETOUR: "0",
+    DJERD_PERIPHERY_REROUTE: "0",
+    DJERD_XINGS_DETOUR: "0",
+    DJERD_XINGS_DETOUR_FINAL: "0",
   };
 }
 
@@ -2285,10 +2383,7 @@ function ogdfFinalExportRetouchDebtRepairHubCorridorEnv(): Record<string, string
       process.env
         .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_RESTORE_LAYOUT
       ?? "0",
-    DJERD_L_BEND_REROUTE:
-      process.env
-        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND
-      ?? "0",
+    DJERD_L_BEND_REROUTE: "0",
     DJERD_L_BEND_REROUTE_TOPK:
       process.env
         .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_TOPK
@@ -2313,10 +2408,7 @@ function ogdfFinalExportRetouchDebtRepairHubCorridorEnv(): Record<string, string
       process.env
         .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_LENGTH_WEIGHT
       ?? "0.0001",
-    DJERD_PERIPHERY_REROUTE:
-      process.env
-        .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY
-      ?? "0",
+    DJERD_PERIPHERY_REROUTE: "0",
     DJERD_PERIPHERY_TOPK:
       process.env
         .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_TOPK
@@ -2405,6 +2497,13 @@ function ogdfFinalExportRetouchDebtRepairHubCorridorEnv(): Record<string, string
       process.env
         .DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_SLOT_RINGS
       ?? "8",
+    DJERD_CANONICAL_ROUTE_REPAIR: "0",
+    DJERD_DIAGONAL_RETOUCH_ROUTE_SEGMENTS: "0",
+    DJERD_DIAGONAL_RETOUCH_TWO_BEND: "0",
+    DJERD_EDGE_DETOUR: "0",
+    DJERD_EDGE_DETOUR_FINAL: "0",
+    DJERD_XINGS_DETOUR: "0",
+    DJERD_XINGS_DETOUR_FINAL: "0",
   };
 }
 
@@ -2447,8 +2546,6 @@ function visualCrossPolishUsesBundleClear(
     || variant === "route-clear-wide"
     || variant === "route-clear-short"
     || variant === "route-clear-deep"
-    || variant === "route-clear-lbend"
-    || variant === "route-clear-deep-lbend"
     || variant === "route-clear-periphery"
     || variant === "route-clear-deep-periphery"
     || variant === "detour-clear"
@@ -2502,32 +2599,6 @@ function ogdfOptimizedVisualCrossPolishPeripheryEnv(): Record<string, string | u
   };
 }
 
-function ogdfOptimizedVisualCrossPolishLBendEnv(): Record<string, string | undefined> {
-  return {
-    DJERD_L_BEND_REROUTE:
-      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_L_BEND_REROUTE
-      ?? "1",
-    DJERD_L_BEND_REROUTE_TOPK:
-      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_L_BEND_TOPK
-      ?? "240",
-    DJERD_L_BEND_REROUTE_MIN_GAIN:
-      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_L_BEND_MIN_GAIN
-      ?? "1",
-    DJERD_L_BEND_REROUTE_EDGE_NODE_WEIGHT:
-      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_L_BEND_EDGE_NODE_WEIGHT
-      ?? "1",
-    DJERD_L_BEND_REROUTE_SEGMENT_OVERLAP_WEIGHT:
-      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_L_BEND_SEGMENT_OVERLAP_WEIGHT
-      ?? "1",
-    DJERD_L_BEND_REROUTE_SEGMENT_OVERLAP_LENGTH_WEIGHT:
-      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_L_BEND_SEGMENT_OVERLAP_LENGTH_WEIGHT
-      ?? "0.0001",
-    DJERD_L_BEND_REROUTE_LENGTH_WEIGHT:
-      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_L_BEND_LENGTH_WEIGHT
-      ?? "0",
-  };
-}
-
 function ogdfOptimizedVisualCrossPolishVariantEnv(
   variant: VisualCrossPolishVariant,
 ): Record<string, string | undefined> {
@@ -2555,13 +2626,6 @@ function ogdfOptimizedVisualCrossPolishVariantEnv(
       };
     case "route-clear-deep":
       return ogdfOptimizedVisualCrossPolishDeepEnv();
-    case "route-clear-lbend":
-      return ogdfOptimizedVisualCrossPolishLBendEnv();
-    case "route-clear-deep-lbend":
-      return {
-        ...ogdfOptimizedVisualCrossPolishDeepEnv(),
-        ...ogdfOptimizedVisualCrossPolishLBendEnv(),
-      };
     case "route-clear-periphery":
       return ogdfOptimizedVisualCrossPolishPeripheryEnv();
     case "route-clear-deep-periphery":
@@ -2592,20 +2656,33 @@ function ogdfOptimizedVisualCrossPolishVariantEnv(
 function renderedCarrierCacheKeyParts(): string[] {
   return [
     "renderedCarrier=1",
+    "semanticCarrierTree=family-v1",
     "hubCarrier=1",
     "hubThreshold=2",
     "inheritanceCarrier=1",
     "intraClusterCarrier=1",
     "renderedCarrierGeometryOpt=1",
+    "straightRoutePolicy=native-browser-v1",
     `edgeNodeTarget=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET ?? DEFAULT_EDGE_NODE_TARGET}`,
     `bundleEdgeTarget=${process.env.DJERD_OPTIMIZED_BUNDLE_EDGE_TARGET ?? DEFAULT_BUNDLE_EDGE_TARGET}`,
     `edgeNodeTargetCarrierPass=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_PASS ?? "1"}`,
     `edgeNodeTargetCarrierRounds=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_ROUNDS ?? "4"}`,
     `edgeNodeTargetPortSamples=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_PORT_SAMPLES ?? "8"}`,
+    `edgeNodeTargetCarrierBudgetMs=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_BUDGET_MS ?? "5000"}`,
+    `edgeNodeTargetCarrierQuietBudgetMs=${process.env.DJERD_RENDERED_CARRIER_NODE_TARGET_QUIET_BUDGET_MS ?? "500"}`,
+    `edgeNodeTargetCarrierExhaustivePorts=${process.env.DJERD_RENDERED_CARRIER_NODE_TARGET_EXHAUSTIVE_PORTS ?? "1"}`,
     `edgeNodeTargetNodeClear=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR ?? "1"}`,
-    `edgeNodeTargetNodeClearRounds=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_ROUNDS ?? "6"}`,
+    `edgeNodeTargetNodeClearRounds=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_ROUNDS ?? "16"}`,
     `edgeNodeTargetNodeClearDirections=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_DIRECTIONS ?? "24"}`,
     `edgeNodeTargetNodeClearMaxShift=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_MAX_SHIFT ?? "1200"}`,
+    `edgeNodeTargetNodeClearBatchSize=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_BATCH_SIZE ?? "8"}`,
+    `edgeNodeTargetNodeClearFollowupBatchSize=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_FOLLOWUP_BATCH_SIZE ?? "8"}`,
+    `edgeNodeTargetNodeClearMinBatchSize=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_MIN_BATCH_SIZE ?? "1"}`,
+    `edgeNodeTargetNodeClearBudgetMs=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_BUDGET_MS ?? "12000"}`,
+    `edgeNodeTargetNodeClearVisualSlack=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_VISUAL_SLACK ?? "32"}`,
+    `edgeNodeTargetNodeClearMinGainPerVisualDebt=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_MIN_GAIN_PER_VISUAL_DEBT ?? "8"}`,
+    `renderedCarrierGeometryBudgetMs=${process.env.DJERD_RENDERED_CARRIER_GEOMETRY_OPT_BUDGET_MS ?? "5000"}`,
+    `renderedCarrierGeometryQuietBudgetMs=${process.env.DJERD_RENDERED_CARRIER_GEOMETRY_OPT_QUIET_BUDGET_MS ?? "500"}`,
     `stressPostPassIters=${process.env.DJERD_STRESS_POST_PASS_ITERS ?? "0"}`,
     `stressPostPassEdgeCost=${process.env.DJERD_STRESS_POST_PASS_EDGE_COST ?? "140"}`,
     "noCarrier=0",
@@ -2654,6 +2731,7 @@ function renderedCarrierCacheKeyParts(): string[] {
     `renderedNodeClearanceMaxShift=${process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_MAX_SHIFT ?? "1200"}`,
     `renderedNodeClearanceExtra=${process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_EXTRA ?? "2"}`,
     `renderedNodeClearanceBboxLimit=${process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_BBOX_LIMIT ?? "1.01"}`,
+    `renderedNodeClearanceVisualSlack=${process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL_VISUAL_SLACK ?? "32"}`,
     `leafBundleNodeClear=${process.env.DJERD_LEAF_BUNDLE_NODE_CLEAR_FINAL ?? "1"}`,
     `leafBundleNodeClearPasses=${process.env.DJERD_LEAF_BUNDLE_NODE_CLEAR_FINAL_PASSES ?? "8"}`,
     `leafBundleNodeClearMaxShift=${process.env.DJERD_LEAF_BUNDLE_NODE_CLEAR_FINAL_MAX_SHIFT ?? "3600"}`,
@@ -2869,25 +2947,6 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedVisualCrossPolishBundleAfterClearMaxCandidates=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_BUNDLE_AFTER_CLEAR_MAX_CANDIDATES ?? "48"}`,
     `optimizedVisualCrossPolishBundleAfterClearFullShortlist=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_BUNDLE_AFTER_CLEAR_FULL_SHORTLIST ?? "8"}`,
     `optimizedVisualCrossPolishBundleAfterClearBboxLimit=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_BUNDLE_AFTER_CLEAR_BBOX_LIMIT ?? "1.04"}`,
-    `optimizedVisualCrossPolishXingsDetour=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR ?? "0"}`,
-    `optimizedVisualCrossPolishXingsDetourPhase=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR_PHASE ?? "post"}`,
-    `optimizedVisualCrossPolishXingsDetourIters=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR_ITERS ?? "3"}`,
-    `optimizedVisualCrossPolishXingsDetourMaxSegs=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR_MAX_SEGS ?? "2"}`,
-    `optimizedVisualCrossPolishXingsDetourTopK=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR_TOPK ?? "12"}`,
-    `optimizedVisualCrossPolishXingsDetourMaxOffset=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR_MAX_OFFSET ?? "480"}`,
-    `optimizedVisualCrossPolishXingsDetourFinal=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_XINGS_DETOUR_FINAL ?? "0"}`,
-    `optimizedVisualCrossPolishEdgeDetour=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_EDGE_DETOUR ?? "0"}`,
-    `optimizedVisualCrossPolishEdgeDetourPasses=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_EDGE_DETOUR_PASSES ?? "1"}`,
-    `optimizedVisualCrossPolishEdgeDetourCrossWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_EDGE_DETOUR_CROSS_WEIGHT ?? "1.0"}`,
-    `optimizedVisualCrossPolishEdgeDetourLengthWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_EDGE_DETOUR_LENGTH_WEIGHT ?? "0"}`,
-    `optimizedVisualCrossPolishEdgeDetourClearance=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_EDGE_DETOUR_CLEARANCE ?? "28"}`,
-    `optimizedVisualCrossPolishLBend=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_L_BEND_REROUTE ?? "0"}`,
-    `optimizedVisualCrossPolishLBendTopK=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_L_BEND_TOPK ?? "160"}`,
-    `optimizedVisualCrossPolishLBendMinGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_L_BEND_MIN_GAIN ?? "1"}`,
-    `optimizedVisualCrossPolishLBendEdgeNodeWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_L_BEND_EDGE_NODE_WEIGHT ?? "1"}`,
-    `optimizedVisualCrossPolishLBendSegmentOverlapWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_L_BEND_SEGMENT_OVERLAP_WEIGHT ?? "1"}`,
-    `optimizedVisualCrossPolishLBendSegmentOverlapLengthWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_L_BEND_SEGMENT_OVERLAP_LENGTH_WEIGHT ?? "0.0001"}`,
-    `optimizedVisualCrossPolishLBendLengthWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_L_BEND_LENGTH_WEIGHT ?? "0"}`,
     `optimizedVisualCrossPolishDiagonalRetouch=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_DIAGONAL_RETOUCH ?? "1"}`,
     `optimizedVisualCrossPolishDiagonalRetouchTopK=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_DIAGONAL_RETOUCH_TOPK ?? "160"}`,
     `optimizedVisualCrossPolishDiagonalRetouchSegmentsPerEdge=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_DIAGONAL_RETOUCH_SEGMENTS_PER_EDGE ?? "3"}`,
@@ -2900,27 +2959,7 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedVisualCrossPolishDiagonalRetouchLengthWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_DIAGONAL_RETOUCH_LENGTH_WEIGHT ?? "0"}`,
     `optimizedVisualCrossPolishDiagonalRetouchAllowNodeHitDebt=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_DIAGONAL_RETOUCH_ALLOW_NODE_HIT_DEBT ?? process.env.DJERD_DIAGONAL_RETOUCH_ALLOW_NODE_HIT_DEBT ?? "0"}`,
     `optimizedVisualCrossPolishDiagonalRetouchBundleObstacles=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_DIAGONAL_RETOUCH_BUNDLE_OBSTACLES ?? process.env.DJERD_DIAGONAL_RETOUCH_BUNDLE_OBSTACLES ?? "1"}`,
-    `optimizedVisualCrossPolishDiagonalRetouchTwoBend=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_DIAGONAL_RETOUCH_TWO_BEND ?? process.env.DJERD_DIAGONAL_RETOUCH_TWO_BEND ?? "1"}`,
-    "optimizedVisualCrossPolishRouteClearTightClearance=16",
-    "optimizedVisualCrossPolishRouteClearWideClearance=44",
-    "optimizedVisualCrossPolishRouteClearShortLengthWeight=0.03",
-    "optimizedVisualCrossPolishRouteClearShortMaxOffset=360",
-    "optimizedVisualCrossPolishRouteClearDeepPasses=2",
-    "optimizedVisualCrossPolishRouteClearDeepIters=4",
-    "optimizedVisualCrossPolishRouteClearDeepTopK=20",
-    "optimizedVisualCrossPolishRouteClearDeepMaxOffset=720",
-    `optimizedVisualCrossPolishRouteClearLBend=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_L_BEND_REROUTE ?? "1"}`,
-    `optimizedVisualCrossPolishRouteClearLBendTopK=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_L_BEND_TOPK ?? "240"}`,
-    `optimizedVisualCrossPolishRouteClearLBendMinGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_L_BEND_MIN_GAIN ?? "1"}`,
-    "optimizedVisualCrossPolishRouteClearDeepLBend=route-clear-deep+lbend",
-    `optimizedVisualCrossPolishPeripheryReroute=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_PERIPHERY_REROUTE ?? "1"}`,
-    `optimizedVisualCrossPolishPeripheryTopK=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_PERIPHERY_TOPK ?? "120"}`,
-    `optimizedVisualCrossPolishPeripheryMaxLanes=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_PERIPHERY_MAX_LANES ?? "6"}`,
-    `optimizedVisualCrossPolishPeripheryEdgeNodeWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_PERIPHERY_EDGE_NODE_WEIGHT ?? "1"}`,
-    `optimizedVisualCrossPolishPeripherySegmentOverlapWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_PERIPHERY_SEGMENT_OVERLAP_WEIGHT ?? "1"}`,
-    `optimizedVisualCrossPolishPeripherySegmentOverlapLengthWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_PERIPHERY_SEGMENT_OVERLAP_LENGTH_WEIGHT ?? "0.0001"}`,
-    `optimizedVisualCrossPolishPeripheryRouteBboxGrowth=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_PERIPHERY_ROUTE_BBOX_GROWTH_LIMIT ?? "1.57"}`,
-    `optimizedVisualCrossPolishPeripheryMaxRouteBboxDebtPerGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_PERIPHERY_MAX_ROUTE_BBOX_DEBT_PER_GAIN ?? process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_MAX_ROUTE_BBOX_DEBT_PER_GAIN ?? "0.05"}`,
+    "optimizedVisualCrossPolishRouteMutation=0",
     `optimizedVisualCrossPolishNoPdKnot=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_NO_PD_KNOT ?? "1"}`,
     `optimizedVisualCrossPolishVisualKnot=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_VISUAL_KNOT ?? "1"}`,
     `optimizedVisualCrossPolishVisualKnotIters=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_POLISH_VISUAL_KNOT_ITERS ?? "2"}`,
@@ -2950,12 +2989,7 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedVisualCrossFinalRetouchNodePairPairGap=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_NODE_PAIR_PAIR_GAP ?? process.env.DJERD_NODE_PAIR_RETOUCH_PAIR_GAP ?? "16"}`,
     `optimizedVisualCrossFinalRetouchNodePairLeafOnly=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_NODE_PAIR_LEAF_ONLY ?? process.env.DJERD_NODE_PAIR_RETOUCH_LEAF_ONLY ?? "1"}`,
     `optimizedVisualCrossFinalRetouchNodePairCompactRelocate=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_NODE_PAIR_COMPACT_RELOCATE ?? process.env.DJERD_NODE_PAIR_RETOUCH_COMPACT_RELOCATE ?? "0"}`,
-    `optimizedVisualCrossFinalRetouchLBend=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_L_BEND ?? "1"}`,
-    `optimizedVisualCrossFinalRetouchLBendTopK=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_L_BEND_TOPK ?? "960"}`,
-    `optimizedVisualCrossFinalRetouchLBendEdgeNodeWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_L_BEND_EDGE_NODE_WEIGHT ?? "4"}`,
-    `optimizedVisualCrossFinalRetouchLBendSegmentOverlapWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_L_BEND_SEGMENT_OVERLAP_WEIGHT ?? "4"}`,
-    `optimizedVisualCrossFinalRetouchLBendLengthWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_L_BEND_LENGTH_WEIGHT ?? "0.0001"}`,
-    `optimizedVisualCrossFinalRetouchRouteSegments=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_ROUTE_SEGMENTS ?? process.env.DJERD_DIAGONAL_RETOUCH_ROUTE_SEGMENTS ?? "0"}`,
+    "optimizedVisualCrossFinalRetouchRouteMutation=0",
     `optimizedVisualCrossFinalRetouchClearanceRetry=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CLEARANCE_RETRY ?? "1"}`,
     `optimizedVisualCrossFinalRetouchClearanceRetryNodePairTopK=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CLEARANCE_RETRY_NODE_PAIR_TOPK ?? process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_NODE_PAIR_TOPK ?? process.env.DJERD_NODE_PAIR_RETOUCH_TOPK ?? "768"}`,
     `optimizedVisualCrossFinalRetouchClearanceRetrySlotRings=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_CLEARANCE_RETRY_SLOT_RINGS ?? process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_NODE_PAIR_SLOT_RINGS ?? process.env.DJERD_NODE_PAIR_RETOUCH_SLOT_RINGS ?? "6"}`,
@@ -2998,9 +3032,7 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedVisualCrossFinalRetouchDebtRepairReliefEndpoints=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_ENDPOINTS ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_ENDPOINTS ?? "1"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairReliefEndpointTop=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_ENDPOINT_TOP ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_ENDPOINT_TOP ?? "80"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairReliefEndpointSteps=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_RELIEF_ENDPOINT_STEPS ?? process.env.DJERD_NODE_EDGE_RELIEF_FINAL_ENDPOINT_STEPS ?? "80,160,300,600"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairEdgeDetour=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_EDGE_DETOUR ?? "0"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairLBend=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_L_BEND ?? "0"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairLBendMinGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_L_BEND_MIN_GAIN ?? "0"}`,
+    "optimizedVisualCrossFinalRetouchDebtRepairRouteMutation=0",
     `optimizedVisualCrossFinalRetouchDebtRepairBundleClear=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BUNDLE_CLEAR ?? "1"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairBundleAfterClear=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BUNDLE_AFTER_CLEAR ?? "1"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairBboxAxisScale=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_BBOX_AXIS_SCALE ?? "1"}`,
@@ -3028,19 +3060,7 @@ function renderedCarrierCacheKeyParts(): string[] {
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorRouteBboxGrowth=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_ROUTE_BBOX_GROWTH_LIMIT ?? "1.35"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorTimeoutMs=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_TIMEOUT_MS ?? "120000"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorRestoreLayout=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_RESTORE_LAYOUT ?? "0"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBend=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND ?? "0"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendTopK=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_TOPK ?? "960"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendMinGain=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_MIN_GAIN ?? "0"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendEdgeNodeWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_EDGE_NODE_WEIGHT ?? "6"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendSegmentOverlapWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_SEGMENT_OVERLAP_WEIGHT ?? "12"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendSegmentOverlapLengthWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_SEGMENT_OVERLAP_LENGTH_WEIGHT ?? "0.001"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorLBendLengthWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_L_BEND_LENGTH_WEIGHT ?? "0.0001"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorPeriphery=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY ?? "0"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorPeripheryTopK=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_TOPK ?? "96"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorPeripheryMaxLanes=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_MAX_LANES ?? "4"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorPeripheryEdgeNodeWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_EDGE_NODE_WEIGHT ?? "6"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorPeripherySegmentOverlapWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_SEGMENT_OVERLAP_WEIGHT ?? "12"}`,
-    `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorPeripherySegmentOverlapLengthWeight=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_PERIPHERY_SEGMENT_OVERLAP_LENGTH_WEIGHT ?? "0.001"}`,
+    "optimizedVisualCrossFinalRetouchDebtRepairHubCorridorRouteMutation=0",
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorDiagonalRetouch=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_DIAGONAL_RETOUCH ?? "1"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairRetouch=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_RETOUCH ?? "1"}`,
     `optimizedVisualCrossFinalRetouchDebtRepairHubCorridorNodePairTopK=${process.env.DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_DEBT_REPAIR_HUB_CORRIDOR_NODE_PAIR_TOPK ?? "768"}`,
@@ -3175,6 +3195,142 @@ export function measureLayoutRenderedTableClearance(
   return measureRenderedTableClearance(renderModel);
 }
 
+const RENDERED_VISUAL_CROSSINGS_SCOPE = "rendered-semantic-carrier-v2";
+
+export function measureLayoutRenderedVisualConflicts(
+  payload: DiagramBootstrapPayload,
+  layout: LayoutSnapshot,
+): RenderedVisualConflictMetrics {
+  const renderModel = createDiagramRenderModel({
+    ...payload,
+    layout,
+    view: {
+      ...payload.view,
+      layoutMode: layout.mode,
+    },
+  });
+  return measureRenderedVisualConflicts(renderModel);
+}
+
+/**
+ * Keeps native route endpoint identity across decode/cache round-trips. Older
+ * snapshots did not retain these optional fields, so recover them from the
+ * authoritative structural edge instead of handing an empty graph to the ML
+ * position optimizer.
+ */
+export function synchronizeLayoutRouteEndpoints(
+  payload: DiagramBootstrapPayload,
+  layout: LayoutSnapshot,
+): number {
+  const structuralEdgeById = new Map(
+    payload.graph.structuralEdges.map((edge) => [edge.id, edge] as const),
+  );
+  let changedRoutes = 0;
+  for (const route of layout.routedEdges) {
+    const structuralEdge = structuralEdgeById.get(route.edgeId);
+    if (!structuralEdge) {
+      continue;
+    }
+    let changed = false;
+    if (route.sourceModelId === undefined) {
+      route.sourceModelId = structuralEdge.sourceModelId;
+      changed = true;
+    }
+    if (route.targetModelId === undefined) {
+      route.targetModelId = structuralEdge.targetModelId;
+      changed = true;
+    }
+    if (changed) {
+      changedRoutes += 1;
+    }
+  }
+  return changedRoutes;
+}
+
+/**
+ * Replaces carrier-quotient quality fields with metrics measured from the
+ * exact initial canvas scene. Native carrier values remain available under
+ * explicit carrier* names, so one visualCrossings field never changes domain
+ * between candidate selection, cache validation, and final reporting.
+ */
+export function synchronizeLayoutRenderedVisualMetrics(
+  payload: DiagramBootstrapPayload,
+  layout: LayoutSnapshot,
+): RenderedVisualConflictMetrics {
+  synchronizeLayoutRouteEndpoints(payload, layout);
+  const renderModel = createDiagramRenderModel({
+    ...payload,
+    layout,
+    view: {
+      ...payload.view,
+      layoutMode: layout.mode,
+    },
+  });
+  const metrics = measureRenderedVisualConflicts(renderModel);
+  const metadata = layout.engineMetadata ?? {};
+  const alreadyRendered =
+    metadata.visualCrossingsScope === RENDERED_VISUAL_CROSSINGS_SCOPE;
+  if (!alreadyRendered) {
+    metadata.carrierVisualCrossings ??= finiteNonNegativeMetric(
+      metadata.visualCrossings,
+    );
+    metadata.carrierEdgeCrossings ??= finiteNonNegativeMetric(
+      metadata.edgeCrossings,
+    );
+    metadata.carrierEdgeNodeIntersections ??= finiteNonNegativeMetric(
+      metadata.edgeNodeIntersections,
+    );
+    metadata.carrierBundleEdgeIntersections ??= finiteNonNegativeMetric(
+      metadata.bundleEdgeIntersections,
+    );
+    metadata.carrierNodeOverlaps ??= finiteNonNegativeMetric(
+      metadata.nodeOverlaps,
+    );
+    metadata.carrierBundleNodeOverlaps ??= finiteNonNegativeMetric(
+      metadata.bundleNodeOverlaps,
+    );
+    metadata.carrierRouteSegments ??= finiteNonNegativeMetric(
+      metadata.routeSegments,
+    );
+  }
+  metadata.bundleBundleOverlaps = metrics.bundleBundleOverlaps;
+  metadata.bundleEdgeIntersections = metrics.bundleEdgeIntersections;
+  metadata.bundleNodeOverlaps = metrics.bundleNodeOverlaps;
+  metadata.edgeCrossings = metrics.edgeCrossings;
+  metadata.edgeNodeIntersections = metrics.edgeNodeIntersections;
+  metadata.nodeOverlaps = metrics.nodeOverlaps;
+  metadata.renderedEdgeCount = metrics.edgeCount;
+  metadata.routeSegments = metrics.routeSegments;
+  if (renderModel.semanticCarriers) {
+    metadata.semanticCarrierBundledRelationships =
+      renderModel.semanticCarriers.bundledRelationships;
+    metadata.semanticCarrierDisconnectedRelationships =
+      renderModel.semanticCarriers.disconnectedRelationships.length;
+    metadata.semanticCarrierFallbackRelationships =
+      renderModel.semanticCarriers.fallbackRelationships;
+    metadata.semanticCarrierMissingRelationships =
+      renderModel.semanticCarriers.missingRelationships.length;
+    metadata.semanticCarrierObstacleIntersections =
+      renderModel.semanticCarriers.obstacleIntersections;
+    metadata.semanticCarrierRelationships =
+      renderModel.semanticCarriers.relationships;
+    metadata.semanticCarrierSegments =
+      renderModel.semanticCarriers.carrierSegments;
+  }
+  metadata.visualCrossings = metrics.visualCrossings;
+  metadata.visualCrossingsScope = RENDERED_VISUAL_CROSSINGS_SCOPE;
+  layout.engineMetadata = metadata;
+  return metrics;
+}
+
+function finiteNonNegativeMetric(value: unknown): number | undefined {
+  return typeof value === "number"
+    && Number.isFinite(value)
+    && value >= 0
+    ? value
+    : undefined;
+}
+
 export interface OptimizedLayoutHardTargetOptions {
   bboxTargetB?: number;
   bboxTolerance?: number;
@@ -3200,6 +3356,8 @@ export interface OptimizedLayoutHardTargetEvaluation {
   failures: string[];
   pass: boolean;
   routesPass: boolean;
+  renderedEdgeCount: number;
+  renderedEdgeCrossings: number;
   renderedBundleEdgeIntersections: number;
   renderedEdgeNodeIntersections: number;
   visualCrossings: number;
@@ -3226,10 +3384,10 @@ export function evaluateOptimizedLayoutHardTargets(
     },
   });
   const clearance = measureRenderedTableClearance(renderModel);
-  const renderedIntersectionAudit =
-    measureRenderedEdgeNodeIntersections(renderModel);
-  const renderedEdgeNodeIntersections = renderedIntersectionAudit.nodeCount;
-  const renderedBundleEdgeIntersections = renderedIntersectionAudit.bundleCount;
+  const renderedVisual = measureRenderedVisualConflicts(renderModel);
+  const renderedEdgeNodeIntersections = renderedVisual.edgeNodeIntersections;
+  const renderedBundleEdgeIntersections =
+    renderedVisual.bundleEdgeIntersections;
   const renderedBundleOverlaps =
     clearance.bundleNodeOverlaps + clearance.bundleBundleOverlaps;
   const clearancePass =
@@ -3249,33 +3407,14 @@ export function evaluateOptimizedLayoutHardTargets(
     bboxTargetB <= 0 || bboxAreaB <= bboxTargetB * bboxTolerance;
 
   const metadata = layout.engineMetadata;
-  const reportedVisual = metadata?.visualCrossings;
-  const renderedVisualFloor =
-    Number(metadata?.edgeCrossings ?? 0)
-    + Number(metadata?.edgeNodeIntersections ?? 0)
-    + Number(metadata?.bundleEdgeIntersections ?? 0)
-    + Number(metadata?.bundleNodeOverlaps ?? 0);
-  const visualCrossings =
-    typeof reportedVisual === "number" && Number.isFinite(reportedVisual)
-      ? Math.max(reportedVisual, renderedVisualFloor)
-      : Number.POSITIVE_INFINITY;
+  const visualCrossings = renderedVisual.visualCrossings;
   const visualTarget = options.visualTarget ?? readFloatEnv(
     "DJERD_OPTIMIZED_VISUAL_CROSS_TARGET",
     DEFAULT_VISUAL_CROSS_TARGET,
   );
   const visualPass =
     Number.isFinite(visualCrossings) && visualCrossings <= visualTarget;
-  const reportedEdgeNode = metadata?.edgeNodeIntersections;
-  const reportedEdgeNodeIntersections =
-    typeof reportedEdgeNode === "number"
-      && Number.isFinite(reportedEdgeNode)
-      && reportedEdgeNode >= 0
-      ? reportedEdgeNode
-      : Number.POSITIVE_INFINITY;
-  const edgeNodeIntersections = Math.max(
-    reportedEdgeNodeIntersections,
-    renderedEdgeNodeIntersections,
-  );
+  const edgeNodeIntersections = renderedEdgeNodeIntersections;
   const edgeNodeTarget = options.edgeNodeTarget ?? readFloatEnv(
     "DJERD_OPTIMIZED_EDGE_NODE_TARGET",
     DEFAULT_EDGE_NODE_TARGET,
@@ -3283,17 +3422,7 @@ export function evaluateOptimizedLayoutHardTargets(
   const edgeNodePass =
     Number.isFinite(edgeNodeIntersections)
     && edgeNodeIntersections <= edgeNodeTarget;
-  const reportedBundleEdge = metadata?.bundleEdgeIntersections;
-  const reportedBundleEdgeIntersections =
-    typeof reportedBundleEdge === "number"
-      && Number.isFinite(reportedBundleEdge)
-      && reportedBundleEdge >= 0
-      ? reportedBundleEdge
-      : Number.POSITIVE_INFINITY;
-  const bundleEdgeIntersections = Math.max(
-    reportedBundleEdgeIntersections,
-    renderedBundleEdgeIntersections,
-  );
+  const bundleEdgeIntersections = renderedBundleEdgeIntersections;
   const bundleEdgeTarget = options.bundleEdgeTarget ?? readFloatEnv(
     "DJERD_OPTIMIZED_BUNDLE_EDGE_TARGET",
     DEFAULT_BUNDLE_EDGE_TARGET,
@@ -3304,9 +3433,15 @@ export function evaluateOptimizedLayoutHardTargets(
 
   const expectedRouteEdgeIds = new Set(options.expectedRouteEdgeIds ?? []);
   const routedEdgeIds = new Set(layout.routedEdges.map((edge) => edge.edgeId));
+  const semanticRoutesPass = !renderModel.semanticCarriers
+    || (
+      renderModel.semanticCarriers.missingRelationships.length === 0
+      && renderModel.semanticCarriers.disconnectedRelationships.length === 0
+    );
   const routesPass =
     routedEdgeIds.size === layout.routedEdges.length
-    && [...expectedRouteEdgeIds].every((edgeId) => routedEdgeIds.has(edgeId));
+    && [...expectedRouteEdgeIds].every((edgeId) => routedEdgeIds.has(edgeId))
+    && semanticRoutesPass;
   const routeBendTotal = layout.routedEdges.reduce(
     (sum, edge) => sum + Math.max(0, edge.points.length - 2),
     0,
@@ -3361,7 +3496,13 @@ export function evaluateOptimizedLayoutHardTargets(
     );
   }
   if (!routesPass) {
-    failures.push("Optimized layout does not contain every required route exactly once.");
+    failures.push(
+      renderModel.semanticCarriers && !semanticRoutesPass
+        ? `Semantic carriers contain `
+          + `${renderModel.semanticCarriers.missingRelationships.length} missing and `
+          + `${renderModel.semanticCarriers.disconnectedRelationships.length} disconnected relationships.`
+        : "Optimized layout does not contain every required route exactly once.",
+    );
   }
   if (!bendPass) {
     failures.push(
@@ -3386,6 +3527,8 @@ export function evaluateOptimizedLayoutHardTargets(
     failures,
     pass: failures.length === 0,
     routesPass,
+    renderedEdgeCount: renderedVisual.edgeCount,
+    renderedEdgeCrossings: renderedVisual.edgeCrossings,
     renderedBundleEdgeIntersections,
     renderedEdgeNodeIntersections,
     visualCrossings,
@@ -3610,6 +3753,7 @@ export async function runOgdfLayout(
     let optimizedCacheNeedsHardTargetReplacement = false;
     let postReroutePolishDeadline: PostReroutePolishDeadline | undefined;
     let optimizedAllEdgeBaselineStdout: string | undefined;
+    let semanticCarrierTargetSatisfied = false;
     if (layoutFromFile) {
       try {
         stdout = await readFile(layoutFromFile, "utf8");
@@ -3661,7 +3805,7 @@ export async function runOgdfLayout(
         const key = fnvHash(
           nodesData,
           edgesData,
-          "optimized-layout-cache-v27-bundle-edge-hard-target",
+          "optimized-layout-cache-v29-semantic-carrier-v2",
           `binary=${binaryFingerprint}`,
           `scorer=${scorerScriptFingerprint}`,
           `checkpoint=${ckptFingerprint}`,
@@ -3716,6 +3860,7 @@ export async function runOgdfLayout(
             JSON.parse(cachedLayout),
             "ogdfOptimizedLayoutCache",
           );
+          synchronizeLayoutRenderedVisualMetrics(payload, cachedSnapshot);
           const cachedHardTargets = evaluateOptimizedLayoutHardTargets(
             payload,
             cachedSnapshot,
@@ -3728,7 +3873,7 @@ export async function runOgdfLayout(
               + cachedHardTargets.failures.join(" "),
             );
           }
-          stdout = cachedLayout;
+          stdout = JSON.stringify(cachedSnapshot);
           stderr = "";
           loadedFromFile = true;
           loadedOptimizedFinalFromCache = true;
@@ -3885,6 +4030,51 @@ export async function runOgdfLayout(
       logger?.info(`OGDF stderr: ${stderr.trim()}`);
     }
 
+    if (
+      optimizedLayout
+      && !loadedFromFile
+      && readBoolEnv("DJERD_SEMANTIC_CARRIER_TARGET_SHORT_CIRCUIT", true)
+    ) {
+      const initialSemanticLayout = decodeLayoutSnapshot(
+        JSON.parse(stdout),
+        "ogdfInitialSemanticCarrierAudit",
+      );
+      synchronizeLayoutRenderedVisualMetrics(payload, initialSemanticLayout);
+      const initialMetadata = initialSemanticLayout.engineMetadata;
+      const visualTarget =
+        readOptionalPositiveIntEnv("DJERD_OPTIMIZED_VISUAL_CROSS_TARGET")
+        ?? DEFAULT_VISUAL_CROSS_TARGET;
+      const rawRouteIds = new Set(
+        initialSemanticLayout.routedEdges.map((edge) => edge.edgeId),
+      );
+      const completeRawRoutes =
+        rawRouteIds.size === initialSemanticLayout.routedEdges.length
+        && expectedRoutedEdgeIds.every((edgeId) => rawRouteIds.has(edgeId));
+      semanticCarrierTargetSatisfied =
+        initialMetadata?.semanticCarrierRelationships !== undefined
+        && initialMetadata.semanticCarrierMissingRelationships === 0
+        && initialMetadata.semanticCarrierDisconnectedRelationships === 0
+        && initialMetadata.semanticCarrierObstacleIntersections === 0
+        && initialMetadata.edgeNodeIntersections === 0
+        && initialMetadata.bundleEdgeIntersections === 0
+        && initialMetadata.nodeOverlaps === 0
+        && initialMetadata.bundleNodeOverlaps === 0
+        && initialMetadata.bundleBundleOverlaps === 0
+        && Number(initialMetadata.visualCrossings) <= visualTarget
+        && completeRawRoutes;
+      stdout = JSON.stringify(initialSemanticLayout);
+      if (semanticCarrierTargetSatisfied) {
+        logger?.info(
+          `[semantic carrier] target satisfied after initial layout; `
+          + `skipping scorer/reroute · visualCrossings=`
+          + `${initialMetadata?.visualCrossings}/${visualTarget} · `
+          + `relationships=${initialMetadata?.semanticCarrierRelationships} · `
+          + `segments=${initialMetadata?.semanticCarrierSegments} · `
+          + "missing=0 · disconnected=0 · obstacleIntersections=0",
+        );
+      }
+    }
+
     // === Optimized layout: v36 pure action scorer pipeline ===
     // 1. cluster_graph baseline (always, regardless of the user's layout
     //    mode dropdown) gives the action scorer a stable clustered state.
@@ -3895,10 +4085,16 @@ export async function runOgdfLayout(
     //    positions drive the final visual layout.
     // DJERD_OPTIMIZED_POSITIONS_TSV can point at a precomputed TSV for
     // visual inspection while keeping the same C++ reroute/measurement path.
-    // Runtime defaults use a fast one-round profile; quality experiments can
-    // still override the DJERD_V35_* env knobs.
+    // Runtime defaults use a bounded one-round profile; quality experiments can
+    // still override the DJERD_V35_* env knobs. Exact candidate scoring uses
+    // the same unit weights as rendered visualCrossings so no conflict category
+    // can hide thousands of visible crossings behind an arbitrary multiplier.
     // The Y-axis 2-pass fallback runs only if v36 optimization fails.
-    if (optimizedLayout && !loadedFromFile) {
+    if (
+      optimizedLayout
+      && !loadedFromFile
+      && !semanticCarrierTargetSatisfied
+    ) {
       // Force a cluster_graph baseline so ML inference receives the
       // distribution it was trained on. If the user-requested mode was
       // something else (fmmm, sifting, …), the visible result still uses
@@ -3921,6 +4117,14 @@ export async function runOgdfLayout(
           // re-run anyway in the first reroute. Saves ~125s on captain.
           const clusterBaselineEnv = ogdfRenderedCarrierEnv({
             DJERD_SKIP_CG_OPT: "1",
+            // Eight sequential starts consumed ~72s on the 1219-node log and
+            // starved scorer/reroute/final repair. Keep ordinary layouts at
+            // their existing default, but bound the AI baseline to four starts
+            // unless the caller explicitly opts into a different value.
+            DJERD_MULTISTART_RUNS:
+              process.env.DJERD_OPTIMIZED_BASELINE_MULTISTART_RUNS
+              ?? process.env.DJERD_MULTISTART_RUNS
+              ?? "4",
           });
           let clusterBaselineCachePath: string | undefined;
           let baselineLoadedFromCache = false;
@@ -3977,6 +4181,10 @@ export async function runOgdfLayout(
               OGDF_LAYOUT_TIMEOUT_MS,
               "cluster-graph baseline",
               logger,
+              readNonNegativeIntEnv(
+                "DJERD_OPTIMIZED_AFTER_BASELINE_RESERVE_MS",
+                DEFAULT_OPTIMIZED_AFTER_BASELINE_RESERVE_MS,
+              ),
             );
             if (!clusterBaselineBudgetedTimeout) {
               throw new Error(
@@ -4032,6 +4240,15 @@ export async function runOgdfLayout(
       // optimized pipeline. Later carrier-oriented stages may improve their
       // reduced metric, but they are never allowed to increase crossings in
       // the full logical edge set that the webview actually renders.
+      const optimizedAllEdgeBaseline = decodeLayoutSnapshot(
+        JSON.parse(stdout),
+        "ogdfOptimizedAllEdgeRenderedBaseline",
+      );
+      synchronizeLayoutRenderedVisualMetrics(
+        payload,
+        optimizedAllEdgeBaseline,
+      );
+      stdout = JSON.stringify(optimizedAllEdgeBaseline);
       optimizedAllEdgeBaselineStdout = stdout;
       const baselinePath = trackTransientPath(path.join(
         os.tmpdir(),
@@ -4078,8 +4295,12 @@ export async function runOgdfLayout(
       // [[en3-edge-node-failed]]) are kept on disk for record.
       const familyPriorPath = resolveV37FamilyPriorPath(extensionRootPath);
       const precomputedPositionsPath = process.env.DJERD_OPTIMIZED_POSITIONS_TSV;
+      const useNativeCrossRelocate =
+        !(precomputedPositionsPath && precomputedPositionsPath.trim().length > 0)
+        && readBoolEnv("DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE", true);
       let effectivePositionsPath = positionsPath;
       let mlOk = false;
+      let mlAcceptedMoves: number | undefined;
       try {
         await writeFile(baselinePath, stdout, "utf8");
         await writePositionsTsvFromLayoutJson(stdout, baselinePositionsPath);
@@ -4088,6 +4309,13 @@ export async function runOgdfLayout(
           effectivePositionsPath = precomputedPositionsPath;
           logger?.info(
             `[ML] using precomputed v36 positions: ${effectivePositionsPath}`,
+          );
+          mlOk = true;
+        } else if (useNativeCrossRelocate) {
+          effectivePositionsPath = baselinePositionsPath;
+          logger?.info(
+            "[optimized] using collision-safe native crossing relocation "
+            + "instead of the v36 scorer",
           );
           mlOk = true;
         } else {
@@ -4119,6 +4347,10 @@ export async function runOgdfLayout(
             readPositiveIntEnv("DJERD_V35_TIMEOUT_MS", V35_SCORER_TIMEOUT_MS),
             "v36 scorer",
             logger,
+            readNonNegativeIntEnv(
+              "DJERD_OPTIMIZED_AFTER_SCORER_RESERVE_MS",
+              DEFAULT_OPTIMIZED_AFTER_SCORER_RESERVE_MS,
+            ),
           );
           if (!mlBudgetedTimeout) {
             throw new Error("optimized layout budget exhausted before v36 scorer");
@@ -4140,28 +4372,46 @@ export async function runOgdfLayout(
           if (mlRun.stderr.trim().length > 0) {
             logger?.info(`[ML] v36 python stderr: ${mlRun.stderr.trim()}`);
           }
+          mlAcceptedMoves = parseV36AcceptedMoves(mlRun.stdout);
+          if (mlAcceptedMoves === undefined) {
+            logger?.warn(
+              "[ML] scorer output did not report accepted moves; "
+              + "keeping the compatibility reroute path",
+            );
+          }
           mlOk = true;
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         logger?.warn(
-          `[ML] v36 optimization failed, falling back to Y-scale 2-pass: ${msg}`,
+          `[ML] v36 optimization failed: ${msg}`,
         );
       }
 
-      if (mlOk) {
+      if (mlOk && mlAcceptedMoves === 0) {
+        logger?.info(
+          "[ML] scorer accepted no moves; skipping redundant reroute and "
+          + "keeping the exact baseline scene",
+        );
+      }
+
+      if (mlOk && mlAcceptedMoves !== 0) {
         try {
-          // v36 emits positions; C++ then refreshes routes, bundles, and
-          // rendered metrics. The default post-stack path keeps straight
-          // routes but allows the existing knot/leaf/node-edge passes to
-          // untangle the answer. Set DJERD_OPTIMIZED_REROUTE_POSTSTACK=0
-          // to use the faster rigid-only verifier.
-          const usePoststackReroute = readBoolEnv(
+          // Native relocation needs a non-rigid positions pass; explicit
+          // post-stack remains available for scorer/precomputed positions.
+          const useExplicitPoststackReroute = readBoolEnv(
             "DJERD_OPTIMIZED_REROUTE_POSTSTACK",
-            true,
+            false,
           );
+          const useFlexibleReroute =
+            useNativeCrossRelocate || useExplicitPoststackReroute;
+          const rerouteKind = useNativeCrossRelocate
+            ? "native-cross-relocate"
+            : useExplicitPoststackReroute
+              ? "post-stack"
+              : "rigid";
           logger?.info(
-            `[ML] ${usePoststackReroute ? "post-stack" : "rigid"} reroute (v36 positions)`,
+            `[optimized] ${rerouteKind} reroute`,
           );
           const rerouteStart = Date.now();
           const rerouteArgs = [
@@ -4172,13 +4422,17 @@ export async function runOgdfLayout(
             "--edge-routing", effectiveEdgeRouting,
             "--cluster-graph", "1",
             "--positions-tsv", effectivePositionsPath,
-            ...(usePoststackReroute ? [] : ["--rigid-positions", "1"]),
+            ...(useFlexibleReroute ? [] : ["--rigid-positions", "1"]),
           ];
           const rerouteBudgetedTimeout = budgetCandidateTimeout(
             postReroutePolishDeadline,
             OGDF_LAYOUT_TIMEOUT_MS,
             "post-scorer reroute",
             logger,
+            readNonNegativeIntEnv(
+              "DJERD_OPTIMIZED_AFTER_REROUTE_RESERVE_MS",
+              DEFAULT_OPTIMIZED_AFTER_REROUTE_RESERVE_MS,
+            ),
           );
           if (!rerouteBudgetedTimeout) {
             throw new Error("optimized layout budget exhausted before post-scorer reroute");
@@ -4188,9 +4442,11 @@ export async function runOgdfLayout(
             rerouteArgs,
             {
               cwd: extensionRootPath,
-              env: usePoststackReroute
-                ? ogdfOptimizedPoststackEnv()
-                : ogdfOptimizedRerouteEnv(),
+              env: useNativeCrossRelocate
+                ? ogdfOptimizedNativeCrossRelocateEnv()
+                : useExplicitPoststackReroute
+                  ? ogdfOptimizedPoststackEnv()
+                  : ogdfOptimizedRerouteEnv(),
               killSignal: "SIGKILL",
               maxBuffer: 100 * 1024 * 1024,
               timeout: rerouteBudgetedTimeout.timeoutMs,
@@ -4200,26 +4456,50 @@ export async function runOgdfLayout(
             logger?.info(`[ML] OGDF stderr: ${reroute.stderr.trim()}`);
           }
           logger?.info(`[ML] reroute done in ${Date.now() - rerouteStart}ms`);
-          const rerouteBaseLayout = JSON.parse(stdout);
-          const reroutedLayout = JSON.parse(reroute.stdout);
+          const rerouteBaseLayout = decodeLayoutSnapshot(
+            JSON.parse(stdout),
+            "ogdfRerouteBaseLayout",
+          );
+          const reroutedLayout = decodeLayoutSnapshot(
+            JSON.parse(reroute.stdout),
+            "ogdfReroutedLayout",
+          );
+          synchronizeLayoutRenderedVisualMetrics(payload, rerouteBaseLayout);
+          synchronizeLayoutRenderedVisualMetrics(payload, reroutedLayout);
           const rerouteAllEdgeNonRegression =
             evaluateAllEdgeCrossingNonRegression(
               rerouteBaseLayout?.engineMetadata,
               reroutedLayout?.engineMetadata,
             );
-          const rerouteAccepted = rerouteAllEdgeNonRegression.ok;
-          let acceptedStdout = rerouteAccepted ? reroute.stdout : stdout;
+          const rerouteBaseVisual = Number(
+            rerouteBaseLayout.engineMetadata?.visualCrossings
+            ?? Number.POSITIVE_INFINITY,
+          );
+          const rerouteCandidateVisual = Number(
+            reroutedLayout.engineMetadata?.visualCrossings
+            ?? Number.POSITIVE_INFINITY,
+          );
+          const rerouteRenderedVisualNonRegression =
+            Number.isFinite(rerouteCandidateVisual)
+            && rerouteCandidateVisual <= rerouteBaseVisual;
+          const rerouteAccepted =
+            rerouteAllEdgeNonRegression.ok
+            && rerouteRenderedVisualNonRegression;
           let acceptedLayout = rerouteAccepted
             ? reroutedLayout
             : rerouteBaseLayout;
+          let acceptedStdout = JSON.stringify(acceptedLayout);
           logger?.info(
             `[ML] reroute all-edge gate · rawRouteCrossings=`
             + `${rerouteAllEdgeNonRegression.rawRouteBase ?? "missing"}`
             + `->${rerouteAllEdgeNonRegression.rawRouteCandidate ?? "missing"}`
+            + ` · renderedVisual=${rerouteBaseVisual}`
+            + `->${rerouteCandidateVisual}`
+            + ` · renderedVisualOk=${rerouteRenderedVisualNonRegression}`
             + ` · accepted=${rerouteAccepted}`,
           );
           const visualPolishBboxCeilingSummary = summarizeLayout(
-            decodeLayoutSnapshot(acceptedLayout, "ogdfLayout"),
+            acceptedLayout,
           );
           const visualPolishNodeBboxCeilingB =
             visualPolishBboxCeilingSummary.nodeBBoxWidth
@@ -4233,7 +4513,7 @@ export async function runOgdfLayout(
           // must never flash a crossing-regressed layout in the webview.
           streamIntermediateLayout("reroute", acceptedLayout, payload);
 
-          if (usePoststackReroute) {
+          if (useExplicitPoststackReroute) {
             // Strong default target: keep squeezing toward the final export
             // budget while bounded visual/spacing debt gates prevent collapse.
             const bboxTargetB = readFloatEnv(
@@ -4242,8 +4522,7 @@ export async function runOgdfLayout(
             );
             if (bboxTargetB > 0) {
               const bboxTargetSafeties = readBboxTargetSafeties();
-              const bboxInitialLayout =
-                decodeLayoutSnapshot(acceptedLayout, "ogdfLayout");
+              const bboxInitialLayout = acceptedLayout;
               const bboxInitialRenderedClearance =
                 measureLayoutRenderedTableClearance(payload, bboxInitialLayout);
               const bboxInitialAreaB =
@@ -4398,9 +4677,9 @@ export async function runOgdfLayout(
               );
               let bboxTried = false;
               let bboxAnyAccepted = false;
+              let bboxBudgetStopped = false;
               for (const bboxStageTargetB of bboxTargetStages) {
-                const bboxStageBaseLayout =
-                  decodeLayoutSnapshot(acceptedLayout, "ogdfLayout");
+                const bboxStageBaseLayout = acceptedLayout;
                 const bboxStageBaseRenderedClearance =
                   measureLayoutRenderedTableClearance(
                     payload,
@@ -4427,7 +4706,7 @@ export async function runOgdfLayout(
                   // the following aspect solve viable. Keep it as an
                   // exploratory bridge only; acceptedLayout is unchanged
                   // until a candidate passes every final quality gate.
-                  let bboxGapBridgeLayout: unknown = acceptedLayout;
+                  let bboxGapBridgeLayout: LayoutSnapshot = acceptedLayout;
                   let bboxGapBridgeAreaB = bboxStageBaseAreaB;
                   const stageTag = String(Math.round(bboxStageTargetB * 100));
                   const safetyTag = String(Math.round(bboxSafety * 1000));
@@ -4507,9 +4786,8 @@ export async function runOgdfLayout(
                           logger,
                         );
                         if (!bboxBudgetedTimeout) {
-                          throw new Error(
-                            "optimized layout budget exhausted before bbox candidate",
-                          );
+                          bboxBudgetStopped = true;
+                          break;
                         }
                         const bboxReroute = await execFileAsync(
                           binaryPath,
@@ -4530,15 +4808,23 @@ export async function runOgdfLayout(
                             + bboxReroute.stderr.trim(),
                           );
                         }
-                        const bboxCandidate = JSON.parse(bboxReroute.stdout);
                         const bboxCandidateLayout =
-                          decodeLayoutSnapshot(bboxCandidate, "ogdfLayout");
+                          decodeLayoutSnapshot(
+                            JSON.parse(bboxReroute.stdout),
+                            "ogdfLayout",
+                          );
+                        synchronizeLayoutRenderedVisualMetrics(
+                          payload,
+                          bboxCandidateLayout,
+                        );
+                        const bboxCandidate = bboxCandidateLayout;
                         const bboxCandidateSummary = summarizeLayout(bboxCandidateLayout);
                         const bboxNativeCandidateAreaB =
                           bboxCandidateSummary.nodeBBoxWidth
                           * bboxCandidateSummary.nodeBBoxHeight
                           / 1e9;
-                        const bboxCandidateMetadata = bboxCandidate?.engineMetadata ?? {};
+                        const bboxCandidateMetadata =
+                          bboxCandidateLayout.engineMetadata ?? {};
                         const bboxRenderedClearance =
                           measureLayoutRenderedTableClearance(
                             payload,
@@ -4546,28 +4832,13 @@ export async function runOgdfLayout(
                           );
                         const bboxCandidateAreaB =
                           bboxRenderedClearance.bboxArea / 1e9;
-                        const bboxNativeNodeOverlaps =
-                          Number(bboxCandidateMetadata.nodeOverlaps ?? 0);
                         const bboxCandidateNodeOverlaps =
-                          Math.max(
-                            bboxNativeNodeOverlaps,
-                            bboxRenderedClearance.nodeOverlaps,
-                          );
-                        const bboxNativeBundleNode =
-                          Number(bboxCandidateMetadata.bundleNodeOverlaps ?? 0);
+                          bboxRenderedClearance.nodeOverlaps;
                         const bboxCandidateBundleNode =
-                          Math.max(
-                            bboxNativeBundleNode,
-                            bboxRenderedClearance.bundleNodeOverlaps
-                              + bboxRenderedClearance.bundleBundleOverlaps,
-                          );
-                        const bboxNativeNodeSpacing =
-                          Number(bboxCandidateMetadata.nodeSpacingOverlaps ?? 0);
+                          bboxRenderedClearance.bundleNodeOverlaps
+                          + bboxRenderedClearance.bundleBundleOverlaps;
                         const bboxCandidateNodeSpacing =
-                          Math.max(
-                            bboxNativeNodeSpacing,
-                            bboxRenderedClearance.spacingViolations,
-                          );
+                          bboxRenderedClearance.spacingViolations;
                         const bboxCandidateVisual =
                           Number(bboxCandidateMetadata.visualCrossings ?? 0);
                         const bboxCandidateEdgeNode =
@@ -4585,7 +4856,8 @@ export async function runOgdfLayout(
                         const bboxBeforeEdgeNode =
                           Number(bboxBeforeMetadata.edgeNodeIntersections ?? 0);
                         const bboxBeforeBundleNode =
-                          Number(bboxBeforeMetadata.bundleNodeOverlaps ?? 0);
+                          Number(bboxBeforeMetadata.bundleNodeOverlaps ?? 0)
+                          + Number(bboxBeforeMetadata.bundleBundleOverlaps ?? 0);
                         const bboxBeforeNodeSpacing =
                           Number(bboxBeforeMetadata.nodeSpacingOverlaps ?? 0);
                         const bboxCanonicalNonRegression =
@@ -4701,6 +4973,9 @@ export async function runOgdfLayout(
                           bboxMaxVisual === undefined || bboxCandidateVisual <= bboxMaxVisual;
                         const bboxVisualDebtOk =
                           bboxVisualDebtRatio <= bboxMaxVisualDebtRatio;
+                        const bboxRenderedVisualNonRegression =
+                          Number.isFinite(bboxCandidateVisual)
+                          && bboxCandidateVisual <= bboxBeforeVisual;
                         const bboxAbsoluteSpacingOk =
                           bboxCandidateNodeSpacing <= bboxMaxNodeSpacing;
                         const bboxQualityOk =
@@ -4735,6 +5010,7 @@ export async function runOgdfLayout(
                           && bboxCandidateNodeOverlaps === 0
                           && bboxAbsoluteVisualOk
                           && bboxVisualDebtOk
+                          && bboxRenderedVisualNonRegression
                           && bboxEffectiveQualityOk
                           && bboxBundleNodeOk
                           && bboxAbsoluteSpacingOk
@@ -4749,6 +5025,7 @@ export async function runOgdfLayout(
                           && bboxCandidateAreaB + 1e-6 < bboxGapBridgeAreaB
                           && Number.isFinite(bboxCandidateVisual)
                           && bboxCandidateVisual <= bboxGapBridgeVisualLimit
+                          && bboxRenderedVisualNonRegression
                           && bboxCandidateNodeOverlaps === 0
                           && bboxCompleteRouteSet
                           && bboxLeafBundlesPreserved
@@ -4775,6 +5052,7 @@ export async function runOgdfLayout(
                           + `visualDebt=${bboxVisualDebtRatio.toFixed(3)} · `
                           + `visualDebtOk=${bboxVisualDebtOk}`
                           + `/${bboxMaxVisualDebtRatio.toFixed(3)} · `
+                          + `renderedVisualOk=${bboxRenderedVisualNonRegression} · `
                           + `qualityDebt=${bboxQualityDebtRatio.toFixed(3)}`
                           + `/${bboxPartialMaxQualityDebt.toFixed(3)} · `
                           + `qualityDebtPerGain=${bboxQualityDebtPerGain.toFixed(3)}`
@@ -4829,7 +5107,7 @@ export async function runOgdfLayout(
                             bboxCandidate,
                             payload,
                           );
-                          acceptedStdout = bboxReroute.stdout;
+                          acceptedStdout = JSON.stringify(bboxCandidateLayout);
                           acceptedLayout = bboxCandidate;
                           bboxStageBestAreaB = bboxCandidateAreaB;
                           bboxAnyAccepted = true;
@@ -4912,7 +5190,11 @@ export async function runOgdfLayout(
                         );
                       }
                       }
-                      if (bboxStageAccepted || bboxStageBailed) {
+                      if (
+                        bboxStageAccepted
+                        || bboxStageBailed
+                        || bboxBudgetStopped
+                      ) {
                         break;
                       }
                     } catch (err) {
@@ -4929,9 +5211,19 @@ export async function runOgdfLayout(
                       }
                     }
                   }
-                  if (bboxStageAccepted || bboxStageBailed) {
+                  if (
+                    bboxStageAccepted
+                    || bboxStageBailed
+                    || bboxBudgetStopped
+                  ) {
                     break;
                   }
+                }
+                if (bboxBudgetStopped) {
+                  logger?.info(
+                    "[bbox target] search stopped at the shared optimized-layout deadline",
+                  );
+                  break;
                 }
                 if (!bboxStageAccepted && bboxStageAcceptedPartial) {
                   bboxStageAccepted = true;
@@ -4957,10 +5249,7 @@ export async function runOgdfLayout(
               startPostReroutePolishDeadline(logger);
 
             if (readBoolEnv("DJERD_OPTIMIZED_CANONICAL_ROUTE_REPAIR", false)) {
-              const repairBase = decodeLayoutSnapshot(
-                acceptedLayout,
-                "ogdfCanonicalRouteRepairBase",
-              );
+              const repairBase = acceptedLayout;
               const repairBaseNodeHits = Number(
                 repairBase.engineMetadata?.canonicalCrossing
                   ?.nonIncidentNodeHits ?? 0,
@@ -5021,11 +5310,15 @@ export async function runOgdfLayout(
                         + repairRun.stderr.trim(),
                       );
                     }
-                    const repairCandidate = JSON.parse(repairRun.stdout);
                     const repairCandidateLayout = decodeLayoutSnapshot(
-                      repairCandidate,
+                      JSON.parse(repairRun.stdout),
                       "ogdfCanonicalRouteRepairCandidate",
                     );
+                    synchronizeLayoutRenderedVisualMetrics(
+                      payload,
+                      repairCandidateLayout,
+                    );
+                    const repairCandidate = repairCandidateLayout;
                     const repairEvaluation =
                       evaluateCanonicalRouteRepairCandidate(
                         repairBase,
@@ -5048,7 +5341,7 @@ export async function runOgdfLayout(
                       + `reasons=${repairEvaluation.reasons.join(",") || "none"}`,
                     );
                     if (repairEvaluation.ok) {
-                      acceptedStdout = repairRun.stdout;
+                      acceptedStdout = JSON.stringify(repairCandidateLayout);
                       acceptedLayout = repairCandidate;
                     }
                   }
@@ -5121,8 +5414,7 @@ export async function runOgdfLayout(
                     + "earlier visual blow-up; canonical obstacle relief enabled",
                   );
                 }
-                const polishBaseLayout =
-                  decodeLayoutSnapshot(acceptedLayout, "ogdfLayout");
+                const polishBaseLayout = acceptedLayout;
                 const polishBaseSummary = summarizeLayout(polishBaseLayout);
                 const polishBaseAreaB =
                   polishBaseSummary.nodeBBoxWidth
@@ -5216,9 +5508,16 @@ export async function runOgdfLayout(
                       + polishReroute.stderr.trim(),
                     );
                   }
-                  const polishCandidate = JSON.parse(polishReroute.stdout);
                   const polishCandidateLayout =
-                    decodeLayoutSnapshot(polishCandidate, "ogdfLayout");
+                    decodeLayoutSnapshot(
+                      JSON.parse(polishReroute.stdout),
+                      "ogdfLayout",
+                    );
+                  synchronizeLayoutRenderedVisualMetrics(
+                    payload,
+                    polishCandidateLayout,
+                  );
+                  const polishCandidate = polishCandidateLayout;
                   const polishCandidateSummary = summarizeLayout(polishCandidateLayout);
                   const polishCandidateAreaB =
                     polishCandidateSummary.nodeBBoxWidth
@@ -5232,7 +5531,8 @@ export async function runOgdfLayout(
                   const polishCandidateNodeOverlaps =
                     Number(polishCandidateMetadata.nodeOverlaps ?? 0);
                   const polishCandidateBundleNode =
-                    Number(polishCandidateMetadata.bundleNodeOverlaps ?? 0);
+                    Number(polishCandidateMetadata.bundleNodeOverlaps ?? 0)
+                    + Number(polishCandidateMetadata.bundleBundleOverlaps ?? 0);
                   const polishCandidateSpacing =
                     Number(polishCandidateMetadata.nodeSpacingOverlaps ?? 0);
                   const polishBaseVisual =
@@ -5350,6 +5650,9 @@ export async function runOgdfLayout(
                   const polishVisualNonRegressionOk =
                     polishAllowVisualRegression
                     || polishCandidateVisual <= polishBaseVisual;
+                  const polishRenderedVisualNonRegression =
+                    Number.isFinite(polishCandidateVisual)
+                    && polishCandidateVisual <= polishBaseVisual;
                   const polishCanonicalNonRegression =
                     evaluateCanonicalCrossingNonRegression(
                       polishBaseMetadata,
@@ -5388,6 +5691,7 @@ export async function runOgdfLayout(
                     && polishBboxOk
                     && polishVisualOk
                     && polishVisualPolicyOk
+                    && polishRenderedVisualNonRegression
                     && polishSpacingOk
                     && polishCandidateNodeOverlaps === 0
                     && polishCandidateBundleNode <= polishMaxBundleNode
@@ -5411,6 +5715,7 @@ export async function runOgdfLayout(
                     + `visualDebtPerGain=${polishVisualDebtPerGain.toFixed(3)}`
                     + `/${polishMaxVisualDebtPerGain.toFixed(3)} · `
                     + `visualNonRegression=${polishVisualNonRegressionOk} · `
+                    + `renderedVisualOk=${polishRenderedVisualNonRegression} · `
                     + `canonicalAdjacent=`
                     + `${polishCanonicalObstacleRelief.adjacentBase ?? "n/a"}`
                     + `->${polishCanonicalObstacleRelief.adjacentCandidate ?? "n/a"}`
@@ -5444,7 +5749,7 @@ export async function runOgdfLayout(
                       polishCandidate,
                       payload,
                     );
-                    acceptedStdout = polishReroute.stdout;
+                    acceptedStdout = JSON.stringify(polishCandidateLayout);
                     acceptedLayout = polishCandidate;
                   } else {
                     const polishBaseBundleNode = Number(
@@ -5496,9 +5801,7 @@ export async function runOgdfLayout(
             }
 
             const preVisualPolishLayout = acceptedLayout;
-            const preVisualPolishSummary = summarizeLayout(
-              decodeLayoutSnapshot(preVisualPolishLayout, "ogdfLayout"),
-            );
+            const preVisualPolishSummary = summarizeLayout(preVisualPolishLayout);
             const preVisualPolishNodeAreaB =
               preVisualPolishSummary.nodeBBoxWidth
               * preVisualPolishSummary.nodeBBoxHeight
@@ -5538,8 +5841,7 @@ export async function runOgdfLayout(
                   );
                   break;
                 }
-                const visualBaseLayout =
-                  decodeLayoutSnapshot(acceptedLayout, "ogdfLayout");
+                const visualBaseLayout = acceptedLayout;
                 const visualBaseSummary = summarizeLayout(visualBaseLayout);
                 const visualBaseNodeAreaB =
                   visualBaseSummary.nodeBBoxWidth
@@ -5774,9 +6076,16 @@ export async function runOgdfLayout(
                         + visualReroute.stderr.trim(),
                       );
                     }
-                    const visualCandidate = JSON.parse(visualReroute.stdout);
                     const visualCandidateLayout =
-                      decodeLayoutSnapshot(visualCandidate, "ogdfLayout");
+                      decodeLayoutSnapshot(
+                        JSON.parse(visualReroute.stdout),
+                        "ogdfLayout",
+                      );
+                    synchronizeLayoutRenderedVisualMetrics(
+                      payload,
+                      visualCandidateLayout,
+                    );
+                    const visualCandidate = visualCandidateLayout;
                     const visualCandidateSummary =
                       summarizeLayout(visualCandidateLayout);
                     const visualCandidateNodeAreaB =
@@ -5822,11 +6131,13 @@ export async function runOgdfLayout(
                     const visualCandidateEdgeSegmentOverlaps =
                       Number(visualCandidateMetadata.edgeSegmentOverlaps ?? 0);
                     const visualBaseBundleNode =
-                      Number(visualBaseMetadata.bundleNodeOverlaps ?? 0);
+                      Number(visualBaseMetadata.bundleNodeOverlaps ?? 0)
+                      + Number(visualBaseMetadata.bundleBundleOverlaps ?? 0);
                     const visualCandidateNodeOverlaps =
                       Number(visualCandidateMetadata.nodeOverlaps ?? 0);
                     const visualCandidateBundleNode =
-                      Number(visualCandidateMetadata.bundleNodeOverlaps ?? 0);
+                      Number(visualCandidateMetadata.bundleNodeOverlaps ?? 0)
+                      + Number(visualCandidateMetadata.bundleBundleOverlaps ?? 0);
                     const visualBaseSpacing =
                       Number(visualBaseMetadata.nodeSpacingOverlaps ?? 0);
                     const visualCandidateSpacing =
@@ -5995,6 +6306,7 @@ export async function runOgdfLayout(
                       visualCandidateBundleNode <= visualBundleNodeCeiling;
                     const visualAccept =
                       visualGainOk
+                      && visualCandidateVisual <= visualBaseVisual
                       && visualNodeBboxOk
                       && visualRouteBboxOk
                       && visualSpacingOk
@@ -6023,7 +6335,7 @@ export async function runOgdfLayout(
                       rawRouteCross:
                         visualAllEdgeNonRegression.rawRouteCandidate
                         ?? Number.POSITIVE_INFINITY,
-                      stdout: visualReroute.stdout,
+                      stdout: JSON.stringify(visualCandidateLayout),
                       variant: visualVariant,
                       visual: visualCandidateVisual,
                     };
@@ -6230,9 +6542,16 @@ export async function runOgdfLayout(
                             + `OGDF stderr: ${visualRepair.stderr.trim()}`,
                           );
                         }
-                        const visualRepairCandidate = JSON.parse(visualRepair.stdout);
                         const visualRepairLayout =
-                          decodeLayoutSnapshot(visualRepairCandidate, "ogdfLayout");
+                          decodeLayoutSnapshot(
+                            JSON.parse(visualRepair.stdout),
+                            "ogdfLayout",
+                          );
+                        synchronizeLayoutRenderedVisualMetrics(
+                          payload,
+                          visualRepairLayout,
+                        );
+                        const visualRepairCandidate = visualRepairLayout;
                         const visualRepairSummary =
                           summarizeLayout(visualRepairLayout);
                         const visualRepairNodeAreaB =
@@ -6270,7 +6589,8 @@ export async function runOgdfLayout(
                         const visualRepairNodeOverlaps =
                           Number(visualRepairMetadata.nodeOverlaps ?? 0);
                         const visualRepairBundleNode =
-                          Number(visualRepairMetadata.bundleNodeOverlaps ?? 0);
+                          Number(visualRepairMetadata.bundleNodeOverlaps ?? 0)
+                          + Number(visualRepairMetadata.bundleBundleOverlaps ?? 0);
                         const visualRepairSpacing =
                           Number(visualRepairMetadata.nodeSpacingOverlaps ?? 0);
                         const visualRepairGain = Math.max(
@@ -6374,6 +6694,7 @@ export async function runOgdfLayout(
                           visualRepairBundleNode <= visualBundleNodeCeiling;
                         const visualRepairAccept =
                           visualRepairGainOk
+                          && visualRepairVisual <= visualBaseVisual
                           && visualRepairNodeBboxOk
                           && visualRepairRouteBboxOk
                           && visualRepairSpacingOk
@@ -6404,7 +6725,7 @@ export async function runOgdfLayout(
                             rawRouteCross:
                               visualRepairAllEdgeNonRegression.rawRouteCandidate
                               ?? Number.POSITIVE_INFINITY,
-                            stdout: visualRepair.stdout,
+                            stdout: JSON.stringify(visualRepairLayout),
                             variant: visualVariant,
                             visual: visualRepairVisual,
                           };
@@ -6591,8 +6912,7 @@ export async function runOgdfLayout(
               && preVisualPolishVisual > 0
               && preVisualPolishNodeAreaB > 0
             ) {
-              const recompactBaseLayout =
-                decodeLayoutSnapshot(acceptedLayout, "ogdfLayout");
+              const recompactBaseLayout = acceptedLayout;
               const recompactBaseSummary = summarizeLayout(recompactBaseLayout);
               const recompactBaseNodeAreaB =
                 recompactBaseSummary.nodeBBoxWidth
@@ -6618,7 +6938,8 @@ export async function runOgdfLayout(
               const recompactBaseBundleEdge =
                 Number(recompactBaseMetadata.bundleEdgeIntersections ?? 0);
               const recompactBaseBundleNode =
-                Number(recompactBaseMetadata.bundleNodeOverlaps ?? 0);
+                Number(recompactBaseMetadata.bundleNodeOverlaps ?? 0)
+                + Number(recompactBaseMetadata.bundleBundleOverlaps ?? 0);
               const recompactBaseOverlappingEdges =
                 Number(recompactBaseMetadata.overlappingEdges ?? 0);
               const recompactBaseEdgeSegmentOverlaps =
@@ -6910,13 +7231,16 @@ export async function runOgdfLayout(
                               + recompactReroute.stderr.trim(),
                             );
                           }
-                          const recompactCandidate =
-                            JSON.parse(recompactReroute.stdout);
                           const recompactCandidateLayout =
                             decodeLayoutSnapshot(
-                              recompactCandidate,
+                              JSON.parse(recompactReroute.stdout),
                               "ogdfLayout",
                             );
+                          synchronizeLayoutRenderedVisualMetrics(
+                            payload,
+                            recompactCandidateLayout,
+                          );
+                          const recompactCandidate = recompactCandidateLayout;
                           const recompactCandidateSummary =
                             summarizeLayout(recompactCandidateLayout);
                           const recompactCandidateNodeAreaB =
@@ -6955,6 +7279,9 @@ export async function runOgdfLayout(
                           const recompactCandidateBundleNode =
                             Number(
                               recompactCandidateMetadata.bundleNodeOverlaps ?? 0,
+                            )
+                            + Number(
+                              recompactCandidateMetadata.bundleBundleOverlaps ?? 0,
                             );
                           const recompactCandidateOverlappingEdges =
                             Number(
@@ -6997,6 +7324,7 @@ export async function runOgdfLayout(
                           const recompactVisualOk =
                             recompactCandidateVisual
                             <= recompactBaseVisual + recompactMaxVisualDebt
+                            && recompactCandidateVisual <= recompactBaseVisual
                             && recompactCandidateVisual < preVisualPolishVisual;
                           const recompactEdgeNodeOk =
                             recompactEdgeNodeDebt <= recompactMaxEdgeNodeDebt;
@@ -7032,7 +7360,7 @@ export async function runOgdfLayout(
                                 recompactAllEdgeNonRegression.rawRouteCandidate
                                 ?? Number.POSITIVE_INFINITY,
 	                              safety: recompactSafety,
-	                              stdout: recompactReroute.stdout,
+	                              stdout: JSON.stringify(recompactCandidateLayout),
 	                              strategy: recompactStrategy,
 	                              targetAreaB: recompactTargetB,
 	                              variant: recompactSpec.variant,
@@ -7205,8 +7533,13 @@ export async function runOgdfLayout(
         }
       }
 
-      if (!mlOk) {
-        // Fallback: Y-axis compression on the baseline positions.
+      if (
+        !mlOk
+        && readBoolEnv("DJERD_OPTIMIZED_Y_SCALE_FALLBACK", false)
+      ) {
+        // Experimental fallback: Y-axis compression on the baseline positions.
+        // It is disabled by default because a blind axis transform is not a
+        // crossing optimizer and previously rebuilt a different bundle scene.
         try {
           const firstPass = JSON.parse(stdout);
           const ndArr = Array.isArray(firstPass.nodes) ? firstPass.nodes : [];
@@ -7266,21 +7599,59 @@ export async function runOgdfLayout(
             if (reroute.stderr.trim().length > 0) {
               logger?.info(`[optimized fallback] OGDF stderr: ${reroute.stderr.trim()}`);
             }
-            const fallbackCandidate = JSON.parse(reroute.stdout);
+            const fallbackBaseLayout = decodeLayoutSnapshot(
+              firstPass,
+              "ogdfOptimizedFallbackBase",
+            );
+            const fallbackCandidate = decodeLayoutSnapshot(
+              JSON.parse(reroute.stdout),
+              "ogdfOptimizedFallbackCandidate",
+            );
+            synchronizeLayoutRenderedVisualMetrics(payload, fallbackBaseLayout);
+            synchronizeLayoutRenderedVisualMetrics(payload, fallbackCandidate);
             const fallbackAllEdgeNonRegression =
               evaluateAllEdgeCrossingNonRegression(
-                firstPass?.engineMetadata,
+                fallbackBaseLayout.engineMetadata,
                 fallbackCandidate?.engineMetadata,
               );
-            if (fallbackAllEdgeNonRegression.ok) {
-              stdout = reroute.stdout;
+            const fallbackBaseVisual = Number(
+              fallbackBaseLayout.engineMetadata?.visualCrossings
+              ?? Number.POSITIVE_INFINITY,
+            );
+            const fallbackCandidateVisual = Number(
+              fallbackCandidate.engineMetadata?.visualCrossings
+              ?? Number.POSITIVE_INFINITY,
+            );
+            const fallbackVisualNonRegression =
+              Number.isFinite(fallbackCandidateVisual)
+              && fallbackCandidateVisual <= fallbackBaseVisual;
+            const fallbackPreservesRoutes = preservesCompleteStraightRouteSet(
+              fallbackBaseLayout,
+              fallbackCandidate,
+            );
+            const fallbackPreservesBundles = preservesStraightSemanticBundles(
+              fallbackBaseLayout.engineMetadata,
+              fallbackCandidate.engineMetadata,
+            );
+            if (
+              fallbackAllEdgeNonRegression.ok
+              && fallbackVisualNonRegression
+              && fallbackPreservesRoutes
+              && fallbackPreservesBundles
+            ) {
+              stdout = JSON.stringify(fallbackCandidate);
             } else {
               logger?.info(
-                `[optimized fallback] rejected by all-edge gate · `
+                `[optimized fallback] rejected by final-scene gate · `
                 + `rawRouteCrossings=`
                 + `${fallbackAllEdgeNonRegression.rawRouteBase ?? "missing"}`
                 + `->`
-                + `${fallbackAllEdgeNonRegression.rawRouteCandidate ?? "missing"}`,
+                + `${fallbackAllEdgeNonRegression.rawRouteCandidate ?? "missing"}`
+                + ` · renderedVisual=${fallbackBaseVisual}`
+                + `->${fallbackCandidateVisual}`
+                + ` · renderedVisualOk=${fallbackVisualNonRegression}`
+                + ` · sameRoutes=${fallbackPreservesRoutes}`
+                + ` · sameBundles=${fallbackPreservesBundles}`,
               );
             }
           }
@@ -7288,6 +7659,10 @@ export async function runOgdfLayout(
           const msg = err instanceof Error ? err.message : String(err);
           logger?.warn(`[optimized fallback] Y-scale failed: ${msg}`);
         }
+      } else if (!mlOk) {
+        logger?.info(
+          "[optimized fallback] Y-scale skipped; keeping the complete baseline scene",
+        );
       }
     }
 
@@ -7307,6 +7682,13 @@ export async function runOgdfLayout(
       "DJERD_OPTIMIZED_BUNDLE_EDGE_TARGET",
       DEFAULT_BUNDLE_EDGE_TARGET,
     );
+    const preFinalLayout = decodeLayoutSnapshot(
+      JSON.parse(stdout),
+      "ogdfPreFinalRenderedAudit",
+    );
+    synchronizeLayoutRenderedVisualMetrics(payload, preFinalLayout);
+    stdout = JSON.stringify(preFinalLayout);
+    const preFinalAuditedStdout = stdout;
     const preFinalVisualCrossings = readVisualCrossingsFromLayoutJson(stdout);
     const preFinalEdgeNodeIntersections =
       readEdgeNodeIntersectionsFromLayoutJson(stdout);
@@ -7324,6 +7706,7 @@ export async function runOgdfLayout(
       && preFinalEdgeNodeIntersections <= edgeNodeTarget
       && preFinalBundleEdgeIntersections !== undefined
       && preFinalBundleEdgeIntersections <= bundleEdgeTarget;
+    let finalRetouchRan = false;
     if (skipTargetSatisfiedFinalRetouch) {
       logger?.info(
         `[final-export retouch] skipped because visualCrossings=${preFinalVisualCrossings}`
@@ -7350,6 +7733,7 @@ export async function runOgdfLayout(
           + `/${postReroutePolishDeadline.budgetMs}ms`,
         );
       } else {
+        finalRetouchRan = true;
         stdout = await runFinalExportRetouch({
           binaryPath,
           clusterGraphLayout,
@@ -7359,30 +7743,104 @@ export async function runOgdfLayout(
           logger,
           mode: normalizedRequestedLayoutMode,
           nodesPath,
+          payload,
           polishDeadline: postReroutePolishDeadline,
           stdout,
         });
       }
     }
 
-    if (optimizedLayout && optimizedAllEdgeBaselineStdout) {
-      const optimizedAllEdgeBaseline = JSON.parse(
-        optimizedAllEdgeBaselineStdout,
+    if (finalRetouchRan) {
+      const finalRetouchLayout = decodeLayoutSnapshot(
+        JSON.parse(stdout),
+        "ogdfFinalRetouchRenderedAudit",
       );
-      const optimizedAllEdgeCandidate = JSON.parse(stdout);
+      synchronizeLayoutRenderedVisualMetrics(payload, finalRetouchLayout);
+      const finalRetouchVisual = Number(
+        finalRetouchLayout.engineMetadata?.visualCrossings
+        ?? Number.POSITIVE_INFINITY,
+      );
+      const finalRetouchAllEdgeNonRegression =
+        evaluateAllEdgeCrossingNonRegression(
+          preFinalLayout.engineMetadata,
+          finalRetouchLayout.engineMetadata,
+        );
+      const finalRetouchVisualOk =
+        preFinalVisualCrossings !== undefined
+        && Number.isFinite(finalRetouchVisual)
+        && finalRetouchVisual <= preFinalVisualCrossings;
+      if (
+        finalRetouchAllEdgeNonRegression.ok
+        && finalRetouchVisualOk
+      ) {
+        stdout = JSON.stringify(finalRetouchLayout);
+      } else {
+        stdout = preFinalAuditedStdout;
+        logger?.info(
+          `[final-export retouch] restored pre-retouch final scene · `
+          + `renderedVisual=${preFinalVisualCrossings ?? "missing"}`
+          + `->${Number.isFinite(finalRetouchVisual) ? finalRetouchVisual : "missing"}`
+          + ` · renderedVisualOk=${finalRetouchVisualOk} · `
+          + `rawRouteCrossings=`
+          + `${finalRetouchAllEdgeNonRegression.rawRouteBase ?? "missing"}`
+          + `->${finalRetouchAllEdgeNonRegression.rawRouteCandidate ?? "missing"}`
+          + ` · allEdgeOk=${finalRetouchAllEdgeNonRegression.ok}`,
+        );
+      }
+    }
+
+    if (optimizedLayout && optimizedAllEdgeBaselineStdout) {
+      const optimizedAllEdgeBaseline = decodeLayoutSnapshot(
+        JSON.parse(optimizedAllEdgeBaselineStdout),
+        "ogdfOptimizedAllEdgeFinalBaselineAudit",
+      );
+      const optimizedAllEdgeCandidate = decodeLayoutSnapshot(
+        JSON.parse(stdout),
+        "ogdfOptimizedAllEdgeFinalCandidateAudit",
+      );
+      synchronizeLayoutRenderedVisualMetrics(payload, optimizedAllEdgeBaseline);
+      synchronizeLayoutRenderedVisualMetrics(payload, optimizedAllEdgeCandidate);
+      const baselineVisual = Number(
+        optimizedAllEdgeBaseline.engineMetadata?.visualCrossings
+        ?? Number.POSITIVE_INFINITY,
+      );
+      const candidateVisual = Number(
+        optimizedAllEdgeCandidate.engineMetadata?.visualCrossings
+        ?? Number.POSITIVE_INFINITY,
+      );
       const optimizedAllEdgeNonRegression =
         evaluateAllEdgeCrossingNonRegression(
-          optimizedAllEdgeBaseline?.engineMetadata,
-          optimizedAllEdgeCandidate?.engineMetadata,
+          optimizedAllEdgeBaseline.engineMetadata,
+          optimizedAllEdgeCandidate.engineMetadata,
         );
-      if (!optimizedAllEdgeNonRegression.ok) {
+      const baselineDoesNotWorsenRenderedVisual =
+        Number.isFinite(baselineVisual)
+        && Number.isFinite(candidateVisual)
+        && baselineVisual <= candidateVisual;
+      if (
+        !optimizedAllEdgeNonRegression.ok
+        && baselineDoesNotWorsenRenderedVisual
+      ) {
         logger?.warn(
           `[optimized final] restoring complete-edge baseline because `
           + `rawRouteCrossings regressed · `
           + `${optimizedAllEdgeNonRegression.rawRouteBase ?? "missing"}`
-          + `->${optimizedAllEdgeNonRegression.rawRouteCandidate ?? "missing"}`,
+          + `->${optimizedAllEdgeNonRegression.rawRouteCandidate ?? "missing"}`
+          + ` · renderedVisual=${candidateVisual}->${baselineVisual}`,
         );
-        stdout = optimizedAllEdgeBaselineStdout;
+        stdout = JSON.stringify(optimizedAllEdgeBaseline);
+      } else {
+        stdout = JSON.stringify(optimizedAllEdgeCandidate);
+        if (!optimizedAllEdgeNonRegression.ok) {
+          logger?.warn(
+            `[optimized final] kept final rendered scene despite raw-route `
+            + `regression because baseline would worsen visible conflicts · `
+            + `rawRouteCrossings=`
+            + `${optimizedAllEdgeNonRegression.rawRouteBase ?? "missing"}`
+            + `->${optimizedAllEdgeNonRegression.rawRouteCandidate ?? "missing"}`
+            + ` · renderedVisual=${baselineVisual}->${candidateVisual}`,
+          );
+        }
       }
     }
 
@@ -7392,6 +7850,8 @@ export async function runOgdfLayout(
           JSON.parse(stdout),
           "ogdfOptimizedLayoutCacheCandidate",
         );
+        synchronizeLayoutRenderedVisualMetrics(payload, cacheCandidate);
+        stdout = JSON.stringify(cacheCandidate);
         const candidateHardTargets = evaluateOptimizedLayoutHardTargets(
           payload,
           cacheCandidate,
@@ -7452,6 +7912,7 @@ export async function runOgdfLayout(
       throw new Error(`invalid JSON from native layout: ${reason}`);
     }
 
+    synchronizeLayoutRenderedVisualMetrics(payload, layout);
     const summary = summarizeLayout(layout);
     const metadata = layout.engineMetadata;
     const finalHardTargets = evaluateOptimizedLayoutHardTargets(
@@ -7460,26 +7921,7 @@ export async function runOgdfLayout(
       { expectedRouteEdgeIds: expectedRoutedEdgeIds },
     );
     const renderedClearance = finalHardTargets.clearance;
-    const renderedBundleOverlaps =
-      renderedClearance.bundleNodeOverlaps
-      + renderedClearance.bundleBundleOverlaps;
     if (metadata) {
-      metadata.edgeNodeIntersections = Math.max(
-        Number(metadata.edgeNodeIntersections ?? 0),
-        finalHardTargets.renderedEdgeNodeIntersections,
-      );
-      metadata.bundleEdgeIntersections = Math.max(
-        Number(metadata.bundleEdgeIntersections ?? 0),
-        finalHardTargets.renderedBundleEdgeIntersections,
-      );
-      metadata.nodeOverlaps = Math.max(
-        Number(metadata.nodeOverlaps ?? 0),
-        renderedClearance.nodeOverlaps,
-      );
-      metadata.bundleNodeOverlaps = Math.max(
-        Number(metadata.bundleNodeOverlaps ?? 0),
-        renderedBundleOverlaps,
-      );
       metadata.nodeSpacingOverlaps = Math.max(
         Number(metadata.nodeSpacingOverlaps ?? 0),
         renderedClearance.spacingViolations,
@@ -7487,15 +7929,6 @@ export async function runOgdfLayout(
       metadata.nodeClearanceMin = Math.min(
         Number(metadata.nodeClearanceMin ?? Number.POSITIVE_INFINITY),
         renderedClearance.minimum,
-      );
-      const renderedVisualFloor =
-        Number(metadata.edgeCrossings ?? 0)
-        + Number(metadata.edgeNodeIntersections ?? 0)
-        + Number(metadata.bundleEdgeIntersections ?? 0)
-        + Number(metadata.bundleNodeOverlaps ?? 0);
-      metadata.visualCrossings = Math.max(
-        Number(metadata.visualCrossings ?? 0),
-        renderedVisualFloor,
       );
     }
     const routedInputEdgeIds = new Set(
@@ -7583,7 +8016,34 @@ export async function runOgdfLayout(
         `unroutedInputEdges=${unroutedNonSelfEdges.length}`,
         `selfLoopInputEdges=${unroutedSelfLoopEdges.length}`,
         `routePoints=${summary.routePointCount}`,
+        ...(metadata?.renderedEdgeCount !== undefined
+          ? [`renderedEdges=${metadata.renderedEdgeCount}`]
+          : []),
         ...(metadata?.routeSegments !== undefined ? [`routeSegments=${metadata.routeSegments}`] : []),
+        ...(metadata?.carrierRouteSegments !== undefined
+          ? [`carrierRouteSegments=${metadata.carrierRouteSegments}`]
+          : []),
+        ...(metadata?.semanticCarrierRelationships !== undefined
+          ? [`semanticCarrierRelationships=${metadata.semanticCarrierRelationships}`]
+          : []),
+        ...(metadata?.semanticCarrierBundledRelationships !== undefined
+          ? [`semanticCarrierBundledRelationships=${metadata.semanticCarrierBundledRelationships}`]
+          : []),
+        ...(metadata?.semanticCarrierSegments !== undefined
+          ? [`semanticCarrierSegments=${metadata.semanticCarrierSegments}`]
+          : []),
+        ...(metadata?.semanticCarrierFallbackRelationships !== undefined
+          ? [`semanticCarrierFallbackRelationships=${metadata.semanticCarrierFallbackRelationships}`]
+          : []),
+        ...(metadata?.semanticCarrierMissingRelationships !== undefined
+          ? [`semanticCarrierMissingRelationships=${metadata.semanticCarrierMissingRelationships}`]
+          : []),
+        ...(metadata?.semanticCarrierDisconnectedRelationships !== undefined
+          ? [`semanticCarrierDisconnectedRelationships=${metadata.semanticCarrierDisconnectedRelationships}`]
+          : []),
+        ...(metadata?.semanticCarrierObstacleIntersections !== undefined
+          ? [`semanticCarrierObstacleIntersections=${metadata.semanticCarrierObstacleIntersections}`]
+          : []),
         ...(metadata?.nodeOverlaps !== undefined ? [`nodeOverlaps=${metadata.nodeOverlaps}`] : []),
         ...(metadata?.nodeSpacingOverlaps !== undefined ? [`nodeSpacingOverlaps=${metadata.nodeSpacingOverlaps}`] : []),
         ...(metadata?.nodeClearanceMin !== undefined
@@ -7594,6 +8054,9 @@ export async function runOgdfLayout(
           : []),
         ...(metadata?.rawRouteCrossings !== undefined ? [`rawRouteCrossings=${metadata.rawRouteCrossings}`] : []),
         ...(metadata?.edgeCrossings !== undefined ? [`edgeCrossings=${metadata.edgeCrossings}`] : []),
+        ...(metadata?.carrierEdgeCrossings !== undefined
+          ? [`carrierEdgeCrossings=${metadata.carrierEdgeCrossings}`]
+          : []),
         ...(metadata?.edgeNodeIntersections !== undefined ? [`edgeNodeIntersections=${metadata.edgeNodeIntersections}`] : []),
         `renderedEdgeNodeIntersections=${finalHardTargets.renderedEdgeNodeIntersections}`,
         ...(metadata?.overlappingEdges !== undefined ? [`overlappingEdges=${metadata.overlappingEdges}`] : []),
@@ -7610,6 +8073,12 @@ export async function runOgdfLayout(
         `routeCompletenessStatus=${finalHardTargets.routesPass ? "pass" : "miss"}`,
         `straightRouteStatus=${finalHardTargets.bendPass ? "pass" : "miss"}`,
         ...(metadata?.visualCrossings !== undefined ? [`visualCrossings=${metadata.visualCrossings}`] : []),
+        ...(metadata?.visualCrossingsScope
+          ? [`visualCrossingsScope=${metadata.visualCrossingsScope}`]
+          : []),
+        ...(metadata?.carrierVisualCrossings !== undefined
+          ? [`carrierVisualCrossings=${metadata.carrierVisualCrossings}`]
+          : []),
         ...(metadata?.canonicalCrossing
           ? [
               `canonicalCrossingPairs=${metadata.canonicalCrossing.routeCrossingPairs}`,
@@ -7824,6 +8293,7 @@ function budgetCandidateTimeout(
   configuredTimeoutMs: number,
   stage: string,
   logger?: Logger,
+  reserveMs = 0,
 ): BudgetedCandidateTimeout | undefined {
   if (!deadline) {
     return { budgetLimited: false, timeoutMs: configuredTimeoutMs };
@@ -7837,16 +8307,38 @@ function budgetCandidateTimeout(
     );
     return undefined;
   }
-  const timeoutMs = Math.max(1, Math.min(configuredTimeoutMs, remainingMs));
+  const normalizedReserveMs = Math.max(0, reserveMs);
+  const usableMs = remainingMs - normalizedReserveMs;
+  if (usableMs <= 0) {
+    logger?.info(
+      `[optimized layout budget] ${stage} skipped; `
+      + `remaining=${remainingMs}ms is reserved for later stages `
+      + `(reserve=${normalizedReserveMs}ms)`,
+    );
+    return undefined;
+  }
+  const timeoutMs = Math.max(1, Math.min(configuredTimeoutMs, usableMs));
   const budgetLimited = timeoutMs < configuredTimeoutMs;
   if (budgetLimited) {
     logger?.info(
       `[optimized layout budget] ${stage} timeout capped · `
       + `configured=${configuredTimeoutMs}ms · timeout=${timeoutMs}ms · `
-      + `remaining=${remainingMs}ms`,
+      + `remaining=${remainingMs}ms · reserve=${normalizedReserveMs}ms`,
     );
   }
   return { budgetLimited, timeoutMs };
+}
+
+/** Reads the scorer's final machine-stable completion marker. */
+export function parseV36AcceptedMoves(stdout: string): number | undefined {
+  let accepted: number | undefined;
+  for (const match of stdout.matchAll(/\bdone accepted=(\d+)\b/g)) {
+    const parsed = Number.parseInt(match[1], 10);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      accepted = parsed;
+    }
+  }
+  return accepted;
 }
 
 function isBudgetCausedCandidateFailure(
@@ -7917,6 +8409,7 @@ async function runFinalExportRetouch(options: {
   logger?: Logger;
   mode: LayoutMode;
   nodesPath: string;
+  payload: DiagramBootstrapPayload;
   polishDeadline?: PostReroutePolishDeadline;
   stdout: string;
 }): Promise<string> {
@@ -7925,6 +8418,7 @@ async function runFinalExportRetouch(options: {
   }
 
   const retouchStart = Date.now();
+  let auditedBaseStdout = options.stdout;
   const retouchTempPaths: string[] = [];
   const trackRetouchTempPath = (filePath: string): string => {
     retouchTempPaths.push(filePath);
@@ -7933,14 +8427,18 @@ async function runFinalExportRetouch(options: {
   try {
     const baseJson = JSON.parse(options.stdout);
     const baseLayout = decodeLayoutSnapshot(baseJson, "ogdfLayout");
+    synchronizeLayoutRenderedVisualMetrics(options.payload, baseLayout);
+    auditedBaseStdout = JSON.stringify(baseLayout);
     const baseSummary = summarizeLayout(baseLayout);
-    const baseMetadata = baseJson?.engineMetadata ?? {};
+    const baseMetadata = baseLayout.engineMetadata ?? {};
     const baseVisual = Number(baseMetadata.visualCrossings ?? 0);
     const baseEdgeCross = Number(baseMetadata.edgeCrossings ?? baseVisual);
     const baseEdgeNode = Number(baseMetadata.edgeNodeIntersections ?? 0);
     const baseBundleEdge = Number(baseMetadata.bundleEdgeIntersections ?? 0);
     const baseNodeOverlaps = Number(baseMetadata.nodeOverlaps ?? 0);
-    const baseBundleNode = Number(baseMetadata.bundleNodeOverlaps ?? 0);
+    const baseBundleNode =
+      Number(baseMetadata.bundleNodeOverlaps ?? 0)
+      + Number(baseMetadata.bundleBundleOverlaps ?? 0);
     const baseNodeSpacing = Number(baseMetadata.nodeSpacingOverlaps ?? 0);
     const baseOverlappingEdges = Number(baseMetadata.overlappingEdges ?? 0);
     const baseEdgeSegmentOverlaps =
@@ -7952,7 +8450,7 @@ async function runFinalExportRetouch(options: {
       || baseMetadata.strategy === "cluster_graph"
       || String(baseMetadata.actualAlgorithm ?? "").includes("ClusterGraphLayout");
     if (baseVisual <= 0 && baseEdgeCross <= 0 && baseRawRouteCross <= 0) {
-      return options.stdout;
+      return auditedBaseStdout;
     }
 
     const retouchPositionsPath = trackRetouchTempPath(path.join(
@@ -7963,8 +8461,8 @@ async function runFinalExportRetouch(options: {
       os.tmpdir(),
       `django-erd-final-export-retouch-${Date.now()}-routes.tsv`,
     ));
-    await writePositionsTsvFromLayoutJson(options.stdout, retouchPositionsPath);
-    await writeRoutesTsvFromLayoutJson(options.stdout, retouchRoutesPath);
+    await writePositionsTsvFromLayoutJson(auditedBaseStdout, retouchPositionsPath);
+    await writeRoutesTsvFromLayoutJson(auditedBaseStdout, retouchRoutesPath);
 
     const retouchTimeoutMs = readPositiveIntEnv(
       "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH_TIMEOUT_MS",
@@ -7977,7 +8475,7 @@ async function runFinalExportRetouch(options: {
       options.logger,
     );
     if (!retouchBudgetedTimeout) {
-      return options.stdout;
+      return auditedBaseStdout;
     }
     const retouchReroute = await execFileAsync(
       options.binaryPath,
@@ -8074,8 +8572,10 @@ async function runFinalExportRetouch(options: {
     ) => {
       const candidateJson = JSON.parse(candidateStdout);
       const candidateLayout = decodeLayoutSnapshot(candidateJson, "ogdfLayout");
+      synchronizeLayoutRenderedVisualMetrics(options.payload, candidateLayout);
+      const auditedCandidateStdout = JSON.stringify(candidateLayout);
       const candidateSummary = summarizeLayout(candidateLayout);
-      const candidateMetadata = candidateJson?.engineMetadata ?? {};
+      const candidateMetadata = candidateLayout.engineMetadata ?? {};
       const candidateVisual =
         Number(candidateMetadata.visualCrossings ?? 0);
       const candidateEdgeCross =
@@ -8086,7 +8586,8 @@ async function runFinalExportRetouch(options: {
         Number(candidateMetadata.bundleEdgeIntersections ?? 0);
       const candidateNodeOverlaps = Number(candidateMetadata.nodeOverlaps ?? 0);
       const candidateBundleNode =
-        Number(candidateMetadata.bundleNodeOverlaps ?? 0);
+        Number(candidateMetadata.bundleNodeOverlaps ?? 0)
+        + Number(candidateMetadata.bundleBundleOverlaps ?? 0);
       const candidateNodeSpacing =
         Number(candidateMetadata.nodeSpacingOverlaps ?? 0);
       const candidateOverlappingEdges =
@@ -8136,6 +8637,9 @@ async function runFinalExportRetouch(options: {
       const retouchSegmentOverlapDebtPerGain =
         retouchSegmentOverlapDebt / Math.max(1, visualGain);
       const retouchGainOk = visualGain >= retouchMinGain;
+      const retouchRenderedVisualOk =
+        Number.isFinite(candidateVisual)
+        && candidateVisual <= baseVisual;
       const retouchNodeBboxOk =
         retouchNodeBboxGrowth <= retouchNodeBboxGrowthLimit;
       const retouchRouteBboxOk =
@@ -8180,7 +8684,8 @@ async function runFinalExportRetouch(options: {
         DEFAULT_VISUAL_CROSS_TARGET,
       );
       const retouchEdgeNodeTargetAccept =
-        (candidateEdgeNode < baseEdgeNode
+        retouchRenderedVisualOk
+        && (candidateEdgeNode < baseEdgeNode
           || candidateBundleEdge < baseBundleEdge)
         && candidateEdgeNode <= retouchEdgeNodeTarget
         && candidateBundleEdge <= retouchBundleEdgeTarget
@@ -8197,6 +8702,7 @@ async function runFinalExportRetouch(options: {
         && retouchAllEdgeOk;
       const retouchStrictAccept =
         retouchGainOk
+        && retouchRenderedVisualOk
         && retouchNodeBboxOk
         && retouchRouteBboxOk
         && retouchNodeOverlapOk
@@ -8211,6 +8717,7 @@ async function runFinalExportRetouch(options: {
         retouchSalvage
         && visualGain >= retouchSalvageMinGain
         && retouchGainOk
+        && retouchRenderedVisualOk
         && retouchNodeBboxOk
         && retouchRouteBboxOk
         && retouchNodeOverlapOk
@@ -8241,6 +8748,9 @@ async function runFinalExportRetouch(options: {
       const rejectionReasons = [
         !retouchGainOk
           ? `visualGain ${visualGain}<${retouchMinGain}`
+          : undefined,
+        !retouchRenderedVisualOk
+          ? `renderedVisual ${baseVisual}->${candidateVisual}`
           : undefined,
         !retouchNodeBboxOk
           ? `nodeBboxGrowth ${retouchNodeBboxGrowth.toFixed(3)}`
@@ -8286,6 +8796,7 @@ async function runFinalExportRetouch(options: {
         + `visual=${baseVisual}->${candidateVisual} · `
         + `visualGain=${visualGain} · `
         + `visualDelta=${visualDelta} · `
+        + `renderedVisualOk=${retouchRenderedVisualOk} · `
         + `edgeCross=${baseEdgeCross}->${candidateEdgeCross} · `
         + `crossGain=${edgeCrossGain} · `
         + `crossDelta=${edgeCrossDelta} · `
@@ -8351,6 +8862,7 @@ async function runFinalExportRetouch(options: {
         segmentOverlapOk: retouchSegmentOverlapOk,
         spacingDebt: retouchSpacingDebt,
         spacingOk: retouchSpacingOk,
+        stdout: auditedCandidateStdout,
         rawRouteGain,
         visualDelta,
         visualGain,
@@ -8363,7 +8875,7 @@ async function runFinalExportRetouch(options: {
       Date.now() - retouchStart,
     );
     if (retouchEvaluation.accepted) {
-      return retouchReroute.stdout;
+      return retouchEvaluation.stdout;
     }
 
     type RetouchEvaluation = ReturnType<typeof evaluateRetouchCandidate>;
@@ -8687,7 +9199,7 @@ async function runFinalExportRetouch(options: {
           + `routeBboxGrowth=${corridorEvaluation.routeBboxGrowth.toFixed(3)}`
           + `/${retouchDebtRepairHubCorridorRouteBboxGrowthLimit.toFixed(3)}`,
         );
-        return hubCorridor.stdout;
+        return corridorEvaluation.stdout;
       }
       options.logger?.info(
         `[final-export retouch:debt-repair-hub-corridor] rejected · `
@@ -8710,7 +9222,7 @@ async function runFinalExportRetouch(options: {
       return undefined;
     };
 
-    let spacingRepairSourceStdout = retouchReroute.stdout;
+    let spacingRepairSourceStdout = retouchEvaluation.stdout;
     let spacingRepairSourceEvaluation = retouchEvaluation;
     const shouldTryClearanceRetry =
       readBoolEnv(
@@ -8731,7 +9243,7 @@ async function runFinalExportRetouch(options: {
         options.logger,
       );
       if (!retryBudgetedTimeout) {
-        return options.stdout;
+        return auditedBaseStdout;
       }
       const clearanceRetry = await execFileAsync(
         options.binaryPath,
@@ -8765,10 +9277,10 @@ async function runFinalExportRetouch(options: {
         Date.now() - retryStart,
       );
       if (retryEvaluation.accepted) {
-        return clearanceRetry.stdout;
+        return retryEvaluation.stdout;
       }
       if (isSpacingOnlyRetouchFailure(retryEvaluation)) {
-        spacingRepairSourceStdout = clearanceRetry.stdout;
+        spacingRepairSourceStdout = retryEvaluation.stdout;
         spacingRepairSourceEvaluation = retryEvaluation;
       }
     }
@@ -8809,7 +9321,7 @@ async function runFinalExportRetouch(options: {
         options.logger,
       );
       if (!repairBudgetedTimeout) {
-        return options.stdout;
+        return auditedBaseStdout;
       }
       const spacingRepair = await execFileAsync(
         options.binaryPath,
@@ -8843,7 +9355,7 @@ async function runFinalExportRetouch(options: {
         Date.now() - repairStart,
       );
       if (repairEvaluation.accepted) {
-        return spacingRepair.stdout;
+        return repairEvaluation.stdout;
       }
     }
 
@@ -8891,11 +9403,11 @@ async function runFinalExportRetouch(options: {
         `django-erd-final-export-retouch-debt-repair-${repairId}-routes.tsv`,
       ));
       await writePositionsTsvFromLayoutJson(
-        retouchReroute.stdout,
+        retouchEvaluation.stdout,
         repairPositionsPath,
       );
       await writeRoutesTsvFromLayoutJson(
-        retouchReroute.stdout,
+        retouchEvaluation.stdout,
         repairRoutesPath,
       );
       const repairTimeoutMs = readPositiveIntEnv(
@@ -8909,7 +9421,7 @@ async function runFinalExportRetouch(options: {
         options.logger,
       );
       if (!repairBudgetedTimeout) {
-        return options.stdout;
+        return auditedBaseStdout;
       }
       const debtRepair = await execFileAsync(
         options.binaryPath,
@@ -8966,17 +9478,17 @@ async function runFinalExportRetouch(options: {
         }
         try {
           const hubCorridorStdout = await tryDebtRepairHubCorridor(
-            debtRepair.stdout,
+            repairEvaluation.stdout,
             repairEvaluation,
           );
-          return hubCorridorStdout ?? debtRepair.stdout;
+          return hubCorridorStdout ?? repairEvaluation.stdout;
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           options.logger?.warn(
             `[final-export retouch:debt-repair-hub-corridor] failed; `
             + `keeping accepted debt-repair candidate: ${msg}`,
           );
-          return debtRepair.stdout;
+          return repairEvaluation.stdout;
         }
       }
       const shouldTryDebtSpacingRepair =
@@ -9024,7 +9536,7 @@ async function runFinalExportRetouch(options: {
           options.logger,
         );
         if (!spacingRepairBudgetedTimeout) {
-          return options.stdout;
+          return auditedBaseStdout;
         }
         const debtSpacingRepair = await execFileAsync(
           options.binaryPath,
@@ -9058,12 +9570,12 @@ async function runFinalExportRetouch(options: {
           Date.now() - spacingRepairStart,
         );
         if (spacingRepairEvaluation.accepted) {
-          return debtSpacingRepair.stdout;
+          return spacingRepairEvaluation.stdout;
         }
       }
     }
 
-    return options.stdout;
+    return auditedBaseStdout;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     const budgetExhausted =
@@ -9080,7 +9592,7 @@ async function runFinalExportRetouch(options: {
         `[final-export retouch] failed in ${Date.now() - retouchStart}ms: ${msg}`,
       );
     }
-    return options.stdout;
+    return auditedBaseStdout;
   } finally {
     await Promise.all(
       retouchTempPaths.map((filePath) => rm(filePath, { force: true })),
@@ -9220,23 +9732,26 @@ function buildV36ScorerArgs(
     "--family-prior-ckpt", familyPriorPath,
     "--family-prior-top-actions", readStringEnv("DJERD_V37_FAMILY_PRIOR_TOP_ACTIONS", "8"),
     "--family-prior-min-candidates", readStringEnv("DJERD_V37_FAMILY_PRIOR_MIN_CANDIDATES", "120"),
-    "--rounds", readStringEnv("DJERD_V35_ROUNDS", "1"),
+    "--rounds", readStringEnv("DJERD_V35_ROUNDS", "2"),
     "--ml-top-k", readStringEnv("DJERD_V35_ML_TOP_K", "60"),
     "--per-action-k", readStringEnv("DJERD_V35_PER_ACTION_K", "12"),
     "--score-batch-size", readStringEnv("DJERD_V35_SCORE_BATCH_SIZE", "4096"),
     "--min-gain", readStringEnv("DJERD_V35_MIN_GAIN", "1"),
-    "--max-cross-regression", readStringEnv("DJERD_V35_MAX_CROSS_REGRESSION", "0"),
+    // Keep the total exact visual score strictly improving while allowing a
+    // small crossing/edge-node trade: e.g. +4 crossings for -20 table hits.
+    // Edge-node and overlap regressions themselves remain forbidden.
+    "--max-cross-regression", readStringEnv("DJERD_V35_MAX_CROSS_REGRESSION", "50"),
     "--max-overlap-regression", readStringEnv("DJERD_V35_MAX_OVERLAP_REGRESSION", "0"),
     "--max-edge-node-regression", readStringEnv("DJERD_V35_MAX_EDGE_NODE_REGRESSION", "0"),
     "--max-bbox-growth", readStringEnv("DJERD_V35_MAX_BBOX_GROWTH", "1.05"),
     "--overlap-margin", readStringEnv("DJERD_V35_OVERLAP_MARGIN", "16"),
-    "--overlap-weight", readStringEnv("DJERD_V35_OVERLAP_WEIGHT", "5000"),
-    "--bbox-weight", readStringEnv("DJERD_V35_BBOX_WEIGHT", "800"),
+    "--overlap-weight", readStringEnv("DJERD_V35_OVERLAP_WEIGHT", "1"),
+    "--bbox-weight", readStringEnv("DJERD_V35_BBOX_WEIGHT", "0"),
     "--bbox-target-b", readStringEnv("DJERD_V35_BBOX_TARGET_B", "4.0"),
     "--cross-hotspot-bypass-pressure-top-cells", readStringEnv("DJERD_V35_CROSS_HOTSPOT_BYPASS_PRESSURE_TOP_CELLS", "8"),
     "--cross-hotspot-bypass-max-pressure-growth", readStringEnv("DJERD_V35_CROSS_HOTSPOT_BYPASS_MAX_PRESSURE_GROWTH", "-1"),
     "--edge-node-margin", readStringEnv("DJERD_V35_EDGE_NODE_MARGIN", "0"),
-    "--edge-node-weight", readStringEnv("DJERD_V35_EDGE_NODE_WEIGHT", "0.5"),
+    "--edge-node-weight", readStringEnv("DJERD_V35_EDGE_NODE_WEIGHT", "1"),
     "--advance", "ml",
     "--top-nodes", readStringEnv("DJERD_V35_TOP_NODES", "40"),
     "--top-edges", readStringEnv("DJERD_V35_TOP_EDGES", "40"),
@@ -10429,25 +10944,6 @@ function parseVisualCrossPolishVariant(
     case "deep-clear":
     case "route-repair-deep":
       return "route-clear-deep";
-    case "route-clear-lbend":
-    case "route-lbend":
-    case "route-l-bend":
-    case "lbend":
-    case "l-bend":
-    case "lbend-clear":
-    case "l-bend-clear":
-    case "route-repair-lbend":
-      return "route-clear-lbend";
-    case "route-clear-deep-lbend":
-    case "route-clear-lbend-deep":
-    case "route-deep-lbend":
-    case "route-deep-l-bend":
-    case "deep-lbend":
-    case "deep-l-bend":
-    case "lbend-deep":
-    case "l-bend-deep":
-    case "route-repair-deep-lbend":
-      return "route-clear-deep-lbend";
     case "route-clear-periphery":
     case "route-periphery":
     case "periphery-clear":

@@ -41,17 +41,34 @@ const { OGDF_LAYOUT_TOOLBAR_DEFINITIONS } = require(layoutContractModulePath);
 const { decodeLayoutSnapshot } = require(protocolDecoderModulePath);
 const {
   createDiagramRenderModel,
+  measureRenderedEdgeCrossings,
   measureRenderedEdgeNodeIntersections,
   measureRenderedTableClearance,
+  measureRenderedVisualConflicts,
 } = require(renderModelModulePath);
 const {
   evaluateOptimizedLayoutHardTargets,
   measureLayoutRenderedTableClearance,
+  measureLayoutRenderedVisualConflicts,
+  parseV36AcceptedMoves,
+  synchronizeLayoutRouteEndpoints,
+  synchronizeLayoutRenderedVisualMetrics,
   synchronizeLayoutNodeSizesWithRenderedTables,
 } = require(runOgdfLayoutModulePath);
 const { renderDiagramDocument } = require(renderModulePath);
 const { loadPhaseOneSample } = require(sampleModulePath);
 const { getBrowserCanvasDrawSource } = require(browserCanvasSourceModulePath);
+
+test("v36 completion marker exposes whether a reroute can change geometry", () => {
+  assert.equal(parseV36AcceptedMoves("done accepted=0 elapsed=14.9s"), 0);
+  assert.equal(
+    parseV36AcceptedMoves(
+      "round 01 accepted=0\ndone accepted=2 elapsed=18.1s\n",
+    ),
+    2,
+  );
+  assert.equal(parseV36AcceptedMoves("no completion marker"), undefined);
+});
 
 test("phase8 document renders canvas scene metadata, routed edges, crossings, choices, properties, and methods", () => {
   const html = render();
@@ -79,6 +96,42 @@ test("phase8 document renders canvas scene metadata, routed edges, crossings, ch
   assert.match(html, /<template id="erd-initial-state">/);
   assert.doesNotMatch(html, /class="erd-table/);
   assert.doesNotMatch(html, /class="erd-edge/);
+});
+
+test("phase8 sidebar prioritizes the selected model and isolates diagram details", () => {
+  const html = render();
+  const modelTabIndex = html.indexOf('data-sidebar-tab="model"');
+  const diagramTabIndex = html.indexOf('data-sidebar-tab="diagram"');
+  const modelSheetIndex = html.indexOf('data-sidebar-sheet="model"');
+  const diagramSheetIndex = html.indexOf('data-sidebar-sheet="diagram"');
+  const stageIndex = html.indexOf('<section class="erd-stage">');
+  const modelSheet = html.slice(modelSheetIndex, diagramSheetIndex);
+  const diagramSheet = html.slice(diagramSheetIndex, stageIndex);
+
+  assert.ok(modelTabIndex >= 0 && modelTabIndex < diagramTabIndex);
+  assert.ok(modelSheetIndex >= 0 && modelSheetIndex < diagramSheetIndex);
+  assert.match(html, /data-sidebar-tab="model">Model<\/button>/);
+  assert.match(html, /data-sidebar-tab="diagram">Diagram<\/button>/);
+  assert.match(modelSheet, /data-model-id="blog\.Post"/);
+  assert.doesNotMatch(modelSheet, /<h2>Setup<\/h2>|<h2>Diagnostics<\/h2>/);
+  assert.match(diagramSheet, /<h2>Setup<\/h2>/);
+  assert.match(diagramSheet, /<h2>Diagnostics<\/h2>/);
+  assert.match(html, /function setSidebarSheet\(sheetId, focusTab\)/);
+  assert.match(html, /setSidebarSheet\("model", false\)/);
+});
+
+test("phase8 model sheet asks for a node instead of choosing one implicitly", () => {
+  const html = render((payload) => {
+    payload.view.selectedModelId = undefined;
+    payload.view.selectedMethodContext = undefined;
+  });
+  const modelSheetIndex = html.indexOf('data-sidebar-sheet="model"');
+  const diagramSheetIndex = html.indexOf('data-sidebar-sheet="diagram"');
+  const modelSheet = html.slice(modelSheetIndex, diagramSheetIndex);
+
+  assert.match(modelSheet, /<h2>Select a model<\/h2>/);
+  assert.match(modelSheet, /Click a node in the diagram to inspect its model details\./);
+  assert.doesNotMatch(modelSheet, /data-model-id="blog\.Post"/);
 });
 
 test("phase8 document respects method and property visibility state in the inspector", () => {
@@ -206,6 +259,37 @@ test("phase8 decoder and inspector keep canonical crossing certification separat
   );
 });
 
+test("phase8 route endpoints survive decoding and are restored for older caches", () => {
+  const payload = structuredClone(loadPhaseOneSample());
+  const structuralEdgeById = new Map(
+    payload.graph.structuralEdges.map((edge) => [edge.id, edge]),
+  );
+  const firstRoute = payload.layout.routedEdges[0];
+  const firstStructuralEdge = structuralEdgeById.get(firstRoute.edgeId);
+  assert.ok(firstStructuralEdge);
+  firstRoute.sourceModelId = firstStructuralEdge.sourceModelId;
+  firstRoute.targetModelId = firstStructuralEdge.targetModelId;
+
+  const decoded = decodeLayoutSnapshot(payload.layout, "phase8RouteEndpoints");
+  assert.equal(decoded.routedEdges[0].sourceModelId, firstStructuralEdge.sourceModelId);
+  assert.equal(decoded.routedEdges[0].targetModelId, firstStructuralEdge.targetModelId);
+
+  for (const route of decoded.routedEdges) {
+    delete route.sourceModelId;
+    delete route.targetModelId;
+  }
+  payload.layout = decoded;
+  assert.equal(
+    synchronizeLayoutRouteEndpoints(payload, payload.layout),
+    payload.layout.routedEdges.length,
+  );
+  for (const route of payload.layout.routedEdges) {
+    const structuralEdge = structuralEdgeById.get(route.edgeId);
+    assert.equal(route.sourceModelId, structuralEdge?.sourceModelId);
+    assert.equal(route.targetModelId, structuralEdge?.targetModelId);
+  }
+});
+
 test("phase8 canvas scene keeps hidden table state in the JSON scene graph without DOM table nodes", () => {
   const html = render((payload) => {
     const taxonomy = payload.view.tableOptions.find(
@@ -237,6 +321,29 @@ test("phase8 document embeds every semantic carrier in one zoom-independent set"
   assert.doesNotMatch(html, /applyEdgeSegmentLod/);
   assert.doesNotMatch(html, /GPU_EDGE_LOD/);
   assert.doesNotMatch(html, /GPU_MAX_SEGMENTS_PER_FRAME/);
+});
+
+test("phase8 render model flattens every supplied polyline to its two endpoints", () => {
+  const payload = structuredClone(loadPhaseOneSample());
+  const route = payload.layout.routedEdges.find((candidate) =>
+    candidate.points.length >= 2
+  );
+  assert.ok(route);
+  const start = route.points[0];
+  const end = route.points[route.points.length - 1];
+  route.points = [
+    start,
+    { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 + 500 },
+    end,
+  ];
+
+  const renderModel = createDiagramRenderModel(payload);
+  const pointSets = renderModel.edges
+    .map((edge) => edge.points.trim())
+    .filter(Boolean)
+    .map((points) => points.split(/\s+/));
+  assert.ok(pointSets.length > 0);
+  assert.ok(pointSets.every((points) => points.length === 2));
 });
 
 test("phase8 decoder preserves carrier metadata but rejects disconnected multi-endpoint trunks", () => {
@@ -285,6 +392,27 @@ test("phase8 decoder preserves carrier metadata but rejects disconnected multi-e
   assert.equal(carrier, undefined);
   assert.ok(renderModel.edges.some((edge) => edge.edgeId === "edge-post-author"));
   assert.ok(renderModel.edges.some((edge) => edge.edgeId === "edge-post-tags"));
+});
+
+test("phase8 render model applies native singleton boundary-port geometry", () => {
+  const payload = structuredClone(loadPhaseOneSample());
+  payload.layout.engineMetadata = {
+    ...(payload.layout.engineMetadata ?? {}),
+    renderedCarrierRoutes: [{
+      carrierId: "edge-post-tags",
+      memberEdgeIds: ["edge-post-tags"],
+      points: [{ x: 660, y: 120 }, { x: 740, y: 120 }],
+    }],
+  };
+
+  const renderModel = createDiagramRenderModel(payload);
+  const edge = renderModel.edges.find(
+    (candidate) => candidate.edgeId === "edge-post-tags",
+  );
+
+  assert.ok(edge);
+  assert.equal(edge.points, "660,120 740,120");
+  assert.equal(edge.preserveRouteEndpoints, true);
 });
 
 test("phase8 cluster focus appears only after selecting a member", () => {
@@ -342,7 +470,7 @@ test("phase8 catalog mode expands high-degree tables for relation ports", () => 
   assert.ok(hubSize.width > leafSize.width, "hub table should be wider than leaf tables");
 });
 
-test("catalog layout input and clearance audit use the exact rendered bundle geometry", () => {
+test("catalog layout input resolves and audits the exact rendered bundle geometry", () => {
   const payload = createCatalogPayload();
   payload.layout.nodes.forEach((node, index) => {
     node.position = { x: index * 1000, y: 0 };
@@ -365,8 +493,8 @@ test("catalog layout input and clearance audit use the exact rendered bundle geo
   const beforeSyncAudit = measureRenderedTableClearance(beforeSyncRenderModel);
   assert.equal(
     beforeSyncAudit.bundleNodeOverlaps,
-    1,
-    "the final canvas geometry should expose the hub/bundle collision",
+    0,
+    "the final canvas geometry should relocate the bundle away from the hub",
   );
 
   const changed = synchronizeLayoutNodeSizesWithRenderedTables(payload);
@@ -393,7 +521,7 @@ test("catalog layout input and clearance audit use the exact rendered bundle geo
   );
 
   const layoutAudit = measureLayoutRenderedTableClearance(payload, payload.layout);
-  assert.equal(layoutAudit.bundleNodeOverlaps, 1);
+  assert.equal(layoutAudit.bundleNodeOverlaps, 0);
   assert.equal(layoutAudit.bundleBundleOverlaps, 0);
   assert.equal(layoutAudit.nodeOverlaps, 0);
   assert.equal(
@@ -415,17 +543,13 @@ test("catalog layout input and clearance audit use the exact rendered bundle geo
     edgeNodeIntersections: 0,
     visualCrossings: 0,
   };
-  const rejectedCacheCandidate = evaluateOptimizedLayoutHardTargets(
+  const resolvedCacheCandidate = evaluateOptimizedLayoutHardTargets(
     payload,
     payload.layout,
     { bboxTargetB: 10, visualTarget: 100 },
   );
-  assert.equal(rejectedCacheCandidate.pass, false);
-  assert.equal(rejectedCacheCandidate.clearancePass, false);
-  assert.match(
-    rejectedCacheCandidate.failures.join(" "),
-    /1 bundle overlaps/,
-  );
+  assert.equal(resolvedCacheCandidate.pass, true);
+  assert.equal(resolvedCacheCandidate.clearancePass, true);
 
   const clearLayout = structuredClone(payload.layout);
   clearLayout.engineMetadata.leafBundles[0].bbox = {
@@ -447,39 +571,134 @@ test("catalog layout input and clearance audit use the exact rendered bundle geo
   assert.equal(acceptedCacheCandidate.bundleEdgePass, true);
   assert.equal(acceptedCacheCandidate.edgeNodePass, true);
 
-  const penetratingLayout = structuredClone(clearLayout);
-  penetratingLayout.engineMetadata.edgeNodeIntersections = 1;
-  penetratingLayout.engineMetadata.visualCrossings = 1;
-  const penetratingCacheCandidate = evaluateOptimizedLayoutHardTargets(
+  const staleEdgeNodeMetadataLayout = structuredClone(clearLayout);
+  staleEdgeNodeMetadataLayout.engineMetadata.edgeNodeIntersections = 1;
+  staleEdgeNodeMetadataLayout.engineMetadata.visualCrossings = 1;
+  const staleEdgeNodeMetadataCandidate = evaluateOptimizedLayoutHardTargets(
     payload,
-    penetratingLayout,
+    staleEdgeNodeMetadataLayout,
     { bboxTargetB: 10, edgeNodeTarget: 0, visualTarget: 100 },
   );
   assert.equal(
-    penetratingCacheCandidate.visualPass,
+    staleEdgeNodeMetadataCandidate.visualCrossings,
+    0,
+    "carrier metadata must not be reported as a final-scene conflict",
+  );
+  assert.equal(
+    staleEdgeNodeMetadataCandidate.visualPass,
     true,
-    "aggregate visual target alone must not hide an edge through a table",
+    "the rendered scene is clear even when stale native metadata says otherwise",
   );
-  assert.equal(penetratingCacheCandidate.edgeNodePass, false);
-  assert.equal(penetratingCacheCandidate.pass, false);
-  assert.match(
-    penetratingCacheCandidate.failures.join(" "),
-    /edge\/node intersections 1 exceed target 0/,
-  );
+  assert.equal(staleEdgeNodeMetadataCandidate.edgeNodePass, true);
+  assert.equal(staleEdgeNodeMetadataCandidate.pass, true);
 
-  const bundlePenetratingLayout = structuredClone(clearLayout);
-  bundlePenetratingLayout.engineMetadata.bundleEdgeIntersections = 1;
-  bundlePenetratingLayout.engineMetadata.visualCrossings = 1;
-  const bundlePenetratingCandidate = evaluateOptimizedLayoutHardTargets(
+  const staleBundleMetadataLayout = structuredClone(clearLayout);
+  staleBundleMetadataLayout.engineMetadata.bundleEdgeIntersections = 1;
+  staleBundleMetadataLayout.engineMetadata.visualCrossings = 1;
+  const staleBundleMetadataCandidate = evaluateOptimizedLayoutHardTargets(
     payload,
-    bundlePenetratingLayout,
+    staleBundleMetadataLayout,
     { bboxTargetB: 10, bundleEdgeTarget: 0, visualTarget: 100 },
   );
-  assert.equal(bundlePenetratingCandidate.bundleEdgePass, false);
-  assert.equal(bundlePenetratingCandidate.pass, false);
+  assert.equal(staleBundleMetadataCandidate.bundleEdgeIntersections, 0);
+  assert.equal(staleBundleMetadataCandidate.bundleEdgePass, true);
+  assert.equal(staleBundleMetadataCandidate.pass, true);
+});
+
+test("optimized hard targets reject an edge that penetrates the actual final scene", () => {
+  const payload = structuredClone(loadPhaseOneSample());
+  const nodeById = new Map(
+    payload.layout.nodes.map((node) => [node.modelId, node]),
+  );
+  Object.assign(nodeById.get("blog.Post"), {
+    position: { x: 0, y: 0 },
+    size: { height: 280, width: 280 },
+  });
+  Object.assign(nodeById.get("taxonomy.Tag"), {
+    position: { x: 1000, y: 0 },
+    size: { height: 160, width: 220 },
+  });
+  Object.assign(nodeById.get("audit.AuditLog"), {
+    position: { x: 500, y: 40 },
+    size: { height: 140, width: 260 },
+  });
+  Object.assign(nodeById.get("accounts.Author"), {
+    position: { x: 0, y: 1000 },
+    size: { height: 180, width: 240 },
+  });
+  payload.graph.structuralEdges = payload.graph.structuralEdges.filter(
+    (edge) => edge.id === "edge-post-tags",
+  );
+  payload.layout.routedEdges = [{
+    crossingIds: [],
+    edgeId: "edge-post-tags",
+    points: [{ x: 280, y: 140 }, { x: 1000, y: 140 }],
+  }];
+  payload.layout.crossings = [];
+  payload.layout.engineMetadata = {
+    ...(payload.layout.engineMetadata ?? {}),
+    edgeBendTotal: 0,
+    edgeNodeIntersections: 0,
+    visualCrossings: 0,
+  };
+
+  const evaluation = evaluateOptimizedLayoutHardTargets(payload, payload.layout, {
+    bboxTargetB: 10,
+    edgeNodeTarget: 0,
+    expectedRouteEdgeIds: ["edge-post-tags"],
+    visualTarget: 100,
+  });
+
+  assert.equal(evaluation.renderedEdgeCount, 1);
+  assert.equal(evaluation.renderedEdgeNodeIntersections, 1);
+  assert.equal(evaluation.edgeNodePass, false);
+  assert.equal(evaluation.pass, false);
   assert.match(
-    bundlePenetratingCandidate.failures.join(" "),
-    /bundle\/edge intersections 1 exceed target 0/,
+    evaluation.failures.join(" "),
+    /edge\/node intersections 1 exceed target 0/,
+  );
+});
+
+test("rendered visual metrics preserve carrier scores under an explicit scope", () => {
+  const payload = structuredClone(loadPhaseOneSample());
+  payload.layout.engineMetadata = {
+    ...(payload.layout.engineMetadata ?? {}),
+    bundleEdgeIntersections: 8,
+    bundleNodeOverlaps: 2,
+    edgeCrossings: 26,
+    edgeNodeIntersections: 54,
+    nodeOverlaps: 3,
+    routeSegments: 468,
+    visualCrossings: 88,
+  };
+  const expected = measureLayoutRenderedVisualConflicts(payload, payload.layout);
+  const actual = synchronizeLayoutRenderedVisualMetrics(payload, payload.layout);
+
+  assert.deepEqual(actual, expected);
+  assert.equal(
+    payload.layout.engineMetadata.visualCrossingsScope,
+    "rendered-semantic-carrier-v2",
+  );
+  assert.equal(payload.layout.engineMetadata.carrierVisualCrossings, 88);
+  assert.equal(payload.layout.engineMetadata.carrierEdgeCrossings, 26);
+  assert.equal(payload.layout.engineMetadata.carrierEdgeNodeIntersections, 54);
+  assert.equal(payload.layout.engineMetadata.carrierBundleEdgeIntersections, 8);
+  assert.equal(payload.layout.engineMetadata.carrierNodeOverlaps, 3);
+  assert.equal(payload.layout.engineMetadata.carrierBundleNodeOverlaps, 2);
+  assert.equal(payload.layout.engineMetadata.carrierRouteSegments, 468);
+  assert.equal(payload.layout.engineMetadata.visualCrossings, expected.visualCrossings);
+  assert.equal(payload.layout.engineMetadata.edgeCrossings, expected.edgeCrossings);
+  assert.equal(
+    payload.layout.engineMetadata.edgeNodeIntersections,
+    expected.edgeNodeIntersections,
+  );
+  assert.equal(payload.layout.engineMetadata.renderedEdgeCount, expected.edgeCount);
+
+  synchronizeLayoutRenderedVisualMetrics(payload, payload.layout);
+  assert.equal(
+    payload.layout.engineMetadata.carrierVisualCrossings,
+    88,
+    "re-auditing must not overwrite the original carrier-domain diagnostic",
   );
 });
 
@@ -536,6 +755,70 @@ test("rendered geometry audit separates bundle hits and preserves carrier endpoi
   assert.equal(preserved.count, 0);
 });
 
+test("rendered geometry audit counts visible bundle leaf siblings as obstacles", () => {
+  const bundleId = "__leafbundle.Group_0";
+  const endpointLeaf = renderedAuditTable("test.EndpointLeaf", 0, 0, 80, 80);
+  const siblingLeaf = renderedAuditTable("test.SiblingLeaf", 100, 0, 80, 80);
+  const bundle = renderedAuditTable(bundleId, -10, -10, 210, 100);
+  const target = renderedAuditTable("test.Target", 400, 0, 100, 100);
+  const renderModel = {
+    bundleLeavesByFakeId: {
+      [bundleId]: [endpointLeaf.modelId, siblingLeaf.modelId],
+    },
+    edges: [{
+      edgeId: "edge-leaf-target",
+      logicalEndpointModelIds: [endpointLeaf.modelId, target.modelId],
+      points: "80,40 400,40",
+      sourceModelId: endpointLeaf.modelId,
+      targetModelId: target.modelId,
+    }],
+    tables: [bundle, endpointLeaf, siblingLeaf, target],
+  };
+
+  const collisions = measureRenderedEdgeNodeIntersections(renderModel);
+  assert.deepEqual(collisions.hits, [
+    { edgeId: "edge-leaf-target", nodeModelId: siblingLeaf.modelId },
+  ]);
+  assert.equal(collisions.bundleCount, 0);
+  assert.equal(collisions.nodeCount, 1);
+});
+
+test("rendered visual audit counts proper crossings from every visible edge", () => {
+  const sourceA = renderedAuditTable("test.SourceA", 0, 0, 100, 100);
+  const targetA = renderedAuditTable("test.TargetA", 400, 400, 100, 100);
+  const sourceB = renderedAuditTable("test.SourceB", 0, 400, 100, 100);
+  const targetB = renderedAuditTable("test.TargetB", 400, 0, 100, 100);
+  const renderModel = {
+    edges: [
+      {
+        edgeId: "edge-a",
+        points: "100,100 400,400",
+        preserveRouteEndpoints: true,
+        sourceModelId: sourceA.modelId,
+        targetModelId: targetA.modelId,
+      },
+      {
+        edgeId: "edge-b",
+        points: "100,400 400,100",
+        preserveRouteEndpoints: true,
+        sourceModelId: sourceB.modelId,
+        targetModelId: targetB.modelId,
+      },
+    ],
+    tables: [sourceA, targetA, sourceB, targetB],
+  };
+
+  assert.deepEqual(measureRenderedEdgeCrossings(renderModel), {
+    edgeCount: 2,
+    edgeCrossings: 1,
+    routeSegments: 2,
+  });
+  const visual = measureRenderedVisualConflicts(renderModel);
+  assert.equal(visual.edgeCrossings, 1);
+  assert.equal(visual.edgeNodeIntersections, 0);
+  assert.equal(visual.visualCrossings, 1);
+});
+
 test("phase8 browser runtime renders a GPU scene with minimap and viewport-aware culling", () => {
   const html = render();
 
@@ -545,16 +828,17 @@ test("phase8 browser runtime renders a GPU scene with minimap and viewport-aware
   assert.match(html, /webview\.bootstrap/);
   assert.match(html, /renderer\.selected/);
   assert.match(html, /scene\.graph\.built/);
-  assert.match(html, /avoidedTablePenetrations/);
-  assert.match(html, /avoidedBundlePenetrations/);
-  assert.match(html, /avoidedNodePenetrations/);
-  assert.match(html, /unresolvedRoutePenetrations/);
-  assert.match(html, /visibilityFallbackEdges/);
+  assert.match(html, /bendPolicy: "straight-only"/);
+  assert.match(html, /straightTablePenetrations/);
+  assert.match(html, /straightBundlePenetrations/);
+  assert.match(html, /straightNodePenetrations/);
+  assert.match(html, /straightCollisionEdges/);
   assert.match(html, /function segmentRectangleInteriorInterval\(/);
-  assert.match(html, /function routeEdgePathAroundTables\(/);
-  assert.match(html, /function routeCollisionFreeVisibilityPath\(/);
-  assert.match(html, /function discoverVisibleDetourPoints\(/);
-  assert.match(html, /function createTableDetourCandidates\(/);
+  assert.match(html, /function createStraightEdgePath\(/);
+  assert.doesNotMatch(html, /function routeEdgePathAroundTables\(/);
+  assert.doesNotMatch(html, /function routeCollisionFreeVisibilityPath\(/);
+  assert.doesNotMatch(html, /function discoverVisibleDetourPoints\(/);
+  assert.doesNotMatch(html, /function createTableDetourCandidates\(/);
   assert.doesNotMatch(html, /function createClippedLineSegments\(/);
   assert.match(html, /base \+ tangent \* cap \+ normal/);
   assert.doesNotMatch(html, /if \(!vertical && !horizontal\)/);
@@ -601,8 +885,10 @@ test("phase8 browser runtime renders a GPU scene with minimap and viewport-aware
     /function collectLiveDragEdgeSegments\(\s*activeDrag,\s*movedModelIds,\s*bounds,\s*overrideById,/,
   );
   assert.match(html, /GPU_EDGE_TABLE_CLEARANCE = 10/);
-  assert.match(html, /GPU_EDGE_DETOUR_MAX_STEPS = 96/);
-  assert.match(html, /function routeEdgeRecordsAroundLiveDragTables\(/);
+  assert.doesNotMatch(html, /GPU_EDGE_DETOUR/);
+  assert.doesNotMatch(html, /GPU_EDGE_VISIBILITY/);
+  assert.doesNotMatch(html, /function routeEdgeRecordsAroundLiveDragTables\(/);
+  assert.doesNotMatch(html, /data-edge-bundle-toggle/);
   assert.match(html, /function fitFontToWidth\(context, font, text, maxWidth\)/);
   assert.doesNotMatch(html, /function trimTextToWidth\(/);
   assert.doesNotMatch(html, /…/);
@@ -646,11 +932,10 @@ test("phase8 browser runtime declares layoutModes before layout variants are cre
   );
 });
 
-test("phase8 browser router keeps obstacle detours continuous and collision-free", () => {
+test("phase8 browser keeps one straight segment and audits collisions without detours", () => {
   const {
     collectEdgePathCollisions,
-    routeCollisionFreeVisibilityPath,
-    routeEdgePathAroundTables,
+    createStraightEdgePath,
   } =
     createBrowserEdgeRouter({});
   const scene = createRoutingScene([
@@ -658,56 +943,37 @@ test("phase8 browser router keeps obstacle detours continuous and collision-free
     routingTable("blocker-b", 610, -20, 120, 140),
   ]);
   const meta = { sourceModelId: "source", targetModelId: "target" };
-  const routed = routeEdgePathAroundTables(
-    [{ x: 0, y: 0 }, { x: 1000, y: 0 }],
+  const straight = createStraightEdgePath(
+    [{ x: 0, y: 0 }, { x: 500, y: 160 }, { x: 1000, y: 0 }],
     meta,
     scene,
   );
 
-  assert.equal(routed.initialCollisions.length, 2);
-  assert.equal(routed.unresolvedCollisions.length, 0);
-  assert.ok(routed.points.length > 2);
-  assert.ok(routed.points.every((point) =>
+  assert.equal(straight.collisions.length, 2);
+  assert.deepEqual(straight.points, [{ x: 0, y: 0 }, { x: 1000, y: 0 }]);
+  assert.ok(straight.points.every((point) =>
     Number.isFinite(point.x) && Number.isFinite(point.y)));
-  assert.equal(collectEdgePathCollisions(routed.points, meta, scene).length, 0);
+  assert.equal(collectEdgePathCollisions(straight.points, meta, scene).length, 2);
 
   const denseScene = createRoutingScene(
     Array.from({ length: 20 }, (_, index) =>
       routingTable(`dense-${index}`, 180 + index * 145, -80, 100, 160)),
   );
-  const denseRoute = routeEdgePathAroundTables(
+  const denseRoute = createStraightEdgePath(
     [{ x: 0, y: 0 }, { x: 3100, y: 0 }],
     meta,
     denseScene,
   );
-  assert.equal(denseRoute.initialCollisions.length, 20);
-  assert.equal(denseRoute.unresolvedCollisions.length, 0);
+  assert.equal(denseRoute.collisions.length, 20);
+  assert.equal(denseRoute.points.length, 2);
   assert.equal(
     collectEdgePathCollisions(denseRoute.points, meta, denseScene).length,
-    0,
-  );
-
-  const alternatingMaze = createRoutingScene([
-    routingTable("wall-a", 180, -420, 130, 470),
-    routingTable("wall-b", 360, -50, 130, 470),
-    routingTable("wall-c", 540, -420, 130, 470),
-    routingTable("wall-d", 720, -50, 130, 470),
-  ]);
-  const visibilityRoute = routeCollisionFreeVisibilityPath(
-    [{ x: 0, y: 0 }, { x: 1040, y: 0 }],
-    meta,
-    alternatingMaze,
-  );
-  assert.ok(visibilityRoute);
-  assert.ok(visibilityRoute.length > 2);
-  assert.equal(
-    collectEdgePathCollisions(visibilityRoute, meta, alternatingMaze).length,
-    0,
+    20,
   );
 
   const bundleId = "__leafbundle.Parent_0";
   const bundleRouter = createBrowserEdgeRouter({ [bundleId]: ["test.Leaf"] });
-  const bundleRoute = bundleRouter.routeEdgePathAroundTables(
+  const bundleRoute = bundleRouter.createStraightEdgePath(
     [{ x: 0, y: 0 }, { x: 800, y: 0 }],
     {
       logicalEndpointModelIds: ["test.Leaf", "test.Base"],
@@ -716,9 +982,9 @@ test("phase8 browser router keeps obstacle detours continuous and collision-free
     },
     createRoutingScene([routingTable(bundleId, -40, -120, 340, 240)]),
   );
-  assert.equal(bundleRoute.initialCollisions.length, 0);
+  assert.equal(bundleRoute.collisions.length, 0);
 
-  const carrierRoute = routeEdgePathAroundTables(
+  const carrierRoute = createStraightEdgePath(
     [{ x: 40, y: 40 }, { x: 800, y: 0 }],
     {
       logicalEndpointModelIds: ["test.Representative", "test.Sibling", "test.Base"],
@@ -728,9 +994,9 @@ test("phase8 browser router keeps obstacle detours continuous and collision-free
     createRoutingScene([routingTable("test.Sibling", 0, 0, 180, 120)]),
   );
   assert.equal(
-    carrierRoute.initialCollisions.length,
-    0,
-    "every logical carrier endpoint must be allowed to emit its shared carrier",
+    carrierRoute.collisions.length,
+    1,
+    "logical carrier membership must not hide a physical table penetration",
   );
 
   const tightEndpointScene = createRoutingScene([
@@ -738,22 +1004,34 @@ test("phase8 browser router keeps obstacle detours continuous and collision-free
     routingTable("target", 500, -50, 100, 100),
     routingTable("adjacent-blocker", 390, -30, 109, 60),
   ]);
-  const tightEndpointRoute = routeEdgePathAroundTables(
+  const tightEndpointRoute = createStraightEdgePath(
     [{ x: 100, y: 0 }, { x: 500, y: 0 }],
     meta,
     tightEndpointScene,
   );
-  assert.equal(tightEndpointRoute.initialCollisions.length, 1);
-  assert.equal(tightEndpointRoute.unresolvedCollisions.length, 0);
+  assert.equal(tightEndpointRoute.collisions.length, 1);
   assert.equal(
     collectEdgePathCollisions(tightEndpointRoute.points, meta, tightEndpointScene).length,
-    0,
+    1,
   );
-  assert.notDeepEqual(
+  assert.deepEqual(
     tightEndpointRoute.points[tightEndpointRoute.points.length - 1],
     { x: 500, y: 0 },
-    "a blocked fixed endpoint should move to a free port on the same table",
+    "straight-only rendering must not move an endpoint to create a detour",
   );
+
+  const selfScene = createRoutingScene([
+    routingTable("self", 100, 200, 180, 120),
+  ]);
+  const selfRoute = createStraightEdgePath(
+    [{ x: 280, y: 260 }, { x: 280, y: 260 }],
+    { sourceModelId: "self", targetModelId: "self" },
+    selfScene,
+  );
+  assert.equal(selfRoute.points.length, 2);
+  assert.notDeepEqual(selfRoute.points[0], selfRoute.points[1]);
+  assert.equal(selfRoute.points[0].x, selfRoute.points[1].x);
+  assert.equal(selfRoute.collisions.length, 0);
 });
 
 function render(mutatePayload) {
@@ -769,7 +1047,7 @@ function createBrowserEdgeRouter(bundleLeavesByFakeIdRaw) {
     "findSegments",
     "rectIntersectsBounds",
     "bundleLeavesByFakeIdRaw",
-    `${getBrowserCanvasDrawSource()}\nreturn { collectEdgePathCollisions, routeCollisionFreeVisibilityPath, routeEdgePathAroundTables };`,
+    `${getBrowserCanvasDrawSource()}\nreturn { collectEdgePathCollisions, createStraightEdgePath };`,
   );
   return factory(
     (value) => Math.round(value * 100) / 100,

@@ -403,7 +403,7 @@ test("route-repair-only gate requires strict node-hit gain and every canonical c
   );
 });
 
-test("v27 orchestration targets 1B and caches only obstacle-free straight carriers", async () => {
+test("v29 orchestration caches authoritative semantic-carrier metrics", async () => {
   const source = await fs.readFile(
     path.resolve(
       __dirname,
@@ -412,7 +412,10 @@ test("v27 orchestration targets 1B and caches only obstacle-free straight carrie
     "utf8",
   );
 
-  assert.match(source, /"optimized-layout-cache-v27-bundle-edge-hard-target"/);
+  assert.match(source, /"optimized-layout-cache-v29-semantic-carrier-v2"/);
+  assert.match(source, /"semanticCarrierTree=family-v1"/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v28-rendered-visual-v1"/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v27-bundle-edge-hard-target"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v26-edge-node-hard-target"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v25-hard-target-cache"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v24-render-size-reroute"/);
@@ -426,7 +429,7 @@ test("v27 orchestration targets 1B and caches only obstacle-free straight carrie
   assert.doesNotMatch(source, /"optimized-layout-cache-v16"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v14"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v15"/);
-  assert.match(source, /const DEFAULT_VISUAL_CROSS_TARGET = 100;/);
+  assert.match(source, /const DEFAULT_VISUAL_CROSS_TARGET = 500;/);
   assert.match(source, /const DEFAULT_EDGE_NODE_TARGET = 0;/);
   assert.match(source, /const DEFAULT_BUNDLE_EDGE_TARGET = 0;/);
   assert.doesNotMatch(source, /DJERD_ADAPTIVE_CARRIER_TARGET_FINAL/);
@@ -642,6 +645,18 @@ test("v27 orchestration targets 1B and caches only obstacle-free straight carrie
   );
   assert.match(
     source,
+    /DJERD_OPTIMIZED_AFTER_BASELINE_RESERVE_MS[\s\S]*DEFAULT_OPTIMIZED_AFTER_BASELINE_RESERVE_MS/,
+  );
+  assert.match(
+    source,
+    /DJERD_OPTIMIZED_AFTER_SCORER_RESERVE_MS[\s\S]*DEFAULT_OPTIMIZED_AFTER_SCORER_RESERVE_MS/,
+  );
+  assert.match(
+    source,
+    /scorer accepted no moves; skipping redundant reroute/,
+  );
+  assert.match(
+    source,
     /startPostReroutePolishDeadline\(logger\)[\s\S]*acquireOptimizedLayoutFlight\(/,
   );
   for (const stage of [
@@ -668,4 +683,28 @@ test("node-pair retouch honors its native time budget", async () => {
   assert.match(source, /DJERD_NODE_PAIR_RETOUCH_BUDGET_MS/);
   assert.match(source, /nodePairBudgetExceeded/);
   assert.match(source, /budgetHit=%d/);
+  assert.match(
+    source,
+    /Hard targets are destinations, not admission prerequisites/,
+  );
+  assert.match(source, /DJERD_RENDERED_NODE_CLEARANCE_FINAL_BATCHES/);
+  assert.match(source, /DJERD_RENDERED_CARRIER_NODE_TARGET_BUDGET_MS/);
+  assert.match(source, /DJERD_RENDERED_CARRIER_NODE_CLEAR_VISUAL_SLACK/);
+  assert.match(
+    source,
+    /collisionGain[\s\S]*minCollisionGainPerVisualDebt/,
+  );
+  assert.match(
+    source,
+    /retrySmallerBatch =[\s\S]*activeFollowupBatchSize > minBlockerBatchSize/,
+  );
+  assert.match(
+    source,
+    /candidateQuality = measure\(true\)/,
+  );
+  assert.match(
+    source,
+    /deferredNodeModelIds[\s\S]*continuing ranked search/,
+  );
+  assert.doesNotMatch(source, /pathsShareEndpoint/);
 });
