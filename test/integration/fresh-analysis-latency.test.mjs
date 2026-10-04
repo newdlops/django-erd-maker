@@ -183,8 +183,43 @@ test('fresh native placement receives real rendered card sizes and a bounded sea
     [['accounts.Author', 236, 74], ['blog.Post', 236, 74]],
     'the placement scorer must use the card dimensions actually shown on canvas');
   const budget = Number(inputs[0].env.DJERD_STRAIGHT_VISUAL_POSITION_BUDGET_MS);
-  assert.ok(budget > 0 && budget <= 30_000 && budget < inputs[0].timeout,
+  assert.ok(budget > 0 && budget <= 40_000 && budget <= inputs[0].timeout * .5,
     'fresh position search must reserve time for initial layout, auditing and rendering');
+});
+
+test('fresh placement reserves bounded escape time within the initial worker deadline', async t => {
+  isolate(t);
+  const payload = fixture(), inputs = [];
+  t.mock.method(childProcess, 'execFile', (file, args, options, callback) => {
+    inputs.push({env: options.env, timeout: options.timeout});
+    queueMicrotask(() => callback(null, JSON.stringify(resultLayout(payload, inputs.length)), ''));
+    return {kill: () => true};
+  });
+  const result = await runOgdfLayout(root, payload, 'fmmm', undefined, undefined,
+    'straight', false, false, true, {freshAnalysis: true, deadlineMs: Date.now() + 110_000});
+  assert.equal(result.applied, true, result.reason);
+  const total = Number(inputs[0].env.DJERD_STRAIGHT_VISUAL_POSITION_BUDGET_MS);
+  assert.equal(total, 40_000, 'the shared position budget must include the bounded escape phase');
+  assert.ok(total <= inputs[0].timeout * .5,
+    'greedy and escape together must leave half the deadline for baseline and final output');
+});
+
+test('fresh placement shares a shorter deadline and honors an explicit zero position budget', async t => {
+  isolate(t);
+  const payload = fixture(), inputs = [];
+  t.mock.method(childProcess, 'execFile', (file, args, options, callback) => {
+    inputs.push({env: options.env, timeout: options.timeout});
+    queueMicrotask(() => callback(null, JSON.stringify(resultLayout(payload, inputs.length)), ''));
+    return {kill: () => true};
+  });
+  const run = () => runOgdfLayout(root, structuredClone(payload), 'fmmm', undefined, undefined,
+    'straight', false, false, true, {freshAnalysis: true, deadlineMs: Date.now() + 10_000});
+  assert.equal((await run()).applied, true);
+  const total = Number(inputs[0].env.DJERD_STRAIGHT_VISUAL_POSITION_BUDGET_MS);
+  assert.ok(total > 0 && total <= inputs[0].timeout * .5 && total < 10_000);
+  process.env.DJERD_STRAIGHT_VISUAL_POSITION_BUDGET_MS = '0';
+  assert.equal((await run()).applied, true);
+  assert.equal(inputs.at(-1).env.DJERD_STRAIGHT_VISUAL_POSITION_BUDGET_MS, '0');
 });
 
 test('fresh placement keeps a complete audited result without repeating the legacy relocation', async t => {

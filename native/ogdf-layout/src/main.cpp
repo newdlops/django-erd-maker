@@ -12046,7 +12046,7 @@ int main(int argc, char** argv) {
     // One bounded search over every real card and independent straight line.
     // All input comes from this request; no previously computed scene is read.
     const double straightPositionBudgetMs = readDoubleEnv(
-      "DJERD_STRAIGHT_VISUAL_POSITION_BUDGET_MS", 0.0, 0.0, 30000.0);
+      "DJERD_STRAIGHT_VISUAL_POSITION_BUDGET_MS", 0.0, 0.0, 40000.0);
     if (straightLineMode && arguments.positionsTsv.empty()
         && !arguments.rigidPositions && straightPositionBudgetMs > 0.0
         && readBoolEnv("DJERD_NO_CARRIER_CROSS", false)) {
@@ -12071,6 +12071,7 @@ int main(int argc, char** argv) {
       }
       StraightVisualPlacementOptions placementOptions;
       placementOptions.budgetMs = straightPositionBudgetMs;
+      placementOptions.escapeBudgetMs = std::min(10000.0, straightPositionBudgetMs * .25);
       const auto placement = optimizeStraightVisualPlacement(
         realNodes, realEdges, realIds, {}, placementOptions);
       const bool accepted = placement.nodes.size() == nodes.size()
@@ -12091,15 +12092,18 @@ int main(int argc, char** argv) {
         recomputeLeafBundleBboxesFromNodes(metadata.leafBundles, nodes, attributes);
         metadata.renderedCarrierRoutes.clear();
         metadata.actualAlgorithm += "+StraightVisualPlacement";
+        if (placement.escapeEvaluations > 0) metadata.actualAlgorithm += "+StraightVisualEscape";
       }
       std::fprintf(stderr,
         "[straight-visual-placement] accepted=%d nodes=%zu routes=%zu "
-        "visual=%lld->%lld invalid=%lld moves=%zu evaluations=%zu elapsed=%.0fms.\n",
+        "visual=%lld->%lld invalid=%lld moves=%zu evaluations=%zu "
+        "escapeEvaluations=%zu uphill=%zu elapsed=%.0fms.\n",
         accepted ? 1 : 0, placement.nodes.size(), placement.routes.size(),
         static_cast<long long>(placement.before.visual()),
         static_cast<long long>(placement.after.visual()),
         static_cast<long long>(placement.after.invalidRoutes),
-        placement.moves, placement.evaluations, placement.elapsedMs);
+        placement.moves, placement.evaluations, placement.escapeEvaluations,
+        placement.uphillMoves, placement.elapsedMs);
     }
 
     // Final route/bundle quality recompute. Several late visual passes move

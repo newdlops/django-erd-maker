@@ -48,7 +48,10 @@ class StraightVisualState {
 
 struct StraightVisualPlacementOptions {
   double budgetMs = 30000, groupBudgetMs = 1500;
+  // Reserved within budgetMs, never added to the request's deadline.
+  double escapeBudgetMs = 0;
   int maxRounds = 100, angularSamples = 8, nodeLimit = 0, swapLimit = 80;
+  std::size_t maxEscapeIterations = 1000000;
   std::uint64_t seed = 42;
 };
 struct StraightVisualPlacementResult {
@@ -56,6 +59,7 @@ struct StraightVisualPlacementResult {
   std::vector<StraightVisualRoute> routes;
   StraightVisualScore before, after;
   std::size_t moves = 0, evaluations = 0;
+  std::size_t escapeEvaluations = 0, uphillMoves = 0;
   int rounds = 0;
   double elapsedMs = 0;
   bool budgetHit = false;

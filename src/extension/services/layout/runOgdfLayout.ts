@@ -4224,11 +4224,12 @@ export async function runOgdfLayout(
         }
         // Search the actual cards in the initial worker, leaving the rest of
         // the deadline for its baseline, complete audit, and HTML generation.
+        // Greedy placement and bounded escape share this total reservation.
         const freshPositionBudgetMs = freshAnalysis && optimizedLayout
           && effectiveEdgeRouting === "straight"
-          ? Math.max(0, Math.floor(Math.min(30_000,
-              initialLayoutBudgetedTimeout.timeoutMs * 0.4,
-              readFloatEnv("DJERD_STRAIGHT_VISUAL_POSITION_BUDGET_MS", 30_000))))
+          ? Math.max(0, Math.floor(Math.min(40_000,
+              initialLayoutBudgetedTimeout.timeoutMs * 0.5,
+              readFloatEnv("DJERD_STRAIGHT_VISUAL_POSITION_BUDGET_MS", 40_000))))
           : 0;
         ({ stderr, stdout } = await execFileAsync(
           binaryPath,

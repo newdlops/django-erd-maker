@@ -6,6 +6,7 @@
 #include <iostream>
 #include <limits>
 #include <numeric>
+#include <queue>
 #include <random>
 #include <stdexcept>
 #include <utility>
@@ -26,6 +27,118 @@ bool crosses(const StraightVisualRoute& a, const StraightVisualRoute& b) {
       * orientation(b.sourceX, b.sourceY, b.targetX, b.targetY, a.targetX, a.targetY) < -1e-9;
 }
 
+struct EscapeStats { std::size_t evaluations = 0, moves = 0, uphill = 0; };
+template <class Clock>
+EscapeStats escapeStraightPlacement(
+    StraightVisualState& state, const std::vector<StraightVisualEdge>& edges,
+    const std::vector<std::vector<std::size_t>>& adjacent,
+    const StraightVisualPlacementOptions& options, const Clock& elapsed) {
+  EscapeStats stats;
+  if (state.nodes().empty() || state.score().invalidRoutes != 0
+      || state.score().nodeOverlaps != 0 || options.maxEscapeIterations == 0
+      || elapsed() >= options.budgetMs) return stats;
+  const double phaseStart = elapsed();
+  const double phaseMs = std::min(options.escapeBudgetMs, options.budgetMs - phaseStart);
+  if (phaseMs <= 0) return stats;
+  std::mt19937_64 random(options.seed);
+  std::uniform_real_distribution<double> unit(0, 1);
+  std::normal_distribution<double> normal(0, 1);
+  const auto count = state.nodes().size();
+  std::vector<std::size_t> degree(count), parent(count), peeled;
+  std::vector<unsigned char> alive(count, 1);
+  std::queue<std::size_t> queue;
+  for (std::size_t n = 0; n < count; ++n) {
+    degree[n] = adjacent[n].size(); parent[n] = n;
+    if (degree[n] < 2) queue.push(n);
+  }
+  while (!queue.empty()) {
+    const auto n = queue.front(); queue.pop();
+    if (!alive[n]) continue;
+    alive[n] = 0; peeled.push_back(n);
+    for (const auto other : adjacent[n]) if (alive[other]) {
+      parent[n] = other;
+      if (--degree[other] == 1) queue.push(other);
+    }
+  }
+  for (auto i = peeled.rbegin(); i != peeled.rend(); ++i) parent[*i] = parent[parent[*i]];
+  std::vector<std::vector<std::size_t>> owned(count);
+  for (std::size_t n = 0; n < count; ++n) owned[parent[n]].push_back(n);
+  auto bestNodes = state.nodes(); auto bestScore = state.score();
+  double left = bestNodes[0].x, right = left, top = bestNodes[0].y, bottom = top;
+  for (const auto& n : bestNodes) {
+    left = std::min(left, n.x); right = std::max(right, n.x);
+    top = std::min(top, n.y); bottom = std::max(bottom, n.y);
+  }
+  const double spanX = std::max(100.0, right - left), spanY = std::max(100.0, bottom - top);
+  const double diagonal = std::hypot(spanX, spanY);
+  const auto inBounds = [&](double x, double y) {
+    return x >= left - spanX * .2 && x <= right + spanX * .2
+      && y >= top - spanY * .2 && y <= bottom + spanY * .2;
+  };
+  std::vector<double> weights(count);
+  std::discrete_distribution<std::size_t> select;
+  for (std::size_t step = 0; step < options.maxEscapeIterations
+       && elapsed() < phaseStart + phaseMs; ++step) {
+    if (step % 4096 == 0) {
+      const auto pressure = state.pressure(); double sum = 0;
+      for (std::size_t n = 0; n < count; ++n) {
+        weights[n] = pressure[n] > 0 ? std::sqrt(double(pressure[n]))
+          / (1 + std::sqrt(double(adjacent[n].size()))) : 0;
+        sum += weights[n];
+      }
+      if (sum == 0) break;
+      select = std::discrete_distribution<std::size_t>(weights.begin(), weights.end());
+    }
+    const auto n = select(random); const auto original = state.nodes()[n];
+    const double time = std::clamp((elapsed() - phaseStart) / phaseMs, 0.0, 1.0);
+    const double cycle = time < .5 ? time * 2 : (time - .5) * 2;
+    const double temperature = 8 * std::pow(.01, cycle);
+    const double choice = unit(random), card = std::hypot(original.width, original.height) + 30;
+    double x = original.x, y = original.y;
+    std::size_t partner = n; std::vector<StraightVisualMove> group;
+    if (choice < .70) {
+      const double scale = card * std::pow(30.0, unit(random) - .5);
+      x += normal(random) * scale; y += normal(random) * scale;
+    } else if (choice < .82 && !adjacent[n].empty()) {
+      double cx = 0, cy = 0;
+      for (const auto neighbor : adjacent[n]) { cx += state.nodes()[neighbor].x; cy += state.nodes()[neighbor].y; }
+      const double scale = unit(random) < .5 ? card * 4 : diagonal * .02;
+      x = cx / adjacent[n].size() + normal(random) * scale;
+      y = cy / adjacent[n].size() + normal(random) * scale;
+    } else if (choice < .94 && !adjacent[n].empty()) {
+      partner = adjacent[n][random() % adjacent[n].size()];
+    } else if (alive[n] && owned[n].size() > 1) {
+      const double dx = normal(random) * diagonal * .025, dy = normal(random) * diagonal * .025;
+      for (const auto member : owned[n]) group.push_back({member, state.nodes()[member].x + dx, state.nodes()[member].y + dy});
+    } else { x += normal(random) * diagonal * .04; y += normal(random) * diagonal * .04; }
+    if (!inBounds(x, y) || std::any_of(group.begin(), group.end(), [&](const auto& move) { return !inBounds(move.x, move.y); })) continue;
+    const auto score = !group.empty() ? state.evaluateMoves(group)
+      : (partner != n ? state.evaluateSwap(n, partner) : state.evaluateMove(n, x, y));
+    ++stats.evaluations;
+    if (score.invalidRoutes != 0 || score.nodeOverlaps != 0 || score.visual() > bestScore.visual() + 150) continue;
+    const auto delta = score.visual() - state.score().visual();
+    if (delta > 0 && unit(random) >= std::exp(-double(delta) / temperature)) continue;
+    if (!group.empty()) state.moveMany(group);
+    else if (partner != n) state.swap(n, partner);
+    else state.move(n, x, y);
+    ++stats.moves; if (delta > 0) ++stats.uphill;
+    if (score.visual() < bestScore.visual()) { bestScore = score; bestNodes = state.nodes(); }
+  }
+  // Only the best complete scene survives. Uphill/neutral transient coordinates
+  // are never returned to the caller or saved for a future request.
+  std::vector<StraightVisualMove> restore;
+  for (std::size_t n = 0; n < count; ++n)
+    if (state.nodes()[n].x != bestNodes[n].x || state.nodes()[n].y != bestNodes[n].y)
+      restore.push_back({n, bestNodes[n].x, bestNodes[n].y});
+  if (!restore.empty()) state.moveMany(restore);
+  if (state.score().edgeCrossings != bestScore.edgeCrossings
+      || state.score().edgeNodeIntersections != bestScore.edgeNodeIntersections
+      || state.score().nodeOverlaps != bestScore.nodeOverlaps
+      || state.score().invalidRoutes != bestScore.invalidRoutes)
+    throw std::runtime_error("escape best-scene restoration mismatch");
+  return stats;
+}
+
 }  // namespace
 StraightVisualPlacementResult optimizeStraightVisualPlacement(
   const std::vector<StraightVisualNode>& nodes,
@@ -34,6 +147,7 @@ StraightVisualPlacementResult optimizeStraightVisualPlacement(
   const std::vector<std::vector<std::size_t>>& groups,
   const StraightVisualPlacementOptions& options) {
     if (!std::isfinite(options.budgetMs) || options.budgetMs < 0
+        || !std::isfinite(options.escapeBudgetMs) || options.escapeBudgetMs < 0
         || !std::isfinite(options.groupBudgetMs) || ids.size() != nodes.size())
       throw std::invalid_argument("invalid placement options or identity coverage");
     std::vector<unsigned char> grouped(nodes.size(), 0);
@@ -42,6 +156,7 @@ StraightVisualPlacementResult optimizeStraightVisualPlacement(
       grouped[node] = 1;
     }
     const double budgetMs = options.budgetMs;
+    const double greedyBudgetMs = budgetMs - std::min(budgetMs, options.escapeBudgetMs);
     const int rounds = std::max(0, options.maxRounds);
     const int angular = std::clamp(options.angularSamples, 4, 32);
     const int limit = options.nodeLimit;
@@ -75,14 +190,14 @@ StraightVisualPlacementResult optimizeStraightVisualPlacement(
     const double diagonal = std::hypot(spanX, spanY);
     std::size_t evaluations = 0, moves = 0;
     int completed = 0;
-    for (int round = 0; round < rounds && elapsed() < budgetMs; ++round) {
+    for (int round = 0; round < rounds && elapsed() < greedyBudgetMs; ++round) {
       const auto pressure = state.pressure();
       std::vector<std::size_t> order(nodes.size()); std::iota(order.begin(), order.end(), 0);
       std::sort(order.begin(), order.end(), [&](auto a, auto b) { return pressure[a] != pressure[b] ? pressure[a] > pressure[b] : ids[a] < ids[b]; });
       if (limit > 0 && order.size() > static_cast<std::size_t>(limit)) order.resize(limit);
       std::size_t accepted = 0;
       std::size_t groupMoves = 0;
-      const double groupEnd = std::min(budgetMs, elapsed() + std::max(0.0, options.groupBudgetMs));
+      const double groupEnd = std::min(greedyBudgetMs, elapsed() + std::max(0.0, options.groupBudgetMs));
       if (!groups.empty()) {
         std::vector<std::size_t> groupOrder(groups.size()); std::iota(groupOrder.begin(), groupOrder.end(), 0);
         std::vector<std::int64_t> groupPressure(groups.size(), 0);
@@ -135,7 +250,7 @@ StraightVisualPlacementResult optimizeStraightVisualPlacement(
         }
       }
       for (const auto node : order) {
-        if (pressure[node] == 0 || elapsed() >= budgetMs) break;
+        if (pressure[node] == 0 || elapsed() >= greedyBudgetMs) break;
         const auto& geometry = state.nodes();
         const auto original = geometry[node];
         Point center{original.x, original.y}, weighted = center;
@@ -207,7 +322,7 @@ StraightVisualPlacementResult optimizeStraightVisualPlacement(
         Point best{original.x, original.y}; auto bestScore = state.score();
         double bestLength = std::numeric_limits<double>::infinity();
         for (const auto& candidate : candidates) {
-          if (elapsed() >= budgetMs) break;
+          if (elapsed() >= greedyBudgetMs) break;
           if (candidate.x < left - spanX * .2 || candidate.x > right + spanX * .2
               || candidate.y < top - spanY * .2 || candidate.y > bottom + spanY * .2) continue;
           const auto score = state.evaluateMove(node, candidate.x, candidate.y); ++evaluations;
@@ -221,11 +336,11 @@ StraightVisualPlacementResult optimizeStraightVisualPlacement(
         if (cost(bestScore) < cost(state.score())) { state.move(node, best.x, best.y); ++accepted; ++moves; }
       }
       std::size_t swaps = 0;
-      if (swapLimit > 0 && elapsed() < budgetMs) {
+      if (swapLimit > 0 && elapsed() < greedyBudgetMs) {
         const auto updated = state.pressure();
         std::sort(order.begin(), order.end(), [&](auto a, auto b) { return updated[a] != updated[b] ? updated[a] > updated[b] : ids[a] < ids[b]; });
         const auto count = std::min<std::size_t>(swapLimit, order.size());
-        for (std::size_t i = 0; i < count && elapsed() < budgetMs; ++i) {
+        for (std::size_t i = 0; i < count && elapsed() < greedyBudgetMs; ++i) {
           const auto node = order[i];
           if (updated[node] == 0) break;
           auto bestScore = state.score(); auto best = node;
@@ -241,7 +356,7 @@ StraightVisualPlacementResult optimizeStraightVisualPlacement(
           for (std::size_t j = 0; j < nearCount; ++j) partners.push_back(nearest[j].second);
           for (std::size_t j = i + 1; j < count; ++j) partners.push_back(order[j]);
           for (const auto other : partners) {
-            if (elapsed() >= budgetMs) break;
+            if (elapsed() >= greedyBudgetMs) break;
             const auto score = state.evaluateSwap(node, other); ++evaluations;
             if (cost(score) < cost(bestScore)) { bestScore = score; best = other; }
           }
@@ -255,6 +370,8 @@ StraightVisualPlacementResult optimizeStraightVisualPlacement(
         << " evaluations=" << evaluations << " elapsedMs=" << elapsed() << '\n';
       if (accepted == 0 && swaps == 0 && groupMoves == 0) break;
     }
+    const auto escape = escapeStraightPlacement(state, edges, adjacent, options, elapsed);
+    evaluations += escape.evaluations; moves += escape.moves;
     const auto audited = measureStraightVisualFull(state.nodes(), edges);
     if (audited.edgeCrossings != state.score().edgeCrossings || audited.edgeNodeIntersections != state.score().edgeNodeIntersections
         || audited.nodeOverlaps != state.score().nodeOverlaps || audited.invalidRoutes != state.score().invalidRoutes) throw std::runtime_error("final scene audit mismatch");
@@ -263,6 +380,7 @@ StraightVisualPlacementResult optimizeStraightVisualPlacement(
     result.nodes = state.nodes(); result.routes = state.routes();
     result.before = before; result.after = audited;
     result.moves = moves; result.evaluations = evaluations; result.rounds = completed;
+    result.escapeEvaluations = escape.evaluations; result.uphillMoves = escape.uphill;
     result.elapsedMs = elapsed(); result.budgetHit = result.elapsedMs >= budgetMs;
     return result;
 }

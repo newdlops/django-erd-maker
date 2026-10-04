@@ -66,6 +66,45 @@ int main() {
     StraightVisualState roundedLanes({{20, 20, 0, 0}, {20, 20, 400, 0}}, tooMany);
     require(roundedLanes.score().invalidRoutes > 0, "rounding merged lanes without invalidating the scene");
 
+    const std::vector<StraightVisualNode> rowNodes{{20, 20, 0, 0}, {20, 20, 100, 0},
+      {20, 20, 200, 0}, {20, 20, 400, 0}};
+    StraightVisualState partialOverlap(rowNodes, {{0, 2}, {1, 3}});
+    require(partialOverlap.score().invalidRoutes > 0,
+      "partially overlapping independent straight lines silently disappear from crossings");
+    StraightVisualState separatedCollinear(rowNodes, {{0, 1}, {2, 3}});
+    require(separatedCollinear.score().invalidRoutes == 0,
+      "separate lines on the same infinite axis must remain valid");
+
+    // Rounded, very long near-parallel routes must have one symmetric invalid
+    // score regardless of input order or which endpoint changes first.
+    const std::vector<StraightVisualNode> nearParallelNodes{{20, 20, -10, 0},
+      {20, 20, 1000010, 0}, {20, 20, 199990, .01}, {20, 20, 1200010, -.08}};
+    const std::vector<StraightVisualEdge> orderedEdges{{0, 1}, {2, 3}}, reversedEdges{{2, 3}, {0, 1}};
+    require(same(measureStraightVisualFull(nearParallelNodes, orderedEdges),
+      measureStraightVisualFull(nearParallelNodes, reversedEdges)),
+      "near-collinear invalid score depends on edge input order");
+    for (const auto& ordered : {orderedEdges, reversedEdges}) {
+      StraightVisualState nearParallel(nearParallelNodes, ordered);
+      auto trial = nearParallelNodes;
+      trial[2].x = 49990;
+      const auto expectedMove = measureStraightVisualFull(trial, ordered);
+      require(same(nearParallel.evaluateMove(2, 49990, .01), expectedMove),
+        "near-collinear move delta depends on changed-edge order");
+      nearParallel.move(2, 49990, .01);
+      require(same(nearParallel.score(), expectedMove), "near-collinear commit leaves a stale invalid score");
+      trial = nearParallel.nodes();
+      std::swap(trial[0].x, trial[2].x); std::swap(trial[0].y, trial[2].y);
+      require(same(nearParallel.evaluateSwap(0, 2), measureStraightVisualFull(trial, ordered)),
+        "near-collinear swap delta depends on changed-edge order");
+      trial = nearParallel.nodes(); trial[2].x = 199990; trial[3].y = -.09;
+      const std::vector<StraightVisualMove> changes{{2, 199990, .01}, {3, 1200010, -.09}};
+      const auto expectedGroup = measureStraightVisualFull(trial, ordered);
+      require(same(nearParallel.evaluateMoves(changes), expectedGroup),
+        "near-collinear group delta depends on changed-edge order");
+      nearParallel.moveMany(changes);
+      require(same(nearParallel.score(), expectedGroup), "near-collinear group commit leaves a stale invalid score");
+    }
+
     std::mt19937_64 random(9031);
     std::uniform_real_distribution<double> coordinate(-2000, 2000);
     std::uniform_real_distribution<double> extent(10, 350);
@@ -144,6 +183,54 @@ int main() {
       "bounded placement failed to untangle the four-card crossing");
     require(improved.nodes.size() == 4 && improved.routes.size() == 2,
       "search lost a real card or relationship");
+
+    std::vector<StraightVisualNode> escapeNodes;
+    std::vector<std::string> escapeIds;
+    std::vector<StraightVisualEdge> escapeEdges;
+    for (int i = 0; i < 12; ++i) {
+      escapeNodes.push_back({30, 20, (i % 4) * 250.0, (i / 4) * 250.0 + 21 * std::sin(i * 1.37)});
+      escapeIds.push_back(std::to_string(i));
+      for (int j = 0; j < i; ++j) if ((i + j) % 3 == 0) escapeEdges.push_back({std::size_t(j), std::size_t(i)});
+    }
+    const auto escapeBefore = measureStraightVisualFull(escapeNodes, escapeEdges);
+    require(escapeBefore.invalidRoutes == 0 && escapeBefore.nodeOverlaps == 0,
+      "escape fixture must start with complete independent geometry");
+    options.maxRounds = 0;
+    options.budgetMs = 1000;
+    options.escapeBudgetMs = 1000;
+    options.maxEscapeIterations = 1000;
+    const auto escaped = optimizeStraightVisualPlacement(escapeNodes, escapeEdges, escapeIds, {}, options);
+    require(escaped.escapeEvaluations > 0, "reserved escape phase performed no candidate evaluation");
+    require(escaped.uphillMoves > 0, "escape phase never explored beyond a strict greedy descent");
+    require(escaped.after.visual() <= escapeBefore.visual() && escaped.after.invalidRoutes == 0
+      && escaped.after.nodeOverlaps == 0, "uphill exploration returned a worse or invalid scene");
+    require(same(escaped.after, measureStraightVisualFull(escaped.nodes, escapeEdges)),
+      "restored best escape scene disagrees with independent full audit");
+    require(escaped.nodes.size() == escapeNodes.size() && escaped.routes.size() == escapeEdges.size(),
+      "escape phase lost a real card or independent line");
+    options.budgetMs = 0;
+    const auto expiredEscape = optimizeStraightVisualPlacement(escapeNodes, escapeEdges, escapeIds, {}, options);
+    require(expiredEscape.escapeEvaluations == 0 && same(expiredEscape.after, escapeBefore),
+      "expired shared deadline executed escape or lost baseline geometry");
+    options.budgetMs = 100;
+    options.maxEscapeIterations = 0;
+    const auto disabledEscape = optimizeStraightVisualPlacement(escapeNodes, escapeEdges, escapeIds, {}, options);
+    require(disabledEscape.escapeEvaluations == 0 && same(disabledEscape.after, escapeBefore),
+      "zero escape iterations changed the baseline");
+    options.maxEscapeIterations = 1000000;
+    options.budgetMs = 10;
+    const auto boundedEscape = optimizeStraightVisualPlacement(escapeNodes, escapeEdges, escapeIds, {}, options);
+    require(boundedEscape.elapsedMs < 250 && boundedEscape.after.visual() <= escapeBefore.visual(),
+      "escape reservation extended the shared deadline or returned a worse scene");
+    options.budgetMs = 100;
+    const auto escapedObstacle = optimizeStraightVisualPlacement(
+      {{20, 20, 0, 0}, {20, 20, 400, 0}, {20, 20, 200, 0}}, {{0, 1}},
+      {"source", "target", "isolated"}, {}, options);
+    require(escapedObstacle.after.visual() == 0 && escapedObstacle.nodes.size() == 3,
+      "escape omitted an isolated card obstructing an unrelated line");
+    const auto emptyEscape = optimizeStraightVisualPlacement({}, {}, {}, {}, options);
+    require(emptyEscape.nodes.empty() && emptyEscape.routes.empty() && emptyEscape.escapeEvaluations == 0,
+      "empty graph sampled invalid pressure weights");
     std::cout << "2000 move evaluations match complete scene audits; unrelated obstacles, "
                  "crossings, reverts, touching boundaries and nonfinite input checked\n";
   } catch (const std::exception& error) {

@@ -91,7 +91,12 @@ test("relationships between models inside one leaf bundle keep their real endpoi
   }];
 
   const renderModel = createDiagramRenderModel(payload);
-  const relationshipCarriers = renderModel.edges.filter((edge) =>
+  // The existing overview stores internal relationships in the Leaf card;
+  // its individual view must restore the original straight endpoint geometry.
+  assert.ok(renderModel.leafCardOverview?.internalEdgeIds.includes("edge-chain-0"));
+  const individualModel = {...renderModel,
+    edges: renderModel.leafCardOverview.individualEdges, leafCards: [], leafCardOverview: undefined};
+  const relationshipCarriers = individualModel.edges.filter((edge) =>
     (edge.memberEdgeIds ?? [edge.edgeId]).includes("edge-chain-0")
   );
 
@@ -105,7 +110,7 @@ test("relationships between models inside one leaf bundle keep their real endpoi
   assert.ok(relationshipCarriers.every((carrier) =>
     carrier.points.trim().split(/\s+/).length === 2));
   assertRelationshipPathConnectsRealTables(
-    renderModel,
+    individualModel,
     payload.graph.structuralEdges.find((edge) => edge.id === "edge-chain-0"),
   );
   assert.deepEqual(renderModel.semanticCarriers?.missingRelationships, []);

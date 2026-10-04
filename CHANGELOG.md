@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.0.1073 — Bounded straight-line escape (2026-10-05)
+
+- Reserve up to 10 seconds within the shared 40-second position budget for
+  stochastic moves and swaps, then restore the best complete request-local
+  scene before the independent audit. Shorter deadlines and zero budgets apply
+  to both phases; no result coordinates are reused between analyses.
+- Reject partially overlapping collinear lines with symmetric full/delta
+  scoring, including near-collinear tolerance cases.
+- On the same 1,247-model / 1,732-route project, fresh overview visualCross
+  decreased from 3,274 to 2,945 and individual visualCross from 3,271 to 2,954.
+  Source discovery through HTML generation took 88.1 seconds with a combined
+  host/worker peak of 111.3 MiB and no model or layout result cache reads.
+- All models and individual straight routes remain present, with no card
+  overlaps. Analysis is slower than 0.0.1072 and the bounding area increased
+  from 6.142B to 7.669B. Overview ≤200 and individual <500 remain unmet;
+  the result retains its `quality-degraded` status. See
+  [measurement conditions](docs/PERFORMANCE.ko.md).
+
 ## 0.0.1072 — Fresh straight-line crossing reduction (2026-10-05)
 
 - Score card moves and swaps against every independent straight relationship

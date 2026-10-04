@@ -81,9 +81,35 @@ bool cross(const StraightVisualRoute& a, const StraightVisualRoute& b) {
     && orientation(b.sourceX, b.sourceY, b.targetX, b.targetY, a.sourceX, a.sourceY)
       * orientation(b.sourceX, b.sourceY, b.targetX, b.targetY, a.targetX, a.targetY) < -epsilon;
 }
-bool identical(const StraightVisualRoute& a, const StraightVisualRoute& b) {
-  return (a.sourceX == b.sourceX && a.sourceY == b.sourceY && a.targetX == b.targetX && a.targetY == b.targetY)
-      || (a.sourceX == b.targetX && a.sourceY == b.targetY && a.targetX == b.sourceX && a.targetY == b.sourceY);
+bool overlaps(const StraightVisualRoute& a, const StraightVisualRoute& b) {
+  if ((a.sourceX == b.sourceX && a.sourceY == b.sourceY && a.targetX == b.targetX && a.targetY == b.targetY)
+      || (a.sourceX == b.targetX && a.sourceY == b.targetY && a.targetX == b.sourceX && a.targetY == b.sourceY)) return true;
+  const auto first = bounds(a), second = bounds(b);
+  if (first.right < second.left - 1e-7 || second.right < first.left - 1e-7
+      || first.bottom < second.top - 1e-7 || second.bottom < first.top - 1e-7) return false;
+  // Use the independent canonical audit's angular and parameter tolerances.
+  // A shared portion of two independent routes is invalid even when their
+  // complete endpoint pairs differ and strict proper crossings count zero.
+  const double rx = a.targetX - a.sourceX, ry = a.targetY - a.sourceY;
+  const double sx = b.targetX - b.sourceX, sy = b.targetY - b.sourceY;
+  const double qx = b.sourceX - a.sourceX, qy = b.sourceY - a.sourceY;
+  const double rLength = std::hypot(rx, ry), sLength = std::hypot(sx, sy);
+  if (std::abs(rx * sy - ry * sx) > 1e-7 * std::max(1.0, rLength * sLength)) return false;
+  const double displacement = std::hypot(qx, qy);
+  const auto projectedOverlap = [&](double dx, double dy, double ux, double uy,
+                                    double offsetX, double offsetY, double length) {
+    if (std::abs(offsetX * dy - offsetY * dx) > 1e-7 * std::max(1.0, length * displacement)) return false;
+    const double squared = dx * dx + dy * dy;
+    if (squared == 0) return false;
+    const double t0 = (offsetX * dx + offsetY * dy) / squared;
+    const double t1 = t0 + (ux * dx + uy * dy) / squared;
+    return std::min(1.0, std::max(t0, t1)) > std::max(0.0, std::min(t0, t1)) + 1e-9;
+  };
+  // Near the tolerance boundary the canonical predicate depends on which
+  // line defines the projection. Conservatively reject either orientation;
+  // full and changed-edge evaluations must use exactly one symmetric score.
+  return projectedOverlap(rx, ry, sx, sy, qx, qy, rLength)
+      || projectedOverlap(sx, sy, rx, ry, -qx, -qy, sLength);
 }
 bool hits(const StraightVisualRoute& line, const Rect& box) {
   double enter = 0, exit = 1;
@@ -150,7 +176,7 @@ StraightVisualScore measureStraightVisualFull(const std::vector<StraightVisualNo
     score.invalidRoutes += invalid(routes[i], nodes[edges[i].source], nodes[edges[i].target]);
     for (std::size_t j = i + 1; j < routes.size(); ++j) {
       score.edgeCrossings += cross(routes[i], routes[j]);
-      score.invalidRoutes += identical(routes[i], routes[j]);
+      score.invalidRoutes += overlaps(routes[i], routes[j]);
     }
     for (std::size_t j = 0; j < nodes.size(); ++j) {
       if (j != edges[i].source && j != edges[i].target) score.edgeNodeIntersections += hits(routes[i], rect(nodes[j], 10));
@@ -211,12 +237,12 @@ struct StraightVisualState::Storage {
       for (const auto other : routeIndex.query(expand(bounds(candidate), .000001))) {
         if (!affected(other, node, second)) {
           result.edgeCrossings += cross(candidate, routes[other]);
-          result.invalidRoutes += identical(candidate, routes[other]);
+          result.invalidRoutes += overlaps(candidate, routes[other]);
         }
       }
       for (const auto& previous : changed) {
         result.edgeCrossings += cross(candidate, previous);
-        result.invalidRoutes += identical(candidate, previous);
+        result.invalidRoutes += overlaps(candidate, previous);
       }
       for (const auto other : nodeIndex.query(expand(bounds(candidate), 10)))
         if (!moved(other) && other != pair.source && other != pair.target) result.edgeNodeIntersections += hits(candidate, rect(nodes[other], 10));
@@ -258,12 +284,12 @@ struct StraightVisualState::Storage {
       for (const auto other : routeIndex.query(expand(bounds(candidate), .000001))) {
         if (!affectedEdges[other]) {
           result.edgeCrossings += cross(candidate, routes[other]);
-          result.invalidRoutes += identical(candidate, routes[other]);
+          result.invalidRoutes += overlaps(candidate, routes[other]);
         }
       }
       for (const auto& previous : changed) {
         result.edgeCrossings += cross(candidate, previous);
-        result.invalidRoutes += identical(candidate, previous);
+        result.invalidRoutes += overlaps(candidate, previous);
       }
       for (const auto other : nodeIndex.query(expand(bounds(candidate), 10))) {
         if (!moved[other] && other != pair.source && other != pair.target)
@@ -376,7 +402,7 @@ std::vector<std::int64_t> StraightVisualState::pressure() const {
     for (const auto other : s.routeIndex.query(expand(bounds(s.routes[edge]), .000001))) {
       if (other <= edge) continue;
       if (cross(s.routes[edge], s.routes[other])) { charge(edge, 1); charge(other, 1); }
-      if (identical(s.routes[edge], s.routes[other])) { charge(edge, 1000); charge(other, 1000); }
+      if (overlaps(s.routes[edge], s.routes[other])) { charge(edge, 1000); charge(other, 1000); }
     }
     for (const auto node : s.nodeIndex.query(expand(bounds(s.routes[edge]), 10))) {
       if (node != s.edges[edge].source && node != s.edges[edge].target
