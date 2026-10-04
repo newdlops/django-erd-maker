@@ -15,6 +15,7 @@ const sourceFiles = [
   "scripts/prepare-release.sh", "scripts/prepare-release.mjs", "scripts/package-release.sh", "scripts/package-release.mjs", "scripts/verify-release-artifacts.mjs",
   "scripts/prepare-preview-release.mjs",
   "scripts/erd-poc/run_memory_bounded.py", "scripts/erd-poc/ogdf_planar_backbone.cpp",
+  "scripts/erd-poc/bundle_latest_checkpoint_preview.cjs",
   "scripts/erd-poc/ogdf_general_layout_probe.cpp", "test/integration/release-packaging.test.mjs",
   "test/integration/bundled-ml-preview.test.mjs",
   "test/e2e/release.cjs", "test/e2e/suite/index.cjs",

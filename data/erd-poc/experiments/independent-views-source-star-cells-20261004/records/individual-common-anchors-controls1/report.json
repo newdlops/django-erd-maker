@@ -1,0 +1,73 @@
+{
+  "kind": "source-scheduled-single-owner-free-body-closed-anchor-nn-controls-v1",
+  "view": "individual",
+  "sourceDirectory": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963",
+  "sourceInputs": {
+    "nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+    "edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+    "positions.tsv": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+    "routes.tsv": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+    "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+    "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+    "individual.positions.tsv": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+    "individual.routes.tsv": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+    "components.tsv": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+    "groups.tsv": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d"
+  },
+  "sourceBindingSha256": "c5e3001d3a14304ada656ffd7d5bdfd69ac7f56abecf77fe2a2e6623dc2ed20c",
+  "environmentSha256": "b5c355b2675d225114279549051ef201d84d6e56dbe8658810cc9705004f5514",
+  "seed": 125107,
+  "support": {
+    "kind": "immutable-source-multiple-relationship-conflict-vocabulary",
+    "owners": [
+      129,
+      311,
+      686
+    ],
+    "incidentCounts": [
+      169,
+      58,
+      21
+    ],
+    "sourcePressure": [
+      396.0000000011471,
+      358.0000000014203,
+      318.0000000000505
+    ],
+    "pressureFeatureIndices": [
+      6,
+      7
+    ],
+    "futureGeometryUsed": false,
+    "vocabularyEmitsNoCoordinates": true
+  },
+  "sourceVisual": 1963,
+  "controls": 12,
+  "legalControls": 12,
+  "minimumLegalVisual": 2254,
+  "betterLegalControls": 0,
+  "maximumBodyDisplacementPixels": 1343.74,
+  "parametersPerControl": 36,
+  "nativeMeasurements": 15,
+  "nativeTryCalls": 0,
+  "newGeometryRewardTrainingUpdates": 0,
+  "zeroHeadSourceIdentity": false,
+  "sourceCommonAnchorBasisChangesPortsEvenWithZeroBody": true,
+  "completeSourceComponentsRetainBothSidesOfAllAffectedStars": true,
+  "fixedSourceControlsSelectedBeforeMeasurement": true,
+  "controlsNeverSubmittedForAcceptance": true,
+  "noCandidateSelected": true,
+  "nativeCoordinateSearchOrRepairs": 0,
+  "controlInputSha256": "0c81c6502bfd50ec2afc3de60057cbe640e1540e025c3566ef8a0f602ed8bdb1",
+  "traceSha256": "84936c741628fe8c86c3f2e7da838696aeddac4dcda0056e32233af2e0b829bd",
+  "observationsSha256": "e19d3fd837b18ec47d0b0c0b84d58f26d7dd56e5bf3f1119655548fdbf852d65",
+  "codeSha256": {
+    "/Users/lky/project/django-erd-maker/.tmp/probe_free_body_common_anchors.py": "a0a1e397c2a4d7312775b5517d3537f5ba3afc860be48ba11d976c7ab2ea0380",
+    "scripts/erd-poc/compact_component_anchor_policy.py": "f7c3c7b4c33c02e3bb5f711659f8c3511301da9e730b918d59d4f4aeb477fc71",
+    "scripts/erd-poc/compact_source_port_policy.py": "fc2611cf17b48297cdf33ec1ab2f409d14f4673c98b8acd006cc8b4b4fa6b210",
+    "scripts/erd-poc/compact_patch_neural_policy.py": "9547be95ec3eb29966d03dba8c6f241801b6dcfef05f65c3e89de35ff18f2c6d",
+    "scripts/erd-poc/run_source_star_cell_reward.py": "9fc4098150a4ff0f8c2dffa09582766500e97d6a9739d918214a1802604d0cfe"
+  },
+  "promoted": false,
+  "browserVerified": false
+}

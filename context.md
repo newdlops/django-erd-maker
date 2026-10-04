@@ -1,6 +1,6 @@
 # Django ERD Maker — ML Layout Research Context
 
-**Updated:** 2026-10-04 (extension 0.0.1069 includes latest trained checkpoint outputs 285 / 1,963; promoted best remains 285 / 1,963; active targets 150 / 750).
+**Updated:** 2026-10-04 (extension 0.0.1070 includes the final source-cell NN checkpoint outputs; promoted best remains 285 / 1,963; active targets 150 / 750).
 **Repo root:** `/Users/lky/project/django-erd-maker`
 **Branch:** `multi-view`
 **Test ERD:** Captain (a Django project at `/Users/lky/project/captain`)
@@ -22,6 +22,110 @@ violations, and the 1.5e9 area limit. Keep numerical jobs serialized, one math
 thread, nice +10, and the 128 MiB process-group sampled RSS guard. Earlier
 256 MiB runs below are historical; do not raise the current limit merely for
 record verification. This is not a hard CPU-percentage quota.
+
+### User-requested intermediate release: 0.0.1070
+
+The latest user request is to version, apply, commit and push the accumulated
+work. Extension **0.0.1070** includes the final source-cell checkpoints:
+**25 overview / 20 individual training updates**, independently replayed
+from their original observations. All **45 updates and 180 probe wires**
+were reconstructed for the release, with **31 fresh full Native measurements**.
+The actual final NN outputs, not a strict-best fallback, retain **285 / 1,963**.
+No additional reduction or achievement of **150 / 750** is claimed.
+
+The new output pointer is
+`data/erd-poc/candidates/captain-ml-latest-checkpoints.layout.json`, SHA-256
+`09366906f601f512c495e0324f6b6e1463f9b7442d823837b2ba2ebf9e421778`.
+Frozen models and inference/export evidence are in
+`data/erd-poc/checkpoints/source-cell-preview-20261004/`.
+The prior 0.0.1069 preview and its four ML assets are preserved there as well.
+The promoted best SHA remains
+`4e741de39ca655c7ff042422b9407206427f89e02ecd56b7f4a9f36f6a5cd02e`.
+
+The latest joint body/port source-ray experiment is also retained in
+`data/erd-poc/experiments/independent-views-source-ray-clips-20261004/`:
+33 overview and 32 individual controls, all legal, none improving the source.
+Every control, NN head, fixed checkpoint array, source/action feature and full
+teacher label was reconstructed and remeasured (**67 fresh Native measurements**).
+No actual-graph gain selector was trained because no positive teacher existed.
+The 2→1 toy improvement is source-specific, not a whole-Captain result.
+
+The actual product loader and both view-switch route functions were verified;
+all **1,244 models / 1,727 relationships**, original dimensions and boundary
+ports are preserved, hard/overlap/spacing remain zero, and both view areas stay
+below 1.5e9. Six relevant regression tests passed. The normal matching-graph
+path loads the bundled output without developer overrides or Native layout
+calls. Runtime compilation transformed all 69 TS files with cached esbuild.
+Full-project typecheck and a real browser/visual review are **not verified**.
+
+VSIX `dist/django-erd-maker-0.0.1070-darwin-arm64.vsix` SHA-256:
+`f8c19ec1086305faeaec80e1551f28eb71651e8a791e6413d9e4016b66601ecc`.
+The standard Electron install CLI exceeded the 128MiB RSS guard twice and
+was stopped; running its CLI script in plain Node could not resolve its ASAR
+dependency. The verified VSIX was instead installed by streaming into a new
+extension directory and atomically replacing only its existing registry entry.
+All packaged hashes matched; other registry entries and version 0.0.1069 were
+preserved. Successful installation sampled **21.5MiB**. Existing VS Code windows
+need a reload; active-window reload and browser rendering are not verified.
+Evidence is in `data/erd-poc/releases/0.0.1070-darwin-arm64/`.
+
+Numerical and release jobs remain serialized, one math thread, nice +10,
+sampled RSS guard **128MiB**. Largest completed model/product verification
+sampled **114.3MiB**; the limit was never increased for installation.
+
+### Prior goal continuation: source cells, full movement controls and an endpoint bottleneck
+
+Retained evidence is
+`data/erd-poc/experiments/independent-views-source-star-cells-20261004/manifest.json`:
+173 files / 9,127,085 bytes, including both sets of original source TSVs, the
+frozen Native executable, fixed encoders, all checkpoints, complete training
+traces, teacher controls and independent replay code. The canonical best,
+latest app preview and installed extension **0.0.1069** are unchanged.
+
+The radial capacity diagnosis confirmed useful motion for pressure owners:
+individual 30 owners have up to 1,336px capacity, with 14 above 100px; overview
+3 owners have 30–140px capacity. Recomputing limits with only pressure owners
+moving does not remove the main bottleneck. Their source cross/hit feature
+totals are approximately 3 + 30 individual and 1 + 2 overview. These local
+counts may overlap; they are not a new whole-view metric. Single-relationship
+motion alone cannot address most of the current source conflicts.
+
+`source_star_cell_policy.py` computes immutable source spacing, adjacent-line
+and outward-endpoint cells. A shared 27-parameter NN selects an owner, cell
+direction and amplitude; Native supplies labels and accepts/rejects only.
+Original card-relative ports and zero-head source identity are retained.
+The multi-edge toy graph moved a parent 216–358px legally and improved 2→1/0.
+Actual overview/individual training completed **25/20 updates**, **100/80 full
+teacher probes** and **6/5 trained TRY outputs**. All were legal, but none
+improved **285 / 1,963**; both final trained heads output zero movement.
+Every update, probe wire, checkpoint array and Native reward was independently
+replayed: **195 full Native measurements**, including the actual final heads.
+
+Larger predeclared NN controls sampled four cell directions for all twelve
+source-pressure core owners in each view: **96 real controls**, all legal,
+with no improvement. They were never submitted for acceptance. A 300-update
+learned selector on the four toy controls chose a valid **2→0** move; this is
+toy/source-specific evidence, not whole-Captain improvement or held-out
+generalization. All controls, source classification updates, toy selector
+updates and saved geometry were independently replayed: **104 measurements**.
+
+The fixed-source ports are a material movement constraint: `db.Company` has
+a 1,350px spacing box but a source star cell of only about **0.126px**.
+Existing closed-component NN body/anchor output was therefore tested with
+twelve predeclared large single-owner controls. All were legal, original card
+sizes were kept and both view areas stayed below 1.5e9; maximum body movement
+was **1,343.74px**. Minimum individual visual was **2,254**, worse than 1,963.
+The common-anchor basis changes ports even with zero body displacement; these
+controls do not have zero-head source identity and are not promoted. Their
+source encoders, buffers, wires and full labels were replayed: **15 measurements**.
+
+Total independent verification was **314 full Native measurements**. Numerical
+jobs remained serialized, one math thread, nice +10, sampled RSS guard 128MiB;
+largest completed verification sampled **68.6MiB**. No app rebuild, version
+bump, installation, push or visual/browser claim was made for this continuation.
+The next ML proposal must couple body/port outputs while preserving the source
+at zero and avoiding wholesale component rerouting cost. Do not repeat unchanged
+radial/source-cell budgets or treat the toy improvement as meeting 150 / 750.
 
 ### Current user steering: version, install, commit and push the intermediate result
 

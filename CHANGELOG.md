@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.0.1070 — Latest ML checkpoint review (2026-10-04)
+
+- Update the bundled preview to the latest source-cell neural checkpoints,
+  trained for 25 overview and 20 individual-view updates.
+- Preserve the verified overview 285 / individual 1,963 layout, all 1,244
+  original models and 1,727 relationships. No additional reduction is claimed.
+- Retain the source-cell and joint body/port experiment code, measurements and
+  replay evidence. The 150 / 750 target remains unmet.
+
 ## 0.0.1069 — ML layout review (2026-10-04)
 
 - Include the latest trained checkpoint outputs: overview 285 and individual

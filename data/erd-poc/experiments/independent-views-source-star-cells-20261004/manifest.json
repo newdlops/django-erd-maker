@@ -1,0 +1,1105 @@
+{
+  "kind": "retained-source-star-cell-nn-family-and-diagnostics-v1",
+  "activeTargets": {
+    "overview": 150,
+    "individual": 750
+  },
+  "targetsMet": false,
+  "canonicalBest": {
+    "overview": 285,
+    "individual": 1963,
+    "sha256": "4e741de39ca655c7ff042422b9407206427f89e02ecd56b7f4a9f36f6a5cd02e"
+  },
+  "installedExtensionVersion": "0.0.1069",
+  "appPreviewUnchanged": true,
+  "training": {
+    "actualGraphUpdates": 45,
+    "actualGraphTeacherProbes": 180,
+    "actualGraphAccepted": 0,
+    "toySelectorUpdates": 300,
+    "toyVisualBefore": 2,
+    "toyVisualAfter": 0
+  },
+  "sourceCellControlTeachers": {
+    "actualGraphControls": 96,
+    "toyControls": 4,
+    "actualGraphBetterLegal": 0
+  },
+  "freeBodyCommonAnchorControls": {
+    "actualGraphControls": 12,
+    "legal": 12,
+    "minimumLegalIndividual": 2254,
+    "maximumBodyDisplacementPixels": 1343.74,
+    "zeroHeadSourceIdentity": false,
+    "commonAnchorBasisChangesPortsBeforeBodyMotion": true
+  },
+  "validation": {
+    "allTeacherLabelsIndependentlyRemeasured": true,
+    "completeTrainingFamilyFullNativeMeasurements": 195,
+    "completeControlAndToyFullNativeMeasurements": 104,
+    "completeCommonAnchorFullNativeMeasurements": 15,
+    "totalFullNativeMeasurements": 314,
+    "heldOutGeneralizationVerified": false,
+    "productLoadOrBrowserVerified": false
+  },
+  "resourcePolicy": {
+    "sampledRssGuardMiB": 128,
+    "mathThreads": 1,
+    "nice": 10,
+    "jobsSerialized": true,
+    "maximumCompletedVerificationPeakMiB": 68.6
+  },
+  "constraints": {
+    "nativeCoordinateSearchOrRepairs": 0,
+    "completeOriginalModels": 1244,
+    "completeCanonicalRelationships": 1727,
+    "originalDimensionsRequired": true,
+    "hardOverlapSpacingMustBeZero": true,
+    "eachViewAreaAtMost": 1500000000.0
+  },
+  "nextAction": "Joint body/port NN proposals must preserve the source at zero and avoid the whole-component anchor remapping cost. Do not repeat unchanged radial or source-cell learning budgets.",
+  "sourceBindingSha256": "c5e3001d3a14304ada656ffd7d5bdfd69ac7f56abecf77fe2a2e6623dc2ed20c",
+  "environmentSha256": "b5c355b2675d225114279549051ef201d84d6e56dbe8658810cc9705004f5514",
+  "retainedFiles": 173,
+  "retainedBytes": 9127085,
+  "files": [
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/common-anchors-validation1/proof.json",
+      "retained": "records/common-anchors-validation1/proof.json",
+      "sha256": "30fe67bc21881721f3946a8681b7eb0fb91f3a3d06c5b04f0dfb33c228045c0b",
+      "bytes": 863
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/individual-controls1/learned.tsv",
+      "retained": "records/controls-validation1/individual-controls1/learned.tsv",
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "bytes": 73707
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/individual-controls1/learned.tsv.individual",
+      "retained": "records/controls-validation1/individual-controls1/learned.tsv.individual",
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "bytes": 73707
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/individual-controls1/learned.tsv.individual.routes.tsv",
+      "retained": "records/controls-validation1/individual-controls1/learned.tsv.individual.routes.tsv",
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "bytes": 160868
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/individual-controls1/learned.tsv.routes.tsv",
+      "retained": "records/controls-validation1/individual-controls1/learned.tsv.routes.tsv",
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "bytes": 160868
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/individual-controls1/learned.tsv.stats.json",
+      "retained": "records/controls-validation1/individual-controls1/learned.tsv.stats.json",
+      "sha256": "f3bc2c017d215f2aab88436a2a4eabaadf36ff889681cbcad0c126fb95d0b2af",
+      "bytes": 966
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/individual-controls1/native-replay.jsonl",
+      "retained": "records/controls-validation1/individual-controls1/native-replay.jsonl",
+      "sha256": "f3a4c61c1bba987157eafa7f8a95eeaf4feac370a178c688969caef961ca34f8",
+      "bytes": 22707
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/overview-controls1/learned.tsv",
+      "retained": "records/controls-validation1/overview-controls1/learned.tsv",
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "bytes": 60175
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/overview-controls1/learned.tsv.individual",
+      "retained": "records/controls-validation1/overview-controls1/learned.tsv.individual",
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "bytes": 73662
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/overview-controls1/learned.tsv.individual.routes.tsv",
+      "retained": "records/controls-validation1/overview-controls1/learned.tsv.individual.routes.tsv",
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "bytes": 160831
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/overview-controls1/learned.tsv.routes.tsv",
+      "retained": "records/controls-validation1/overview-controls1/learned.tsv.routes.tsv",
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "bytes": 98042
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/overview-controls1/learned.tsv.stats.json",
+      "retained": "records/controls-validation1/overview-controls1/learned.tsv.stats.json",
+      "sha256": "0f619427bb6a2b8a098a6ef6ada9d0376f34b8809307ad1d24724209595af6a2",
+      "bytes": 962
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/overview-controls1/native-replay.jsonl",
+      "retained": "records/controls-validation1/overview-controls1/native-replay.jsonl",
+      "sha256": "3dd4fadeae0b067932a3520bdbece60ea8c2d12daab03444b81024dabe4bcbba",
+      "bytes": 22664
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/proof.json",
+      "retained": "records/controls-validation1/proof.json",
+      "sha256": "2ea3d1e4a3001f15dd8d0b046aca01c003b0c52fdfc1018035755637e9c88ab8",
+      "bytes": 2421
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/toy-controls1/learned.tsv",
+      "retained": "records/controls-validation1/toy-controls1/learned.tsv",
+      "sha256": "8136e4b935805b744bc837bfc9a74258063de33785f819ec1d44ef9cfddeceb3",
+      "bytes": 250
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/toy-controls1/learned.tsv.individual",
+      "retained": "records/controls-validation1/toy-controls1/learned.tsv.individual",
+      "sha256": "8136e4b935805b744bc837bfc9a74258063de33785f819ec1d44ef9cfddeceb3",
+      "bytes": 250
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/toy-controls1/learned.tsv.individual.routes.tsv",
+      "retained": "records/controls-validation1/toy-controls1/learned.tsv.individual.routes.tsv",
+      "sha256": "76af2e82a2092e90cd3545b5a4b63aadf3327b69bf5352aa6b7358c6efd2d76d",
+      "bytes": 127
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/toy-controls1/learned.tsv.routes.tsv",
+      "retained": "records/controls-validation1/toy-controls1/learned.tsv.routes.tsv",
+      "sha256": "76af2e82a2092e90cd3545b5a4b63aadf3327b69bf5352aa6b7358c6efd2d76d",
+      "bytes": 127
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/toy-controls1/learned.tsv.stats.json",
+      "retained": "records/controls-validation1/toy-controls1/learned.tsv.stats.json",
+      "sha256": "35e3771f64d6d6bd0b710ffa73eb076db3419577953e54a691d810ded55c4d2e",
+      "bytes": 947
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/toy-controls1/native-replay.jsonl",
+      "retained": "records/controls-validation1/toy-controls1/native-replay.jsonl",
+      "sha256": "83f0f279c0edc2e935130132ec7506db26165253698528932b5de6f1cfb6d909",
+      "bytes": 2287
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/controls-validation1/toy-controls1/ranker-training.jsonl",
+      "retained": "records/controls-validation1/toy-controls1/ranker-training.jsonl",
+      "sha256": "588c7f6d8e74f24c471251da1c3dc518e7399917e08550ee7ecef3162f8ed073",
+      "bytes": 63446
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-common-anchors-controls1/control-inputs.npz",
+      "retained": "records/individual-common-anchors-controls1/control-inputs.npz",
+      "sha256": "0c81c6502bfd50ec2afc3de60057cbe640e1540e025c3566ef8a0f602ed8bdb1",
+      "bytes": 1876
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-common-anchors-controls1/controls.jsonl",
+      "retained": "records/individual-common-anchors-controls1/controls.jsonl",
+      "sha256": "84936c741628fe8c86c3f2e7da838696aeddac4dcda0056e32233af2e0b829bd",
+      "bytes": 6756
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-common-anchors-controls1/initial-owner-129.npz",
+      "retained": "records/individual-common-anchors-controls1/initial-owner-129.npz",
+      "sha256": "084fea9ec3dd3fbeb79c016e104abb8115cd691892ecc70cd46f3bb40449479e",
+      "bytes": 106549
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-common-anchors-controls1/initial-owner-311.npz",
+      "retained": "records/individual-common-anchors-controls1/initial-owner-311.npz",
+      "sha256": "dd89d627f2b46b9d9a3fe4a5a0b4b9d5675534714ec468349236aa8812b2bb78",
+      "bytes": 106546
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-common-anchors-controls1/initial-owner-686.npz",
+      "retained": "records/individual-common-anchors-controls1/initial-owner-686.npz",
+      "sha256": "62a9fb8cca4b1f2b06eb75543b39e535e8c4d8f372638948b55116254adfc292",
+      "bytes": 106545
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-common-anchors-controls1/observations.npz",
+      "retained": "records/individual-common-anchors-controls1/observations.npz",
+      "sha256": "e19d3fd837b18ec47d0b0c0b84d58f26d7dd56e5bf3f1119655548fdbf852d65",
+      "bytes": 260061
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-common-anchors-controls1/report.json",
+      "retained": "records/individual-common-anchors-controls1/report.json",
+      "sha256": "39b9c5acd5b1a5f75b16566870159059d45822969c86f01afe3f31382e9b2f38",
+      "bytes": 3400
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-controls1/initial-cell-model.npz",
+      "retained": "records/individual-controls1/initial-cell-model.npz",
+      "sha256": "1ef990882489966b67500e859d25110e976150348cf379d817f369fc2a41ad6c",
+      "bytes": 13102
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-controls1/learned.tsv",
+      "retained": "records/individual-controls1/learned.tsv",
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "bytes": 73707
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-controls1/learned.tsv.individual",
+      "retained": "records/individual-controls1/learned.tsv.individual",
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "bytes": 73707
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-controls1/learned.tsv.individual.routes.tsv",
+      "retained": "records/individual-controls1/learned.tsv.individual.routes.tsv",
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "bytes": 160868
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-controls1/learned.tsv.routes.tsv",
+      "retained": "records/individual-controls1/learned.tsv.routes.tsv",
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "bytes": 160868
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-controls1/learned.tsv.stats.json",
+      "retained": "records/individual-controls1/learned.tsv.stats.json",
+      "sha256": "f3bc2c017d215f2aab88436a2a4eabaadf36ff889681cbcad0c126fb95d0b2af",
+      "bytes": 966
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-controls1/observations.npz",
+      "retained": "records/individual-controls1/observations.npz",
+      "sha256": "7a6ff10bb07bf3fd7989f059557964049762571bf124faec20212572281d364d",
+      "bytes": 260088
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-controls1/report.json",
+      "retained": "records/individual-controls1/report.json",
+      "sha256": "16a35fd285c73f6ac5d43754391737b7288bbff56f5cee531c98e2af503ed422",
+      "bytes": 4925
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-controls1/teacher-inputs.npz",
+      "retained": "records/individual-controls1/teacher-inputs.npz",
+      "sha256": "cd71b60fb0b1ab482e6a3b66404609a51bbb7b51cb181c1e5ab2e8ed53b9405a",
+      "bytes": 7215
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-controls1/teachers.jsonl",
+      "retained": "records/individual-controls1/teachers.jsonl",
+      "sha256": "f37d51adae29f9cb49165226c69e35ca4eb836fd406492e15e1b6ed608d79a34",
+      "bytes": 28259
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-learning1/actions.jsonl",
+      "retained": "records/individual-learning1/actions.jsonl",
+      "sha256": "d8f9e1ad933d070142dbb65aa493c88b7fa7052f3671700f977eed0537d0367b",
+      "bytes": 4638
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-learning1/initial-model.npz",
+      "retained": "records/individual-learning1/initial-model.npz",
+      "sha256": "0a1f00e6d11c6b6d3e3150db55076207abbeefa3c1471e735b2e34871c35d93e",
+      "bytes": 13088
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-learning1/learned.tsv",
+      "retained": "records/individual-learning1/learned.tsv",
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "bytes": 73707
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-learning1/learned.tsv.individual",
+      "retained": "records/individual-learning1/learned.tsv.individual",
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "bytes": 73707
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-learning1/learned.tsv.individual.routes.tsv",
+      "retained": "records/individual-learning1/learned.tsv.individual.routes.tsv",
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "bytes": 160868
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-learning1/learned.tsv.routes.tsv",
+      "retained": "records/individual-learning1/learned.tsv.routes.tsv",
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "bytes": 160868
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-learning1/learned.tsv.stats.json",
+      "retained": "records/individual-learning1/learned.tsv.stats.json",
+      "sha256": "9e4403f257436628a330c138ef651cb87ff5b185960c5d9eaeb91076949d8fe0",
+      "bytes": 966
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-learning1/model-step-004.npz",
+      "retained": "records/individual-learning1/model-step-004.npz",
+      "sha256": "5ff72bf875a6802e9b235fe28114b6087634dba692b50368da00a3be57497d0d",
+      "bytes": 13244
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-learning1/model-step-008.npz",
+      "retained": "records/individual-learning1/model-step-008.npz",
+      "sha256": "e2f8721e858171e13d6dbbd5312d5479e51081edf6f111dba19c50af438251d1",
+      "bytes": 13243
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-learning1/model-step-012.npz",
+      "retained": "records/individual-learning1/model-step-012.npz",
+      "sha256": "8ebc1322a8b290ad66698dc6c46b4029df2c6d7be32c2d47353c48360a53a41d",
+      "bytes": 13316
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-learning1/model-step-016.npz",
+      "retained": "records/individual-learning1/model-step-016.npz",
+      "sha256": "c61f69b3d030e8c3089a67d0f21936f5444394cf53c06acbf4aa544d39b66a7c",
+      "bytes": 13317
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-learning1/model-step-020.npz",
+      "retained": "records/individual-learning1/model-step-020.npz",
+      "sha256": "76dee5b6242be56e646093f6e00dc6ba4dbc3fce8c47c8c906d2d96c8923c644",
+      "bytes": 13317
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-learning1/observations.npz",
+      "retained": "records/individual-learning1/observations.npz",
+      "sha256": "7a6ff10bb07bf3fd7989f059557964049762571bf124faec20212572281d364d",
+      "bytes": 260088
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-learning1/report.json",
+      "retained": "records/individual-learning1/report.json",
+      "sha256": "7a5fbd8dcd5ec2826e17f2df240245a46a730f63181ee83a15c4180a0bc592fe",
+      "bytes": 7028
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-learning1/training.jsonl",
+      "retained": "records/individual-learning1/training.jsonl",
+      "sha256": "59b9dae1ab131c889999ae010939dbb56907bbb39966e47d568288560cb1f3db",
+      "bytes": 28347
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-controls1/initial-cell-model.npz",
+      "retained": "records/overview-controls1/initial-cell-model.npz",
+      "sha256": "46ed0974cd4094244b33e28af77734017f3923b9a3880384baa3c84739113e60",
+      "bytes": 13106
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-controls1/learned.tsv",
+      "retained": "records/overview-controls1/learned.tsv",
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "bytes": 60175
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-controls1/learned.tsv.individual",
+      "retained": "records/overview-controls1/learned.tsv.individual",
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "bytes": 73662
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-controls1/learned.tsv.individual.routes.tsv",
+      "retained": "records/overview-controls1/learned.tsv.individual.routes.tsv",
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "bytes": 160831
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-controls1/learned.tsv.routes.tsv",
+      "retained": "records/overview-controls1/learned.tsv.routes.tsv",
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "bytes": 98042
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-controls1/learned.tsv.stats.json",
+      "retained": "records/overview-controls1/learned.tsv.stats.json",
+      "sha256": "0f619427bb6a2b8a098a6ef6ada9d0376f34b8809307ad1d24724209595af6a2",
+      "bytes": 962
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-controls1/observations.npz",
+      "retained": "records/overview-controls1/observations.npz",
+      "sha256": "eda332ef0fc0a84622fa2ad146fa9758b68d0f9aa41d7165abf1a2a7eaa82d72",
+      "bytes": 234094
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-controls1/report.json",
+      "retained": "records/overview-controls1/report.json",
+      "sha256": "b8f003f718d30c07182b5c1c13b6a01806088e1a114c5135cc3af0c35c7457b8",
+      "bytes": 4907
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-controls1/teacher-inputs.npz",
+      "retained": "records/overview-controls1/teacher-inputs.npz",
+      "sha256": "b44274b794dca5db7f54e9cf03a5076a967411ab4bd432939b27105e7bc39710",
+      "bytes": 7333
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-controls1/teachers.jsonl",
+      "retained": "records/overview-controls1/teachers.jsonl",
+      "sha256": "45c9de67dffc1c29241a7727a391831376ce236f7595174ee800241c7bc59d25",
+      "bytes": 28216
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-learning1/actions.jsonl",
+      "retained": "records/overview-learning1/actions.jsonl",
+      "sha256": "a8822acf17f35e149aaa905a6b93111e1e34276fcb2dab51b2ca887fbf4be7fc",
+      "bytes": 5576
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-learning1/initial-model.npz",
+      "retained": "records/overview-learning1/initial-model.npz",
+      "sha256": "a7905d5831d89cbe951d284646e68d0f9f15cc0d5dfdea8527c85ac4627b655d",
+      "bytes": 13091
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-learning1/learned.tsv",
+      "retained": "records/overview-learning1/learned.tsv",
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "bytes": 60175
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-learning1/learned.tsv.individual",
+      "retained": "records/overview-learning1/learned.tsv.individual",
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "bytes": 73662
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-learning1/learned.tsv.individual.routes.tsv",
+      "retained": "records/overview-learning1/learned.tsv.individual.routes.tsv",
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "bytes": 160831
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-learning1/learned.tsv.routes.tsv",
+      "retained": "records/overview-learning1/learned.tsv.routes.tsv",
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "bytes": 98042
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-learning1/learned.tsv.stats.json",
+      "retained": "records/overview-learning1/learned.tsv.stats.json",
+      "sha256": "eed1557707a80c2476a5371922582a8c8ebceae348157d4ec59c623451da502e",
+      "bytes": 962
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-learning1/model-step-004.npz",
+      "retained": "records/overview-learning1/model-step-004.npz",
+      "sha256": "b15d00f5e1439375ca6e10a519c8b525004674bb0e446e5209e4b11ea4f7195e",
+      "bytes": 13248
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-learning1/model-step-008.npz",
+      "retained": "records/overview-learning1/model-step-008.npz",
+      "sha256": "bfb80b9715a9298af518399ee8607f0850481e3a5932726e1f860f6446401ffd",
+      "bytes": 13318
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-learning1/model-step-012.npz",
+      "retained": "records/overview-learning1/model-step-012.npz",
+      "sha256": "5cab01fa54f23102e9d95ede896b648a5dd1c0777db6b30a621584c3d929713c",
+      "bytes": 13319
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-learning1/model-step-016.npz",
+      "retained": "records/overview-learning1/model-step-016.npz",
+      "sha256": "0259d11e813b75cf0ee7ae2f1dda57305cb0e130ee3f6fa74355dc2d6324edb4",
+      "bytes": 13319
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-learning1/model-step-020.npz",
+      "retained": "records/overview-learning1/model-step-020.npz",
+      "sha256": "fefb951d62c029114d1363d82e4d3a35054be547436ae758bd4491a55681a298",
+      "bytes": 13319
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-learning1/model-step-024.npz",
+      "retained": "records/overview-learning1/model-step-024.npz",
+      "sha256": "bc6d8096888584501bc52ecc64ab0b55ba7e8b3c5fd096c77cc9901530c91eaf",
+      "bytes": 13318
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-learning1/observations.npz",
+      "retained": "records/overview-learning1/observations.npz",
+      "sha256": "eda332ef0fc0a84622fa2ad146fa9758b68d0f9aa41d7165abf1a2a7eaa82d72",
+      "bytes": 234094
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-learning1/report.json",
+      "retained": "records/overview-learning1/report.json",
+      "sha256": "dd5fff52552c2a73718f082d81d671e35ce8f237d6773b9b189c766b3ca97c30",
+      "bytes": 7008
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-learning1/training.jsonl",
+      "retained": "records/overview-learning1/training.jsonl",
+      "sha256": "29319cc0226b0e8071d9d7f4e221f8742ebdf5fd852da9ffc0b4df730f8b1ae6",
+      "bytes": 35302
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-controls1/best-action.npy",
+      "retained": "records/toy-controls1/best-action.npy",
+      "sha256": "86e0d86c0b6a848c51cf4d2f2901351100c70e982925d41346eb2c71c0ab6f56",
+      "bytes": 320
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-controls1/initial-cell-model.npz",
+      "retained": "records/toy-controls1/initial-cell-model.npz",
+      "sha256": "399ea5d78a374cddb1bc02d1fa097aa582cc05bcbbb0262ea1d7a728665343ed",
+      "bytes": 10499
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-controls1/learned.tsv",
+      "retained": "records/toy-controls1/learned.tsv",
+      "sha256": "8136e4b935805b744bc837bfc9a74258063de33785f819ec1d44ef9cfddeceb3",
+      "bytes": 250
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-controls1/learned.tsv.individual",
+      "retained": "records/toy-controls1/learned.tsv.individual",
+      "sha256": "8136e4b935805b744bc837bfc9a74258063de33785f819ec1d44ef9cfddeceb3",
+      "bytes": 250
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-controls1/learned.tsv.individual.routes.tsv",
+      "retained": "records/toy-controls1/learned.tsv.individual.routes.tsv",
+      "sha256": "76af2e82a2092e90cd3545b5a4b63aadf3327b69bf5352aa6b7358c6efd2d76d",
+      "bytes": 127
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-controls1/learned.tsv.routes.tsv",
+      "retained": "records/toy-controls1/learned.tsv.routes.tsv",
+      "sha256": "76af2e82a2092e90cd3545b5a4b63aadf3327b69bf5352aa6b7358c6efd2d76d",
+      "bytes": 127
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-controls1/learned.tsv.stats.json",
+      "retained": "records/toy-controls1/learned.tsv.stats.json",
+      "sha256": "35e3771f64d6d6bd0b710ffa73eb076db3419577953e54a691d810ded55c4d2e",
+      "bytes": 947
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-controls1/observations.npz",
+      "retained": "records/toy-controls1/observations.npz",
+      "sha256": "65e91aabc3e2043cec10f34079229a887647c06f53b987c7fbf1dd555fe28321",
+      "bytes": 1294
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-controls1/ranker-training.jsonl",
+      "retained": "records/toy-controls1/ranker-training.jsonl",
+      "sha256": "588c7f6d8e74f24c471251da1c3dc518e7399917e08550ee7ecef3162f8ed073",
+      "bytes": 63446
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-controls1/ranker.npz",
+      "retained": "records/toy-controls1/ranker.npz",
+      "sha256": "34c1ae62ab7aa727e08f36d3783a206298f1dc78225d335396564e386e04dce8",
+      "bytes": 38923
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-controls1/report.json",
+      "retained": "records/toy-controls1/report.json",
+      "sha256": "73bb36a24a3569227f70719af37c28aa47cdf9bb070db1e83c55031ccd60b2b6",
+      "bytes": 4510
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-controls1/scores.npy",
+      "retained": "records/toy-controls1/scores.npy",
+      "sha256": "a781f3a442d66c8b5e60e9d9ef99154d9fd3ea515b16ac5cd5e8b6fb8e096823",
+      "bytes": 160
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-controls1/selected.json",
+      "retained": "records/toy-controls1/selected.json",
+      "sha256": "400b9a6f03eccf4e261d1b5c459741c604da6325c14fef596b0136ebeda0152b",
+      "bytes": 654
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-controls1/teacher-inputs.npz",
+      "retained": "records/toy-controls1/teacher-inputs.npz",
+      "sha256": "111a2ffdd811bdfd99acdb0130759b98dba07e896e29d1a45d4197b50d8618ad",
+      "bytes": 914
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-controls1/teachers.jsonl",
+      "retained": "records/toy-controls1/teachers.jsonl",
+      "sha256": "0c4018e2921c599850dfee5ec47bd41d19645db076e1a793e53ef505e165f727",
+      "bytes": 2271
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-green1/audit.json",
+      "retained": "records/toy-green1/audit.json",
+      "sha256": "75734776ed2f93d4155d1b8b16de39464cc253c942dff8d6969993229cece698",
+      "bytes": 2386
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-green1/source/components.tsv",
+      "retained": "records/toy-green1/source/components.tsv",
+      "sha256": "b965a27cc5b72fb3dac5de3ee2e4b68e8bd6f94ad7b570b93abb918852fc420e",
+      "bytes": 48
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-green1/source/edges.tsv",
+      "retained": "records/toy-green1/source/edges.tsv",
+      "sha256": "40289b8b104d19a9f97c365063501a3c9f172414fe991fa7bfd2bed6784a0a1d",
+      "bytes": 36
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-green1/source/groups.tsv",
+      "retained": "records/toy-green1/source/groups.tsv",
+      "sha256": "7c2b5944e6d2f936bd87d2c3f16811ad69f8d26b5f639fdb80582b4fd399eded",
+      "bytes": 24
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-green1/source/individual.edges.tsv",
+      "retained": "records/toy-green1/source/individual.edges.tsv",
+      "sha256": "40289b8b104d19a9f97c365063501a3c9f172414fe991fa7bfd2bed6784a0a1d",
+      "bytes": 36
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-green1/source/individual.nodes.tsv",
+      "retained": "records/toy-green1/source/individual.nodes.tsv",
+      "sha256": "3fbaaf4b4297cbcc6ff43e012a29761b638777b481cea65816b53b6e57588b4d",
+      "bytes": 88
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-green1/source/individual.positions.tsv",
+      "retained": "records/toy-green1/source/individual.positions.tsv",
+      "sha256": "517b3e4585458e2b8f3b2d3703ffd5dc63cd5c679d8d8dd250ff080d55859d4a",
+      "bytes": 86
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-green1/source/individual.routes.tsv",
+      "retained": "records/toy-green1/source/individual.routes.tsv",
+      "sha256": "ac87ed4c20b983a6313a06b0aeea27cebc711f18470357248af28f564fa96a4e",
+      "bytes": 77
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-green1/source/nodes.tsv",
+      "retained": "records/toy-green1/source/nodes.tsv",
+      "sha256": "3fbaaf4b4297cbcc6ff43e012a29761b638777b481cea65816b53b6e57588b4d",
+      "bytes": 88
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-green1/source/positions.tsv",
+      "retained": "records/toy-green1/source/positions.tsv",
+      "sha256": "517b3e4585458e2b8f3b2d3703ffd5dc63cd5c679d8d8dd250ff080d55859d4a",
+      "bytes": 86
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/toy-green1/source/routes.tsv",
+      "retained": "records/toy-green1/source/routes.tsv",
+      "sha256": "ac87ed4c20b983a6313a06b0aeea27cebc711f18470357248af28f564fa96a4e",
+      "bytes": 77
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/validation1/individual/final-action.npy",
+      "retained": "records/validation1/individual/final-action.npy",
+      "sha256": "2f4d0b02f12010ebd14c508e06111a2f649616ffb9181d4fe4d984993753cdc1",
+      "bytes": 47664
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/validation1/individual/final-model.npz",
+      "retained": "records/validation1/individual/final-model.npz",
+      "sha256": "f8d349b962c896377e750f3afda0cdebce530a51a65f5c6ecbe594d45a407536",
+      "bytes": 13330
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/validation1/individual/learned.tsv",
+      "retained": "records/validation1/individual/learned.tsv",
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "bytes": 73707
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/validation1/individual/learned.tsv.individual",
+      "retained": "records/validation1/individual/learned.tsv.individual",
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "bytes": 73707
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/validation1/individual/learned.tsv.individual.routes.tsv",
+      "retained": "records/validation1/individual/learned.tsv.individual.routes.tsv",
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "bytes": 160868
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/validation1/individual/learned.tsv.routes.tsv",
+      "retained": "records/validation1/individual/learned.tsv.routes.tsv",
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "bytes": 160868
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/validation1/individual/learned.tsv.stats.json",
+      "retained": "records/validation1/individual/learned.tsv.stats.json",
+      "sha256": "9e4403f257436628a330c138ef651cb87ff5b185960c5d9eaeb91076949d8fe0",
+      "bytes": 966
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/validation1/individual/native-replay.jsonl",
+      "retained": "records/validation1/individual/native-replay.jsonl",
+      "sha256": "bd1c50406732c457a4a650e4ea8410e3e3ec547969f45c63d716fc0e2f104e7a",
+      "bytes": 43249
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/validation1/overview/final-action.npy",
+      "retained": "records/validation1/overview/final-action.npy",
+      "sha256": "9d70f796209ead5a0c796fbf2aa6c0aa83aaef4a29e7fcc4589704154e4898d3",
+      "bytes": 44320
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/validation1/overview/final-model.npz",
+      "retained": "records/validation1/overview/final-model.npz",
+      "sha256": "b197b926db231b67501bfebffa1a87a8659658e88ec4e06d21a3cea948de6047",
+      "bytes": 13333
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/validation1/overview/learned.tsv",
+      "retained": "records/validation1/overview/learned.tsv",
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "bytes": 60175
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/validation1/overview/learned.tsv.individual",
+      "retained": "records/validation1/overview/learned.tsv.individual",
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "bytes": 73662
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/validation1/overview/learned.tsv.individual.routes.tsv",
+      "retained": "records/validation1/overview/learned.tsv.individual.routes.tsv",
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "bytes": 160831
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/validation1/overview/learned.tsv.routes.tsv",
+      "retained": "records/validation1/overview/learned.tsv.routes.tsv",
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "bytes": 98042
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/validation1/overview/learned.tsv.stats.json",
+      "retained": "records/validation1/overview/learned.tsv.stats.json",
+      "sha256": "eed1557707a80c2476a5371922582a8c8ebceae348157d4ec59c623451da502e",
+      "bytes": 962
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/validation1/overview/native-replay.jsonl",
+      "retained": "records/validation1/overview/native-replay.jsonl",
+      "sha256": "1ea130fd77367cb727c4a0098cbdc6787b36334daaad3af12085f8a12b44469b",
+      "bytes": 54008
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/validation1/proof.json",
+      "retained": "records/validation1/proof.json",
+      "sha256": "591dfa03c74f5c1d42c727b1a92ae1df0f3af4e959a869b54bfd3c339c7a4fc8",
+      "bytes": 3787
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/radial-conflict-capacity1/diagnostic.json",
+      "retained": "diagnostics/radial-conflict-capacity1/diagnostic.json",
+      "sha256": "0615fc78cdfd3170d0777f522e9cc77792fe53c4f7252fad9822a411619353d0",
+      "bytes": 40055
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/source-star-cell-capacity1/diagnostic.json",
+      "retained": "diagnostics/source-star-cell-capacity1/diagnostic.json",
+      "sha256": "c4bf00d5f62a688f9609c36136af930e0985d1bf1cb6f5b8453d2a23e0bd4cd5",
+      "bytes": 29393
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/inspect_radial_conflict_capacity.py",
+      "retained": "code/helpers/inspect_radial_conflict_capacity.py",
+      "sha256": "fa60c55bce6a95d9f5b373e90c36167fd7136ff28e73dc13bea1863b282d9f5f",
+      "bytes": 6588
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/inspect_source_star_cells.py",
+      "retained": "code/helpers/inspect_source_star_cells.py",
+      "sha256": "df5139bc6455d804a1be58e955827ae5741bce5479730703792c6b94037e6dc9",
+      "bytes": 5990
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/probe_free_body_common_anchors.py",
+      "retained": "code/helpers/probe_free_body_common_anchors.py",
+      "sha256": "a0a1e397c2a4d7312775b5517d3537f5ba3afc860be48ba11d976c7ab2ea0380",
+      "bytes": 5948
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/retain_source_star_cell_research.py",
+      "retained": "code/helpers/retain_source_star_cell_research.py",
+      "sha256": "1807924362192fe749b6ae427b80b478b9af75fce7999b07e92855c33187715d",
+      "bytes": 6446
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/run_source_cell_control_learning.py",
+      "retained": "code/helpers/run_source_cell_control_learning.py",
+      "sha256": "f5be4f96ead37f0ff0e68ac241bbaa0965fc8cc289e5da2c893b1091c21c3c0c",
+      "bytes": 10451
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/test_source_star_cell_policy.py",
+      "retained": "code/helpers/test_source_star_cell_policy.py",
+      "sha256": "30fe024fd8763613b7d5dc55e0cb73242f33d8bd22695997b7546251aa397608",
+      "bytes": 4459
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/verify_free_body_common_anchors.py",
+      "retained": "code/helpers/verify_free_body_common_anchors.py",
+      "sha256": "49ad40a6bf65c0ee0ea0d9bf2c0ee86082cc5e55fb1b8b3d73578484e3e46d95",
+      "bytes": 6441
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/verify_source_cell_controls.py",
+      "retained": "code/helpers/verify_source_cell_controls.py",
+      "sha256": "14ab292ee82a6477e77f10a1fffdbc6e7d4d64c6dc36accfe96217106c87d5f4",
+      "bytes": 10540
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/verify_source_star_cell_learning.py",
+      "retained": "code/helpers/verify_source_star_cell_learning.py",
+      "sha256": "7e9b660a74a8c79c6b98407fb977dc2d40456ebfdb0e7165056c58cf6721171e",
+      "bytes": 10669
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/compact_component_anchor_policy.py",
+      "retained": "code/repository/scripts/erd-poc/compact_component_anchor_policy.py",
+      "sha256": "f7c3c7b4c33c02e3bb5f711659f8c3511301da9e730b918d59d4f4aeb477fc71",
+      "bytes": 4698
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/compact_ordered_source_port_policy.py",
+      "retained": "code/repository/scripts/erd-poc/compact_ordered_source_port_policy.py",
+      "sha256": "e45a47f3aaf52e5e9138967cfc4bdf45b843e0262f269c2a7b11e7298bca6c20",
+      "bytes": 4359
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/compact_patch_neural_policy.py",
+      "retained": "code/repository/scripts/erd-poc/compact_patch_neural_policy.py",
+      "sha256": "9547be95ec3eb29966d03dba8c6f241801b6dcfef05f65c3e89de35ff18f2c6d",
+      "bytes": 4374
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/compact_source_port_policy.py",
+      "retained": "code/repository/scripts/erd-poc/compact_source_port_policy.py",
+      "sha256": "fc2611cf17b48297cdf33ec1ab2f409d14f4673c98b8acd006cc8b4b4fa6b210",
+      "bytes": 702
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/geometry_world_model.py",
+      "retained": "code/repository/scripts/erd-poc/geometry_world_model.py",
+      "sha256": "64f6bf8d09c46a89cdfee0284c7ce4df4390e069760b91b6779b862de68833b1",
+      "bytes": 6080
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/joint_grouped_routes.py",
+      "retained": "code/repository/scripts/erd-poc/joint_grouped_routes.py",
+      "sha256": "3b7757e76590aa0e1e935e7f757035f89a6fece56e6a10deb7791e71f1642f6f",
+      "bytes": 8165
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/joint_neural_ports.py",
+      "retained": "code/repository/scripts/erd-poc/joint_neural_ports.py",
+      "sha256": "cde68a0ca3419df89ab6e3b369f564467edec5fea53892ff17367e1e0ee94807",
+      "bytes": 18181
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/joint_reward_training.py",
+      "retained": "code/repository/scripts/erd-poc/joint_reward_training.py",
+      "sha256": "6bdb8c2f52fe27298dd5da090394d5096396e88462ce3e7a685e3b32f091d0c8",
+      "bytes": 10248
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/joint_separation_policy.py",
+      "retained": "code/repository/scripts/erd-poc/joint_separation_policy.py",
+      "sha256": "045b9552977486eb1b7e0f5fdb8a04968f97cd6ff706c3e9d917a04d14083b34",
+      "bytes": 8883
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/learn_card_policy.py",
+      "retained": "code/repository/scripts/erd-poc/learn_card_policy.py",
+      "sha256": "2447e4aae172b46d8c4f07fb7b774aebc1444adaafff5d87fe077ee0a885ba37",
+      "bytes": 43351
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/learn_pair_policy.py",
+      "retained": "code/repository/scripts/erd-poc/learn_pair_policy.py",
+      "sha256": "b7e04b52ab78592075979de28baaa4eb61432cecb32b8f9b40f5182468b85d2e",
+      "bytes": 14619
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/learned_global_replay.py",
+      "retained": "code/repository/scripts/erd-poc/learned_global_replay.py",
+      "sha256": "38bccbe20b4fb7cf4c548b8648f79f977b05d61e1391150b679c6d527d2d6f92",
+      "bytes": 11116
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/run_anchor_pair_policy.py",
+      "retained": "code/repository/scripts/erd-poc/run_anchor_pair_policy.py",
+      "sha256": "db189d196ed68a8dbcdc4c39f8a8dd4873096d1aef6c568e47511eb7eeeb63a2",
+      "bytes": 11655
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/run_anchor_pair_walk.py",
+      "retained": "code/repository/scripts/erd-poc/run_anchor_pair_walk.py",
+      "sha256": "e73fa26e35e1d1bbdfe5f48c2e5f092e71889cf034d42a2f1aa63d52c2e142c8",
+      "bytes": 13558
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/run_memory_bounded.py",
+      "retained": "code/repository/scripts/erd-poc/run_memory_bounded.py",
+      "sha256": "7784ae78aec359887155ff86d37dd503628d490487d2a3e1f9b4e89f3c02a43d",
+      "bytes": 5742
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/run_source_star_cell_reward.py",
+      "retained": "code/repository/scripts/erd-poc/run_source_star_cell_reward.py",
+      "sha256": "9fc4098150a4ff0f8c2dffa09582766500e97d6a9739d918214a1802604d0cfe",
+      "bytes": 9076
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/single_owner_cached_observer_v2.py",
+      "retained": "code/repository/scripts/erd-poc/single_owner_cached_observer_v2.py",
+      "sha256": "cb0d81952f2b0245906d10cb61cdc51135c634ffe766dee88a095d20ec3a1db1",
+      "bytes": 11419
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/scripts/erd-poc/source_star_cell_policy.py",
+      "retained": "code/repository/scripts/erd-poc/source_star_cell_policy.py",
+      "sha256": "e7ceefbecd0ae43ecb5e56143939132216a0f04d43f56cca97719d011f692096",
+      "bytes": 7384
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/source-binding.json",
+      "retained": "source-binding.json",
+      "sha256": "c5e3001d3a14304ada656ffd7d5bdfd69ac7f56abecf77fe2a2e6623dc2ed20c",
+      "bytes": 2784
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/nodes.tsv",
+      "retained": "source-inputs/overview/nodes.tsv",
+      "sha256": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+      "bytes": 34879
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/edges.tsv",
+      "retained": "source-inputs/overview/edges.tsv",
+      "sha256": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+      "bytes": 113471
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/positions.tsv",
+      "retained": "source-inputs/overview/positions.tsv",
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "bytes": 60175
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/routes.tsv",
+      "retained": "source-inputs/overview/routes.tsv",
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "bytes": 98042
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/individual.nodes.tsv",
+      "retained": "source-inputs/overview/individual.nodes.tsv",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "bytes": 43187
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/individual.edges.tsv",
+      "retained": "source-inputs/overview/individual.edges.tsv",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "bytes": 182412
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/individual.positions.tsv",
+      "retained": "source-inputs/overview/individual.positions.tsv",
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "bytes": 73662
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/individual.routes.tsv",
+      "retained": "source-inputs/overview/individual.routes.tsv",
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "bytes": 160831
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/components.tsv",
+      "retained": "source-inputs/overview/components.tsv",
+      "sha256": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+      "bytes": 61887
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/groups.tsv",
+      "retained": "source-inputs/overview/groups.tsv",
+      "sha256": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc",
+      "bytes": 160987
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/nodes.tsv",
+      "retained": "source-inputs/individual/nodes.tsv",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "bytes": 43187
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/edges.tsv",
+      "retained": "source-inputs/individual/edges.tsv",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "bytes": 182412
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/positions.tsv",
+      "retained": "source-inputs/individual/positions.tsv",
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "bytes": 73707
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/routes.tsv",
+      "retained": "source-inputs/individual/routes.tsv",
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "bytes": 160868
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/individual.nodes.tsv",
+      "retained": "source-inputs/individual/individual.nodes.tsv",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "bytes": 43187
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/individual.edges.tsv",
+      "retained": "source-inputs/individual/individual.edges.tsv",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "bytes": 182412
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/individual.positions.tsv",
+      "retained": "source-inputs/individual/individual.positions.tsv",
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "bytes": 73707
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/individual.routes.tsv",
+      "retained": "source-inputs/individual/individual.routes.tsv",
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "bytes": 160868
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/components.tsv",
+      "retained": "source-inputs/individual/components.tsv",
+      "sha256": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+      "bytes": 68780
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/groups.tsv",
+      "retained": "source-inputs/individual/groups.tsv",
+      "sha256": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d",
+      "bytes": 199382
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/environment",
+      "retained": "environment",
+      "sha256": "b5c355b2675d225114279549051ef201d84d6e56dbe8658810cc9705004f5514",
+      "bytes": 749496
+    }
+  ]
+}

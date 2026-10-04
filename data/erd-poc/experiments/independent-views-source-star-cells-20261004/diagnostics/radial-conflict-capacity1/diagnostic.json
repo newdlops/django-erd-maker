@@ -1,0 +1,1241 @@
+{
+  "kind": "immutable-source-radial-conflict-capacity-diagnostic-v1",
+  "views": [
+    {
+      "view": "individual",
+      "sourceVisual": 1963,
+      "sourceInputHashes": {
+        "nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+        "edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+        "positions.tsv": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+        "routes.tsv": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+        "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+        "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+        "individual.positions.tsv": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+        "individual.routes.tsv": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+        "components.tsv": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+        "groups.tsv": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d"
+      },
+      "observationsSha256": "120ebeb3ad5ff095ab49b8c5a51a0c0a1c62014381f48f7a3f2609d04cb42a64",
+      "eligibleOwners": 432,
+      "pressureOwners": 30,
+      "originalPressureCapacity": {
+        "count": 30,
+        "maximum": 1336.099,
+        "quantiles": [
+          0.3799999999996342,
+          25.67540037682504,
+          75.55699556093899,
+          189.45500000000078,
+          1336.099
+        ],
+        "aboveOnePixel": 27,
+        "aboveHundredPixels": 14
+      },
+      "originalNoPressureCapacity": {
+        "count": 402,
+        "maximum": 3210.619999999996,
+        "quantiles": [
+          0.5299999999992704,
+          116.61733108810272,
+          266.7918910565569,
+          588.5975000000012,
+          3210.619999999996
+        ],
+        "aboveOnePixel": 400,
+        "aboveHundredPixels": 309
+      },
+      "pressureOnlyCapacity": {
+        "count": 30,
+        "maximum": 1336.099,
+        "quantiles": [
+          0.3799999999996342,
+          25.67540037682504,
+          75.55699556093899,
+          211.13500000000064,
+          1336.099
+        ],
+        "aboveOnePixel": 27,
+        "aboveHundredPixels": 14
+      },
+      "owners": [
+        {
+          "node": 14,
+          "id": "db.AgendaChangeOfAoiNumberOfDirectors",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -140.78000000000247,
+            85.32999999999811
+          ],
+          "oldCapacityPixels": 64.01340677370379,
+          "onlyPressureMovingCapacityPixels": 71.45414039610894,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 11,
+            "peerId": "db.AgendaChangeOfAoiClassStock",
+            "axis": 1,
+            "sourceGap": 77.62999999999897,
+            "closers": 2,
+            "peerMoves": true,
+            "ownClosing": 85.32999999999811
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 16,
+            "peerId": "db.AgendaChangeOfArticlesOfIncorporation",
+            "axis": 1,
+            "sourceGap": 43.339999999998106,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 85.32999999999811
+          }
+        },
+        {
+          "node": 52,
+          "id": "db.AgendaShareholdersMeetingConvocation",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -231.3000000000011,
+            -106.14999999999782
+          ],
+          "oldCapacityPixels": 26.80160150730103,
+          "onlyPressureMovingCapacityPixels": 26.80160150730103,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 17,
+            "peerId": "db.AgendaCoCeoSystemChange",
+            "axis": 1,
+            "sourceGap": 12.329999999999707,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 106.14999999999782
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 17,
+            "peerId": "db.AgendaCoCeoSystemChange",
+            "axis": 1,
+            "sourceGap": 12.329999999999707,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 106.14999999999782
+          }
+        },
+        {
+          "node": 99,
+          "id": "db.CapitalChangeEvent",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            285.5700000000015,
+            748.9799999999996
+          ],
+          "oldCapacityPixels": 16.620000000001234,
+          "onlyPressureMovingCapacityPixels": 16.620000000001234,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 757,
+            "peerId": "db.OptionAdjustment",
+            "axis": 1,
+            "sourceGap": 16.650000000001235,
+            "closers": 1,
+            "peerMoves": true,
+            "ownClosing": 748.9799999999996
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 757,
+            "peerId": "db.OptionAdjustment",
+            "axis": 1,
+            "sourceGap": 16.650000000001235,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 748.9799999999996
+          }
+        },
+        {
+          "node": 135,
+          "id": "db.CompanyCreateAssignmentReadiness",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -1015.2199999999993,
+            3601.74
+          ],
+          "oldCapacityPixels": 510.52000000000083,
+          "onlyPressureMovingCapacityPixels": 510.52000000000083,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 1112,
+            "peerId": "db.UserApiKeyCompanyRelation",
+            "axis": 1,
+            "sourceGap": 510.55000000000086,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 3601.74
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 1112,
+            "peerId": "db.UserApiKeyCompanyRelation",
+            "axis": 1,
+            "sourceGap": 510.55000000000086,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 3601.74
+          }
+        },
+        {
+          "node": 147,
+          "id": "db.CompanyGuideState",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -1406.42,
+            -48.840000000000146
+          ],
+          "oldCapacityPixels": 1336.099,
+          "onlyPressureMovingCapacityPixels": 1336.099,
+          "originalBinding": {
+            "kind": "step-or-fraction"
+          },
+          "pressureOnlyBinding": {
+            "kind": "step-or-fraction"
+          }
+        },
+        {
+          "node": 167,
+          "id": "db.CompanyOverview",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            91.69000000000051,
+            1624.619999999999
+          ],
+          "oldCapacityPixels": 41.71999999999978,
+          "onlyPressureMovingCapacityPixels": 41.71999999999978,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 186,
+            "peerId": "db.CompanyStockTransferRestrictedChange",
+            "axis": 1,
+            "sourceGap": 41.74999999999978,
+            "closers": 1,
+            "peerMoves": true,
+            "ownClosing": 1624.619999999999
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 186,
+            "peerId": "db.CompanyStockTransferRestrictedChange",
+            "axis": 1,
+            "sourceGap": 41.74999999999978,
+            "closers": 1,
+            "peerMoves": true,
+            "ownClosing": 1624.619999999999
+          }
+        },
+        {
+          "node": 168,
+          "id": "db.CompanyOwnerAddRequest",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -917.3199999999997,
+            1861.6800000000003
+          ],
+          "oldCapacityPixels": 524.0921850608264,
+          "onlyPressureMovingCapacityPixels": 524.0921850608264,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 258,
+            "peerId": "db.EditableCompanyOwnerAuditLog",
+            "axis": 0,
+            "sourceGap": 258.2699999999984,
+            "closers": 1,
+            "peerMoves": true,
+            "ownClosing": 917.3199999999997
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 258,
+            "peerId": "db.EditableCompanyOwnerAuditLog",
+            "axis": 0,
+            "sourceGap": 258.2699999999984,
+            "closers": 1,
+            "peerMoves": true,
+            "ownClosing": 917.3199999999997
+          }
+        },
+        {
+          "node": 174,
+          "id": "db.CompanyPolicyFile",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -567.2099999999991,
+            2527.3999999999996
+          ],
+          "oldCapacityPixels": 227.20999999999955,
+          "onlyPressureMovingCapacityPixels": 227.20999999999955,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 258,
+            "peerId": "db.EditableCompanyOwnerAuditLog",
+            "axis": 1,
+            "sourceGap": 227.23999999999955,
+            "closers": 1,
+            "peerMoves": true,
+            "ownClosing": 2527.3999999999996
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 258,
+            "peerId": "db.EditableCompanyOwnerAuditLog",
+            "axis": 1,
+            "sourceGap": 227.23999999999955,
+            "closers": 1,
+            "peerMoves": true,
+            "ownClosing": 2527.3999999999996
+          }
+        },
+        {
+          "node": 186,
+          "id": "db.CompanyStockTransferRestrictedChange",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            62.77000000000044,
+            1466.8799999999992
+          ],
+          "oldCapacityPixels": 117.20999999999955,
+          "onlyPressureMovingCapacityPixels": 117.20999999999955,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 620,
+            "peerId": "db.InvestmentRound",
+            "axis": 1,
+            "sourceGap": 117.23999999999955,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 1466.8799999999992
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 620,
+            "peerId": "db.InvestmentRound",
+            "axis": 1,
+            "sourceGap": 117.23999999999955,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 1466.8799999999992
+          }
+        },
+        {
+          "node": 202,
+          "id": "db.CorporateRegistrationChangeDetectionParseResult",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -103.80999999999767,
+            115.61000000000058
+          ],
+          "oldCapacityPixels": 0.479999999999998,
+          "onlyPressureMovingCapacityPixels": 0.479999999999998,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 200,
+            "peerId": "db.CorporateRegistrationChangeConfirmation",
+            "axis": 1,
+            "sourceGap": 0.509999999999998,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 115.61000000000058
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 200,
+            "peerId": "db.CorporateRegistrationChangeConfirmation",
+            "axis": 1,
+            "sourceGap": 0.509999999999998,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 115.61000000000058
+          }
+        },
+        {
+          "node": 221,
+          "id": "db.CustomOptionGrantContractTemplate",
+          "sourcePressureFeatures": [
+            0.69314718056,
+            0.0
+          ],
+          "velocity": [
+            -409.880000000001,
+            213.01000000000022
+          ],
+          "oldCapacityPixels": 329.0239012252955,
+          "onlyPressureMovingCapacityPixels": 329.0239012252955,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 784,
+            "peerId": "db.OptionGrantContractTemplate",
+            "axis": 1,
+            "sourceGap": 171.0200000000002,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 213.01000000000022
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 784,
+            "peerId": "db.OptionGrantContractTemplate",
+            "axis": 1,
+            "sourceGap": 171.0200000000002,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 213.01000000000022
+          }
+        },
+        {
+          "node": 258,
+          "id": "db.EditableCompanyOwnerAuditLog",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -439.02999999999884,
+            2184.17
+          ],
+          "oldCapacityPixels": 216.26000000000064,
+          "onlyPressureMovingCapacityPixels": 216.26000000000064,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 621,
+            "peerId": "db.InvestmentRoundNewIssueEvent",
+            "axis": 1,
+            "sourceGap": 216.29000000000065,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 2184.17
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 621,
+            "peerId": "db.InvestmentRoundNewIssueEvent",
+            "axis": 1,
+            "sourceGap": 216.29000000000065,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 2184.17
+          }
+        },
+        {
+          "node": 516,
+          "id": "db.IaRuleInvestment",
+          "sourcePressureFeatures": [
+            0.69314718056,
+            0.0
+          ],
+          "velocity": [
+            -246.02000000000044,
+            -303.3099999999977
+          ],
+          "oldCapacityPixels": 120.0599999999981,
+          "onlyPressureMovingCapacityPixels": 120.0599999999981,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 518,
+            "peerId": "db.IaRulePartner",
+            "axis": 1,
+            "sourceGap": 120.0899999999981,
+            "closers": 1,
+            "peerMoves": true,
+            "ownClosing": 303.3099999999977
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 518,
+            "peerId": "db.IaRulePartner",
+            "axis": 1,
+            "sourceGap": 120.0899999999981,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 303.3099999999977
+          }
+        },
+        {
+          "node": 688,
+          "id": "db.MeetingAttorney",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -196.46999999999753,
+            104.56999999999971
+          ],
+          "oldCapacityPixels": 4.415267285077075,
+          "onlyPressureMovingCapacityPixels": 4.415267285077075,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 1003,
+            "peerId": "db.SelfRegistration",
+            "axis": 1,
+            "sourceGap": 2.3800000000026174,
+            "closers": 1,
+            "peerMoves": true,
+            "ownClosing": 104.56999999999971
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 1003,
+            "peerId": "db.SelfRegistration",
+            "axis": 1,
+            "sourceGap": 2.3800000000026174,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 104.56999999999971
+          }
+        },
+        {
+          "node": 777,
+          "id": "db.OptionExerciseManagementTaxationDefaultSetting",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -1393.6699999999983,
+            2788.76
+          ],
+          "oldCapacityPixels": 170.5400000000013,
+          "onlyPressureMovingCapacityPixels": 170.5400000000013,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 150,
+            "peerId": "db.CompanyInvitation",
+            "axis": 1,
+            "sourceGap": 170.5700000000013,
+            "closers": 1,
+            "peerMoves": true,
+            "ownClosing": 2788.76
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 150,
+            "peerId": "db.CompanyInvitation",
+            "axis": 1,
+            "sourceGap": 170.5700000000013,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 2788.76
+          }
+        },
+        {
+          "node": 780,
+          "id": "db.OptionGrantContractFirstRefusalRightHolder",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -110.93000000000029,
+            21.020000000000437
+          ],
+          "oldCapacityPixels": 54.91000000000029,
+          "onlyPressureMovingCapacityPixels": 54.91000000000029,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 783,
+            "peerId": "db.OptionGrantContractStakeholder",
+            "axis": 0,
+            "sourceGap": 54.94000000000029,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 110.93000000000029
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 783,
+            "peerId": "db.OptionGrantContractStakeholder",
+            "axis": 0,
+            "sourceGap": 54.94000000000029,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 110.93000000000029
+          }
+        },
+        {
+          "node": 800,
+          "id": "db.OptionWithdrawEvent",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            727.4200000000001,
+            570.7599999999984
+          ],
+          "oldCapacityPixels": 25.299999999999706,
+          "onlyPressureMovingCapacityPixels": 25.299999999999706,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 948,
+            "peerId": "db.RsuCancelEvent",
+            "axis": 0,
+            "sourceGap": 25.329999999999707,
+            "closers": 1,
+            "peerMoves": true,
+            "ownClosing": 727.4200000000001
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 948,
+            "peerId": "db.RsuCancelEvent",
+            "axis": 0,
+            "sourceGap": 25.329999999999707,
+            "closers": 1,
+            "peerMoves": true,
+            "ownClosing": 727.4200000000001
+          }
+        },
+        {
+          "node": 838,
+          "id": "db.PayrollStatementAttendance",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            291.8600000000006,
+            32.51000000000022
+          ],
+          "oldCapacityPixels": 195.76000000000062,
+          "onlyPressureMovingCapacityPixels": 195.76000000000062,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 837,
+            "peerId": "db.PayrollStatement",
+            "axis": 0,
+            "sourceGap": 195.79000000000065,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 291.8600000000006
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 837,
+            "peerId": "db.PayrollStatement",
+            "axis": 0,
+            "sourceGap": 195.79000000000065,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 291.8600000000006
+          }
+        },
+        {
+          "node": 854,
+          "id": "db.PhantomStockExerciseEvent",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            135.79000000000087,
+            -279.2099999999991
+          ],
+          "oldCapacityPixels": 110.85946792841818,
+          "onlyPressureMovingCapacityPixels": 221.71893585683637,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 280,
+            "peerId": "db.EmployeeOptionExerciseEvent",
+            "axis": 0,
+            "sourceGap": 107.86000000000035,
+            "closers": 2,
+            "peerMoves": true,
+            "ownClosing": 135.79000000000087
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 280,
+            "peerId": "db.EmployeeOptionExerciseEvent",
+            "axis": 0,
+            "sourceGap": 107.86000000000035,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 135.79000000000087
+          }
+        },
+        {
+          "node": 874,
+          "id": "db.PortalMenuVisibilitySetting",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -733.9199999999983,
+            2113.1499999999996
+          ],
+          "oldCapacityPixels": 75.40794432635475,
+          "onlyPressureMovingCapacityPixels": 75.40794432635475,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 258,
+            "peerId": "db.EditableCompanyOwnerAuditLog",
+            "axis": 0,
+            "sourceGap": 26.219999999999125,
+            "closers": 1,
+            "peerMoves": true,
+            "ownClosing": 733.9199999999983
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 258,
+            "peerId": "db.EditableCompanyOwnerAuditLog",
+            "axis": 0,
+            "sourceGap": 26.219999999999125,
+            "closers": 1,
+            "peerMoves": true,
+            "ownClosing": 733.9199999999983
+          }
+        },
+        {
+          "node": 902,
+          "id": "db.QuarterlyReportSettings",
+          "sourcePressureFeatures": [
+            0.69314718056,
+            0.0
+          ],
+          "velocity": [
+            63.849999999998545,
+            -124.59000000000015
+          ],
+          "oldCapacityPixels": 13.16000000000029,
+          "onlyPressureMovingCapacityPixels": 13.16000000000029,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 1146,
+            "peerId": "db.VentureCapitalQuarterlyReport",
+            "axis": 1,
+            "sourceGap": 13.190000000000289,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 124.59000000000015
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 1146,
+            "peerId": "db.VentureCapitalQuarterlyReport",
+            "axis": 1,
+            "sourceGap": 13.190000000000289,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 124.59000000000015
+          }
+        },
+        {
+          "node": 927,
+          "id": "db.RegistrationFormAllInOneDocument",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -1181.7999999999993,
+            1586.1599999999999
+          ],
+          "oldCapacityPixels": 223.02999999999923,
+          "onlyPressureMovingCapacityPixels": 223.02999999999923,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 1029,
+            "peerId": "db.ShareholdersMeetingPowerOfAttorneyIndividualDocument",
+            "axis": 1,
+            "sourceGap": 223.05999999999926,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 1586.1599999999999
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 1029,
+            "peerId": "db.ShareholdersMeetingPowerOfAttorneyIndividualDocument",
+            "axis": 1,
+            "sourceGap": 223.05999999999926,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 1586.1599999999999
+          }
+        },
+        {
+          "node": 948,
+          "id": "db.RsuCancelEvent",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            442.0100000000002,
+            420.2099999999991
+          ],
+          "oldCapacityPixels": 66.69999999999933,
+          "onlyPressureMovingCapacityPixels": 66.69999999999933,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 859,
+            "peerId": "db.PhantomStockResumeEvent",
+            "axis": 0,
+            "sourceGap": 66.72999999999934,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 442.0100000000002
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 859,
+            "peerId": "db.PhantomStockResumeEvent",
+            "axis": 0,
+            "sourceGap": 66.72999999999934,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 442.0100000000002
+          }
+        },
+        {
+          "node": 970,
+          "id": "db.RsuPerformanceAchievementEvent",
+          "sourcePressureFeatures": [
+            0.0,
+            1.38629436112
+          ],
+          "velocity": [
+            132.22999999999956,
+            98.29999999999927
+          ],
+          "oldCapacityPixels": 75.70604679552324,
+          "onlyPressureMovingCapacityPixels": 75.70604679552324,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 298,
+            "peerId": "db.Event",
+            "axis": 1,
+            "sourceGap": 56.30999999999927,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 98.29999999999927
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 298,
+            "peerId": "db.Event",
+            "axis": 1,
+            "sourceGap": 56.30999999999927,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 98.29999999999927
+          }
+        },
+        {
+          "node": 994,
+          "id": "db.SealCertificateIssueRequest",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -68.02999999999884,
+            -46.93000000000029
+          ],
+          "oldCapacityPixels": 7.117564457703214,
+          "onlyPressureMovingCapacityPixels": 7.117564457703214,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 993,
+            "peerId": "db.SealCertificateDelivery",
+            "axis": 1,
+            "sourceGap": 4.940000000000289,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 46.93000000000029
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 993,
+            "peerId": "db.SealCertificateDelivery",
+            "axis": 1,
+            "sourceGap": 4.940000000000289,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 46.93000000000029
+          }
+        },
+        {
+          "node": 1056,
+          "id": "db.StockTransferAgreementClauses",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -85.29000000000087,
+            13.409999999999854
+          ],
+          "oldCapacityPixels": 29.27000000000087,
+          "onlyPressureMovingCapacityPixels": 29.27000000000087,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 1055,
+            "peerId": "db.StockTransferAgreement",
+            "axis": 0,
+            "sourceGap": 29.30000000000087,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 85.29000000000087
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 1055,
+            "peerId": "db.StockTransferAgreement",
+            "axis": 0,
+            "sourceGap": 29.30000000000087,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 85.29000000000087
+          }
+        },
+        {
+          "node": 1062,
+          "id": "db.StockTransferAgreementPurchaserInstitution",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -26.419999999998254,
+            -273.119999999999
+          ],
+          "oldCapacityPixels": 0.43999999999912487,
+          "onlyPressureMovingCapacityPixels": 0.43999999999912487,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 1063,
+            "peerId": "db.StockTransferAgreementSellerInstitution",
+            "axis": 1,
+            "sourceGap": 0.4699999999991249,
+            "closers": 1,
+            "peerMoves": true,
+            "ownClosing": 273.119999999999
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 1063,
+            "peerId": "db.StockTransferAgreementSellerInstitution",
+            "axis": 1,
+            "sourceGap": 0.4699999999991249,
+            "closers": 1,
+            "peerMoves": true,
+            "ownClosing": 273.119999999999
+          }
+        },
+        {
+          "node": 1063,
+          "id": "db.StockTransferAgreementSellerInstitution",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -102.62000000000262,
+            -156.65999999999985
+          ],
+          "oldCapacityPixels": 114.63999999999986,
+          "onlyPressureMovingCapacityPixels": 114.63999999999986,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 1055,
+            "peerId": "db.StockTransferAgreement",
+            "axis": 1,
+            "sourceGap": 114.66999999999985,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 156.65999999999985
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 1055,
+            "peerId": "db.StockTransferAgreement",
+            "axis": 1,
+            "sourceGap": 114.66999999999985,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 156.65999999999985
+          }
+        },
+        {
+          "node": 1142,
+          "id": "db.VentureBusinessCertificationExpirationNotificationLog",
+          "sourcePressureFeatures": [
+            0.0,
+            1.09861228867
+          ],
+          "velocity": [
+            11.419999999998254,
+            -42.399999999999636
+          ],
+          "oldCapacityPixels": 0.3799999999996342,
+          "onlyPressureMovingCapacityPixels": 0.3799999999996342,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 1141,
+            "peerId": "db.VentureBusinessCertification",
+            "axis": 1,
+            "sourceGap": 0.4099999999996342,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 42.399999999999636
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 1141,
+            "peerId": "db.VentureBusinessCertification",
+            "axis": 1,
+            "sourceGap": 0.4099999999996342,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 42.399999999999636
+          }
+        },
+        {
+          "node": 1197,
+          "id": "db.ZuzuOptionGrantContractTemplate",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -208.4399999999987,
+            -107.76999999999862
+          ],
+          "oldCapacityPixels": 127.16832142525564,
+          "onlyPressureMovingCapacityPixels": 127.16832142525564,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 784,
+            "peerId": "db.OptionGrantContractTemplate",
+            "axis": 1,
+            "sourceGap": 65.77999999999861,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 107.76999999999862
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 784,
+            "peerId": "db.OptionGrantContractTemplate",
+            "axis": 1,
+            "sourceGap": 65.77999999999861,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 107.76999999999862
+          }
+        }
+      ]
+    },
+    {
+      "view": "overview",
+      "sourceVisual": 285,
+      "sourceInputHashes": {
+        "nodes.tsv": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+        "edges.tsv": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+        "positions.tsv": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+        "routes.tsv": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+        "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+        "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+        "individual.positions.tsv": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+        "individual.routes.tsv": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+        "components.tsv": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+        "groups.tsv": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc"
+      },
+      "observationsSha256": "e97c258df5978432f72460216b1f68a716692912e8d0e587193f4f7690b3184e",
+      "eligibleOwners": 289,
+      "pressureOwners": 3,
+      "originalPressureCapacity": {
+        "count": 3,
+        "maximum": 140.36999999999944,
+        "quantiles": [
+          30.059999999999924,
+          52.59857040572848,
+          75.13714081145703,
+          107.75357040572823,
+          140.36999999999944
+        ],
+        "aboveOnePixel": 3,
+        "aboveHundredPixels": 1
+      },
+      "originalNoPressureCapacity": {
+        "count": 286,
+        "maximum": 2884.5515000000023,
+        "quantiles": [
+          0.5463206431798057,
+          106.4497880449332,
+          224.50500000000144,
+          565.676819582106,
+          2884.5515000000023
+        ],
+        "aboveOnePixel": 285,
+        "aboveHundredPixels": 217
+      },
+      "pressureOnlyCapacity": {
+        "count": 3,
+        "maximum": 140.36999999999944,
+        "quantiles": [
+          30.059999999999924,
+          52.59857040572848,
+          75.13714081145703,
+          107.75357040572823,
+          140.36999999999944
+        ],
+        "aboveOnePixel": 3,
+        "aboveHundredPixels": 1
+      },
+      "owners": [
+        {
+          "node": 154,
+          "id": "db.CustomOptionGrantContractTemplate",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -76.62999999999738,
+            -78.44000000000051
+          ],
+          "oldCapacityPixels": 30.059999999999924,
+          "onlyPressureMovingCapacityPixels": 30.059999999999924,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 606,
+            "peerId": "db.OptionGrantContractTemplate",
+            "axis": 1,
+            "sourceGap": 30.089999999999925,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 78.44000000000051
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 606,
+            "peerId": "db.OptionGrantContractTemplate",
+            "axis": 1,
+            "sourceGap": 30.089999999999925,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 78.44000000000051
+          }
+        },
+        {
+          "node": 647,
+          "id": "db.PayrollLedgerFileModificationRequest",
+          "sourcePressureFeatures": [
+            0.0,
+            0.69314718056
+          ],
+          "velocity": [
+            -226.71000000000095,
+            62.850000000000364
+          ],
+          "oldCapacityPixels": 75.13714081145703,
+          "onlyPressureMovingCapacityPixels": 75.13714081145703,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 646,
+            "peerId": "db.PayrollLedgerFile",
+            "axis": 1,
+            "sourceGap": 20.860000000000362,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 62.850000000000364
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 646,
+            "peerId": "db.PayrollLedgerFile",
+            "axis": 1,
+            "sourceGap": 20.860000000000362,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 62.850000000000364
+          }
+        },
+        {
+          "node": 662,
+          "id": "db.PayrollStatementPayrollInformation",
+          "sourcePressureFeatures": [
+            0.69314718056,
+            0.0
+          ],
+          "velocity": [
+            -270.9499999999989,
+            127.79999999999927
+          ],
+          "oldCapacityPixels": 140.36999999999944,
+          "onlyPressureMovingCapacityPixels": 140.36999999999944,
+          "originalBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 656,
+            "peerId": "db.PayrollStatement",
+            "axis": 0,
+            "sourceGap": 140.3999999999994,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 270.9499999999989
+          },
+          "pressureOnlyBinding": {
+            "kind": "source-pair-spacing",
+            "peer": 656,
+            "peerId": "db.PayrollStatement",
+            "axis": 0,
+            "sourceGap": 140.3999999999994,
+            "closers": 1,
+            "peerMoves": false,
+            "ownClosing": 270.9499999999989
+          }
+        }
+      ]
+    }
+  ],
+  "sourceBindingSha256": "c5e3001d3a14304ada656ffd7d5bdfd69ac7f56abecf77fe2a2e6623dc2ed20c",
+  "canonicalCandidateSha256": "4e741de39ca655c7ff042422b9407206427f89e02ecd56b7f4a9f36f6a5cd02e",
+  "nativeMeasurements": 0,
+  "noFutureGeometryMeasured": true,
+  "noActionsSubmitted": true,
+  "noModelTrained": true,
+  "noCandidateSelected": true,
+  "codeSha256": "fa60c55bce6a95d9f5b373e90c36167fd7136ff28e73dc13bea1863b282d9f5f"
+}

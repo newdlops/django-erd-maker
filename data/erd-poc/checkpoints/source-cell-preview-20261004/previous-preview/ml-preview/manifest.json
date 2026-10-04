@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "extensionVersion": "0.0.1069",
+  "graphSignature": "f39dd59110047d8eab4a416ba8d19d40aaa649f298c23bca075952bd0b25a910",
+  "layoutSha256": "683774cefc4690313e8451ec60ca5e733304b61cb509efc26d5503c1f02e46ec",
+  "overviewVisual": 285,
+  "individualVisual": 1963,
+  "models": 1244,
+  "canonicalRelationships": 1727,
+  "checkpoints": {
+    "overview": {
+      "path": "overview.npz",
+      "sha256": "08ab8c452417681c9ea7a1cb270175ce08a5785897a9d244ee0ae342968f3001",
+      "trainedUpdates": 18,
+      "modelKind": "source-conditioned-shared-scalar-nn-native-reward-v1"
+    },
+    "individual": {
+      "path": "individual.npz",
+      "sha256": "80985b7f4a921e994968e443398cd71cd8de3850e14d71f52bacacd18f555093",
+      "trainedUpdates": 21,
+      "modelKind": "source-conflict-gated-radial-nn-native-reward-v1"
+    }
+  },
+  "sourceCandidateSha256": "ab08dfaed8f75354f99f7f5e00697fbecbb761c04e0f806d4242169a841ea3ae",
+  "latestNetworkForwardExported": true,
+  "coordinateSearchOrRepairs": 0,
+  "browserVerified": false,
+  "thresholdsMet": false
+}

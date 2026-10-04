@@ -1,33 +1,33 @@
 {
-  "kind": "latest-trained-radial-checkpoint-preview-v1",
+  "kind": "latest-trained-source-cell-checkpoint-preview-v1",
   "candidate": "data/erd-poc/candidates/captain-ml-latest-checkpoints.layout.json",
-  "candidateSha256": "ab08dfaed8f75354f99f7f5e00697fbecbb761c04e0f806d4242169a841ea3ae",
+  "candidateSha256": "09366906f601f512c495e0324f6b6e1463f9b7442d823837b2ba2ebf9e421778",
   "audit": "data/erd-poc/candidates/captain-ml-latest-checkpoints.audit.json",
-  "auditSha256": "62bc3e0e171629d232647a553ba47eccd066fd6af8788e65bcb8c1f8ee0ab853",
+  "auditSha256": "429deb4560583667d8df14eeca32490eaf13b762526a3f27a2499bd227190b7c",
   "bestCandidate": "data/erd-poc/candidates/captain-ml-independent-views.layout.json",
   "bestCandidateSha256": "4e741de39ca655c7ff042422b9407206427f89e02ecd56b7f4a9f36f6a5cd02e",
   "bestOverviewVisual": 285,
   "bestIndividualVisual": 1963,
   "checkpoints": {
     "overview": {
-      "checkpoint": "data/erd-poc/checkpoints/radial-preview-20261004/overview/model-step-018.npz",
-      "checkpointSha256": "08ab8c452417681c9ea7a1cb270175ce08a5785897a9d244ee0ae342968f3001",
-      "observations": "data/erd-poc/checkpoints/radial-preview-20261004/overview/observations.npz",
-      "observationsSha256": "e97c258df5978432f72460216b1f68a716692912e8d0e587193f4f7690b3184e",
-      "trainedUpdates": 18,
-      "modelKind": "source-conditioned-shared-scalar-nn-native-reward-v1",
-      "finalForwardWireSha256": "40b5150dce797a51a75a0576b89a2ac5158c758db3cb790d2bd1679f7a0344e0",
-      "originalStage": ".tmp/visualcross-ml-150-750-20261004/radial-leaf1/overview-learning1"
+      "checkpoint": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/model-step-025.npz",
+      "checkpointSha256": "49c078993a65269677c62d0dcb4849362c787f677d9f7b26bcf18b890335ae27",
+      "observations": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/observations.npz",
+      "observationsSha256": "eda332ef0fc0a84622fa2ad146fa9758b68d0f9aa41d7165abf1a2a7eaa82d72",
+      "trainedUpdates": 25,
+      "modelKind": "source-star-cell-neural-owner-and-motion-native-reward-v1",
+      "finalForwardWireSha256": "370a57e90cf6d8980c6ee4bfd4720b725331383127322e73a93817c69c8eab65",
+      "originalStage": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/overview-learning1"
     },
     "individual": {
-      "checkpoint": "data/erd-poc/checkpoints/radial-preview-20261004/individual/model-step-021.npz",
-      "checkpointSha256": "80985b7f4a921e994968e443398cd71cd8de3850e14d71f52bacacd18f555093",
-      "observations": "data/erd-poc/checkpoints/radial-preview-20261004/individual/observations.npz",
-      "observationsSha256": "120ebeb3ad5ff095ab49b8c5a51a0c0a1c62014381f48f7a3f2609d04cb42a64",
-      "trainedUpdates": 21,
-      "modelKind": "source-conflict-gated-radial-nn-native-reward-v1",
-      "finalForwardWireSha256": "38e556c43be1b8e0b253db793d35c093c29c302ce8a2ab2245d9b3d84dee5860",
-      "originalStage": ".tmp/visualcross-ml-150-750-20261004/radial-leaf1/individual-pressure-learning1"
+      "checkpoint": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/model-step-020.npz",
+      "checkpointSha256": "2611f7a16f0f5849ff76897e98698cfe4bc10b28f9ffb677fe03e0bce9247075",
+      "observations": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/observations.npz",
+      "observationsSha256": "7a6ff10bb07bf3fd7989f059557964049762571bf124faec20212572281d364d",
+      "trainedUpdates": 20,
+      "modelKind": "source-star-cell-neural-owner-and-motion-native-reward-v1",
+      "finalForwardWireSha256": "c7d9ce0d883c870a5598a28744554577dfb3c8835bb07f9594fa6b1f1eb0a300",
+      "originalStage": ".tmp/visualcross-ml-150-750-20261004/source-star-cell1/individual-learning1"
     }
   },
   "latestNetworkForwardExported": true,
@@ -58,300 +58,381 @@
       "reason": "legal"
     }
   },
-  "allAdamUpdatesReplayed": 39,
-  "allRewardProbeWiresReplayed": 156,
-  "fullNativeMeasurements": 29,
-  "teacherLabelsReplayedWithoutFullRemeasurement": 140,
+  "allAdamUpdatesReplayed": 45,
+  "allRewardProbeWiresReplayed": 180,
+  "fullNativeMeasurements": 31,
+  "teacherLabelsReplayedWithoutFullRemeasurement": 164,
+  "priorCompleteReplay": "data/erd-poc/experiments/independent-views-source-star-cells-20261004/records/validation1/proof.json",
   "inferenceBindings": [
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/export.json",
-      "sha256": "c1d1319dff932400b05a87653a6d2d7490856881c5b6f89f689ce6a1bccf3951",
-      "bytes": 1836
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/export/action.npy",
+      "sha256": "9d70f796209ead5a0c796fbf2aa6c0aa83aaef4a29e7fcc4589704154e4898d3",
+      "bytes": 44320
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/product.audit.json",
-      "sha256": "dfa00307c8c90f525d4c1e04e5aba8418038ac950b172c1fc1ac1b328974053f",
-      "bytes": 1166
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/export/candidate.layout.json",
+      "sha256": "4f61881b3c89abf61dd7718baf7cec68221e8cf58c7b589576756d97c6605e39",
+      "bytes": 856210
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/report.json",
-      "sha256": "46d80f89bb01c4429d18bbcb37ce6a2ea633df2f537463692726249aafeea5fa",
-      "bytes": 5690
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/export/export.json",
+      "sha256": "47a3b2035c93023e03c1ffc20a28e88351b1c4259fc762a0a856a4c370513ba0",
+      "bytes": 2039
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/training.jsonl",
-      "sha256": "475de26864f3957c8e27371c70acbe7c1a0ca5ad3eea80c3549d761e9c23b78b",
-      "bytes": 25480
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/export/learned.tsv",
+      "sha256": "adef2528b1c15becbf68d57ddb397712f84f5ac817a99bd1d377c344876e6051",
+      "bytes": 60347
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/actions.jsonl",
-      "sha256": "52ac9b6bad5e20beb3ccce2225c898d3a306dd8851b2da93abc1f93a2ce87491",
-      "bytes": 3033
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/export/learned.tsv.individual",
+      "sha256": "f636bcb063ed739c92ffe5183593e0685e50c43b44b0872a8715949b3a014f66",
+      "bytes": 74353
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/initial-model.npz",
-      "sha256": "99716d6bee113d643192c82e0d37d6f60e3fb777e52ab02a53490c00e10ffcaf",
-      "bytes": 81093
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/export/learned.tsv.individual.routes.tsv",
+      "sha256": "ae85785d381a2b947274615ef38818d9c459d4f287714a1d2a17a9b420f2b0c4",
+      "bytes": 208490
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/nodes.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/export/learned.tsv.policy.json",
+      "sha256": "a061545eddf390cf17b2b986062a7bd7716f337957b1dd972a5e9b550207c9c8",
+      "bytes": 782
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/export/learned.tsv.routes.tsv",
+      "sha256": "69e523dce83c9958a265930f276853b971bb91e6cfde749e7b8296d609f6282e",
+      "bytes": 126513
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/export/learned.tsv.stats.json",
+      "sha256": "1e31097872ac0de363b90fbd537779ccd5fffb8c2ea588221513d605024ea6b4",
+      "bytes": 402
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/export/product.audit.json",
+      "sha256": "3c57f3de033d93aca28aecdfb88135c838b37ad019987a2c0894cf9a86d21647",
+      "bytes": 1171
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/export/product.product-load.log",
+      "sha256": "1c95ea8b14c27a0b448a36649a9bf46e80d1f4a2ccfa03e78ebd2ec29076f49a",
+      "bytes": 2289
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/export/product.scene.json",
+      "sha256": "6933a6969b95587c564147bd0a32785b4c02267882382fb54faf970dcb696ca0",
+      "bytes": 1198379
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/export/reconstructed-initial.npz",
+      "sha256": "e140596703c44327d61d8856df0be1e29cd51e83b405f37f8f31ee41082060b1",
+      "bytes": 13057
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/report.json",
+      "sha256": "dd5fff52552c2a73718f082d81d671e35ce8f237d6773b9b189c766b3ca97c30",
+      "bytes": 7008
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/training.jsonl",
+      "sha256": "29319cc0226b0e8071d9d7f4e221f8742ebdf5fd852da9ffc0b4df730f8b1ae6",
+      "bytes": 35302
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/actions.jsonl",
+      "sha256": "a8822acf17f35e149aaa905a6b93111e1e34276fcb2dab51b2ca887fbf4be7fc",
+      "bytes": 5576
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/initial-model.npz",
+      "sha256": "a7905d5831d89cbe951d284646e68d0f9f15cc0d5dfdea8527c85ac4627b655d",
+      "bytes": 13091
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/inputs/nodes.tsv",
       "sha256": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
       "bytes": 34879
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/edges.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/inputs/edges.tsv",
       "sha256": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
       "bytes": 113471
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/positions.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/inputs/positions.tsv",
       "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
       "bytes": 60175
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/routes.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/inputs/routes.tsv",
       "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
       "bytes": 98042
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/individual.nodes.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/inputs/individual.nodes.tsv",
       "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
       "bytes": 43187
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/individual.edges.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/inputs/individual.edges.tsv",
       "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
       "bytes": 182412
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/individual.positions.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/inputs/individual.positions.tsv",
       "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
       "bytes": 73662
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/individual.routes.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/inputs/individual.routes.tsv",
       "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
       "bytes": 160831
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/components.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/inputs/components.tsv",
       "sha256": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
       "bytes": 61887
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/groups.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/overview/inputs/groups.tsv",
       "sha256": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc",
       "bytes": 160987
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/run_scalar_source_reward.py",
-      "sha256": "730cd69e3ee0939ecf463ac808e0d78c5e585f31772908cdc9bff1ebe257d995",
-      "bytes": 8364
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/inference-code/run_source_star_cell_reward.py",
+      "sha256": "9fc4098150a4ff0f8c2dffa09582766500e97d6a9739d918214a1802604d0cfe",
+      "bytes": 9076
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/shared_card_phase_policy.py",
-      "sha256": "6d495679daef4d3374db2d315a36e536f2e9984a7c1629aea8f9d12897771431",
-      "bytes": 3449
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/inference-code/source_star_cell_policy.py",
+      "sha256": "e7ceefbecd0ae43ecb5e56143939132216a0f04d43f56cca97719d011f692096",
+      "bytes": 7384
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/radial_leaf_policy.py",
-      "sha256": "833cc81c052a3c4e9834b5de8b44b6ad620c3ce60be4359a94803a71f20322d3",
-      "bytes": 5113
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/inference-code/compact_patch_neural_policy.py",
+      "sha256": "9547be95ec3eb29966d03dba8c6f241801b6dcfef05f65c3e89de35ff18f2c6d",
+      "bytes": 4374
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/joint_reward_training.py",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/inference-code/compact_ordered_source_port_policy.py",
+      "sha256": "e45a47f3aaf52e5e9138967cfc4bdf45b843e0262f269c2a7b11e7298bca6c20",
+      "bytes": 4359
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/inference-code/compact_source_port_policy.py",
+      "sha256": "fc2611cf17b48297cdf33ec1ab2f409d14f4673c98b8acd006cc8b4b4fa6b210",
+      "bytes": 702
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/inference-code/joint_separation_policy.py",
+      "sha256": "045b9552977486eb1b7e0f5fdb8a04968f97cd6ff706c3e9d917a04d14083b34",
+      "bytes": 8883
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/inference-code/joint_reward_training.py",
       "sha256": "6bdb8c2f52fe27298dd5da090394d5096396e88462ce3e7a685e3b32f091d0c8",
       "bytes": 10248
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/joint_neural_ports.py",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/inference-code/joint_neural_ports.py",
       "sha256": "cde68a0ca3419df89ab6e3b369f564467edec5fea53892ff17367e1e0ee94807",
       "bytes": 18181
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/joint_grouped_routes.py",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/inference-code/joint_grouped_routes.py",
       "sha256": "3b7757e76590aa0e1e935e7f757035f89a6fece56e6a10deb7791e71f1642f6f",
       "bytes": 8165
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/run_anchor_pair_walk.py",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/inference-code/run_anchor_pair_walk.py",
       "sha256": "e73fa26e35e1d1bbdfe5f48c2e5f092e71889cf034d42a2f1aa63d52c2e142c8",
       "bytes": 13558
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/run_anchor_pair_policy.py",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/inference-code/run_anchor_pair_policy.py",
       "sha256": "db189d196ed68a8dbcdc4c39f8a8dd4873096d1aef6c568e47511eb7eeeb63a2",
       "bytes": 11655
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/export_latest_scalar_checkpoint.py",
-      "sha256": "960acfd0d549a4d065ad4563fd22579ca4e654a9c7df1d5b6613d38fc37d559b",
-      "bytes": 9750
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/inference-code/export_source_star_cell_checkpoint.py",
+      "sha256": "b48eeb7ac73688df5422f2f3fea697b08b98d30762e53698ac8cf1b438aaace1",
+      "bytes": 9588
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/single_owner_cached_observer_v2.py",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/inference-code/single_owner_cached_observer_v2.py",
       "sha256": "cb0d81952f2b0245906d10cb61cdc51135c634ffe766dee88a095d20ec3a1db1",
       "bytes": 11419
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/materialize_latest_patch_preview.cjs",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/inference-code/materialize_latest_patch_preview.cjs",
       "sha256": "e7c3fec8b313f0a8a12971cc39b0c289ad415c4991741205558a4d162a08d761",
       "bytes": 4780
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/export.json",
-      "sha256": "5b53ece02a852d5322269d119a6fe4d1a534a1e3aa16a3e75d998c4f93b8b39e",
-      "bytes": 1918
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/export/action.npy",
+      "sha256": "2f4d0b02f12010ebd14c508e06111a2f649616ffb9181d4fe4d984993753cdc1",
+      "bytes": 47664
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/individual.audit.json",
-      "sha256": "8e6bb3a0b297da2f811c4da717f04a65a6154d14b84ccc723be7a63a11e64ec3",
-      "bytes": 1100
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/export/candidate.individual.layout.json",
+      "sha256": "d9c4bdcfa5c2a0f2454be505f873777e5332a637593061f6103a9419d64f702d",
+      "bytes": 570582
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/report.json",
-      "sha256": "efa7f0e489c2cd542da774222d7bcb767d2a6ed0cff3182cf98ee7434ac1cea4",
-      "bytes": 6139
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/export/export.json",
+      "sha256": "9535129422790ca340b31e3124e54460f866000d69553c5a1877070f66cbeb22",
+      "bytes": 2047
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/training.jsonl",
-      "sha256": "6cc03d69e0c18a1e6d6cf15bf5cf5bbbde0687860f586d1641e9b88144951801",
-      "bytes": 29758
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/export/individual.audit.json",
+      "sha256": "8b56addc9e7ab79edab941532fd4809a1e6ea5233dddb186b0e078df69867913",
+      "bytes": 1105
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/actions.jsonl",
-      "sha256": "ac190f0ae8514918d5754b2bb86f16d31b5716e22fc705a1e50126eaabb0fc26",
-      "bytes": 4157
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/export/learned.tsv",
+      "sha256": "59085e8a74a0b0fa7ab2f7268805df78c67196eebc03b98f10056f2a90721789",
+      "bytes": 73449
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/initial-model.npz",
-      "sha256": "0611f05a49400d71832c5ed131e25b985e9f8661e105bf99e51e87c08b170d67",
-      "bytes": 97354
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/export/learned.tsv.individual",
+      "sha256": "59085e8a74a0b0fa7ab2f7268805df78c67196eebc03b98f10056f2a90721789",
+      "bytes": 73449
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/nodes.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/export/learned.tsv.individual.routes.tsv",
+      "sha256": "8d711bdd99ffc45a49aa894f9ec098ba0fd35ec0f159fbf0b6cf16476ea6c0f1",
+      "bytes": 206292
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/export/learned.tsv.policy.json",
+      "sha256": "924edc86712ce52daa44922cf7b59f8b2c2c33aa2d6a3aaf7599489ac065eb4a",
+      "bytes": 786
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/export/learned.tsv.routes.tsv",
+      "sha256": "8d711bdd99ffc45a49aa894f9ec098ba0fd35ec0f159fbf0b6cf16476ea6c0f1",
+      "bytes": 206292
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/export/learned.tsv.stats.json",
+      "sha256": "adedca93036a2cba2877654629c72bc3fde73c7ad0415439f1930f9f1acf5253",
+      "bytes": 404
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/export/reconstructed-initial.npz",
+      "sha256": "93a0ed89a328f2d3d683acb918869b4b9bec28fc72c50826f4ae4eda2c0a9c0e",
+      "bytes": 13054
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/export/workflow.audit.json",
+      "sha256": "79d62746562736afe5bfba4b3c4b33deec16ad742ed1ac6283fefb7e42d32ca1",
+      "bytes": 785
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/report.json",
+      "sha256": "7a5fbd8dcd5ec2826e17f2df240245a46a730f63181ee83a15c4180a0bc592fe",
+      "bytes": 7028
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/training.jsonl",
+      "sha256": "59b9dae1ab131c889999ae010939dbb56907bbb39966e47d568288560cb1f3db",
+      "bytes": 28347
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/actions.jsonl",
+      "sha256": "d8f9e1ad933d070142dbb65aa493c88b7fa7052f3671700f977eed0537d0367b",
+      "bytes": 4638
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/initial-model.npz",
+      "sha256": "0a1f00e6d11c6b6d3e3150db55076207abbeefa3c1471e735b2e34871c35d93e",
+      "bytes": 13088
+    },
+    {
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/inputs/nodes.tsv",
       "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
       "bytes": 43187
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/edges.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/inputs/edges.tsv",
       "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
       "bytes": 182412
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/positions.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/inputs/positions.tsv",
       "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
       "bytes": 73707
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/routes.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/inputs/routes.tsv",
       "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
       "bytes": 160868
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/individual.nodes.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/inputs/individual.nodes.tsv",
       "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
       "bytes": 43187
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/individual.edges.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/inputs/individual.edges.tsv",
       "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
       "bytes": 182412
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/individual.positions.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/inputs/individual.positions.tsv",
       "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
       "bytes": 73707
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/individual.routes.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/inputs/individual.routes.tsv",
       "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
       "bytes": 160868
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/components.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/inputs/components.tsv",
       "sha256": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
       "bytes": 68780
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/groups.tsv",
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/individual/inputs/groups.tsv",
       "sha256": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d",
       "bytes": 199382
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/pressure_radial_leaf_policy.py",
-      "sha256": "50684f6d8cc1abe82e3042368520e6bbc33cf9c5174752f4c9935cd8f53e238c",
-      "bytes": 1291
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/combined/audit.json",
+      "sha256": "e32723c0736c6ff3e134e9a716dae6af450c7fd72c9825ba353625c5672a9f91",
+      "bytes": 1275
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/run_pressure_radial_reward.py",
-      "sha256": "206949b87133aa974a72a641ea0f9b49f6fd0b4e6f93a678409e355c8eba9f54",
-      "bytes": 1717
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/combined/candidate.layout.json",
+      "sha256": "09366906f601f512c495e0324f6b6e1463f9b7442d823837b2ba2ebf9e421778",
+      "bytes": 2428717
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-combined-product.guard.log",
-      "sha256": "c3214d4f2f75b023a30e903c03c7193ad65eba63177f28607a3bcfb25f61c643",
-      "bytes": 1206
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/combined/product-code-bindings.json",
+      "sha256": "c778547661b73a199e6265b1f817a84246800a96d577bbdcd3ac48e12705ddd7",
+      "bytes": 6246
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-extension-build.guard.log",
-      "sha256": "d16befd67caf7a5fd47a66c17f44c774e3603abf0ed66bcaf141a93cc21e1856",
-      "bytes": 286
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/combined/product-load.log",
+      "sha256": "2d473b0d7a2b20c70573d87e44404f799c0e487a7adcc7ebfd96a3087b3aca61",
+      "bytes": 2290
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-individual-export.guard.log",
-      "sha256": "8a57806f2ceb5459819f8a308a56d8881ca9a0bab70c44509b60f21d90bf1d79",
-      "bytes": 208
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/inference-code/helpers/save_source_cell_checkpoint_preview.py",
+      "sha256": "58032f5f7bf15fe48eaa30e8c4f6f4c1a5bee45b0093a46ea8723c40b20d61b6",
+      "bytes": 5624
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-individual-product.guard.log",
-      "sha256": "94f6edf85137da606b3f9024636f26a8853e47b09b4e2d93cd516adace5d2136",
-      "bytes": 1012
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/inference-code/helpers/prepare_source_cell_workflow.py",
+      "sha256": "9919c1782699fb026867c3927352db39ae217edfc0c364388cc2ad07f2d97d76",
+      "bytes": 1442
     },
     {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-overview-export.guard.log",
-      "sha256": "4865ce82623fbccfa10e5bdc509000e9c151038e5151ace58d180fbf99817cba",
-      "bytes": 205
-    },
-    {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-overview-materialize.guard.log",
-      "sha256": "457641fd8bfbddf9e4362f03e3812db426b758c7667308401e4911c1b42a5c4e",
-      "bytes": 128
-    },
-    {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-overview-product.guard.log",
-      "sha256": "da16b539baf995eac9ce286c467ec2bc064a792d2f4d83c3b4c8156d5a31d21f",
-      "bytes": 1080
-    },
-    {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-view-tests.guard.log",
-      "sha256": "19180b7ea0e6b4d84ebdc1937dcb2c504467c91dea398a223214306a1dcc5e52",
-      "bytes": 1075
-    },
-    {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-bundle.guard.log",
-      "sha256": "93768f46cae260e19ecd4e82f868e4915186a1d9f60c2f75f00d2fe8ebfe87e3",
-      "bytes": 263
-    },
-    {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-extension-build-final.guard.log",
-      "sha256": "d1cb8562ad217a8c4610d1a346e079090be48582732475200f12febc2fdf064d",
-      "bytes": 286
-    },
-    {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-loader-typecheck.guard.log",
-      "sha256": "93670182f9b8e129c0ca4d7f080b299118af899aeb9bd2d11095994973c4b586",
-      "bytes": 43
-    },
-    {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-normal-load.guard.log",
-      "sha256": "983aa9758092c92eb391d3e02a50076ba7d298a02341d7396a3f16713b368685",
-      "bytes": 345
-    },
-    {
-      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-packaging-tests.guard.log",
-      "sha256": "3ab2b20442ef208b02f7a4611c2acd986ec6ab22384b5d72c50037f8b1cfbdc6",
-      "bytes": 833
+      "path": "data/erd-poc/checkpoints/source-cell-preview-20261004/inference-code/helpers/build_latest_app.py",
+      "sha256": "0ac164d98b7c945327f5a42abbda97e8742bdb9f159652885856419be16408f7",
+      "bytes": 961
     }
   ],
   "buildBindings": [
@@ -1086,40 +1167,14 @@
     "freshAppSourcesBuilt": true,
     "fullTypecheckPassed": false
   },
-  "tests": {
-    "passed": 4,
-    "failed": 0
-  },
   "browserVerified": false,
+  "tests": {"passed": 6, "failed": 0, "scope": "bundled preview, independent views and release packaging"},
+  "normalInstalledLoadingWithoutDeveloperOverridesVerified": true,
   "resourcePolicy": {
     "mathThreads": 1,
     "niceIncrement": 10,
     "sampledRssGuardMiB": 128,
-    "maxCompletedJobSampledRssMiB": 121.0
+    "jobsSerialized": true
   },
-  "extensionVersion": "0.0.1069",
-  "deploymentBindings": [
-    {
-      "path": "media/ml-preview/individual.npz",
-      "sha256": "80985b7f4a921e994968e443398cd71cd8de3850e14d71f52bacacd18f555093",
-      "bytes": 97455
-    },
-    {
-      "path": "media/ml-preview/layout.json",
-      "sha256": "683774cefc4690313e8451ec60ca5e733304b61cb509efc26d5503c1f02e46ec",
-      "bytes": 1426125
-    },
-    {
-      "path": "media/ml-preview/manifest.json",
-      "sha256": "80b58b6f1b5f56487489e14a9e2375bd26e682e45156179fd135541a0281561a",
-      "bytes": 1066
-    },
-    {
-      "path": "media/ml-preview/overview.npz",
-      "sha256": "08ab8c452417681c9ea7a1cb270175ce08a5785897a9d244ee0ae342968f3001",
-      "bytes": 81193
-    }
-  ],
-  "normalInstalledLoadingWithoutDeveloperOverridesVerified": true,
-  "limitedLoaderTypecheckPassed": true
+  "extensionVersion": "0.0.1070"
 }

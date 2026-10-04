@@ -1,0 +1,43 @@
+{
+  "checkedAt": "2026-10-04T09:41:11.547Z",
+  "vsix": "django-erd-maker-0.0.1070-darwin-arm64.vsix",
+  "sha256": "f8c19ec1086305faeaec80e1551f28eb71651e8a791e6413d9e4016b66601ecc",
+  "archive": {
+    "files": 217,
+    "compressedBytes": 23199990,
+    "uncompressedBytes": 53405583
+  },
+  "runtime": {
+    "name": "django-erd-maker",
+    "version": "0.0.1070",
+    "target": "darwin-arm64",
+    "iconSize": 1254,
+    "binaries": [
+      {
+        "path": "bin/analyzer/darwin-arm64/django-erd-maker-analyzer",
+        "sha256": "5f40d27c5878ee123c6eb859f9a8bf61703c9605ed8b7b61db10491f35719b3e",
+        "minimumMacOS": "11.0",
+        "linkedLibraries": [
+          "/usr/lib/libSystem.B.dylib"
+        ]
+      },
+      {
+        "path": "bin/ogdf/darwin-arm64/django-erd-ogdf-layout",
+        "sha256": "5cd59e2607ccaf5866ee4f3623c57a227ce6533896dee63c0e04ababcc6cde75",
+        "minimumMacOS": "26.0",
+        "linkedLibraries": [
+          "/usr/lib/libc++.1.dylib",
+          "/usr/lib/libSystem.B.dylib"
+        ]
+      }
+    ],
+    "smoke": {
+      "analyzerModels": 3,
+      "analyzerRelations": 2,
+      "nativeLayoutNodes": 2,
+      "developerOverrides": false
+    }
+  },
+  "installedIntoUserProfile": false,
+  "published": false
+}
