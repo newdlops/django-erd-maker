@@ -3274,11 +3274,23 @@ function auditOptimizedBaseline(
   stdout: string,
   expectedRouteEdgeIds: readonly string[],
 ): {stdout: string; metadata: LayoutEngineMetadata | undefined;
-  hardTargets: OptimizedLayoutHardTargetEvaluation} {
+  hardTargets: OptimizedLayoutHardTargetEvaluation; completeStraightGeometry: boolean} {
   const layout = decodeLayoutSnapshot(JSON.parse(stdout), "ogdfInitialSemanticCarrierAudit");
+  const expectedNodeIds = new Set(payload.layout.nodes.map(node => node.modelId));
+  const nodeIds = new Set(layout.nodes.map(node => node.modelId));
+  const expectedRouteIds = new Set(expectedRouteEdgeIds);
+  const routeIds = new Set(layout.routedEdges.map(route => route.edgeId));
+  const completeStraightGeometry = layout.nodes.length === expectedNodeIds.size
+    && nodeIds.size === expectedNodeIds.size
+    && [...expectedNodeIds].every(id => nodeIds.has(id))
+    && layout.routedEdges.length === expectedRouteIds.size
+    && routeIds.size === expectedRouteIds.size
+    && [...expectedRouteIds].every(id => routeIds.has(id))
+    && layout.routedEdges.every(route => route.points.length === 2);
   synchronizeLayoutRenderedVisualMetrics(payload, layout);
   const hardTargets = evaluateOptimizedLayoutHardTargets(payload, layout, {expectedRouteEdgeIds});
-  return {stdout: JSON.stringify(layout), metadata: layout.engineMetadata, hardTargets};
+  return {stdout: JSON.stringify(layout), metadata: layout.engineMetadata,
+    hardTargets, completeStraightGeometry};
 }
 
 // The direct reroute has no subsequent position-polish stages. Audit and
@@ -3827,8 +3839,9 @@ export async function runOgdfLayout(
   // Keep a cheap exploratory size input for the initial global placement.
   // Large catalog hub rectangles can make unconstrained FMMM pathological,
   // while positions-TSV reroutes handle those exact rectangles quickly. All
-  // accepted/final candidates use nodesPath (the rendered sizes); only the
-  // optimized cold-start baseline may use exploratoryNodesPath.
+  // accepted/final candidates use nodesPath (the rendered sizes). Fresh
+  // searches use those sizes from the start; only the legacy cached/offline
+  // pipeline may use exploratoryNodesPath for its initial placement.
   const exploratoryNodesTsv = serializeNodes(payload);
   const synchronizedRenderedNodeSizes =
     synchronizeLayoutNodeSizesWithRenderedTables(payload);
@@ -3836,7 +3849,8 @@ export async function runOgdfLayout(
     logger?.info(
       `[rendered-size-sync] updated ${synchronizedRenderedNodeSizes}`
       + `/${payload.layout.nodes.length} final node sizes; `
-      + "cold-start placement retains exploratory sizes",
+      + (freshAnalysis ? "fresh placement uses rendered sizes"
+        : "legacy placement retains exploratory sizes"),
     );
   }
 
@@ -3855,7 +3869,7 @@ export async function runOgdfLayout(
     "nodes-exploratory.tsv",
   );
   const initialNodesPath =
-    optimizedLayout && synchronizedRenderedNodeSizes > 0
+    !freshAnalysis && optimizedLayout && synchronizedRenderedNodeSizes > 0
       ? exploratoryNodesPath
       : nodesPath;
   const edgesPath = path.join(requestDirectory, "edges.tsv");
@@ -3957,6 +3971,7 @@ export async function runOgdfLayout(
     let optimizedAllEdgeBaselineMetadata: LayoutEngineMetadata | undefined;
     let initialAuditedStdout: string | undefined;
     let initialLayoutTargetsSatisfied = false;
+    let freshVisualPlacementApplied = false;
     if (layoutFromFile) {
       try {
         stdout = await readFile(layoutFromFile, "utf8");
@@ -4207,6 +4222,14 @@ export async function runOgdfLayout(
         if (!initialLayoutBudgetedTimeout) {
           throw new Error("optimized layout budget exhausted before initial native layout");
         }
+        // Search the actual cards in the initial worker, leaving the rest of
+        // the deadline for its baseline, complete audit, and HTML generation.
+        const freshPositionBudgetMs = freshAnalysis && optimizedLayout
+          && effectiveEdgeRouting === "straight"
+          ? Math.max(0, Math.floor(Math.min(30_000,
+              initialLayoutBudgetedTimeout.timeoutMs * 0.4,
+              readFloatEnv("DJERD_STRAIGHT_VISUAL_POSITION_BUDGET_MS", 30_000))))
+          : 0;
         ({ stderr, stdout } = await execFileAsync(
           binaryPath,
           [
@@ -4236,6 +4259,7 @@ export async function runOgdfLayout(
                   // the fresh analyzer payload. Final geometry is still scored
                   // exactly against every rendered relationship and table.
                   DJERD_FACE_RASTER_CELLS: "1",
+                  DJERD_STRAIGHT_VISUAL_POSITION_BUDGET_MS: String(freshPositionBudgetMs),
                 } : {}),
                 ...(initialOptimizedClusterBaseline ? {
                   DJERD_SKIP_CG_OPT: "1",
@@ -4286,16 +4310,32 @@ export async function runOgdfLayout(
     if (
       optimizedLayout
       && !loadedFromFile
-      && readBoolEnv("DJERD_SEMANTIC_CARRIER_TARGET_SHORT_CIRCUIT", true)
+      && (freshAnalysis || readBoolEnv("DJERD_SEMANTIC_CARRIER_TARGET_SHORT_CIRCUIT", true))
     ) {
       const initialAudit = auditOptimizedBaseline(payload, stdout, expectedRoutedEdgeIds);
       const initialHardTargets = initialAudit.hardTargets;
+      if (freshAnalysis && effectiveEdgeRouting === "straight"
+        && !initialAudit.completeStraightGeometry) {
+        throw new Error("fresh native layout returned incomplete straight geometry");
+      }
       // The complete rendered contract also applies to direct node-bundle
       // scenes, which do not carry the old semantic-carrier counters.
-      initialLayoutTargetsSatisfied = initialHardTargets.pass;
+      initialLayoutTargetsSatisfied = initialHardTargets.pass
+        && initialAudit.completeStraightGeometry;
       stdout = initialAudit.stdout;
       initialAuditedStdout = stdout;
       optimizedAllEdgeBaselineMetadata = initialAudit.metadata;
+      freshVisualPlacementApplied = freshAnalysis
+        && initialAudit.completeStraightGeometry
+        && initialAudit.metadata?.actualAlgorithm?.includes("+StraightVisualPlacement") === true;
+      if (freshVisualPlacementApplied) {
+        optimizedAllEdgeBaselineStdout = stdout;
+        logger?.info(
+          `[optimized] bounded fresh position search audited; `
+          + `skipping duplicate relocation · visualCrossings=${initialHardTargets.visualCrossings}`
+          + ` · allTargetsSatisfied=${initialHardTargets.pass}`,
+        );
+      }
       if (initialLayoutTargetsSatisfied) {
         logger?.info(
           `[optimized] all targets satisfied after initial layout; `
@@ -4326,6 +4366,7 @@ export async function runOgdfLayout(
       optimizedLayout
       && !loadedFromFile
       && !initialLayoutTargetsSatisfied
+      && !freshVisualPlacementApplied
     ) {
       // Force a cluster_graph baseline so ML inference receives the
       // distribution it was trained on. If the user-requested mode was

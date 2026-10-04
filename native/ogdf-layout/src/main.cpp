@@ -6,6 +6,7 @@
 #include "clusterGraph.h"
 #include "canonicalCrossingMetrics.h"
 #include "crossingLowerBound.h"
+#include "straightVisualOptimization.h"
 
 #include <cstdlib>
 #include <numeric>
@@ -12041,6 +12042,65 @@ int main(int argc, char** argv) {
 
     repairCanonicalRouteObstaclesIfRequested(
       nodes, edges, routes, attributes, clusterByModelIdFull, metadata);
+
+    // One bounded search over every real card and independent straight line.
+    // All input comes from this request; no previously computed scene is read.
+    const double straightPositionBudgetMs = readDoubleEnv(
+      "DJERD_STRAIGHT_VISUAL_POSITION_BUDGET_MS", 0.0, 0.0, 30000.0);
+    if (straightLineMode && arguments.positionsTsv.empty()
+        && !arguments.rigidPositions && straightPositionBudgetMs > 0.0
+        && readBoolEnv("DJERD_NO_CARRIER_CROSS", false)) {
+      std::vector<StraightVisualNode> realNodes;
+      std::vector<std::string> realIds;
+      std::unordered_map<std::string, std::size_t> realIndex;
+      for (std::size_t i = 0; i < nodes.size(); ++i) {
+        const auto& node = nodes[i];
+        realIds.push_back(node.modelId);
+        realIndex.emplace(node.modelId, i);
+        realNodes.push_back({sanitizeNodeWidth(node, attributes),
+          sanitizeNodeHeight(node, attributes),
+          sanitizeNodeCenterX(node, attributes), sanitizeNodeCenterY(node, attributes)});
+      }
+      std::vector<StraightVisualEdge> realEdges;
+      std::vector<std::size_t> routeIndices;
+      for (std::size_t i = 0; i < edges.size(); ++i) {
+        const auto& edge = edges[i];
+        if (edge.sourceModelId == edge.targetModelId) continue;
+        realEdges.push_back({realIndex.at(edge.sourceModelId), realIndex.at(edge.targetModelId)});
+        routeIndices.push_back(i);
+      }
+      StraightVisualPlacementOptions placementOptions;
+      placementOptions.budgetMs = straightPositionBudgetMs;
+      const auto placement = optimizeStraightVisualPlacement(
+        realNodes, realEdges, realIds, {}, placementOptions);
+      const bool accepted = placement.nodes.size() == nodes.size()
+        && placement.routes.size() == routeIndices.size()
+        && placement.after.invalidRoutes == 0
+        && placement.after.nodeOverlaps <= placement.before.nodeOverlaps
+        && placement.after.visual() < placement.before.visual();
+      if (accepted) {
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+          attributes.x(nodes[i].handle) = placement.nodes[i].x;
+          attributes.y(nodes[i].handle) = placement.nodes[i].y;
+        }
+        for (std::size_t i = 0; i < placement.routes.size(); ++i) {
+          const auto& route = placement.routes[i];
+          routes.at(routeIndices[i]) = {{route.sourceX, route.sourceY},
+            {route.targetX, route.targetY}};
+        }
+        recomputeLeafBundleBboxesFromNodes(metadata.leafBundles, nodes, attributes);
+        metadata.renderedCarrierRoutes.clear();
+        metadata.actualAlgorithm += "+StraightVisualPlacement";
+      }
+      std::fprintf(stderr,
+        "[straight-visual-placement] accepted=%d nodes=%zu routes=%zu "
+        "visual=%lld->%lld invalid=%lld moves=%zu evaluations=%zu elapsed=%.0fms.\n",
+        accepted ? 1 : 0, placement.nodes.size(), placement.routes.size(),
+        static_cast<long long>(placement.before.visual()),
+        static_cast<long long>(placement.after.visual()),
+        static_cast<long long>(placement.after.invalidRoutes),
+        placement.moves, placement.evaluations, placement.elapsedMs);
+    }
 
     // Final route/bundle quality recompute. Several late visual passes move
     // nodes or sync route endpoints after the earlier quality snapshot, and

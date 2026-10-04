@@ -152,6 +152,90 @@ test('fresh optimization budgets native searches inside the request even when of
     'native searches must leave room for final scoring and JSON output');
 });
 
+test('fresh native placement receives real rendered card sizes and a bounded search budget', async t => {
+  isolate(t);
+  const payload = fixture();
+  // Catalog mode uses compact dimensions independently of analyzer sizes.
+  const originalModel = payload.analyzer.models.find(model => model.identity.id === 'accounts.Author');
+  for (let i = 0; i < 500; i++) {
+    const modelId = `padding.Author${i}`;
+    payload.analyzer.models.push({...structuredClone(originalModel),
+      identity: {...originalModel.identity, id: modelId}});
+    payload.graph.nodes.push({...payload.graph.nodes[0], modelId});
+    payload.layout.nodes.push({...structuredClone(payload.layout.nodes[0]), modelId,
+      position: {x: (i % 20) * 260, y: 1000 + Math.floor(i / 20) * 140}});
+  }
+  const inputs = [];
+  t.mock.method(childProcess, 'execFile', (file, args, options, callback) => {
+    const nodesPath = args[args.indexOf('--nodes-file') + 1];
+    void fs.readFile(nodesPath, 'utf8').then(text => {
+      inputs.push({rows: text.trim().split('\n').map(row => row.split('\t')), env: options.env, timeout: options.timeout});
+      callback(null, JSON.stringify(resultLayout(payload, inputs.length)), '');
+    }, callback);
+    return {kill: () => true};
+  });
+  const result = await runOgdfLayout(root, payload, 'fmmm', undefined, undefined,
+    'straight', false, false, true, {freshAnalysis: true, deadlineMs: Date.now() + 60_000});
+  assert.equal(result.applied, true, result.reason);
+  assert.ok(inputs.length >= 1, 'the initial native layout must execute');
+  assert.equal(inputs[0].rows.length, payload.layout.nodes.length);
+  assert.deepEqual(inputs[0].rows.slice(0, 2).map(row => [row[0], Number(row[1]), Number(row[2])]),
+    [['accounts.Author', 236, 74], ['blog.Post', 236, 74]],
+    'the placement scorer must use the card dimensions actually shown on canvas');
+  const budget = Number(inputs[0].env.DJERD_STRAIGHT_VISUAL_POSITION_BUDGET_MS);
+  assert.ok(budget > 0 && budget <= 30_000 && budget < inputs[0].timeout,
+    'fresh position search must reserve time for initial layout, auditing and rendering');
+});
+
+test('fresh placement keeps a complete audited result without repeating the legacy relocation', async t => {
+  isolate(t);
+  const payload = fixture(), wide = fixture();
+  wide.layout.nodes[1].position = {x: 100_000, y: 100_000};
+  const baseline = resultLayout(wide, 1);
+  baseline.engineMetadata.actualAlgorithm = 'ClusterGraph+StraightVisualPlacement';
+  let calls = 0;
+  t.mock.method(childProcess, 'execFile', (file, args, options, callback) => {
+    calls++;
+    queueMicrotask(() => callback(null, JSON.stringify(baseline), ''));
+    return {kill: () => true};
+  });
+  const result = await runOgdfLayout(root, payload, 'fmmm', undefined, undefined,
+    'straight', false, false, true, {freshAnalysis: true, deadlineMs: Date.now() + 60_000});
+  assert.equal(result.applied, true, result.reason);
+  assert.equal(calls, 1, 'the bounded position search already ran in the initial worker');
+  assert.deepEqual(result.layout.nodes.map(node => [node.modelId, node.position]),
+    baseline.nodes.map(node => [node.modelId, node.position]));
+  assert.ok(result.layout.engineMetadata.boundingBoxArea > 1e9,
+    'avoiding duplicate work may not misreport the failed compactness target');
+});
+
+for (const shortcut of [undefined, '0']) {
+test(`fresh optimization rejects a missing isolated model with the target shortcut ${shortcut ?? 'default'}`, async t => {
+  isolate(t);
+  if (shortcut !== undefined) process.env.DJERD_SEMANTIC_CARRIER_TARGET_SHORT_CIRCUIT = shortcut;
+  const payload = fixture();
+  const modelId = 'padding.Isolated';
+  const model = structuredClone(payload.analyzer.models.find(m => m.identity.id === 'accounts.Author'));
+  model.identity.id = modelId;
+  payload.analyzer.models.push(model);
+  payload.graph.nodes.push({...payload.graph.nodes[0], modelId});
+  payload.layout.nodes.push({...structuredClone(payload.layout.nodes[0]), modelId,
+    position: {x: 0, y: 1000}});
+  const partial = resultLayout(payload, 1);
+  partial.nodes.pop();
+  partial.engineMetadata.actualAlgorithm = 'ClusterGraph+StraightVisualPlacement';
+  t.mock.method(childProcess, 'execFile', (file, args, options, callback) => {
+    queueMicrotask(() => callback(null, JSON.stringify(partial), ''));
+    return {kill: () => true};
+  });
+  const result = await runOgdfLayout(root, payload, 'fmmm', undefined, undefined,
+    'straight', false, false, true, {freshAnalysis: true, deadlineMs: Date.now() + 60_000});
+  assert.equal(result.applied, false, 'low crossing scores may not hide a missing real model');
+  assert.match(result.reason, /incomplete.*geometry/i);
+  assert.equal(result.layout.nodes.length, payload.layout.nodes.length);
+});
+}
+
 for (const [label, damage] of [
   ['missing node', layout => layout.nodes.pop()],
   ['duplicate node', layout => { layout.nodes[1] = structuredClone(layout.nodes[0]); }],

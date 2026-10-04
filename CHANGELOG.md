@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.0.1072 — Fresh straight-line crossing reduction (2026-10-05)
+
+- Score card moves and swaps against every independent straight relationship
+  and every actual rendered card, using transient spatial indexes.
+- Run a bounded position search in the initial fresh worker, using canvas
+  dimensions from the start, and avoid repeating legacy relocation afterward.
+- Keep parallel relationships on distinct boundary slots and reject collapsed
+  paths or incomplete initial results, including missing isolated models.
+- On the same 1,247-model / 1,732-route project, fresh overview visualCross
+  decreased from 7,993 to 3,274 and individual visualCross from 8,309 to 3,271.
+  Source discovery through HTML generation took 77.3 seconds, with a combined
+  host/worker peak of 110.9 MiB. No model or layout result cache was read.
+- This is an interim improvement. Overview ≤200 and individual <500 remain
+  unmet; the result retains its `quality-degraded` status. See
+  [measurement conditions](docs/PERFORMANCE.ko.md).
+
 ## 0.0.1071 — Bounded fresh analysis (2026-10-05)
 
 - Reanalyse source and compute a new layout for each foreground request,

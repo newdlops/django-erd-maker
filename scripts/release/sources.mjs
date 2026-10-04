@@ -17,6 +17,8 @@ const sourceFiles = [
   "scripts/erd-poc/run_memory_bounded.py", "scripts/erd-poc/ogdf_planar_backbone.cpp",
   "scripts/erd-poc/bundle_latest_checkpoint_preview.cjs",
   "scripts/erd-poc/ogdf_general_layout_probe.cpp", "test/integration/release-packaging.test.mjs",
+  "scripts/erd-poc/straight_visual_optimizer.cpp",
+  "test/integration/straight-visual-state.test.mjs", "test/integration/straight-visual-state.cpp",
   "test/integration/bundled-ml-preview.test.mjs",
   "test/integration/fresh-analysis-latency.test.mjs",
   "test/integration/owned-bootstrap-decoding.test.mjs",

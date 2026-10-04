@@ -39,6 +39,8 @@ add_executable(django-erd-ogdf-layout
   src/crossingLowerBound.cpp
   src/rectangleCollisionIndex.cpp
   src/routeBoundsIndex.cpp
+  src/straightVisualOptimization.cpp
+  src/straightVisualPlacement.cpp
   src/renderedMetrics.cpp
   src/layoutTopology.cpp
   src/layoutGeometry.cpp
@@ -61,6 +63,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     src/visualKnot.cpp src/segmentGeometry.cpp src/clusterCrossingOptimization.cpp
     src/clusterOrientation.cpp
     src/clusterKnotOptimization.cpp
+    src/straightVisualOptimization.cpp src/straightVisualPlacement.cpp
     PROPERTIES COMPILE_OPTIONS "-O2;-ffp-contract=off"
   )
 endif()
