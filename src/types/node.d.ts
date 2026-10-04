@@ -6,6 +6,14 @@ declare module "node:crypto" {
   export function createHash(algorithm: string): Hash;
 }
 
+declare module "node:buffer" {
+  export const Buffer: {
+    from(data: string, encoding: "ascii"): {
+      toString(encoding: "latin1"): string;
+    };
+  };
+}
+
 declare module "node:fs/promises" {
   export function access(path: string): Promise<void>;
   export function mkdtemp(prefix: string): Promise<string>;

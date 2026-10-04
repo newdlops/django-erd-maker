@@ -5,6 +5,7 @@ import {
   type LayoutMode,
 } from "../../../shared/graph/layoutContract";
 import { mergePipelineTimings } from "../../../shared/protocol/mergePipelineTimings";
+import type { DiagramExecutionOptions } from "../../../shared/protocol/diagramExecutionPolicy";
 import type {
   DiagramBootstrapPayload,
   LayoutExecutionSnapshot,
@@ -70,11 +71,12 @@ export async function loadLiveDiagram(
   clusterGraphLayout: boolean = false,
   bubbleLayout: boolean = false,
   optimizedLayout: boolean = false,
+  execution: DiagramExecutionOptions = {freshAnalysis: true},
 ): Promise<LiveDiagramResult> {
   const requestedLayoutMode = normalizeLayoutMode(layoutMode);
   const basePayload =
     discovery.candidateModules.length > 0
-      ? await loadAnalyzerPayload(extensionRootPath, discovery, requestedLayoutMode, logger)
+      ? await loadAnalyzerPayload(extensionRootPath, discovery, requestedLayoutMode, logger, execution.deadlineMs)
       : createEmptyDiagramPayload(discovery.selectedRoot, requestedLayoutMode);
 
   if (discovery.candidateModules.length === 0) {
@@ -96,6 +98,7 @@ export async function loadLiveDiagram(
     logger,
     requestId,
     edgeRouting,
+    execution,
   );
 
   payload.timings = mergePipelineTimings(payload.timings, {
@@ -115,14 +118,18 @@ async function loadAnalyzerPayload(
   discovery: DjangoWorkspaceDiscoveryResult,
   layoutMode: LayoutMode,
   logger?: Logger,
+  deadlineMs?: number,
 ): Promise<DiagramBootstrapPayload> {
   const analyzerResult = await runAnalyzerBootstrap(
     extensionRootPath,
     discovery,
     layoutMode,
     logger,
+    deadlineMs,
   );
-  const payload = clonePayload(analyzerResult.payload);
+  // The analyzer creates this request's payload. It has no previous consumer
+  // and needs no second copy of every field and method before layout.
+  const payload = analyzerResult.payload;
   payload.layoutExecution = createLayoutExecution({
     appliedMode: payload.layout.mode,
     durationMs: analyzerResult.durationMs,
@@ -146,6 +153,7 @@ async function applyRequestedLayout(
   logger?: Logger,
   requestId?: number,
   edgeRouting: EdgeRoutingStyle = DEFAULT_EDGE_ROUTING,
+  execution: DiagramExecutionOptions = {},
 ): Promise<{
   layoutFailures: Partial<Record<LayoutMode, string>>;
   payload: DiagramBootstrapPayload;
@@ -179,6 +187,7 @@ async function applyRequestedLayout(
     payload.view?.clusterGraphLayout === true,
     payload.view?.bubbleLayout === true,
     payload.view?.optimizedLayout === true,
+    execution,
   );
 
   payload.timings = mergePipelineTimings(payload.timings, {
@@ -235,5 +244,15 @@ function createLayoutExecution(
 }
 
 function clonePayload(payload: DiagramBootstrapPayload): DiagramBootstrapPayload {
-  return JSON.parse(JSON.stringify(payload)) as DiagramBootstrapPayload;
+  // Layout only changes geometry, view state and execution metadata. Share the
+  // freshly extracted, read-only model/graph data within this one request.
+  // Copy mutable geometry so later layout controls cannot modify the baseline.
+  return {
+    ...payload,
+    layout: JSON.parse(JSON.stringify(payload.layout)),
+    view: JSON.parse(JSON.stringify(payload.view)),
+    layoutFailures: payload.layoutFailures ? {...payload.layoutFailures} : undefined,
+    layoutExecution: payload.layoutExecution ? {...payload.layoutExecution} : undefined,
+    timings: payload.timings ? {...payload.timings} : undefined,
+  };
 }

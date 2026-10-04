@@ -26,8 +26,8 @@ runtime dependencies.
 ## Developer build
 
 ```sh
-node --max-old-space-size=96 --max-semi-space-size=8 node_modules/typescript/bin/tsc -p .
-cargo build --locked --release -j 1 --manifest-path analyzer/Cargo.toml
+node --max-old-space-size=96 --max-semi-space-size=1 node_modules/typescript/bin/tsc -p .
+env CARGO_BUILD_JOBS=1 CARGO_PROFILE_RELEASE_OPT_LEVEL=1 CARGO_PROFILE_RELEASE_DEBUG=0 CARGO_PROFILE_RELEASE_CODEGEN_UNITS=64 CARGO_PROFILE_RELEASE_LTO=false cargo build --locked --release -j 1 --manifest-path analyzer/Cargo.toml
 node scripts/build-ogdf-binary.mjs --parallel 1 --portable true
 ```
 
@@ -39,21 +39,26 @@ to the new development binary or prepare the release again.
 
 The OGDF wrapper uses the supplied Foxglove 202510 archive. `--portable true`
 disables optional OpenMP to avoid a Homebrew library dependency. CGAL is off by
-default. The wrapper's large `main.cpp` builds at `-O0` to limit compiler memory;
-the OGDF library uses the Release build configuration. macOS executables receive
+default. The wrapper's larger compilation units build at `-O0` to limit compiler
+memory; the extracted crossing kernels build at `-O2 -ffp-contract=off` and the
+OGDF library uses the Release build configuration. macOS executables receive
 an ad-hoc signature at their final location. This is not Apple notarization.
 
 ## Prepare and package
 
 Run costly commands sequentially. The preparation script guards its own stages:
-256 MiB for TypeScript, Rust, source preparation and verification, and a separate
-single-worker 1 GiB cap for the large C++ compilation. The research guard's
-default remains 256 MiB. Do not wrap preparation in a second guard; the shared
+512 MiB for TypeScript, Rust and single-worker C++ compilation, and 128 MiB for
+source preparation and verification. The analyzer uses optimization level 1,
+64 codegen units and no LTO to stay within the compiler cap. Do not wrap
+preparation in a second guard; the shared
 lock intentionally prevents nested or simultaneous runs.
+Cargo vendoring and metadata collection run before the archive parent starts,
+so their memory is not added to a waiting Node process.
+Final verification also starts after the archive process has exited.
 
 ```sh
 bash scripts/prepare-release.sh
-python3 scripts/erd-poc/run_memory_bounded.py -- node --max-old-space-size=64 --test --test-concurrency=1 test/integration/release-packaging.test.mjs
+python3 scripts/erd-poc/run_memory_bounded.py --limit-mib 128 -- node --max-old-space-size=48 --max-semi-space-size=1 --test --test-concurrency=1 test/integration/release-packaging.test.mjs
 bash scripts/package-release.sh
 ```
 

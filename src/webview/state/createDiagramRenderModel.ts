@@ -784,7 +784,9 @@ function segmentPenetratesRenderedTable(
 export function createDiagramRenderModel(
   payload: DiagramBootstrapPayload,
   discovery?: DjangoWorkspaceDiscoveryResult,
+  options: {includeInspector?: boolean} = {},
 ): DiagramRenderModel {
+  const includeInspector = options.includeInspector !== false;
   const modelsById = new Map(
     payload.analyzer.models.map((model) => [model.identity.id, model] as const),
   );
@@ -794,13 +796,16 @@ export function createDiagramRenderModel(
   const tableOptionsById = new Map(
     payload.view.tableOptions.map((options) => [options.modelId, options] as const),
   );
+  const geometryOnlyCatalog = !includeInspector
+    && payload.layout.nodes.filter(node => modelsById.has(node.modelId)).length
+      > MODEL_CATALOG_MODE_THRESHOLD;
   const allTables = payload.layout.nodes
-    .map((layoutNode) => createTableRenderModel(layoutNode, payload, modelsById, tableOptionsById))
+    .map((layoutNode) => createTableRenderModel(
+      layoutNode, payload, modelsById, tableOptionsById, !geometryOnlyCatalog))
     .filter(isDefined);
-  const inspectorRelationshipsByModelId = createInspectorRelationshipsByModelId(
-    payload.graph.structuralEdges,
-    modelsById,
-  );
+  const inspectorRelationshipsByModelId = includeInspector
+    ? createInspectorRelationshipsByModelId(payload.graph.structuralEdges, modelsById)
+    : new Map<ModelId, InspectorRelationshipRenderModel[]>();
   const modelCatalogMode = allTables.length > MODEL_CATALOG_MODE_THRESHOLD;
   const rawLeafBundles = payload.layout.engineMetadata?.leafBundles ?? [];
   // Keep the saved member positions. Valid packed groups become connection
@@ -944,10 +949,10 @@ export function createDiagramRenderModel(
       // The canvas may use catalog cards with their rows removed, but the
       // inspector must retain the analyzer's complete model data so users can
       // audit every relationship represented by the rendered carrier graph.
-      models: allTables.map((table) => createInspectorModelRenderModel(
+      models: includeInspector ? allTables.map((table) => createInspectorModelRenderModel(
         table,
         inspectorRelationshipsByModelId.get(table.modelId) ?? [],
-      )),
+      )) : [],
       selectedMethodName: payload.view.selectedMethodContext?.methodName,
       selectedModelId: payload.view.selectedModelId,
     },
@@ -4330,6 +4335,7 @@ function createTableRenderModel(
   payload: DiagramBootstrapPayload,
   modelsById: Map<ModelId, ExtractedModel>,
   tableOptionsById: Map<ModelId, TableViewOptions>,
+  includeDetails: boolean = true,
 ): TableRenderModel | undefined {
   const model = modelsById.get(layoutNode.modelId);
   if (!model) {
@@ -4338,9 +4344,9 @@ function createTableRenderModel(
 
   const tableOptions =
     tableOptionsById.get(layoutNode.modelId) ?? defaultTableOptions(layoutNode.modelId);
-  const methodAssociations = payload.graph.methodAssociations.filter(
+  const methodAssociations = includeDetails ? payload.graph.methodAssociations.filter(
     (association) => association.sourceModelId === layoutNode.modelId,
-  );
+  ) : [];
 
   return {
     activeMethodName:
@@ -4350,17 +4356,17 @@ function createTableRenderModel(
     appLabel: model.identity.appLabel,
     clusterId: layoutNode.clusterId,
     databaseTableName: databaseTableName(model),
-    fieldRows: createFieldRows(model),
+    fieldRows: includeDetails ? createFieldRows(model) : [],
     hasExplicitDatabaseTableName: Boolean(model.hasExplicitDatabaseTableName),
     hidden: tableOptions.hidden,
     methodAssociations,
-    methods: model.methods,
+    methods: includeDetails ? model.methods : [],
     modelId: model.identity.id,
     modelName: model.identity.modelName,
     position: layoutNode.position,
-    properties: model.properties.map((property) =>
+    properties: includeDetails ? model.properties.map((property) =>
       property.returnType ? `${property.name} -> ${property.returnType}` : property.name,
-    ),
+    ) : [],
     selected: payload.view.selectedModelId === model.identity.id,
     showMethodHighlights: tableOptions.showMethodHighlights,
     showMethods: tableOptions.showMethods,

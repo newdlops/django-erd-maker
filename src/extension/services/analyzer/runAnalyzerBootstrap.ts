@@ -9,7 +9,7 @@ import {
   resolveAnalyzerLayoutMode,
   type LayoutMode,
 } from "../../../shared/graph/layoutContract";
-import { decodeDiagramBootstrapPayload } from "../../../shared/protocol/decodeDiagramBootstrap";
+import { decodeOwnedDiagramBootstrapPayload } from "../../../shared/protocol/decodeDiagramBootstrap";
 import type { DiagramBootstrapPayload } from "../../../shared/protocol/webviewContract";
 import type { DjangoWorkspaceDiscoveryResult } from "../discovery/discoveryTypes";
 import type { Logger } from "../logging/logger";
@@ -25,6 +25,7 @@ export async function runAnalyzerBootstrap(
   discovery: DjangoWorkspaceDiscoveryResult,
   layoutMode: LayoutMode,
   logger?: Logger,
+  deadlineMs?: number,
 ): Promise<AnalyzerBootstrapResult> {
   const started = Date.now();
   const analyzerBinaryPath = await resolveAnalyzerBinaryPath(extensionRootPath);
@@ -74,6 +75,8 @@ export async function runAnalyzerBootstrap(
       {
         cwd: extensionRootPath,
         maxBuffer: 100 * 1024 * 1024,
+        timeout: Math.max(1, Math.min(30_000, Math.floor((deadlineMs ?? Number.POSITIVE_INFINITY) - Date.now()))),
+        killSignal: "SIGKILL",
       },
     );
 
@@ -82,7 +85,7 @@ export async function runAnalyzerBootstrap(
       throw new Error(stderr.trim());
     }
 
-    const payload = decodeDiagramBootstrapPayload(JSON.parse(stdout));
+    const payload = decodeOwnedDiagramBootstrapPayload(JSON.parse(stdout));
     logger?.info(
       [
         `Analyzer bootstrap completed in ${Date.now() - started}ms`,
@@ -118,6 +121,8 @@ function execFileAsync(
   options: {
     cwd: string;
     maxBuffer: number;
+    timeout: number;
+    killSignal: "SIGKILL";
   },
 ): Promise<{ stderr: string; stdout: string }> {
   return new Promise((resolve, reject) => {

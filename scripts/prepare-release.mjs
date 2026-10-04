@@ -13,16 +13,28 @@ if (!process.argv.includes("--finalize")) {
 }
 const manifest = await readJson(path.join(repoRoot, "package.json"));
 const workParent = path.join(repoRoot, ".tmp");
-await fs.mkdir(workParent, { recursive: true });
-const work = await fs.mkdtemp(path.join(workParent, "release-source-"));
+const workArgument = process.argv[process.argv.indexOf("--sources-work") + 1];
+if (!process.argv.includes("--sources-work") || !workArgument) {
+  throw new Error("Run bash scripts/prepare-release.sh to collect Rust sources before finalization.");
+}
+const work = path.resolve(workArgument);
+if (!work.startsWith(path.join(workParent, "release-source-") )) {
+  throw new Error("Source work directory must be a release-source directory inside .tmp");
+}
 try {
   console.log(`Preparing ${manifest.name} ${manifest.version} (${target})`);
   const versions = {};
   for (const [name, command, args] of [
     ["node", process.execPath, ["--version"]], ["rustc", "rustc", ["--version"]],
     ["cargo", "cargo", ["--version"]], ["cmake", "cmake", ["--version"]],
-    ["clang", "clang++", ["--version"]], ["vsce", "vsce", ["--version"]],
+    ["clang", "clang++", ["--version"]],
   ]) versions[name] = (await run(command, args, { capture: true })).split("\n")[0];
+  // The vsce CLI loads its full dependency graph even for --version. Read the
+  // same installed package metadata without keeping another large Node host.
+  const vsceExecutable = await fs.realpath(await run("which", ["vsce"], {capture: true}));
+  const vscePackage = await readJson(path.join(path.dirname(vsceExecutable), "package.json"));
+  if (vscePackage.name !== "@vscode/vsce") throw new Error("Unexpected vsce installation");
+  versions.vsce = vscePackage.version;
   const analyzer = path.join(repoRoot, binaryPaths[0]);
   await fs.mkdir(path.dirname(analyzer), { recursive: true });
   await fs.copyFile(path.join(repoRoot, "analyzer/target/release/django-erd-maker-analyzer"), analyzer);
@@ -45,16 +57,18 @@ try {
     minimumMacOS, license: manifest.license, createdAt: new Date().toISOString(),
     tools: versions,
     build: { cargoLocked: true, parallelism: 1, cgal: false, openmp: false,
-      nativeCompilerMemoryLimitMiB: 1024, otherStagesMemoryLimitMiB: 256,
-      cmakeBuildType: "Release", wrapperMainOptimization: "-O0", signing: "ad-hoc" },
+      nativeCompilerMemoryLimitMiB: 512, otherCompilerMemoryLimitMiB: 512,
+      otherStagesMemoryLimitMiB: 128, analyzerOptimizationLevel: 1,
+      analyzerCodegenUnits: 64, analyzerLto: false,
+      cmakeBuildType: "Release", wrapperMainOptimization: "-O0",
+      crossingKernelsOptimization: "-O2 -ffp-contract=off", signing: "ad-hoc" },
     archives: await digestFiles(path.join(repoRoot, "sources"), sourceArchives),
     binaries: await digestFiles(repoRoot, binaryPaths),
     runtimeFiles: await digestFiles(repoRoot, runtimeFiles),
     projectSourceFiles: sourceFiles,
   };
   await fs.writeFile(path.join(repoRoot, "sources/manifest.json"), JSON.stringify(releaseManifest, null, 2) + "\n");
-  await run(process.execPath, ["--max-old-space-size=64", "scripts/verify-release-artifacts.mjs"]);
-  console.log("Release prepared. Run npm run package:vsix to create and inspect the VSIX.");
+  console.log("Release artifacts prepared; the shell will run verification after this process exits.");
 } finally {
   await fs.rm(work, { recursive: true, force: true });
 }

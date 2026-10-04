@@ -6,6 +6,35 @@ use rustpython_parser::ast;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
+#[cfg(test)]
+mod catalog_memory_tests {
+    use super::*;
+    use crate::parser::python_module_parser::parse_python_module_source;
+    use std::path::PathBuf;
+
+    #[test]
+    fn inheritance_catalog_keeps_headers_and_imports_without_model_bodies() {
+        let root = PathBuf::from("/project");
+        let module = ModuleInput {
+            app_label: "blog".to_string(),
+            file_path: root.join("blog/models.py"),
+        };
+        let parsed = parse_python_module_source(
+            "from django.db import models\nimport shared.models as shared\nclass Post(models.Model):\n    title = models.CharField(max_length=100)\n    def body(self):\n        return 'large method body'\nclass Child(Post):\n    pass\n",
+            &module.file_path,
+        ).unwrap();
+        let catalog = ModuleClassCatalog::new(&root, &module, &parsed);
+        assert!(catalog.class_defs.iter().all(|class| class.body.is_empty()),
+            "inheritance discovery must not clone field or method bodies");
+        assert_eq!(catalog.statements.len(), 2,
+            "inheritance discovery only reads top-level imports");
+        assert_eq!(catalog.class_defs.len(), 2);
+        assert_eq!(discover_project_model_ids(&root, &[(&module, &parsed)]),
+            BTreeSet::from(["blog.Child".to_string(), "blog.Post".to_string()]));
+    }
+}
+
+#[cfg(test)]
 pub fn discover_project_model_ids(
     workspace_root: &Path,
     modules: &[(&ModuleInput, &ParsedPythonModule)],
@@ -14,10 +43,16 @@ pub fn discover_project_model_ids(
         .iter()
         .map(|(module, parsed)| ModuleClassCatalog::new(workspace_root, module, parsed))
         .collect::<Vec<_>>();
-    let resolver = ProjectImportResolver::new(&catalogs);
+    discover_project_model_ids_from_catalogs(&catalogs)
+}
+
+pub(super) fn discover_project_model_ids_from_catalogs(
+    catalogs: &[ModuleClassCatalog],
+) -> BTreeSet<String> {
+    let resolver = ProjectImportResolver::new(catalogs);
 
     let mut graph = ModelInheritanceGraph::default();
-    for catalog in &catalogs {
+    for catalog in catalogs {
         graph.add_catalog(catalog, &resolver);
     }
 
@@ -105,7 +140,7 @@ enum BaseResolution {
 }
 
 #[derive(Debug)]
-struct ModuleClassCatalog {
+pub(super) struct ModuleClassCatalog {
     app_label: String,
     class_defs: Vec<ast::StmtClassDef>,
     is_package_module: bool,
@@ -115,12 +150,20 @@ struct ModuleClassCatalog {
 }
 
 impl ModuleClassCatalog {
-    fn new(workspace_root: &Path, module: &ModuleInput, parsed: &ParsedPythonModule) -> Self {
+    pub(super) fn new(workspace_root: &Path, module: &ModuleInput, parsed: &ParsedPythonModule) -> Self {
         let class_defs = parsed
             .statements()
             .iter()
             .filter_map(|statement| match statement {
-                ast::Stmt::ClassDef(class_def) => Some(class_def.clone()),
+                ast::Stmt::ClassDef(class_def) => Some(ast::StmtClassDef {
+                    range: class_def.range,
+                    name: class_def.name.clone(),
+                    bases: class_def.bases.clone(),
+                    keywords: Vec::new(),
+                    body: Vec::new(),
+                    decorator_list: Vec::new(),
+                    type_params: Vec::new(),
+                }),
                 _ => None,
             })
             .collect::<Vec<_>>();
@@ -143,7 +186,9 @@ impl ModuleClassCatalog {
                 .is_some_and(|file_name| file_name == "__init__.py"),
             local_class_ids,
             module_path: derive_module_path(workspace_root, module),
-            statements: parsed.statements().to_vec(),
+            statements: parsed.statements().iter()
+                .filter(|statement| matches!(statement, ast::Stmt::Import(_) | ast::Stmt::ImportFrom(_)))
+                .cloned().collect(),
         }
     }
 

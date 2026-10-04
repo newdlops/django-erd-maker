@@ -59,10 +59,21 @@ import type {
 export function decodeDiagramBootstrapPayload(
   value: unknown,
 ): DiagramBootstrapPayload {
+  return decodeBootstrapPayload(value, false);
+}
+
+/** Consumes newly parsed, unshared input so raw models can be released one by one. */
+export function decodeOwnedDiagramBootstrapPayload(
+  value: unknown,
+): DiagramBootstrapPayload {
+  return decodeBootstrapPayload(value, true);
+}
+
+function decodeBootstrapPayload(value: unknown, consumeModels: boolean): DiagramBootstrapPayload {
   const root = readRecord(value, "diagramBootstrapPayload");
 
   return {
-    analyzer: decodeAnalyzerOutput(readRecord(root.analyzer, "diagramBootstrapPayload.analyzer")),
+    analyzer: decodeAnalyzerOutput(readRecord(root.analyzer, "diagramBootstrapPayload.analyzer"), consumeModels),
     contractVersion: decodeContractVersion(root, "contractVersion", "diagramBootstrapPayload"),
     graph: decodeGraph(readRecord(root.graph, "diagramBootstrapPayload.graph")),
     layout: decodeLayout(readRecord(root.layout, "diagramBootstrapPayload.layout"), "diagramBootstrapPayload.layout"),
@@ -80,15 +91,48 @@ export function decodeLayoutSnapshot(
   return decodeLayout(readRecord(value, context), context);
 }
 
-function decodeAnalyzerOutput(record: JsonRecord): AnalyzerOutput {
+/** Consumes an unshared native JSON result, validating each record in place. */
+export function decodeOwnedLayoutSnapshot(
+  value: unknown,
+  context = "layoutSnapshot",
+): LayoutSnapshot {
+  return decodeLayout(readRecord(value, context), context, true);
+}
+
+function decodeArray<T>(
+  record: JsonRecord,
+  key: string,
+  context: string,
+  decode: (item: unknown, context: string) => T,
+  consume: boolean,
+): T[] {
+  const items = readArray(record, key, context);
+  if (!consume) return items.map((item, index) => decode(item, `${context}.${key}[${index}]`));
+  for (let index = 0; index < items.length; index++) {
+    items[index] = decode(items[index], `${context}.${key}[${index}]`);
+  }
+  return items as T[];
+}
+
+function decodeAnalyzerOutput(record: JsonRecord, consumeModels: boolean): AnalyzerOutput {
+  const models = readArray(record, "models", "diagramBootstrapPayload.analyzer");
+  const decodeModel = (item: unknown, index: number) =>
+    decodeExtractedModel(item, `diagramBootstrapPayload.analyzer.models[${index}]`);
+  let decodedModels: ExtractedModel[];
+  if (consumeModels) {
+    for (let index = 0; index < models.length; index++) {
+      models[index] = decodeModel(models[index], index);
+    }
+    decodedModels = models as ExtractedModel[];
+  } else {
+    decodedModels = models.map(decodeModel);
+  }
   return {
     contractVersion: decodeContractVersion(record, "contractVersion", "diagramBootstrapPayload.analyzer"),
     diagnostics: readArray(record, "diagnostics", "diagramBootstrapPayload.analyzer").map((item, index) =>
       decodeDiagnostic(item, `diagramBootstrapPayload.analyzer.diagnostics[${index}]`),
     ),
-    models: readArray(record, "models", "diagramBootstrapPayload.analyzer").map((item, index) =>
-      decodeExtractedModel(item, `diagramBootstrapPayload.analyzer.models[${index}]`),
-    ),
+    models: decodedModels,
     summary: decodeAnalysisSummary(
       readRecord(record.summary, "diagramBootstrapPayload.analyzer.summary"),
     ),
@@ -236,27 +280,19 @@ function decodeFieldRelation(record: JsonRecord, context: string): FieldRelation
   };
 }
 
-function decodeLayout(record: JsonRecord, context: string): LayoutSnapshot {
+function decodeLayout(record: JsonRecord, context: string, consumeArrays = false): LayoutSnapshot {
   const layout: LayoutSnapshot = {
-    crossings: readArray(record, "crossings", context).map((item, index) =>
-      decodeEdgeCrossing(item, `${context}.crossings[${index}]`),
-    ),
+    crossings: decodeArray(record, "crossings", context, decodeEdgeCrossing, consumeArrays),
     engineMetadata: decodeLayoutEngineMetadata(record, context),
     mode: readLiteral(record, "mode", OGDF_LAYOUT_MODES, context),
-    nodes: readArray(record, "nodes", context).map((item, index) =>
-      decodeNodeLayout(item, `${context}.nodes[${index}]`),
-    ),
-    routedEdges: readArray(record, "routedEdges", context).map((item, index) =>
-      decodeRoutedEdgePath(item, `${context}.routedEdges[${index}]`),
-    ),
+    nodes: decodeArray(record, "nodes", context, decodeNodeLayout, consumeArrays),
+    routedEdges: decodeArray(record, "routedEdges", context, decodeRoutedEdgePath, consumeArrays),
   };
   const individual = readOptionalObject(record, "individualView", context);
   if (individual) {
     const viewContext = `${context}.individualView`;
-    const nodes = readArray(individual, "nodes", viewContext).map((item, index) =>
-      decodeNodeLayout(item, `${viewContext}.nodes[${index}]`));
-    const routedEdges = readArray(individual, "routedEdges", viewContext).map((item, index) =>
-      decodeRoutedEdgePath(item, `${viewContext}.routedEdges[${index}]`));
+    const nodes = decodeArray(individual, "nodes", viewContext, decodeNodeLayout, consumeArrays);
+    const routedEdges = decodeArray(individual, "routedEdges", viewContext, decodeRoutedEdgePath, consumeArrays);
     const originalNodes = new Map(layout.nodes.map(node => [node.modelId, node]));
     const originalEdges = new Map(layout.routedEdges.map(edge => [edge.edgeId, edge]));
     if (nodes.length !== originalNodes.size || new Set(nodes.map(node => node.modelId)).size !== nodes.length

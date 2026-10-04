@@ -6,7 +6,7 @@ import { ErdPanel } from "../panels/erdPanel";
 import { discoverDjangoWorkspace } from "../services/discovery/discoverDjangoWorkspace";
 import type { DjangoWorkspaceDiscoveryResult } from "../services/discovery/discoveryTypes";
 import { loadLiveDiagram } from "../services/diagram/loadLiveDiagram";
-import { relayoutLiveDiagram } from "../services/diagram/loadLiveDiagram";
+import { DIAGRAM_COMPUTATION_BUDGET_MS } from "../../shared/protocol/diagramExecutionPolicy";
 import type { LiveDiagramResult } from "../services/diagram/loadLiveDiagram";
 import { restoreRefreshViewState } from "../services/diagram/restoreRefreshViewState";
 import { ensureOgdfBinaryInstalled } from "../services/layout/ensureOgdfBinaryInstalled";
@@ -45,59 +45,28 @@ export async function openDiagram(
     const clusterGraphLayout = viewState?.clusterGraphLayout === true;
     const bubbleLayout = viewState?.bubbleLayout === true;
     const optimizedLayout = viewState?.optimizedLayout === true;
-    const optimizedTimeLimitMs = readOptionalNonNegativeIntEnv(
-      "DJERD_OPTIMIZED_TOTAL_BUDGET_MS",
-    ) ?? readOptionalNonNegativeIntEnv(
-      "DJERD_OPTIMIZED_POST_REROUTE_POLISH_BUDGET_MS",
-    ) ?? 0;
+    const deadlineMs = Date.now() + DIAGRAM_COMPUTATION_BUDGET_MS;
 
     return vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
         title: optimizedLayout
-          ? optimizedTimeLimitMs > 0
-            ? `Optimizing Django ERD (${Math.ceil(optimizedTimeLimitMs / 1_000)}s limit)`
-            : "Optimizing Django ERD (no time limit)"
+          ? "Optimizing Django ERD (2 minute limit)"
           : "Loading Django ERD",
       },
       async () => {
         await ensureOgdfBinaryInstalled(context, logger);
         const previousDiagram = cachedDiagram;
-        let liveDiagram: LiveDiagramResult;
-
-        if (refreshKind === "layout" && previousDiagram) {
-          logger.info(
-            `Layout refresh reusing cached analyzer payload · requestId=${refreshRunId} · layout=${layoutMode}${clusterGraphLayout ? " · clusterGraph=on" : ""}${bubbleLayout ? " · bubble=on" : ""}${optimizedLayout ? " · optimized=on" : ""}`,
-          );
-          liveDiagram = await relayoutLiveDiagram(
-            context.extensionUri.fsPath,
-            previousDiagram,
-            layoutMode,
-            logger,
-            refreshRunId,
-            undefined,
-            clusterGraphLayout,
-            bubbleLayout,
-            optimizedLayout,
-          );
-        } else {
-          const timedDiscovery = await timeAsync(() =>
-            discoverDjangoWorkspace(workspacePath),
-          );
-          logDiscoveryResult(timedDiscovery.result, timedDiscovery.durationMs, logger);
-          liveDiagram = await loadLiveDiagram(
-            context.extensionUri.fsPath,
-            timedDiscovery.result,
-            layoutMode,
-            timedDiscovery.durationMs,
-            logger,
-            refreshRunId,
-            undefined,
-            clusterGraphLayout,
-            bubbleLayout,
-            optimizedLayout,
-          );
-        }
+        // Both full refresh and layout controls read the workspace again.
+        // The previous result is retained only to restore selection/viewport.
+        const timedDiscovery = await timeAsync(() => discoverDjangoWorkspace(workspacePath));
+        logDiscoveryResult(timedDiscovery.result, timedDiscovery.durationMs, logger);
+        let liveDiagram = await loadLiveDiagram(
+          context.extensionUri.fsPath, timedDiscovery.result, layoutMode,
+          timedDiscovery.durationMs, logger, refreshRunId, undefined,
+          clusterGraphLayout, bubbleLayout, optimizedLayout,
+          {freshAnalysis: true, deadlineMs},
+        );
 
         if (viewState) {
           liveDiagram = restoreRefreshViewState(
@@ -220,15 +189,6 @@ function readBoolEnv(name: string, fallback: boolean): boolean {
     return false;
   }
   return fallback;
-}
-
-function readOptionalNonNegativeIntEnv(name: string): number | undefined {
-  const value = process.env[name]?.trim();
-  if (!value) {
-    return undefined;
-  }
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
 function logLiveDiagramResult(

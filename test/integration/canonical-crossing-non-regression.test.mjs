@@ -425,7 +425,7 @@ test("v35 orchestration scores and reuses only audited visible semantic scenes",
     /cache warm start:[\s\S]*?continuing optimization/,
   );
   assert.match(source, /!loadedFromFile && !optimizedWarmStartStdout/);
-  assert.match(source, /!clusterGraphLayout && !optimizedWarmStartStdout/);
+  assert.match(source, /!clusterGraphLayout && !initialOptimizedClusterBaseline\s*&& !optimizedWarmStartStdout/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v34-canonical-routed-direct-v2"/);
   assert.match(source, /"relationshipCarrier=direct-edges-node-bundles-v3"/);
   assert.match(source, /DJERD_CARRIER_AWARE_COST: "0"/);
@@ -658,7 +658,7 @@ test("v35 orchestration scores and reuses only audited visible semantic scenes",
   );
   assert.match(
     source,
-    /const DEFAULT_OPTIMIZED_LAYOUT_BUDGET_MS = 0;/,
+    /const DEFAULT_OPTIMIZED_LAYOUT_BUDGET_MS = LAYOUT_COMPUTATION_BUDGET_MS;/,
   );
   assert.match(
     source,
@@ -690,7 +690,7 @@ test("v35 orchestration scores and reuses only audited visible semantic scenes",
   );
   assert.match(
     source,
-    /startPostReroutePolishDeadline\(logger\)[\s\S]*acquireOptimizedLayoutFlight\(/,
+    /startPostReroutePolishDeadline\([\s\S]*acquireOptimizedLayoutFlight\(/,
   );
   for (const stage of [
     "initial native layout",
@@ -705,7 +705,7 @@ test("v35 orchestration scores and reuses only audited visible semantic scenes",
   assert.match(source, /detached: useProcessGroup/);
   assert.match(source, /process\.kill\(-pid, "SIGKILL"\)/);
   assert.match(source, /native process exceeded hard timeout/);
-  assert.match(source, /DEFAULT_LAYOUT_PROCESS_MEMORY_LIMIT_MIB = 512/);
+  assert.match(source, /DEFAULT_LAYOUT_PROCESS_MEMORY_LIMIT_MIB = 128/);
   assert.match(source, /layoutProcessQueue/);
   assert.match(source, /readProcessGroupResidentMemoryMiB/);
   assert.match(source, /layout process group exceeded/);
@@ -713,10 +713,9 @@ test("v35 orchestration scores and reuses only audited visible semantic scenes",
 });
 
 test("node-pair retouch honors its native time budget", async () => {
-  const source = await fs.readFile(
-    path.resolve(__dirname, "../../native/ogdf-layout/src/main.cpp"),
-    "utf8",
-  );
+  const source = (await Promise.all(["main.cpp", "renderedMetrics.cpp", "clusterKnotOptimization.cpp"].map(
+    file => fs.readFile(path.resolve(__dirname, "../../native/ogdf-layout/src", file), "utf8"),
+  ))).join("\n");
 
   assert.match(source, /DJERD_NODE_PAIR_RETOUCH_BUDGET_MS/);
   assert.match(source, /nodePairBudgetExceeded/);

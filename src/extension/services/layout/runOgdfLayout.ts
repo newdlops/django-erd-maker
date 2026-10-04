@@ -58,7 +58,7 @@ import {
   type LayoutMode,
   type LayoutSnapshot,
 } from "../../../shared/graph/layoutContract";
-import { decodeLayoutSnapshot } from "../../../shared/protocol/decodeDiagramBootstrap";
+import { decodeOwnedLayoutSnapshot as decodeLayoutSnapshot } from "../../../shared/protocol/decodeDiagramBootstrap";
 import type { DiagramBootstrapPayload } from "../../../shared/protocol/webviewContract";
 import {
   createDiagramRenderModel,
@@ -90,17 +90,19 @@ import {
 } from "./optimizedLayoutCache";
 import { resolveOgdfLayoutBinaryPath } from "./resolveOgdfLayoutBinaryPath";
 import { loadBundledMlPreview } from "./bundledMlPreview";
+import {
+  LAYOUT_COMPUTATION_BUDGET_MS,
+  type DiagramExecutionOptions,
+} from "../../../shared/protocol/diagramExecutionPolicy";
 
 const OGDF_LAYOUT_TIMEOUT_MS = 600_000;
 const V35_SCORER_TIMEOUT_MS = 180_000;
-const DEFAULT_LAYOUT_PROCESS_MEMORY_LIMIT_MIB = 512;
+const DEFAULT_LAYOUT_PROCESS_MEMORY_LIMIT_MIB = 128;
 const MAX_LAYOUT_PROCESS_MEMORY_LIMIT_MIB = 1_024;
 const LAYOUT_PROCESS_MEMORY_POLL_MS = 500;
-// Optimized layout is unlimited by default. A zero timeout is Node's explicit
-// "no timeout" value, so long-running native/scorer stages are allowed to
-// finish and emit an auditable scene instead of being killed mid-pipeline.
-// Operators can still opt into a wall-clock limit with the existing env vars.
-const DEFAULT_OPTIMIZED_LAYOUT_BUDGET_MS = 0;
+// Foreground calculation must finish in time for the two-minute first display.
+// Explicit unlimited runs remain available to offline research callers.
+const DEFAULT_OPTIMIZED_LAYOUT_BUDGET_MS = LAYOUT_COMPUTATION_BUDGET_MS;
 // These reserves apply only when an operator explicitly restores a finite
 // shared deadline. Unlimited runs ignore them and let every stage complete.
 const DEFAULT_OPTIMIZED_AFTER_BASELINE_RESERVE_MS = 40_000;
@@ -176,6 +178,12 @@ function ogdfRenderedCarrierEnv(
 ): Record<string, string | undefined> {
   return {
     ...process.env,
+    // A single layout worker does not need the macOS nano allocator's
+    // additional arenas for its many short-lived geometry allocations.
+    ...(process.platform === "darwin"
+      ? { MallocNanoZone: process.env.MallocNanoZone ?? "0" } : {}),
+    DJERD_LAYOUT_THREADS: process.env.DJERD_LAYOUT_THREADS ?? "1",
+    DJERD_CANONICAL_CROSSING_CACHE: "0",
     DJERD_DIAGONAL_RETOUCH: "0",
     DJERD_NODE_PAIR_RETOUCH: "0",
     // Candidate search and final reporting must use the same canonical routed
@@ -3211,7 +3219,7 @@ export function setOgdfProgressListener(
 export function synchronizeLayoutNodeSizesWithRenderedTables(
   payload: DiagramBootstrapPayload,
 ): number {
-  const renderModel = createDiagramRenderModel(payload);
+  const renderModel = createDiagramRenderModel(payload, undefined, {includeInspector: false});
   const renderedSizeByModelId = new Map(
     renderModel.tables.map((table) => [String(table.modelId), table.size] as const),
   );
@@ -3253,11 +3261,86 @@ export function measureLayoutRenderedTableClearance(
       ...payload.view,
       layoutMode: layout.mode,
     },
-  });
+  }, undefined, {includeInspector: false});
   return measureRenderedTableClearance(renderModel);
 }
 
 const RENDERED_VISUAL_CROSSINGS_SCOPE = "rendered-canonical-direct-node-bundles-v3";
+
+// Keep the decoded native scene in a short synchronous scope. The orchestration
+// only retains its serialized result and scores while the next worker runs.
+function auditOptimizedBaseline(
+  payload: DiagramBootstrapPayload,
+  stdout: string,
+  expectedRouteEdgeIds: readonly string[],
+): {stdout: string; metadata: LayoutEngineMetadata | undefined;
+  hardTargets: OptimizedLayoutHardTargetEvaluation} {
+  const layout = decodeLayoutSnapshot(JSON.parse(stdout), "ogdfInitialSemanticCarrierAudit");
+  synchronizeLayoutRenderedVisualMetrics(payload, layout);
+  const hardTargets = evaluateOptimizedLayoutHardTargets(payload, layout, {expectedRouteEdgeIds});
+  return {stdout: JSON.stringify(layout), metadata: layout.engineMetadata, hardTargets};
+}
+
+// The direct reroute has no subsequent position-polish stages. Audit and
+// serialize it here so rejected candidates cannot stay alive in the large
+// async orchestration while the final scene is decoded and rendered.
+function auditDirectReroute(
+  payload: DiagramBootstrapPayload,
+  candidateStdout: string,
+  baselineStdout: string,
+  baselineMetadata: LayoutEngineMetadata | undefined,
+  expectedRouteEdgeIds: readonly string[],
+  logger?: Logger,
+): {stdout: string; rejectedForNodeOverlaps: boolean} {
+  const candidate = decodeLayoutSnapshot(JSON.parse(candidateStdout), "ogdfReroutedLayout");
+  const expectedNodeIds = new Set(payload.layout.nodes.map(node => node.modelId));
+  const candidateNodeIds = new Set(candidate.nodes.map(node => node.modelId));
+  const nodesComplete = candidate.nodes.length === expectedNodeIds.size
+    && candidateNodeIds.size === expectedNodeIds.size
+    && [...expectedNodeIds].every(id => candidateNodeIds.has(id));
+  const expectedRouteIds = new Set(expectedRouteEdgeIds);
+  const candidateRouteIds = new Set(candidate.routedEdges.map(route => route.edgeId));
+  const routesComplete = candidate.routedEdges.length === expectedRouteIds.size
+    && candidateRouteIds.size === expectedRouteIds.size
+    && [...expectedRouteIds].every(id => candidateRouteIds.has(id));
+  const straightRoutes = candidate.routedEdges.every(route => route.points.length === 2);
+  synchronizeLayoutRenderedVisualMetrics(payload, candidate);
+  const allEdgeGate = evaluateAllEdgeCrossingNonRegression(baselineMetadata, candidate.engineMetadata);
+  const baselineVisual = Number(baselineMetadata?.visualCrossings ?? Number.POSITIVE_INFINITY);
+  const candidateVisual = Number(candidate.engineMetadata?.visualCrossings ?? Number.POSITIVE_INFINITY);
+  const visualOk = Number.isFinite(candidateVisual) && candidateVisual <= baselineVisual;
+  const accepted = nodesComplete && routesComplete && straightRoutes
+    && allEdgeGate.ok && visualOk;
+  logger?.info(
+    `[ML] reroute all-edge gate · rawRouteCrossings=`
+    + `${allEdgeGate.rawRouteBase ?? "missing"}->${allEdgeGate.rawRouteCandidate ?? "missing"}`
+    + ` · renderedVisual=${baselineVisual}->${candidateVisual}`
+    + ` · renderedVisualOk=${visualOk} · nodesComplete=${nodesComplete}`
+    + ` · routesComplete=${routesComplete} · straightRoutes=${straightRoutes}`
+    + ` · accepted=${accepted}`,
+  );
+  const selectedMetadata = accepted ? candidate.engineMetadata : baselineMetadata;
+  const nodeOverlaps = Number(selectedMetadata?.nodeOverlaps ?? 0);
+  if (nodeOverlaps > 0 && process.env.DJERD_REJECT_OPTIMIZED_NODE_OVERLAPS === "1") {
+    logger?.warn(
+      `[ML] v36 reroute rejected because nodeOverlaps=${nodeOverlaps}; unset DJERD_REJECT_OPTIMIZED_NODE_OVERLAPS to inspect anyway`,
+    );
+    return {stdout: baselineStdout, rejectedForNodeOverlaps: true};
+  }
+  if (accepted) {
+    streamIntermediateLayout("reroute", candidate, payload);
+  } else if (ogdfProgressListener) {
+    streamIntermediateLayout("reroute", decodeLayoutSnapshot(
+      JSON.parse(baselineStdout), "ogdfRerouteBaseLayout"), payload);
+  }
+  if (nodeOverlaps > 0) {
+    logger?.warn(`[ML] v36 reroute kept with nodeOverlaps=${nodeOverlaps}`);
+  }
+  return {
+    stdout: accepted ? JSON.stringify(candidate) : baselineStdout,
+    rejectedForNodeOverlaps: false,
+  };
+}
 
 export function measureLayoutRenderedVisualConflicts(
   payload: DiagramBootstrapPayload,
@@ -3270,7 +3353,7 @@ export function measureLayoutRenderedVisualConflicts(
       ...payload.view,
       layoutMode: layout.mode,
     },
-  });
+  }, undefined, {includeInspector: false});
   return measureRenderedVisualConflicts(renderModel);
 }
 
@@ -3327,7 +3410,7 @@ export function synchronizeLayoutRenderedVisualMetrics(
       ...payload.view,
       layoutMode: layout.mode,
     },
-  });
+  }, undefined, {includeInspector: false});
   const metrics = measureRenderedVisualConflicts(renderModel);
   const renderedClearance = measureRenderedTableClearance(renderModel);
   const metadata = layout.engineMetadata ?? {};
@@ -3462,7 +3545,7 @@ export function evaluateOptimizedLayoutHardTargets(
       ...payload.view,
       layoutMode: layout.mode,
     },
-  });
+  }, undefined, {includeInspector: false});
   const clearance = measureRenderedTableClearance(renderModel);
   const renderedVisual = measureRenderedVisualConflicts(renderModel);
   const renderedEdgeNodeIntersections = renderedVisual.edgeNodeIntersections;
@@ -3666,7 +3749,7 @@ function streamIntermediateLayout(
       ...payload.view,
       layoutMode: candidateLayout.mode,
     },
-  });
+  }, undefined, {includeInspector: false});
   ogdfProgressListener({
     positions,
     semanticRenderModel: {
@@ -3692,6 +3775,7 @@ export async function runOgdfLayout(
   clusterGraphLayout: boolean = false,
   bubbleLayout: boolean = false,
   optimizedLayout: boolean = false,
+  execution: DiagramExecutionOptions = {},
 ): Promise<OgdfLayoutResult> {
   const envEdgeRouting = process.env.DJANGO_ERD_EDGE_ROUTING;
   const envEdgeRoutingValid =
@@ -3702,9 +3786,18 @@ export async function runOgdfLayout(
     ? (envEdgeRouting as EdgeRoutingStyle)
     : edgeRouting;
   const started = Date.now();
+  const freshAnalysis = execution.freshAnalysis === true;
+  const freshDeadline = freshAnalysis
+    ? startPostReroutePolishDeadline(logger, LAYOUT_COMPUTATION_BUDGET_MS, execution.deadlineMs)
+    : undefined;
   const binaryPath = await resolveOgdfLayoutBinaryPath(extensionRootPath);
   const normalizedRequestedLayoutMode = normalizeLayoutMode(requestedLayoutMode);
   const layoutDefinition = getOgdfLayoutDefinition(normalizedRequestedLayoutMode);
+  // The optimized pipeline immediately replaces a user-mode placement with
+  // a clustered baseline. Fresh requests compute that baseline first instead
+  // of spending their deadline and memory on a discarded placement.
+  const initialOptimizedClusterBaseline =
+    freshAnalysis && optimizedLayout && !clusterGraphLayout;
 
   if (!binaryPath) {
     const reason =
@@ -3747,7 +3840,7 @@ export async function runOgdfLayout(
     );
   }
 
-  const bundledPreview = !process.env.DJERD_LAYOUT_FROM_FILE
+  const bundledPreview = !freshAnalysis && !process.env.DJERD_LAYOUT_FROM_FILE
     && normalizedRequestedLayoutMode === "fmmm" && effectiveEdgeRouting === "straight"
     && !optimizedLayout && !clusterGraphLayout && !bubbleLayout
     && process.env.DJERD_CONSOLIDATE_EDGES !== "0"
@@ -3787,7 +3880,9 @@ export async function runOgdfLayout(
   // side badges are added later).
   const consolidateEnv = process.env.DJERD_CONSOLIDATE_EDGES;
   const consolidateActive =
-    !!bundledPreview || (consolidateEnv !== undefined && consolidateEnv !== "0");
+    !!bundledPreview || (freshAnalysis
+      ? consolidateEnv !== "0"
+      : consolidateEnv !== undefined && consolidateEnv !== "0");
   const layoutEdges: readonly StructuralGraphEdge[] = consolidateActive
     ? consolidateEdges(payload.graph.structuralEdges).layoutEdges
     : payload.graph.structuralEdges;
@@ -3844,10 +3939,10 @@ export async function runOgdfLayout(
     // Optimized toggle: run the v36 pure action scorer pipeline live
     // (+ C++ reroute). To skip the live pipeline and load a precomputed
     // result instead, set DJERD_OPTIMIZED_LAYOUT_FILE explicitly.
-    const optimizedFilePath = optimizedLayout
+    const optimizedFilePath = !freshAnalysis && optimizedLayout
       ? process.env.DJERD_OPTIMIZED_LAYOUT_FILE
       : undefined;
-    const layoutFromFile = optimizedFilePath
+    const layoutFromFile = freshAnalysis ? undefined : optimizedFilePath
       ?? process.env.DJERD_LAYOUT_FROM_FILE;
     const layoutOutputFile = process.env.DJERD_LAYOUT_OUTPUT_FILE;
     let stdout = "";
@@ -3857,8 +3952,10 @@ export async function runOgdfLayout(
     let loadedOptimizedFinalFromCache = false;
     let optimizedCacheNeedsHardTargetReplacement = false;
     let optimizedWarmStartStdout: string | undefined;
-    let postReroutePolishDeadline: PostReroutePolishDeadline | undefined;
+    let postReroutePolishDeadline: PostReroutePolishDeadline | undefined = freshDeadline;
     let optimizedAllEdgeBaselineStdout: string | undefined;
+    let optimizedAllEdgeBaselineMetadata: LayoutEngineMetadata | undefined;
+    let initialAuditedStdout: string | undefined;
     let initialLayoutTargetsSatisfied = false;
     if (layoutFromFile) {
       try {
@@ -3880,15 +3977,14 @@ export async function runOgdfLayout(
       logger?.info(`Latest ML checkpoint preview loaded · overview=${bundledPreview.overviewVisual} · individual=${bundledPreview.individualVisual}`);
     }
     if (optimizedLayout && !loadedFromFile) {
-      // Establish the optimized execution policy before cache-flight
-      // acquisition. It is unlimited by default; an explicit positive env
-      // value restores the legacy shared wall-clock limit.
-      postReroutePolishDeadline = startPostReroutePolishDeadline(logger);
+      // Cache waits and every native/scorer stage share the same deadline.
+      postReroutePolishDeadline ??= startPostReroutePolishDeadline(logger);
     }
-    const precomputedOptimizedPositions =
+    const precomputedOptimizedPositions = freshAnalysis ? undefined :
       process.env.DJERD_OPTIMIZED_POSITIONS_TSV?.trim();
     if (
       !loadedFromFile
+      && !freshAnalysis
       && optimizedLayout
       && !layoutOutputFile
       && !precomputedOptimizedPositions
@@ -4030,7 +4126,7 @@ export async function runOgdfLayout(
     // layout JSON. cluster_graph fallback on 1000+ nodes takes 5+ min;
     // caching makes a second toggle/reload instant.
     let cachePath: string | undefined;
-    if (!loadedFromFile && !optimizedLayout) {
+    if (!loadedFromFile && !optimizedLayout && !freshAnalysis) {
       try {
         const nodesData = await readFile(nodesPath, "utf8");
         const edgesData = await readFile(edgesPath, "utf8");
@@ -4116,20 +4212,42 @@ export async function runOgdfLayout(
           [
             "layout",
             "--mode",
-            normalizedRequestedLayoutMode,
+            initialOptimizedClusterBaseline
+              ? "hierarchical_barycenter"
+              : normalizedRequestedLayoutMode,
             "--nodes-file",
             initialNodesPath,
             "--edges-file",
             edgesPath,
             "--edge-routing",
             effectiveEdgeRouting,
-            ...(clusterGraphLayout ? ["--cluster-graph", "1"] : []),
+            ...(clusterGraphLayout || initialOptimizedClusterBaseline
+              ? ["--cluster-graph", "1"] : []),
             ...(bubbleLayout ? ["--bubble", "1"] : []),
           ],
           {
             cwd: extensionRootPath,
             env: ogdfRenderedCarrierEnv(
-              progressPath ? { DJERD_PROGRESS_FILE: progressPath } : {},
+              {
+                ...(progressPath ? { DJERD_PROGRESS_FILE: progressPath } : {}),
+                ...(freshAnalysis ? {
+                  DJERD_DISABLE_WALL_CLOCK_BUDGETS: "0",
+                  // This auxiliary search grid shares the 128 MiB budget with
+                  // the fresh analyzer payload. Final geometry is still scored
+                  // exactly against every rendered relationship and table.
+                  DJERD_FACE_RASTER_CELLS: "1",
+                } : {}),
+                ...(initialOptimizedClusterBaseline ? {
+                  DJERD_SKIP_CG_OPT: "1",
+                  // Relocation evaluates the same scene next. Avoid the
+                  // unbounded legacy polyline swap pass in its baseline.
+                  DJERD_NO_PD_KNOT: "1",
+                  DJERD_MULTISTART_RUNS:
+                    process.env.DJERD_OPTIMIZED_BASELINE_MULTISTART_RUNS
+                    ?? process.env.DJERD_MULTISTART_RUNS
+                    ?? "2",
+                } : {}),
+              },
             ),
             killSignal: "SIGKILL",
             maxBuffer: 100 * 1024 * 1024,
@@ -4170,20 +4288,14 @@ export async function runOgdfLayout(
       && !loadedFromFile
       && readBoolEnv("DJERD_SEMANTIC_CARRIER_TARGET_SHORT_CIRCUIT", true)
     ) {
-      const initialSemanticLayout = decodeLayoutSnapshot(
-        JSON.parse(stdout),
-        "ogdfInitialSemanticCarrierAudit",
-      );
-      synchronizeLayoutRenderedVisualMetrics(payload, initialSemanticLayout);
-      const initialHardTargets = evaluateOptimizedLayoutHardTargets(
-        payload,
-        initialSemanticLayout,
-        { expectedRouteEdgeIds: expectedRoutedEdgeIds },
-      );
+      const initialAudit = auditOptimizedBaseline(payload, stdout, expectedRoutedEdgeIds);
+      const initialHardTargets = initialAudit.hardTargets;
       // The complete rendered contract also applies to direct node-bundle
       // scenes, which do not carry the old semantic-carrier counters.
       initialLayoutTargetsSatisfied = initialHardTargets.pass;
-      stdout = JSON.stringify(initialSemanticLayout);
+      stdout = initialAudit.stdout;
+      initialAuditedStdout = stdout;
+      optimizedAllEdgeBaselineMetadata = initialAudit.metadata;
       if (initialLayoutTargetsSatisfied) {
         logger?.info(
           `[optimized] all targets satisfied after initial layout; `
@@ -4219,7 +4331,8 @@ export async function runOgdfLayout(
       // distribution it was trained on. If the user-requested mode was
       // something else (fmmm, sifting, …), the visible result still uses
       // the ML positions but the input layout matches training.
-      if (!clusterGraphLayout && !optimizedWarmStartStdout) {
+      if (!clusterGraphLayout && !initialOptimizedClusterBaseline
+        && !optimizedWarmStartStdout) {
         try {
           logger?.info(
             "[ML] forcing cluster_graph baseline (overrides user layout mode for inference)",
@@ -4250,7 +4363,7 @@ export async function runOgdfLayout(
           });
           let clusterBaselineCachePath: string | undefined;
           let baselineLoadedFromCache = false;
-          if (readBoolEnv("DJERD_OPTIMIZED_BASELINE_CACHE", true)) {
+          if (!freshAnalysis && readBoolEnv("DJERD_OPTIMIZED_BASELINE_CACHE", true)) {
             try {
               const nodesData = await readFile(initialNodesPath, "utf8");
               const edgesData = await readFile(edgesPath, "utf8");
@@ -4362,15 +4475,15 @@ export async function runOgdfLayout(
       // optimized pipeline. Later carrier-oriented stages may improve their
       // reduced metric, but they are never allowed to increase crossings in
       // the full logical edge set that the webview actually renders.
-      const optimizedAllEdgeBaseline = decodeLayoutSnapshot(
-        JSON.parse(stdout),
-        "ogdfOptimizedAllEdgeRenderedBaseline",
-      );
-      synchronizeLayoutRenderedVisualMetrics(
-        payload,
-        optimizedAllEdgeBaseline,
-      );
-      stdout = JSON.stringify(optimizedAllEdgeBaseline);
+      if (initialAuditedStdout !== stdout || !optimizedAllEdgeBaselineMetadata) {
+        const optimizedAllEdgeBaseline = decodeLayoutSnapshot(
+          JSON.parse(stdout),
+          "ogdfOptimizedAllEdgeRenderedBaseline",
+        );
+        synchronizeLayoutRenderedVisualMetrics(payload, optimizedAllEdgeBaseline);
+        optimizedAllEdgeBaselineMetadata = optimizedAllEdgeBaseline.engineMetadata;
+        stdout = JSON.stringify(optimizedAllEdgeBaseline);
+      }
       optimizedAllEdgeBaselineStdout = stdout;
       const baselinePath = trackTransientPath(path.join(
         os.tmpdir(),
@@ -4416,7 +4529,7 @@ export async function runOgdfLayout(
       // qSub cmp 0.06 on Captain 1304) and the en3 experiment (REVERTED;
       // [[en3-edge-node-failed]]) are kept on disk for record.
       const familyPriorPath = resolveV37FamilyPriorPath(extensionRootPath);
-      const precomputedPositionsPath = process.env.DJERD_OPTIMIZED_POSITIONS_TSV;
+      const precomputedPositionsPath = freshAnalysis ? undefined : process.env.DJERD_OPTIMIZED_POSITIONS_TSV;
       const useNativeCrossRelocate =
         !(precomputedPositionsPath && precomputedPositionsPath.trim().length > 0)
         && readBoolEnv("DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE", true);
@@ -4559,16 +4672,35 @@ export async function runOgdfLayout(
           if (!rerouteBudgetedTimeout) {
             throw new Error("optimized layout budget exhausted before post-scorer reroute");
           }
+          const rerouteEnv = useNativeCrossRelocate
+            ? ogdfOptimizedNativeCrossRelocateEnv()
+            : useExplicitPoststackReroute
+              ? ogdfOptimizedPoststackEnv()
+              : ogdfOptimizedRerouteEnv();
+          if (freshAnalysis && useNativeCrossRelocate) {
+            const stageMs = rerouteBudgetedTimeout.timeoutMs;
+            rerouteEnv.DJERD_DISABLE_WALL_CLOCK_BUDGETS = "0";
+            // Keep complete accepted moves while reserving the rest of this
+            // process deadline for routing, scoring, and output serialization.
+            rerouteEnv.DJERD_KNOT_RELOCATE_BUDGET_MS = String(Math.min(
+              readNonNegativeIntEnv("DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE_BUDGET_MS", 45000),
+              Math.max(100, Math.floor(stageMs * 0.45)),
+            ));
+            rerouteEnv.DJERD_RENDERED_CARRIER_GEOMETRY_OPT_BUDGET_MS = String(Math.min(
+              readNonNegativeIntEnv("DJERD_OPTIMIZED_STRAIGHT_PORT_BUDGET_MS", 12000),
+              Math.floor(stageMs * 0.15),
+            ));
+            rerouteEnv.DJERD_RENDERED_CARRIER_NODE_TARGET_BUDGET_MS = String(Math.min(
+              readNonNegativeIntEnv("DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_BUDGET_MS", 5000),
+              Math.floor(stageMs * 0.1),
+            ));
+          }
           const reroute = await execFileAsync(
             binaryPath,
             rerouteArgs,
             {
               cwd: extensionRootPath,
-              env: useNativeCrossRelocate
-                ? ogdfOptimizedNativeCrossRelocateEnv()
-                : useExplicitPoststackReroute
-                  ? ogdfOptimizedPoststackEnv()
-                  : ogdfOptimizedRerouteEnv(),
+              env: rerouteEnv,
               killSignal: "SIGKILL",
               maxBuffer: 100 * 1024 * 1024,
               timeout: rerouteBudgetedTimeout.timeoutMs,
@@ -4578,23 +4710,26 @@ export async function runOgdfLayout(
             logger?.info(`[ML] OGDF stderr: ${reroute.stderr.trim()}`);
           }
           logger?.info(`[ML] reroute done in ${Date.now() - rerouteStart}ms`);
-          const rerouteBaseLayout = decodeLayoutSnapshot(
-            JSON.parse(stdout),
-            "ogdfRerouteBaseLayout",
-          );
+          if (!useExplicitPoststackReroute) {
+            const directAudit = auditDirectReroute(payload, reroute.stdout, stdout,
+              optimizedAllEdgeBaselineMetadata, expectedRoutedEdgeIds, logger);
+            stdout = directAudit.stdout;
+            mlOk = !directAudit.rejectedForNodeOverlaps;
+            reroute.stdout = "";
+            reroute.stderr = "";
+          } else {
           const reroutedLayout = decodeLayoutSnapshot(
             JSON.parse(reroute.stdout),
             "ogdfReroutedLayout",
           );
-          synchronizeLayoutRenderedVisualMetrics(payload, rerouteBaseLayout);
           synchronizeLayoutRenderedVisualMetrics(payload, reroutedLayout);
           const rerouteAllEdgeNonRegression =
             evaluateAllEdgeCrossingNonRegression(
-              rerouteBaseLayout?.engineMetadata,
+              optimizedAllEdgeBaselineMetadata,
               reroutedLayout?.engineMetadata,
             );
           const rerouteBaseVisual = Number(
-            rerouteBaseLayout.engineMetadata?.visualCrossings
+            optimizedAllEdgeBaselineMetadata?.visualCrossings
             ?? Number.POSITIVE_INFINITY,
           );
           const rerouteCandidateVisual = Number(
@@ -4609,7 +4744,7 @@ export async function runOgdfLayout(
             && rerouteRenderedVisualNonRegression;
           let acceptedLayout = rerouteAccepted
             ? reroutedLayout
-            : rerouteBaseLayout;
+            : decodeLayoutSnapshot(JSON.parse(stdout), "ogdfRerouteBaseLayout");
           let acceptedStdout = JSON.stringify(acceptedLayout);
           logger?.info(
             `[ML] reroute all-edge gate · rawRouteCrossings=`
@@ -7650,6 +7785,7 @@ export async function runOgdfLayout(
             }
             stdout = acceptedStdout;
           }
+          }
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           logger?.warn(`[ML] reroute failed, keeping ML-less stdout: ${msg}`);
@@ -7923,18 +8059,14 @@ export async function runOgdfLayout(
     }
 
     if (optimizedLayout && optimizedAllEdgeBaselineStdout) {
-      const optimizedAllEdgeBaseline = decodeLayoutSnapshot(
-        JSON.parse(optimizedAllEdgeBaselineStdout),
-        "ogdfOptimizedAllEdgeFinalBaselineAudit",
-      );
-      const optimizedAllEdgeCandidate = decodeLayoutSnapshot(
-        JSON.parse(stdout),
-        "ogdfOptimizedAllEdgeFinalCandidateAudit",
-      );
-      synchronizeLayoutRenderedVisualMetrics(payload, optimizedAllEdgeBaseline);
+      // The complete baseline was audited against this request's rendered
+      // sizes above. Retain its scores, without decoding the entire scene again.
+      const optimizedAllEdgeCandidate = stdout === preFinalAuditedStdout
+        ? preFinalLayout
+        : decodeLayoutSnapshot(JSON.parse(stdout), "ogdfOptimizedAllEdgeFinalCandidateAudit");
       synchronizeLayoutRenderedVisualMetrics(payload, optimizedAllEdgeCandidate);
       const baselineVisual = Number(
-        optimizedAllEdgeBaseline.engineMetadata?.visualCrossings
+        optimizedAllEdgeBaselineMetadata?.visualCrossings
         ?? Number.POSITIVE_INFINITY,
       );
       const candidateVisual = Number(
@@ -7943,7 +8075,7 @@ export async function runOgdfLayout(
       );
       const optimizedAllEdgeNonRegression =
         evaluateAllEdgeCrossingNonRegression(
-          optimizedAllEdgeBaseline.engineMetadata,
+          optimizedAllEdgeBaselineMetadata,
           optimizedAllEdgeCandidate.engineMetadata,
         );
       const baselineDoesNotWorsenRenderedVisual =
@@ -7961,7 +8093,7 @@ export async function runOgdfLayout(
           + `->${optimizedAllEdgeNonRegression.rawRouteCandidate ?? "missing"}`
           + ` · renderedVisual=${candidateVisual}->${baselineVisual}`,
         );
-        stdout = JSON.stringify(optimizedAllEdgeBaseline);
+        stdout = optimizedAllEdgeBaselineStdout;
       } else {
         stdout = JSON.stringify(optimizedAllEdgeCandidate);
         if (!optimizedAllEdgeNonRegression.ok) {
@@ -8060,7 +8192,9 @@ export async function runOgdfLayout(
 
     let layout: LayoutSnapshot;
     try {
-      layout = decodeLayoutSnapshot(JSON.parse(stdout), "ogdfLayout");
+      layout = stdout === preFinalAuditedStdout
+        ? preFinalLayout
+        : decodeLayoutSnapshot(JSON.parse(stdout), "ogdfLayout");
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       throw new Error(`invalid JSON from native layout: ${reason}`);
@@ -8441,15 +8575,17 @@ function configuredOptimizedLayoutBudgetMs(): number {
 
 function startPostReroutePolishDeadline(
   logger?: Logger,
+  budgetMs = configuredOptimizedLayoutBudgetMs(),
+  requestDeadlineMs?: number,
 ): PostReroutePolishDeadline {
-  const budgetMs = configuredOptimizedLayoutBudgetMs();
   const startedMs = Date.now();
-  const unlimited = budgetMs === 0;
+  const unlimited = budgetMs === 0 && requestDeadlineMs === undefined;
   const deadline = {
     budgetMs,
-    deadlineMs: unlimited
-      ? Number.POSITIVE_INFINITY
-      : startedMs + budgetMs,
+    deadlineMs: Math.min(
+      budgetMs === 0 ? Number.POSITIVE_INFINITY : startedMs + budgetMs,
+      requestDeadlineMs ?? Number.POSITIVE_INFINITY,
+    ),
     startedMs,
     unlimited,
   };
@@ -9796,13 +9932,32 @@ async function execFileAsync(
 ): Promise<{ stderr: string; stdout: string }> {
   let releaseQueue!: () => void;
   const predecessor = layoutProcessQueue;
-  layoutProcessQueue = new Promise<void>((resolve) => {
+  const current = new Promise<void>((resolve) => {
     releaseQueue = resolve;
   });
-  await predecessor;
+  // An expired follower must stay behind its producer in the queue. Otherwise
+  // its release would let the next request run alongside that producer.
+  layoutProcessQueue = predecessor.then(() => current);
+  const deadlineMs = options.timeout > 0 ? Date.now() + options.timeout : undefined;
+  let waitTimer: ReturnType<typeof setTimeout> | undefined;
   try {
-    return await execFileWithResourceLimits(filePath, args, options);
+    await (deadlineMs === undefined ? predecessor : Promise.race([
+      predecessor,
+      new Promise<never>((_resolve, reject) => {
+        waitTimer = setTimeout(() => reject(new OgdfExecError(
+          "layout process queue exhausted the request budget",
+          {timeoutMs: options.timeout, timedOut: true, killed: false, stderr: "", stdout: ""},
+        )), Math.max(1, deadlineMs - Date.now()));
+      }),
+    ]));
+    const remainingMs = deadlineMs === undefined ? 0 : Math.floor(deadlineMs - Date.now());
+    if (deadlineMs !== undefined && remainingMs <= 0) {
+      throw new OgdfExecError("layout process queue exhausted the request budget",
+        {timeoutMs: options.timeout, timedOut: true, killed: false, stderr: "", stdout: ""});
+    }
+    return await execFileWithResourceLimits(filePath, args, {...options, timeout: remainingMs});
   } finally {
+    if (waitTimer !== undefined) clearTimeout(waitTimer);
     releaseQueue();
   }
 }
@@ -9987,9 +10142,12 @@ function readProcessGroupResidentMemoryMiB(
     return Promise.resolve(undefined);
   }
   return new Promise((resolve) => {
+    const directGroupQuery = process.platform === "darwin";
     execFile(
       "/bin/ps",
-      ["-ax", "-o", "pgid=,rss="],
+      directGroupQuery
+        ? ["-g", String(processGroupId), "-o", "rss="]
+        : ["-eo", "pgid=,rss="],
       {
         encoding: "utf8",
         maxBuffer: 2 * 1024 * 1024,
@@ -10003,11 +10161,11 @@ function readProcessGroupResidentMemoryMiB(
         let residentKiB = 0;
         for (const line of stdout.split("\n")) {
           const parts = line.trim().split(/\s+/);
-          if (parts.length < 2) {
+          if (parts.length < (directGroupQuery ? 1 : 2)) {
             continue;
           }
-          const pgid = Number.parseInt(parts[0], 10);
-          const rssKiB = Number.parseInt(parts[1], 10);
+          const pgid = directGroupQuery ? processGroupId : Number.parseInt(parts[0], 10);
+          const rssKiB = Number.parseInt(parts[directGroupQuery ? 0 : 1], 10);
           if (pgid === processGroupId && Number.isFinite(rssKiB)) {
             residentKiB += Math.max(0, rssKiB);
           }

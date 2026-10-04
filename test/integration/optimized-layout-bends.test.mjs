@@ -53,7 +53,7 @@ test("optimized refresh locks duplicate controls and always has an error settlem
   assert.match(browserSource, /msg\.type === "diagram\.refresh\.settled"/);
   assert.match(panelSource, /type: "diagram\.refresh\.settled"/);
   assert.match(panelSource, /Diagram refresh failed and UI state was released/);
-  assert.match(commandSource, /Optimizing Django ERD \(no time limit\)/);
+  assert.match(commandSource, /Optimizing Django ERD \(2 minute limit\)/);
 });
 
 test("every renderer path is straight-only and bend-producing controls are absent", async () => {

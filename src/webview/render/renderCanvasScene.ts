@@ -3,13 +3,14 @@ import {
   OGDF_LAYOUT_TOOLBAR_DEFINITIONS,
 } from "../../shared/graph/layoutContract";
 import type { DiagramRenderModel } from "../state/createDiagramRenderModel";
-import { escapeHtml, serializeJsonForScriptTag } from "./escapeHtml";
+import { createSceneTransportTools } from "../state/sceneTransport";
+import { escapeHtml, serializeSceneForScriptTag } from "./escapeHtml";
 
 export function renderCanvasScene(viewModel: DiagramRenderModel, appVersion: string): string {
   const layoutFailureByMode = new Map(
     viewModel.layoutFailures.map((failure) => [failure.mode, failure.reason] as const),
   );
-  const renderModelJson = serializeJsonForScriptTag({
+  const transport = createSceneTransportTools().prepare({
     appVersion,
     bundleLeafTiles: viewModel.bundleLeafTiles,
     bundleLeavesByFakeId: viewModel.bundleLeavesByFakeId,
@@ -27,6 +28,7 @@ export function renderCanvasScene(viewModel: DiagramRenderModel, appVersion: str
     relationshipOverview: viewModel.relationshipOverview,
     tables: viewModel.tables,
   });
+  const renderModelJson = serializeSceneForScriptTag(transport.scene, transport.replacer);
 
   return `
     <section class="erd-stage">

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.0.1071 — Bounded fresh analysis (2026-10-05)
+
+- Reanalyse source and compute a new layout for each foreground request,
+  bypassing bundled previews and model, baseline and layout result caches.
+- Bound foreground work with shared deadlines and a single native worker;
+  reduce analyzer AST retention, collision search and route-candidate storage.
+- Share repeated scene edges and crossing IDs during transport, and serialize
+  large scenes in small ASCII chunks while restoring exact browser data.
+- Reject reroute candidates that omit or duplicate requested nodes/relations,
+  truncate paths, add bends, or regress the crossing acceptance metrics.
+- On the current 1,247-model / 1,732-route project, fresh document preparation
+  took 25.1 seconds in ordinary mode and 77.2 seconds in optimized mode, with
+  measured combined host/worker peaks of 113.9 / 118.4 MiB. Compiler stages
+  retain a separate 512 MiB cap. See [measurement conditions](docs/PERFORMANCE.ko.md).
+- Optimized visualCross is 7,993; the 500 target and table-clearance targets
+  remain unmet. The cached 285 / 1,963 preview is not a fresh-analysis result.
+
 ## 0.0.1070 — Latest ML checkpoint review (2026-10-04)
 
 - Update the bundled preview to the latest source-cell neural checkpoints,

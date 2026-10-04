@@ -10,6 +10,7 @@ import { getBrowserRenderSource } from "./runtime/browserRenderSource";
 import { getBrowserStateSource } from "./runtime/browserStateSource";
 import { getBrowserTestSource } from "./runtime/browserTestSource";
 import { createSelectedRelationshipTools } from "../state/selectedRelationshipEdges";
+import { createSceneTransportTools } from "../state/sceneTransport";
 
 export function getBrowserControllerScript(nonce: string): string {
   return `
@@ -97,7 +98,8 @@ export function getBrowserControllerScript(nonce: string): string {
 
 ${getBrowserStateSource()}
 ${getBrowserLayoutSource()}
-        const renderModel = readEmbeddedJson(renderModelElement);
+        const sceneTransport = (${createSceneTransportTools.toString()})();
+        const renderModel = sceneTransport.hydrate(readEmbeddedJson(renderModelElement));
         const readEdgeMeta = (edge) => ({
           carrierFamily: edge.carrierFamily || "",
           carrierRole: edge.carrierRole || "",

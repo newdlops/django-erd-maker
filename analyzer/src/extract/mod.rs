@@ -9,7 +9,7 @@ mod module_context;
 use crate::parser::python_module_parser::parse_python_module_file;
 use crate::protocol::analysis::AnalyzerOutput;
 use diagnostics::canonical_model_id_collision_diagnostic;
-use model_catalog::discover_project_model_ids;
+use model_catalog::{ModuleClassCatalog, discover_project_model_ids_from_catalogs};
 use model_extractor::extract_models_from_module;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -43,14 +43,18 @@ pub fn analyze_request_with_metrics(
     let mut output = AnalyzerOutput::empty(&request.workspace_root.to_string_lossy());
     let mut parse_ms = 0.0;
     let mut extract_ms = 0.0;
-    let mut parsed_modules = Vec::new();
+    let mut catalogs = Vec::new();
+    let mut valid_modules = Vec::new();
 
     for module in &request.modules {
         let parse_started = Instant::now();
         match parse_python_module_file(&module.file_path) {
             Ok(parsed) => {
                 parse_ms += elapsed_ms(parse_started);
-                parsed_modules.push((module.clone(), parsed));
+                // Retain only imports and class bases. Entire field/method
+                // trees for all modules previously stayed resident here.
+                catalogs.push(ModuleClassCatalog::new(&request.workspace_root, module, &parsed));
+                valid_modules.push(module);
             }
             Err(diagnostics) => {
                 parse_ms += elapsed_ms(parse_started);
@@ -59,18 +63,25 @@ pub fn analyze_request_with_metrics(
         }
     }
 
-    let known_model_ids = discover_project_model_ids(
-        &request.workspace_root,
-        &parsed_modules
-            .iter()
-            .map(|(module, parsed)| (module, parsed))
-            .collect::<Vec<_>>(),
-    );
+    let known_model_ids = discover_project_model_ids_from_catalogs(&catalogs);
+    drop(catalogs);
 
-    for (module, parsed) in &parsed_modules {
+    // Re-read each live source for extraction and release its AST immediately.
+    // This is a fresh two-pass analysis, with no persisted model/AST cache.
+    for module in valid_modules {
+        let parse_started = Instant::now();
+        let parsed = match parse_python_module_file(&module.file_path) {
+            Ok(parsed) => parsed,
+            Err(diagnostics) => {
+                parse_ms += elapsed_ms(parse_started);
+                output.diagnostics.extend(diagnostics);
+                continue;
+            }
+        };
+        parse_ms += elapsed_ms(parse_started);
         let extract_started = Instant::now();
         let result =
-            extract_models_from_module(&request.workspace_root, module, parsed, &known_model_ids);
+            extract_models_from_module(&request.workspace_root, module, &parsed, &known_model_ids);
         extract_ms += elapsed_ms(extract_started);
         output.models.extend(result.models);
         output.diagnostics.extend(result.diagnostics);

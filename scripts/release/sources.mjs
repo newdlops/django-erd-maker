@@ -18,6 +18,21 @@ const sourceFiles = [
   "scripts/erd-poc/bundle_latest_checkpoint_preview.cjs",
   "scripts/erd-poc/ogdf_general_layout_probe.cpp", "test/integration/release-packaging.test.mjs",
   "test/integration/bundled-ml-preview.test.mjs",
+  "test/integration/fresh-analysis-latency.test.mjs",
+  "test/integration/owned-bootstrap-decoding.test.mjs",
+  "test/integration/geometry-rendering.test.mjs",
+  "test/integration/scene-transport.test.mjs",
+  "test/integration/script-json-escaping.test.mjs",
+  "test/integration/visual-knot-budget-native.test.mjs",
+  "test/integration/cluster-knot-budget-native.test.mjs",
+  "test/integration/rectangle-collision-index.test.mjs",
+  "test/integration/rectangle-collision-index.cpp",
+  "test/integration/route-bounds-index.test.mjs",
+  "test/integration/route-bounds-index.cpp",
+  "test/integration/face-raster-grid.test.mjs",
+  "test/integration/face-raster-grid.cpp",
+  "test/integration/straight-route-candidates.test.mjs",
+  "test/integration/straight-route-candidates.cpp",
   "test/e2e/release.cjs", "test/e2e/suite/index.cjs",
   "vendor/ogdf/LICENSE.txt", "vendor/ogdf/LICENSE_GPL_v2.txt", "vendor/ogdf/LICENSE_GPL_v3.txt",
 ];
@@ -38,13 +53,9 @@ export async function prepareSources(work, toolVersions) {
   const rustRoot = path.join(work, "rust-dependencies");
   const vendor = path.join(rustRoot, "vendor");
   await fs.mkdir(rustRoot, { recursive: true });
-  const vendorConfig = await run("cargo", [
-    "vendor", "--locked", "--versioned-dirs", "--manifest-path", "analyzer/Cargo.toml", vendor,
-  ], { capture: true });
+  const vendorConfig = await fs.readFile(path.join(work, "vendor-config.toml"), "utf8");
   await fs.writeFile(path.join(rustRoot, "config.toml"), vendorConfig.replaceAll(vendor, "rust-dependencies/vendor") + "\n");
-  const metadata = JSON.parse(await run("cargo", [
-    "metadata", "--locked", "--offline", "--format-version", "1", "--manifest-path", "analyzer/Cargo.toml",
-  ], { capture: true }));
+  const metadata = await readJson(path.join(work, "cargo-metadata.json"));
   const dependencies = metadata.packages.filter((pkg) => pkg.source).sort((a, b) =>
     `${a.name}@${a.version}`.localeCompare(`${b.name}@${b.version}`));
   const licensesRoot = path.join(repoRoot, "licenses", "rust");

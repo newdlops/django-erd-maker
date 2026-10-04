@@ -32,17 +32,37 @@ add_executable(django-erd-ogdf-layout
   src/main.cpp
   src/io.cpp
   src/clusterGraph.cpp
+  src/clusterCrossingOptimization.cpp
+  src/clusterOrientation.cpp
+  src/clusterKnotOptimization.cpp
   src/canonicalCrossingMetrics.cpp
   src/crossingLowerBound.cpp
+  src/rectangleCollisionIndex.cpp
+  src/routeBoundsIndex.cpp
+  src/renderedMetrics.cpp
+  src/layoutTopology.cpp
+  src/layoutGeometry.cpp
+  src/layoutRouting.cpp
+  src/visualKnot.cpp
+  src/segmentGeometry.cpp
 )
 
-# main.cpp contains the full layout/post-processing pipeline in one large
-# translation unit. Release optimization can make clang exceed the extension's
-# bounded build memory budget even with a single compile job. OGDF itself stays
-# optimized; compiling this orchestration unit at -O0 keeps compiler RSS
-# predictable and avoids taking down the host during development builds.
+# Split orchestration and auditing units keep single-job builds within 512 MiB.
+# OGDF and the spatial collision index stay optimized. The larger cluster
+# implementation also compiles at -O0; its OGDF solvers remain optimized.
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-  set_source_files_properties(src/main.cpp PROPERTIES COMPILE_OPTIONS "-O0")
+  set_source_files_properties(
+    src/main.cpp src/renderedMetrics.cpp src/layoutTopology.cpp
+    src/layoutGeometry.cpp src/layoutRouting.cpp
+    PROPERTIES COMPILE_OPTIONS "-O0"
+  )
+  set_source_files_properties(src/clusterGraph.cpp PROPERTIES COMPILE_OPTIONS "-O0")
+  set_source_files_properties(
+    src/visualKnot.cpp src/segmentGeometry.cpp src/clusterCrossingOptimization.cpp
+    src/clusterOrientation.cpp
+    src/clusterKnotOptimization.cpp
+    PROPERTIES COMPILE_OPTIONS "-O2;-ffp-contract=off"
+  )
 endif()
 
 target_link_libraries(django-erd-ogdf-layout PRIVATE OGDF)
