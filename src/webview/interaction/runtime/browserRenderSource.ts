@@ -30,17 +30,23 @@ export function getBrowserRenderSource(): string {
         }
 
         function applyState() {
+          const related = typeof renderRelatedDiagram === 'function' && renderRelatedDiagram();
+          if (!related && typeof renderConnectionContext === "function") renderConnectionContext();
           renderSummary();
           renderSetupControls();
           renderOverlays();
           renderPanels();
           renderHiddenTableList();
+          if (related) return;
           drawCanvas("full");
+          if (typeof renderConnectionAnchors === "function") renderConnectionAnchors();
           renderMinimap("full");
         }
 
         function applyViewportState() {
+          if (typeof isRelatedDiagramOpen === 'function' && isRelatedDiagramOpen()) {renderRelatedDiagram(); return;}
           drawCanvas("viewport");
+          if (typeof renderConnectionAnchors === "function") renderConnectionAnchors();
           renderMinimap("viewport");
         }
 
@@ -65,6 +71,8 @@ export function getBrowserRenderSource(): string {
         }
 
         function dispatch(action) {
+          if (typeof isRelatedDiagramOpen === 'function' && isRelatedDiagramOpen() && action.type === 'focus-model') action = {...action, type: 'select-model'};
+          if (typeof rememberModelNavigation === "function") rememberModelNavigation(action);
           state = reduceState(state, action);
           if (
             action.type === "select-model" ||
@@ -354,7 +362,23 @@ export function getBrowserRenderSource(): string {
             return;
           }
 
+          const active = document.activeElement;
+          const focusedEdge = active && panelHost.contains(active) ? active.dataset.relationshipEdgeId : undefined;
+          const focusedSearch = active && panelHost.contains(active) && active.matches?.('[data-connections-search]');
+          const focusedFilter = active && panelHost.contains(active) ? active.dataset.connectionsFilter : undefined;
+          const cursor = focusedSearch ? [active.selectionStart, active.selectionEnd] : null;
+          const detailsOpen = panelHost.querySelector("[data-model-details]")?.open;
           panelHost.innerHTML = renderInspectorPanelMarkup(getSelectedPanelModelId());
+          const details = panelHost.querySelector("[data-model-details]");
+          if (details && detailsOpen) details.open = true;
+          if (focusedEdge) Array.from(panelHost.querySelectorAll("[data-preview-relationship]"))
+            .find(button => button.dataset.relationshipEdgeId === focusedEdge)?.focus({preventScroll: true});
+          if (focusedSearch) {
+            const input = panelHost.querySelector('[data-connections-search]');
+            input?.focus({preventScroll: true});
+            if (input && cursor && cursor[0] !== null) input.setSelectionRange(cursor[0], cursor[1]);
+          }
+          if (focusedFilter) Array.from(panelHost.querySelectorAll('[data-connections-filter]')).find(button => button.dataset.connectionsFilter === focusedFilter)?.focus({preventScroll: true});
           syncPanelMeta();
         }
 

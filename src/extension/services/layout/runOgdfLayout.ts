@@ -69,6 +69,7 @@ import {
   type RenderedTableClearanceMetrics,
   type RenderedVisualConflictMetrics,
   type TableRenderModel,
+  type DiagramRenderModel,
 } from "../../../webview/state/createDiagramRenderModel";
 import type { Logger } from "../logging/logger";
 import {
@@ -88,18 +89,20 @@ import {
   preserveBestOptimizedLayoutCache,
 } from "./optimizedLayoutCache";
 import { resolveOgdfLayoutBinaryPath } from "./resolveOgdfLayoutBinaryPath";
+import { loadBundledMlPreview } from "./bundledMlPreview";
 
 const OGDF_LAYOUT_TIMEOUT_MS = 600_000;
 const V35_SCORER_TIMEOUT_MS = 180_000;
-// One wall-clock budget covers the complete ML/optimized request. Individual
-// native stages may each advertise much larger safety timeouts, but a user
-// action must never inherit their sum and look permanently stuck.
-const DEFAULT_OPTIMIZED_LAYOUT_BUDGET_MS = 90_000;
-// A stage may only consume the part of the shared deadline that is not
-// reserved for the stages after it. Without these floors a cold multistart
-// baseline can use the full 90 seconds and make the exact final-scene repair
-// unreachable even though that repair is the only stage able to certify the
-// user-visible collision targets.
+const DEFAULT_LAYOUT_PROCESS_MEMORY_LIMIT_MIB = 512;
+const MAX_LAYOUT_PROCESS_MEMORY_LIMIT_MIB = 1_024;
+const LAYOUT_PROCESS_MEMORY_POLL_MS = 500;
+// Optimized layout is unlimited by default. A zero timeout is Node's explicit
+// "no timeout" value, so long-running native/scorer stages are allowed to
+// finish and emit an auditable scene instead of being killed mid-pipeline.
+// Operators can still opt into a wall-clock limit with the existing env vars.
+const DEFAULT_OPTIMIZED_LAYOUT_BUDGET_MS = 0;
+// These reserves apply only when an operator explicitly restores a finite
+// shared deadline. Unlimited runs ignore them and let every stage complete.
 const DEFAULT_OPTIMIZED_AFTER_BASELINE_RESERVE_MS = 40_000;
 const DEFAULT_OPTIMIZED_AFTER_SCORER_RESERVE_MS = 20_000;
 const DEFAULT_OPTIMIZED_AFTER_REROUTE_RESERVE_MS = 10_000;
@@ -139,12 +142,17 @@ type PostReroutePolishDeadline = {
   budgetMs: number;
   deadlineMs: number;
   startedMs: number;
+  unlimited: boolean;
 };
 
 type BudgetedCandidateTimeout = {
   budgetLimited: boolean;
   timeoutMs: number;
 };
+
+// Different diagram requests can reach the optimizer concurrently. Serialize
+// native/Python stages globally so their resident-memory peaks never stack.
+let layoutProcessQueue: Promise<void> = Promise.resolve();
 
 function resolveV36CkptPath(extensionRootPath: string): string {
   return process.env.DJERD_V36_CKPT_PATH
@@ -170,14 +178,14 @@ function ogdfRenderedCarrierEnv(
     ...process.env,
     DJERD_DIAGONAL_RETOUCH: "0",
     DJERD_NODE_PAIR_RETOUCH: "0",
-    // Semantic bundling stays enabled for leaf groups and repeated pipelines.
-    // Spatial-grid aggregation and zoom-dependent detail replacement are not
-    // part of this path: every resulting carrier is visible at every zoom.
-    DJERD_HUB_CARRIER_CROSS_FINAL: "1",
+    // Candidate search and final reporting must use the same canonical routed
+    // edges that the browser draws. Carrier quotient costs made a 1,357-edge
+    // surrogate look clean while the final direct scene contained 1,955 lines.
     DJERD_HUB_CARRIER_CROSS_FINAL_THRESHOLD: "2",
-    DJERD_INHERITANCE_CARRIER_FINAL: "1",
-    DJERD_INTRA_CLUSTER_CARRIER_FINAL: "1",
-    DJERD_NO_CARRIER_CROSS: "0",
+    // Position-only candidate passes must not silently repack disconnected
+    // components before the exact direct-scene objective is evaluated.
+    DJERD_PRESERVE_DISCONNECTED_COMPONENT_POSITIONS:
+      process.env.DJERD_PRESERVE_DISCONNECTED_COMPONENT_POSITIONS ?? "1",
     DJERD_RENDERED_CARRIER_GEOMETRY_OPT_FINAL: "1",
     DJERD_RENDERED_CARRIER_GEOMETRY_OPT_BUDGET_MS:
       process.env.DJERD_RENDERED_CARRIER_GEOMETRY_OPT_BUDGET_MS ?? "5000",
@@ -201,8 +209,8 @@ function ogdfRenderedCarrierEnv(
     DJERD_STRESS_POST_PASS_EDGE_COST:
       process.env.DJERD_STRESS_POST_PASS_EDGE_COST ?? "140",
     DJERD_RENDERED_CARRIER_METRICS_FINAL: "1",
-    // Re-audit the exact table objects after every late placement pass. This
-    // includes visible bundle parents and the synthetic bundle table itself.
+    // Re-audit every actual table after each late placement pass. Packed leaves
+    // remain ordinary model tables; no synthetic leaf-bundle obstacle is drawn.
     DJERD_RENDERED_NODE_CLEARANCE_FINAL:
       process.env.DJERD_RENDERED_NODE_CLEARANCE_FINAL ?? "1",
     DJERD_RENDERED_NODE_CLEARANCE_FINAL_PASSES:
@@ -363,6 +371,14 @@ function ogdfRenderedCarrierEnv(
     DJERD_CLUSTER_SWAP:
       process.env.DJERD_CLUSTER_SWAP ?? "1",
     ...overrides,
+    // Node bundling is a placement constraint only. Lock these after every
+    // caller override so no candidate can change relationship cardinality,
+    // substitute a shared carrier, or score a quotient edge scene.
+    DJERD_CARRIER_AWARE_COST: "0",
+    DJERD_HUB_CARRIER_CROSS_FINAL: "0",
+    DJERD_INHERITANCE_CARRIER_FINAL: "0",
+    DJERD_INTRA_CLUSTER_CARRIER_FINAL: "0",
+    DJERD_NO_CARRIER_CROSS: "1",
     // Straight-only is a hard output contract. Collision reduction must move
     // tables or choose straight endpoint ports; no native stage may hide a
     // placement defect by adding detour, periphery, L-bend, or retouch points.
@@ -1875,28 +1891,67 @@ function ogdfOptimizedVisualCrossRecompactPreserveEnv(): Record<string, string |
 }
 
 function ogdfOptimizedNativeCrossRelocateEnv(): Record<string, string | undefined> {
+  const unlimitedOptimizedSearch = configuredOptimizedLayoutBudgetMs() === 0;
   return {
     ...ogdfOptimizedVisualCrossRecompactPreserveEnv(),
-    // Spend the shared deadline on exact straight-line geometry. The legacy
-    // swap passes are intentionally skipped; relocation can use empty space
-    // and accepts a candidate only when every collision class is
+    // Spend the pass's own search budget on exact straight-line geometry. The
+    // legacy swap passes are intentionally skipped; relocation can use empty
+    // space and accepts a candidate only when every collision class is
     // non-regressing.
+    // The supplied positions replace cluster_graph output before relocation,
+    // so computing that discarded placement only adds needless work.
+    DJERD_CG_SKIP_POSITIONING: "1",
     DJERD_NO_KNOT_MIN: "1",
     DJERD_KNOT_RELOCATE: "1",
     DJERD_KNOT_RELOCATE_ROUNDS:
-      process.env.DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE_ROUNDS ?? "5",
+      process.env.DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE_ROUNDS ?? "8",
     DJERD_KNOT_RELOCATE_TOP:
-      process.env.DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE_TOP ?? "500",
+      process.env.DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE_TOP ?? "800",
     DJERD_KNOT_RELOCATE_ANGLES:
-      process.env.DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE_ANGLES ?? "4",
+      process.env.DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE_ANGLES ?? "16",
     DJERD_KNOT_RELOCATE_UNTANGLE_TOP:
-      process.env.DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE_UNTANGLE_TOP ?? "96",
+      process.env.DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE_UNTANGLE_TOP ?? "192",
     DJERD_KNOT_RELOCATE_BUDGET_MS:
-      process.env.DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE_BUDGET_MS ?? "32000",
-    // Keep this candidate position-only. The accepted scene is subsequently
-    // audited and the ordinary final export repair receives its reserved time.
-    DJERD_RENDERED_CARRIER_GEOMETRY_OPT_FINAL: "0",
-    DJERD_RENDERED_CARRIER_NODE_TARGET_FINAL: "0",
+      process.env.DJERD_OPTIMIZED_NATIVE_CROSS_RELOCATE_BUDGET_MS ?? "45000",
+    // The optimized command has a no-limit policy by default. Propagate that
+    // policy into native finite-round searches as well; otherwise their old
+    // 45s/12s/5s stopwatches silently truncate the work even though Node no
+    // longer kills the process. An explicit positive total budget restores all
+    // of those internal stopwatches, and callers can override this flag
+    // directly for diagnostics.
+    DJERD_DISABLE_WALL_CLOCK_BUDGETS:
+      process.env.DJERD_DISABLE_WALL_CLOCK_BUDGETS
+      ?? (unlimitedOptimizedSearch ? "1" : "0"),
+    // Port search follows relocation in the same process. With no outer
+    // optimized-layout deadline it is allowed to finish instead of losing the
+    // relocation result to a parent-side timeout. It changes only the two
+    // boundary endpoints of each real relationship: it creates neither a bend
+    // nor a proxy node.
+    DJERD_RENDERED_CARRIER_GEOMETRY_OPT_FINAL: "1",
+    DJERD_RENDERED_STRAIGHT_PORT_OPT_FINAL: "1",
+    DJERD_RENDERED_STRAIGHT_PORT_SAMPLES_PER_SIDE:
+      process.env.DJERD_OPTIMIZED_STRAIGHT_PORT_SAMPLES_PER_SIDE ?? "8",
+    DJERD_RENDERED_CARRIER_GEOMETRY_OPT_ROUNDS:
+      process.env.DJERD_OPTIMIZED_STRAIGHT_PORT_ROUNDS ?? "6",
+    DJERD_RENDERED_CARRIER_GEOMETRY_OPT_BUDGET_MS:
+      process.env.DJERD_OPTIMIZED_STRAIGHT_PORT_BUDGET_MS ?? "12000",
+    DJERD_RENDERED_CARRIER_NODE_TARGET_FINAL: "1",
+    DJERD_RENDERED_CARRIER_EDGE_NODE_TARGET:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET
+      ?? DEFAULT_EDGE_NODE_TARGET.toString(),
+    DJERD_RENDERED_CARRIER_BUNDLE_EDGE_TARGET:
+      process.env.DJERD_OPTIMIZED_BUNDLE_EDGE_TARGET
+      ?? DEFAULT_BUNDLE_EDGE_TARGET.toString(),
+    DJERD_RENDERED_CARRIER_VISUAL_TARGET:
+      process.env.DJERD_OPTIMIZED_VISUAL_CROSS_TARGET
+      ?? DEFAULT_VISUAL_CROSS_TARGET.toString(),
+    DJERD_RENDERED_CARRIER_NODE_TARGET_ROUNDS:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_ROUNDS ?? "4",
+    DJERD_RENDERED_CARRIER_NODE_TARGET_PORT_SAMPLES:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_PORT_SAMPLES ?? "8",
+    DJERD_RENDERED_CARRIER_NODE_TARGET_EXHAUSTIVE_PORTS: "0",
+    DJERD_RENDERED_CARRIER_NODE_TARGET_BUDGET_MS:
+      process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_BUDGET_MS ?? "5000",
     DJERD_RENDERED_CARRIER_NODE_CLEAR_FINAL: "0",
     DJERD_RENDERED_NODE_CLEARANCE_FINAL: "0",
   };
@@ -1992,6 +2047,8 @@ function ogdfFinalExportRetouchEnv(): Record<string, string | undefined> {
     DJERD_VISUAL_KNOT: "0",
 
     DJERD_RENDERED_STRAIGHT_PORT_OPT_FINAL: "1",
+    DJERD_RENDERED_STRAIGHT_PORT_SAMPLES_PER_SIDE:
+      process.env.DJERD_OPTIMIZED_STRAIGHT_PORT_SAMPLES_PER_SIDE ?? "8",
     DJERD_RENDERED_CARRIER_NODE_TARGET_FINAL:
       process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_PASS ?? "1",
     DJERD_RENDERED_CARRIER_EDGE_NODE_TARGET:
@@ -2656,11 +2713,11 @@ function ogdfOptimizedVisualCrossPolishVariantEnv(
 function renderedCarrierCacheKeyParts(): string[] {
   return [
     "renderedCarrier=1",
-    "relationshipCarrier=faithful-v1",
-    "hubCarrier=1",
+    "relationshipCarrier=direct-edges-node-bundles-v3",
+    "hubCarrier=0",
     "hubThreshold=2",
-    "inheritanceCarrier=1",
-    "intraClusterCarrier=1",
+    "inheritanceCarrier=0",
+    "intraClusterCarrier=0",
     "renderedCarrierGeometryOpt=1",
     "straightRoutePolicy=native-browser-v1",
     `edgeNodeTarget=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET ?? DEFAULT_EDGE_NODE_TARGET}`,
@@ -2671,6 +2728,9 @@ function renderedCarrierCacheKeyParts(): string[] {
     `edgeNodeTargetCarrierBudgetMs=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_CARRIER_BUDGET_MS ?? "5000"}`,
     `edgeNodeTargetCarrierQuietBudgetMs=${process.env.DJERD_RENDERED_CARRIER_NODE_TARGET_QUIET_BUDGET_MS ?? "500"}`,
     `edgeNodeTargetCarrierExhaustivePorts=${process.env.DJERD_RENDERED_CARRIER_NODE_TARGET_EXHAUSTIVE_PORTS ?? "1"}`,
+    `straightPortSamplesPerSide=${process.env.DJERD_OPTIMIZED_STRAIGHT_PORT_SAMPLES_PER_SIDE ?? "8"}`,
+    `straightPortRounds=${process.env.DJERD_OPTIMIZED_STRAIGHT_PORT_ROUNDS ?? "6"}`,
+    `straightPortBudgetMs=${process.env.DJERD_OPTIMIZED_STRAIGHT_PORT_BUDGET_MS ?? "12000"}`,
     `edgeNodeTargetNodeClear=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR ?? "1"}`,
     `edgeNodeTargetNodeClearRounds=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_ROUNDS ?? "16"}`,
     `edgeNodeTargetNodeClearDirections=${process.env.DJERD_OPTIMIZED_EDGE_NODE_TARGET_NODE_CLEAR_DIRECTIONS ?? "24"}`,
@@ -2685,7 +2745,7 @@ function renderedCarrierCacheKeyParts(): string[] {
     `renderedCarrierGeometryQuietBudgetMs=${process.env.DJERD_RENDERED_CARRIER_GEOMETRY_OPT_QUIET_BUDGET_MS ?? "500"}`,
     `stressPostPassIters=${process.env.DJERD_STRESS_POST_PASS_ITERS ?? "0"}`,
     `stressPostPassEdgeCost=${process.env.DJERD_STRESS_POST_PASS_EDGE_COST ?? "140"}`,
-    "noCarrier=0",
+    "noCarrier=1",
     `nodeMargin=${process.env.DJERD_NODE_VISUAL_MARGIN ?? "8"}`,
     `leafBundleMargin=${process.env.DJERD_LEAF_BUNDLE_VISUAL_MARGIN ?? "32"}`,
     `isolatedBboxCompact=${process.env.DJERD_ISOLATED_BBOX_COMPACT_FINAL ?? "1"}`,
@@ -3123,6 +3183,8 @@ export interface OgdfProgressSemanticRenderModel {
   bundleLeavesByFakeId: Record<string, string[]>;
   edges: EdgeRenderModel[];
   leafBundles: LayoutEngineMetadata["leafBundles"];
+  leafCards?: DiagramRenderModel["leafCards"];
+  leafCardOverview?: DiagramRenderModel["leafCardOverview"];
   tables: TableRenderModel[];
 }
 
@@ -3195,7 +3257,7 @@ export function measureLayoutRenderedTableClearance(
   return measureRenderedTableClearance(renderModel);
 }
 
-const RENDERED_VISUAL_CROSSINGS_SCOPE = "rendered-relationship-faithful-v3";
+const RENDERED_VISUAL_CROSSINGS_SCOPE = "rendered-canonical-direct-node-bundles-v3";
 
 export function measureLayoutRenderedVisualConflicts(
   payload: DiagramBootstrapPayload,
@@ -3267,9 +3329,14 @@ export function synchronizeLayoutRenderedVisualMetrics(
     },
   });
   const metrics = measureRenderedVisualConflicts(renderModel);
+  const renderedClearance = measureRenderedTableClearance(renderModel);
   const metadata = layout.engineMetadata ?? {};
-  const alreadyRendered =
-    metadata.visualCrossingsScope === RENDERED_VISUAL_CROSSINGS_SCOPE;
+  const renderedScope = renderModel.leafCardOverview
+    ? "rendered-leaf-card-connections-v1"
+    : renderModel.relationshipOverview
+    ? "rendered-june-bundled-overview-v1"
+    : RENDERED_VISUAL_CROSSINGS_SCOPE;
+  const alreadyRendered = metadata.visualCrossingsScope === renderedScope;
   if (!alreadyRendered) {
     metadata.carrierVisualCrossings ??= finiteNonNegativeMetric(
       metadata.visualCrossings,
@@ -3304,21 +3371,34 @@ export function synchronizeLayoutRenderedVisualMetrics(
   if (renderModel.semanticCarriers) {
     metadata.semanticCarrierBundledRelationships =
       renderModel.semanticCarriers.bundledRelationships;
+    metadata.semanticCarrierBundleGroups =
+      renderModel.semanticCarriers.bundleGroups;
+    metadata.semanticCarrierCoincidentRelationships =
+      renderModel.semanticCarriers.coincidentRelationships;
+    metadata.semanticCarrierCrossingsAvoided =
+      renderModel.semanticCarriers.semanticCrossingsAvoided;
     metadata.semanticCarrierDisconnectedRelationships =
       renderModel.semanticCarriers.disconnectedRelationships.length;
+    metadata.semanticCarrierEligibleRelationships =
+      renderModel.semanticCarriers.eligibleRelationships;
     metadata.semanticCarrierFallbackRelationships =
       renderModel.semanticCarriers.fallbackRelationships;
     metadata.semanticCarrierMissingRelationships =
       renderModel.semanticCarriers.missingRelationships.length;
     metadata.semanticCarrierObstacleIntersections =
       renderModel.semanticCarriers.obstacleIntersections;
+    metadata.semanticCarrierObstacleIntersectionsAvoided =
+      renderModel.semanticCarriers.semanticObstacleIntersectionsAvoided;
     metadata.semanticCarrierRelationships =
       renderModel.semanticCarriers.relationships;
     metadata.semanticCarrierSegments =
       renderModel.semanticCarriers.carrierSegments;
+    metadata.semanticCarrierSelfRelationships =
+      renderModel.semanticCarriers.selfRelationships;
   }
   metadata.visualCrossings = metrics.visualCrossings;
-  metadata.visualCrossingsScope = RENDERED_VISUAL_CROSSINGS_SCOPE;
+  metadata.boundingBoxArea = renderedClearance.bboxArea;
+  metadata.visualCrossingsScope = renderedScope;
   layout.engineMetadata = metadata;
   return metrics;
 }
@@ -3366,8 +3446,8 @@ export interface OptimizedLayoutHardTargetEvaluation {
 
 /**
  * Audits an optimized snapshot against the same hard, user-visible contract
- * used by the final result. In particular this uses rendered catalog sizes
- * and synthetic bundle tables, so a native-only metric cannot make an
+ * used by the final result. In particular this uses rendered catalog sizes and
+ * every actual bundle-member table, so a native-only metric cannot make an
  * invalid cache entry look reusable.
  */
 export function evaluateOptimizedLayoutHardTargets(
@@ -3401,7 +3481,7 @@ export function evaluateOptimizedLayoutHardTargets(
   );
   const bboxTolerance = options.bboxTolerance ?? readFloatEnv(
     "DJERD_OPTIMIZED_BBOX_TARGET_TOLERANCE",
-    1.02,
+    1.0,
   );
   const bboxPass =
     bboxTargetB <= 0 || bboxAreaB <= bboxTargetB * bboxTolerance;
@@ -3536,6 +3616,23 @@ export function evaluateOptimizedLayoutHardTargets(
   };
 }
 
+function isReusableDegradedOptimizedLayout(
+  layout: LayoutSnapshot,
+  evaluation: OptimizedLayoutHardTargetEvaluation,
+): boolean {
+  const fallbackRelationships = finiteNonNegativeMetric(
+    layout.engineMetadata?.semanticCarrierFallbackRelationships,
+  ) ?? Number.POSITIVE_INFINITY;
+  return evaluation.routesPass
+    && evaluation.bendPass
+    && evaluation.clearance.nodeOverlaps === 0
+    && evaluation.clearance.bundleNodeOverlaps === 0
+    && evaluation.clearance.bundleBundleOverlaps === 0
+    && evaluation.renderedEdgeCount > 0
+    && Number.isFinite(evaluation.visualCrossings)
+    && fallbackRelationships === 0;
+}
+
 // Stream one accepted ML-pipeline intermediate (a fully-parsed layout JSON) to
 // the webview. Exploratory candidates are never streamed: a rejected all-edge
 // crossing regression must not flash on screen while a long stage is running.
@@ -3577,6 +3674,8 @@ function streamIntermediateLayout(
       bundleLeavesByFakeId: semanticRenderModel.bundleLeavesByFakeId,
       edges: semanticRenderModel.edges,
       leafBundles: semanticRenderModel.leafBundles,
+      leafCards: semanticRenderModel.leafCards,
+      leafCardOverview: semanticRenderModel.leafCardOverview,
       tables: semanticRenderModel.tables,
     },
     stage,
@@ -3648,6 +3747,12 @@ export async function runOgdfLayout(
     );
   }
 
+  const bundledPreview = !process.env.DJERD_LAYOUT_FROM_FILE
+    && normalizedRequestedLayoutMode === "fmmm" && effectiveEdgeRouting === "straight"
+    && !optimizedLayout && !clusterGraphLayout && !bubbleLayout
+    && process.env.DJERD_CONSOLIDATE_EDGES !== "0"
+    ? await loadBundledMlPreview(extensionRootPath, payload) : undefined;
+
   const requestDirectory = await mkdtemp(
     path.join(os.tmpdir(), `django-erd-ogdf-${normalizedRequestedLayoutMode}-`),
   );
@@ -3682,7 +3787,7 @@ export async function runOgdfLayout(
   // side badges are added later).
   const consolidateEnv = process.env.DJERD_CONSOLIDATE_EDGES;
   const consolidateActive =
-    consolidateEnv !== undefined && consolidateEnv !== "0";
+    !!bundledPreview || (consolidateEnv !== undefined && consolidateEnv !== "0");
   const layoutEdges: readonly StructuralGraphEdge[] = consolidateActive
     ? consolidateEdges(payload.graph.structuralEdges).layoutEdges
     : payload.graph.structuralEdges;
@@ -3751,9 +3856,10 @@ export async function runOgdfLayout(
     let optimizedCachePath: string | undefined;
     let loadedOptimizedFinalFromCache = false;
     let optimizedCacheNeedsHardTargetReplacement = false;
+    let optimizedWarmStartStdout: string | undefined;
     let postReroutePolishDeadline: PostReroutePolishDeadline | undefined;
     let optimizedAllEdgeBaselineStdout: string | undefined;
-    let semanticCarrierTargetSatisfied = false;
+    let initialLayoutTargetsSatisfied = false;
     if (layoutFromFile) {
       try {
         stdout = await readFile(layoutFromFile, "utf8");
@@ -3768,10 +3874,15 @@ export async function runOgdfLayout(
         );
       }
     }
+    if (bundledPreview) {
+      stdout = bundledPreview.text;
+      loadedFromFile = true;
+      logger?.info(`Latest ML checkpoint preview loaded · overview=${bundledPreview.overviewVisual} · individual=${bundledPreview.individualVisual}`);
+    }
     if (optimizedLayout && !loadedFromFile) {
-      // Start the deadline before cache-flight acquisition. Waiting behind a
-      // stale producer is part of the user's AI request and must be bounded by
-      // the same wall clock as native/scorer work.
+      // Establish the optimized execution policy before cache-flight
+      // acquisition. It is unlimited by default; an explicit positive env
+      // value restores the legacy shared wall-clock limit.
       postReroutePolishDeadline = startPostReroutePolishDeadline(logger);
     }
     const precomputedOptimizedPositions =
@@ -3805,7 +3916,7 @@ export async function runOgdfLayout(
         const key = fnvHash(
           nodesData,
           edgesData,
-          "optimized-layout-cache-v30-relationship-faithful-v3",
+          "optimized-layout-cache-v35-reusable-direct-scene-v1",
           `binary=${binaryFingerprint}`,
           `scorer=${scorerScriptFingerprint}`,
           `checkpoint=${ckptFingerprint}`,
@@ -3816,6 +3927,7 @@ export async function runOgdfLayout(
           `bubble=${bubbleLayout ? "1" : "0"}`,
           ...renderedCarrierCacheKeyParts(),
           ...layoutEnvCacheKeyParts(ogdfRenderedCarrierEnv()),
+          ...layoutEnvCacheKeyParts(ogdfOptimizedNativeCrossRelocateEnv()),
           ...layoutEnvCacheKeyParts(ogdfOptimizedRerouteEnv()),
           ...layoutEnvCacheKeyParts(ogdfOptimizedCanonicalRouteRepairEnv()),
           ...buildV36ScorerArgs(
@@ -3832,6 +3944,7 @@ export async function runOgdfLayout(
           `django-erd-optimized-layout-cache-${key}.json`,
         );
         const flightWaitMs = postReroutePolishDeadline
+          && !postReroutePolishDeadline.unlimited
           ? remainingPostReroutePolishBudgetMs(postReroutePolishDeadline)
           : undefined;
         if (flightWaitMs !== undefined && flightWaitMs <= 0) {
@@ -3866,18 +3979,40 @@ export async function runOgdfLayout(
             cachedSnapshot,
             { expectedRouteEdgeIds: expectedRoutedEdgeIds },
           );
-          if (!cachedHardTargets.pass) {
+          const reusableDegraded = isReusableDegradedOptimizedLayout(
+            cachedSnapshot,
+            cachedHardTargets,
+          );
+          if (!cachedHardTargets.pass && !reusableDegraded) {
             optimizedCacheNeedsHardTargetReplacement = true;
             throw new Error(
-              "hard target audit failed: "
+              "hard target audit failed and scene is not safely reusable: "
               + cachedHardTargets.failures.join(" "),
             );
           }
           stdout = JSON.stringify(cachedSnapshot);
           stderr = "";
-          loadedFromFile = true;
-          loadedOptimizedFinalFromCache = true;
-          logger?.info(`OGDF optimized layout cache hit: ${optimizedCachePath}`);
+          if (cachedHardTargets.pass) {
+            loadedFromFile = true;
+            loadedOptimizedFinalFromCache = true;
+            logger?.info(
+              `OGDF optimized layout cache hit: ${optimizedCachePath}`
+              + " · quality=target-pass",
+            );
+          } else {
+            // A complete collision-safe scene is a much stronger starting
+            // point than a fresh cluster baseline, but it is not a final cache
+            // hit until it satisfies every hard target. Keep optimizing from
+            // its exact rendered positions and use the same scene as the
+            // non-regression floor.
+            optimizedWarmStartStdout = stdout;
+            logger?.info(
+              `OGDF optimized layout cache warm start: ${optimizedCachePath}`
+              + " · quality=degraded-safe"
+              + ` · visualCrossings=${cachedHardTargets.visualCrossings}`
+              + " · continuing optimization",
+            );
+          }
         } catch (error) {
           const reason = error instanceof Error ? error.message : String(error);
           logger?.info(
@@ -3932,7 +4067,7 @@ export async function runOgdfLayout(
         cachePath = undefined;
       }
     }
-    if (!loadedFromFile) {
+    if (!loadedFromFile && !optimizedWarmStartStdout) {
       // Progressive rendering: when a caller wants intermediate frames, ask
       // the binary to dump each multistart new-best to a temp file
       // (DJERD_PROGRESS_FILE) and poll it while execFileAsync runs (the call
@@ -4040,37 +4175,22 @@ export async function runOgdfLayout(
         "ogdfInitialSemanticCarrierAudit",
       );
       synchronizeLayoutRenderedVisualMetrics(payload, initialSemanticLayout);
-      const initialMetadata = initialSemanticLayout.engineMetadata;
-      const visualTarget =
-        readOptionalPositiveIntEnv("DJERD_OPTIMIZED_VISUAL_CROSS_TARGET")
-        ?? DEFAULT_VISUAL_CROSS_TARGET;
-      const rawRouteIds = new Set(
-        initialSemanticLayout.routedEdges.map((edge) => edge.edgeId),
+      const initialHardTargets = evaluateOptimizedLayoutHardTargets(
+        payload,
+        initialSemanticLayout,
+        { expectedRouteEdgeIds: expectedRoutedEdgeIds },
       );
-      const completeRawRoutes =
-        rawRouteIds.size === initialSemanticLayout.routedEdges.length
-        && expectedRoutedEdgeIds.every((edgeId) => rawRouteIds.has(edgeId));
-      semanticCarrierTargetSatisfied =
-        initialMetadata?.semanticCarrierRelationships !== undefined
-        && initialMetadata.semanticCarrierMissingRelationships === 0
-        && initialMetadata.semanticCarrierDisconnectedRelationships === 0
-        && initialMetadata.semanticCarrierObstacleIntersections === 0
-        && initialMetadata.edgeNodeIntersections === 0
-        && initialMetadata.bundleEdgeIntersections === 0
-        && initialMetadata.nodeOverlaps === 0
-        && initialMetadata.bundleNodeOverlaps === 0
-        && initialMetadata.bundleBundleOverlaps === 0
-        && Number(initialMetadata.visualCrossings) <= visualTarget
-        && completeRawRoutes;
+      // The complete rendered contract also applies to direct node-bundle
+      // scenes, which do not carry the old semantic-carrier counters.
+      initialLayoutTargetsSatisfied = initialHardTargets.pass;
       stdout = JSON.stringify(initialSemanticLayout);
-      if (semanticCarrierTargetSatisfied) {
+      if (initialLayoutTargetsSatisfied) {
         logger?.info(
-          `[semantic carrier] target satisfied after initial layout; `
+          `[optimized] all targets satisfied after initial layout; `
           + `skipping scorer/reroute · visualCrossings=`
-          + `${initialMetadata?.visualCrossings}/${visualTarget} · `
-          + `relationships=${initialMetadata?.semanticCarrierRelationships} · `
-          + `segments=${initialMetadata?.semanticCarrierSegments} · `
-          + "missing=0 · disconnected=0 · obstacleIntersections=0",
+          + `${initialHardTargets.visualCrossings} · `
+          + `bbox=${initialHardTargets.bboxAreaB.toFixed(3)}B · `
+          + `relationships=${initialHardTargets.renderedEdgeCount}`,
         );
       }
     }
@@ -4093,13 +4213,13 @@ export async function runOgdfLayout(
     if (
       optimizedLayout
       && !loadedFromFile
-      && !semanticCarrierTargetSatisfied
+      && !initialLayoutTargetsSatisfied
     ) {
       // Force a cluster_graph baseline so ML inference receives the
       // distribution it was trained on. If the user-requested mode was
       // something else (fmmm, sifting, …), the visible result still uses
       // the ML positions but the input layout matches training.
-      if (!clusterGraphLayout) {
+      if (!clusterGraphLayout && !optimizedWarmStartStdout) {
         try {
           logger?.info(
             "[ML] forcing cluster_graph baseline (overrides user layout mode for inference)",
@@ -4117,14 +4237,16 @@ export async function runOgdfLayout(
           // re-run anyway in the first reroute. Saves ~125s on captain.
           const clusterBaselineEnv = ogdfRenderedCarrierEnv({
             DJERD_SKIP_CG_OPT: "1",
-            // Eight sequential starts consumed ~72s on the 1219-node log and
-            // starved scorer/reroute/final repair. Keep ordinary layouts at
-            // their existing default, but bound the AI baseline to four starts
-            // unless the caller explicitly opts into a different value.
+            // Eight sequential starts exceeded 45s on the 1219-node direct
+            // scene and starved scorer/reroute/final repair. Keep ordinary
+            // layouts at their existing default, but bound the AI baseline to
+            // two starts unless the caller explicitly opts into a different
+            // value. The baseline cache still avoids repeating this work on a
+            // warm run.
             DJERD_MULTISTART_RUNS:
               process.env.DJERD_OPTIMIZED_BASELINE_MULTISTART_RUNS
               ?? process.env.DJERD_MULTISTART_RUNS
-              ?? "4",
+              ?? "2",
           });
           let clusterBaselineCachePath: string | undefined;
           let baselineLoadedFromCache = false;
@@ -4618,7 +4740,7 @@ export async function runOgdfLayout(
                 210_000,
               );
               const bboxAreaTolerance =
-                readFloatEnv("DJERD_OPTIMIZED_BBOX_TARGET_TOLERANCE", 1.02);
+                readFloatEnv("DJERD_OPTIMIZED_BBOX_TARGET_TOLERANCE", 1.0);
               const bboxSoftCapB =
                 readFloatEnv("DJERD_OPTIMIZED_BBOX_TARGET_SOFT_B", 1.2);
               const bboxAcceptMinGain =
@@ -5450,15 +5572,17 @@ export async function runOgdfLayout(
                     remainingPostReroutePolishBudgetMs(
                       postReroutePolishDeadline,
                     );
-                  polishBudgetPlan = planEdgeNodePolishCandidateBudget(
-                    polishRemainingMs,
-                    polishTimeoutMs,
-                    polishVariant,
-                    laterPolishVariants,
-                    polishCanonicalObstacleReliefEnabled,
-                    polishHolisticReserveMs,
-                  );
-                  if (polishBudgetPlan.timeoutMs <= 0) {
+                  polishBudgetPlan = postReroutePolishDeadline.unlimited
+                    ? undefined
+                    : planEdgeNodePolishCandidateBudget(
+                      polishRemainingMs,
+                      polishTimeoutMs,
+                      polishVariant,
+                      laterPolishVariants,
+                      polishCanonicalObstacleReliefEnabled,
+                      polishHolisticReserveMs,
+                    );
+                  if (polishBudgetPlan && polishBudgetPlan.timeoutMs <= 0) {
                     if (polishBudgetPlan.holisticPending) {
                       logger?.info(
                         `[optimized layout budget] edge-node polish:`
@@ -5470,10 +5594,10 @@ export async function runOgdfLayout(
                     break;
                   }
                   polishBudgetedTimeout = {
-                    budgetLimited: polishBudgetPlan.budgetLimited,
-                    timeoutMs: polishBudgetPlan.timeoutMs,
+                    budgetLimited: polishBudgetPlan?.budgetLimited ?? false,
+                    timeoutMs: polishBudgetPlan?.timeoutMs ?? 0,
                   };
-                  if (polishBudgetPlan.budgetLimited) {
+                  if (polishBudgetPlan?.budgetLimited) {
                     logger?.info(
                       `[optimized layout budget] edge-node polish:`
                       + `${polishVariant} timeout capped · `
@@ -5600,7 +5724,7 @@ export async function runOgdfLayout(
                   );
                   const polishBboxTargetTolerance = readFloatEnv(
                     "DJERD_OPTIMIZED_BBOX_TARGET_TOLERANCE",
-                    1.02,
+                    1.0,
                   );
                   const polishAboveTargetBboxGrowthLimit = readFloatEnv(
                     "DJERD_OPTIMIZED_EDGE_NODE_POLISH_ABOVE_TARGET_BBOX_GROWTH_LIMIT",
@@ -7696,6 +7820,13 @@ export async function runOgdfLayout(
       readBundleEdgeIntersectionsFromLayoutJson(stdout);
     const runExplicitFinalExportRetouch =
       readBoolEnv("DJERD_FINAL_EXPORT_RETOUCH", false);
+    // The legacy carrier/port retouch cannot improve a carrier-disabled direct
+    // scene and previously consumed another ~25s only to be rejected. Keep it
+    // opt-in for offline experiments.
+    const runOptimizedFinalExportRetouch = readBoolEnv(
+      "DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH",
+      false,
+    );
     const skipTargetSatisfiedFinalRetouch =
       optimizedLayout
       && !loadedOptimizedFinalFromCache
@@ -7717,7 +7848,9 @@ export async function runOgdfLayout(
         + ` <= target=${bundleEdgeTarget}`,
       );
     } else if (
-      (optimizedLayout && !loadedOptimizedFinalFromCache)
+      (optimizedLayout
+        && !loadedOptimizedFinalFromCache
+        && runOptimizedFinalExportRetouch)
       || runExplicitFinalExportRetouch
     ) {
       if (
@@ -7857,9 +7990,14 @@ export async function runOgdfLayout(
           cacheCandidate,
           { expectedRouteEdgeIds: expectedRoutedEdgeIds },
         );
-        if (!candidateHardTargets.pass) {
+        const reusableDegraded = isReusableDegradedOptimizedLayout(
+          cacheCandidate,
+          candidateHardTargets,
+        );
+        if (!candidateHardTargets.pass && !reusableDegraded) {
           logger?.info(
-            "OGDF optimized layout not cached; hard target audit failed"
+            "OGDF optimized layout not cached; hard target audit failed and "
+            + "scene is not safely reusable"
             + ` · reason=${candidateHardTargets.failures.join(" ")}`
             + ` · cache=${optimizedCachePath}`,
           );
@@ -7868,13 +8006,25 @@ export async function runOgdfLayout(
             await writeFile(optimizedCachePath, stdout, "utf8");
             logger?.info(
               `OGDF optimized layout replaced invalid cache at ${optimizedCachePath}`
-              + " · reason=hard-target-pass",
+              + (candidateHardTargets.pass
+                ? " · reason=hard-target-pass"
+                : " · reason=degraded-safe"),
             );
           } else {
             const selection = await preserveBestOptimizedLayoutCache(
               optimizedCachePath,
               stdout,
               {
+                qualityTargets: {
+                  visualCrossings: readFloatEnv(
+                    "DJERD_OPTIMIZED_VISUAL_CROSS_TARGET",
+                    DEFAULT_VISUAL_CROSS_TARGET,
+                  ),
+                  boundingBoxArea: readFloatEnv(
+                    "DJERD_OPTIMIZED_BBOX_TARGET_B",
+                    DEFAULT_OPTIMIZED_BBOX_TARGET_B,
+                  ) * 1e9,
+                },
                 maxCanonicalVisualDebtPerGain: readFloatEnv(
                   "DJERD_OPTIMIZED_EDGE_NODE_POLISH_CANONICAL_MAX_VISUAL_DEBT_PER_GAIN",
                   DEFAULT_CANONICAL_OBSTACLE_RELIEF_MAX_VISUAL_DEBT_PER_GAIN,
@@ -7893,7 +8043,11 @@ export async function runOgdfLayout(
             } else {
               logger?.info(
                 `OGDF optimized layout cached to ${optimizedCachePath}`
-                + ` · reason=${selection.candidateReason ?? "quality"}`,
+                + ` · reason=${selection.candidateReason ?? "quality"}`
+                + (candidateHardTargets.pass
+                  ? " · quality=target-pass"
+                  : ` · quality=degraded-safe · visualCrossings=`
+                    + `${candidateHardTargets.visualCrossings}`),
               );
             }
           }
@@ -8029,8 +8183,23 @@ export async function runOgdfLayout(
         ...(metadata?.semanticCarrierBundledRelationships !== undefined
           ? [`semanticCarrierBundledRelationships=${metadata.semanticCarrierBundledRelationships}`]
           : []),
+        ...(metadata?.semanticCarrierBundleGroups !== undefined
+          ? [`semanticCarrierBundleGroups=${metadata.semanticCarrierBundleGroups}`]
+          : []),
+        ...(metadata?.semanticCarrierCoincidentRelationships !== undefined
+          ? [`semanticCarrierCoincidentRelationships=${metadata.semanticCarrierCoincidentRelationships}`]
+          : []),
+        ...(metadata?.semanticCarrierCrossingsAvoided !== undefined
+          ? [`semanticCarrierCrossingsAvoided=${metadata.semanticCarrierCrossingsAvoided}`]
+          : []),
+        ...(metadata?.semanticCarrierEligibleRelationships !== undefined
+          ? [`semanticCarrierEligibleRelationships=${metadata.semanticCarrierEligibleRelationships}`]
+          : []),
         ...(metadata?.semanticCarrierSegments !== undefined
           ? [`semanticCarrierSegments=${metadata.semanticCarrierSegments}`]
+          : []),
+        ...(metadata?.semanticCarrierSelfRelationships !== undefined
+          ? [`semanticCarrierSelfRelationships=${metadata.semanticCarrierSelfRelationships}`]
           : []),
         ...(metadata?.semanticCarrierFallbackRelationships !== undefined
           ? [`semanticCarrierFallbackRelationships=${metadata.semanticCarrierFallbackRelationships}`]
@@ -8043,6 +8212,9 @@ export async function runOgdfLayout(
           : []),
         ...(metadata?.semanticCarrierObstacleIntersections !== undefined
           ? [`semanticCarrierObstacleIntersections=${metadata.semanticCarrierObstacleIntersections}`]
+          : []),
+        ...(metadata?.semanticCarrierObstacleIntersectionsAvoided !== undefined
+          ? [`semanticCarrierObstacleIntersectionsAvoided=${metadata.semanticCarrierObstacleIntersectionsAvoided}`]
           : []),
         ...(metadata?.nodeOverlaps !== undefined ? [`nodeOverlaps=${metadata.nodeOverlaps}`] : []),
         ...(metadata?.nodeSpacingOverlaps !== undefined ? [`nodeSpacingOverlaps=${metadata.nodeSpacingOverlaps}`] : []),
@@ -8258,33 +8430,43 @@ export async function runOgdfLayout(
   }
 }
 
+function configuredOptimizedLayoutBudgetMs(): number {
+  const legacyBudgetMs = readOptionalNonNegativeIntEnv(
+    "DJERD_OPTIMIZED_POST_REROUTE_POLISH_BUDGET_MS",
+  ) ?? DEFAULT_OPTIMIZED_LAYOUT_BUDGET_MS;
+  return readOptionalNonNegativeIntEnv(
+    "DJERD_OPTIMIZED_TOTAL_BUDGET_MS",
+  ) ?? legacyBudgetMs;
+}
+
 function startPostReroutePolishDeadline(
   logger?: Logger,
 ): PostReroutePolishDeadline {
-  const legacyBudgetMs = readPositiveIntEnv(
-    "DJERD_OPTIMIZED_POST_REROUTE_POLISH_BUDGET_MS",
-    DEFAULT_OPTIMIZED_LAYOUT_BUDGET_MS,
-  );
-  const budgetMs = readPositiveIntEnv(
-    "DJERD_OPTIMIZED_TOTAL_BUDGET_MS",
-    legacyBudgetMs,
-  );
+  const budgetMs = configuredOptimizedLayoutBudgetMs();
   const startedMs = Date.now();
+  const unlimited = budgetMs === 0;
   const deadline = {
     budgetMs,
-    deadlineMs: startedMs + budgetMs,
+    deadlineMs: unlimited
+      ? Number.POSITIVE_INFINITY
+      : startedMs + budgetMs,
     startedMs,
+    unlimited,
   };
-  logger?.info(
-    `[optimized layout budget] started · budget=${budgetMs}ms · `
-    + "covers=cache-wait,baseline,scorer,reroute,bbox,polish,retouch",
-  );
+  logger?.info(unlimited
+    ? "[optimized layout budget] started · timeLimit=none · "
+      + "covers=cache-wait,baseline,scorer,reroute,bbox,polish,retouch"
+    : `[optimized layout budget] started · budget=${budgetMs}ms · `
+      + "covers=cache-wait,baseline,scorer,reroute,bbox,polish,retouch");
   return deadline;
 }
 
 function remainingPostReroutePolishBudgetMs(
   deadline: PostReroutePolishDeadline,
 ): number {
+  if (deadline.unlimited) {
+    return Number.POSITIVE_INFINITY;
+  }
   return Math.max(0, deadline.deadlineMs - Date.now());
 }
 
@@ -8295,6 +8477,9 @@ function budgetCandidateTimeout(
   logger?: Logger,
   reserveMs = 0,
 ): BudgetedCandidateTimeout | undefined {
+  if (deadline?.unlimited) {
+    return { budgetLimited: false, timeoutMs: 0 };
+  }
   if (!deadline) {
     return { budgetLimited: false, timeoutMs: configuredTimeoutMs };
   }
@@ -8413,10 +8598,6 @@ async function runFinalExportRetouch(options: {
   polishDeadline?: PostReroutePolishDeadline;
   stdout: string;
 }): Promise<string> {
-  if (!readBoolEnv("DJERD_OPTIMIZED_VISUAL_CROSS_FINAL_RETOUCH", true)) {
-    return options.stdout;
-  }
-
   const retouchStart = Date.now();
   let auditedBaseStdout = options.stdout;
   const retouchTempPaths: string[] = [];
@@ -9600,16 +9781,36 @@ async function runFinalExportRetouch(options: {
   }
 }
 
-function execFileAsync(
+type LayoutExecFileOptions = {
+  cwd: string;
+  env?: Record<string, string | undefined>;
+  killSignal?: "SIGTERM" | "SIGKILL";
+  maxBuffer: number;
+  timeout: number;
+};
+
+async function execFileAsync(
   filePath: string,
   args: string[],
-  options: {
-    cwd: string;
-    env?: Record<string, string | undefined>;
-    killSignal?: "SIGTERM" | "SIGKILL";
-    maxBuffer: number;
-    timeout: number;
-  },
+  options: LayoutExecFileOptions,
+): Promise<{ stderr: string; stdout: string }> {
+  let releaseQueue!: () => void;
+  const predecessor = layoutProcessQueue;
+  layoutProcessQueue = new Promise<void>((resolve) => {
+    releaseQueue = resolve;
+  });
+  await predecessor;
+  try {
+    return await execFileWithResourceLimits(filePath, args, options);
+  } finally {
+    releaseQueue();
+  }
+}
+
+function execFileWithResourceLimits(
+  filePath: string,
+  args: string[],
+  options: LayoutExecFileOptions,
 ): Promise<{ stderr: string; stdout: string }> {
   return new Promise((resolve, reject) => {
     // A timed-out parent can leave a Python/native descendant holding stdout
@@ -9619,6 +9820,9 @@ function execFileAsync(
     // Node never delivers its callback after that kill.
     let settled = false;
     let forceKillTimer: ReturnType<typeof setTimeout> | undefined;
+    let memoryMonitorTimer: ReturnType<typeof setInterval> | undefined;
+    let memorySampleInFlight = false;
+    let peakResidentMemoryMiB = 0;
     const finish = (
       error: OgdfExecError | undefined,
       value?: { stderr: string; stdout: string },
@@ -9630,6 +9834,10 @@ function execFileAsync(
       if (forceKillTimer !== undefined) {
         clearTimeout(forceKillTimer);
         forceKillTimer = undefined;
+      }
+      if (memoryMonitorTimer !== undefined) {
+        clearInterval(memoryMonitorTimer);
+        memoryMonitorTimer = undefined;
       }
       if (error) {
         reject(error);
@@ -9682,21 +9890,78 @@ function execFileAsync(
       pid?: number;
       kill: (signal?: string) => boolean;
     };
+
+    const killChildProcessGroup = (): void => {
+      const pid = child.pid;
+      if (useProcessGroup && pid !== undefined) {
+        try {
+          process.kill(-pid, "SIGKILL");
+        } catch {
+          // The process group may already be gone.
+        }
+      }
+      try {
+        child.kill("SIGKILL");
+      } catch {
+        // The direct child may already be gone.
+      }
+    };
+
+    const configuredMemoryLimitMiB = readPositiveIntEnv(
+      "DJERD_LAYOUT_PROCESS_MEMORY_LIMIT_MIB",
+      DEFAULT_LAYOUT_PROCESS_MEMORY_LIMIT_MIB,
+    );
+    const memoryLimitMiB = Math.min(
+      configuredMemoryLimitMiB,
+      MAX_LAYOUT_PROCESS_MEMORY_LIMIT_MIB,
+    );
+    if (useProcessGroup && child.pid !== undefined) {
+      const processGroupId = child.pid;
+      memoryMonitorTimer = setInterval(() => {
+        if (settled || memorySampleInFlight) {
+          return;
+        }
+        memorySampleInFlight = true;
+        void readProcessGroupResidentMemoryMiB(processGroupId)
+          .then((residentMemoryMiB) => {
+            if (settled || residentMemoryMiB === undefined) {
+              return;
+            }
+            peakResidentMemoryMiB = Math.max(
+              peakResidentMemoryMiB,
+              residentMemoryMiB,
+            );
+            if (residentMemoryMiB <= memoryLimitMiB) {
+              return;
+            }
+            killChildProcessGroup();
+            finish(
+              new OgdfExecError(
+                `layout process group exceeded ${memoryLimitMiB} MiB `
+                + `resident-memory limit (${residentMemoryMiB.toFixed(1)} MiB)`,
+                {
+                  killed: true,
+                  signal: "SIGKILL",
+                  stderr: "",
+                  stdout: "",
+                  timeoutMs: options.timeout,
+                  timedOut: false,
+                  memoryLimited: true,
+                  memoryLimitMiB,
+                  peakResidentMemoryMiB,
+                },
+              ),
+            );
+          })
+          .finally(() => {
+            memorySampleInFlight = false;
+          });
+      }, LAYOUT_PROCESS_MEMORY_POLL_MS);
+      (memoryMonitorTimer as { unref?: () => void }).unref?.();
+    }
     if (options.timeout > 0 && child.pid !== undefined) {
       forceKillTimer = setTimeout(() => {
-        const pid = child.pid;
-        if (useProcessGroup && pid !== undefined) {
-          try {
-            process.kill(-pid, "SIGKILL");
-          } catch {
-            // The group may already be gone. Fall through to the direct kill.
-          }
-        }
-        try {
-          child.kill("SIGKILL");
-        } catch {
-          // Process already gone; the hard timeout still settles the caller.
-        }
+        killChildProcessGroup();
         finish(
           new OgdfExecError(
             `native process exceeded hard timeout of ${options.timeout}ms`,
@@ -9712,6 +9977,44 @@ function execFileAsync(
         );
       }, options.timeout + 1_000);
     }
+  });
+}
+
+function readProcessGroupResidentMemoryMiB(
+  processGroupId: number,
+): Promise<number | undefined> {
+  if (process.platform === "win32") {
+    return Promise.resolve(undefined);
+  }
+  return new Promise((resolve) => {
+    execFile(
+      "/bin/ps",
+      ["-ax", "-o", "pgid=,rss="],
+      {
+        encoding: "utf8",
+        maxBuffer: 2 * 1024 * 1024,
+        timeout: 2_000,
+      },
+      (error, stdout) => {
+        if (error) {
+          resolve(undefined);
+          return;
+        }
+        let residentKiB = 0;
+        for (const line of stdout.split("\n")) {
+          const parts = line.trim().split(/\s+/);
+          if (parts.length < 2) {
+            continue;
+          }
+          const pgid = Number.parseInt(parts[0], 10);
+          const rssKiB = Number.parseInt(parts[1], 10);
+          if (pgid === processGroupId && Number.isFinite(rssKiB)) {
+            residentKiB += Math.max(0, rssKiB);
+          }
+        }
+        resolve(residentKiB > 0 ? residentKiB / 1024 : undefined);
+      },
+    );
   });
 }
 
@@ -11045,6 +11348,15 @@ function readNonNegativeIntEnv(name: string, fallback: number): number {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
+function readOptionalNonNegativeIntEnv(name: string): number | undefined {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    return undefined;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
 function readOptionalPositiveIntEnv(name: string): number | undefined {
   const value = process.env[name]?.trim();
   if (!value || value.toLowerCase() === "auto") {
@@ -11210,6 +11522,9 @@ class OgdfExecError extends Error {
       stdout: string;
       timeoutMs?: number;
       timedOut: boolean;
+      memoryLimited?: boolean;
+      memoryLimitMiB?: number;
+      peakResidentMemoryMiB?: number;
     },
   ) {
     super(message);
@@ -11224,6 +11539,11 @@ function buildExecFailureMessage(error: Error, stderr: string): string {
 
 function formatOgdfFailureReason(error: unknown): string {
   if (error instanceof OgdfExecError) {
+    if (error.details.memoryLimited) {
+      return "native layout stopped at the resident-memory safety limit "
+        + `(${error.details.peakResidentMemoryMiB?.toFixed(1) ?? "unknown"}`
+        + `/${error.details.memoryLimitMiB ?? DEFAULT_LAYOUT_PROCESS_MEMORY_LIMIT_MIB} MiB)`;
+    }
     if (error.details.timedOut) {
       return `native layout timed out after ${error.details.timeoutMs ?? OGDF_LAYOUT_TIMEOUT_MS}ms`;
     }

@@ -44,13 +44,15 @@ export function restoreRefreshViewState(
         modelId: viewState.selectedMethodContext!.modelId,
       }
     : undefined;
-  nextResult.payload.view.tableOptions = viewState.tableOptions
+  const nextTableOptions = viewState.tableOptions
     .filter((options) => availableModelIds.has(options.modelId))
-    .map(cloneTableViewOptions);
+    .map((options) => cloneTableViewOptions(options, refreshKind === "full"));
+  nextResult.payload.view.tableOptions = nextTableOptions;
   nextResult.payload.view.viewport = restoreViewport(
     previousResult?.payload.layout,
     nextResult.payload.layout,
     viewState,
+    nextTableOptions,
     nextResult.payload.view.selectedModelId,
     refreshKind,
     Boolean(viewState.optimizedLayout),
@@ -59,10 +61,18 @@ export function restoreRefreshViewState(
   return nextResult;
 }
 
-function cloneTableViewOptions(options: TableViewOptions): TableViewOptions {
+function cloneTableViewOptions(
+  options: TableViewOptions,
+  preserveManualPosition: boolean,
+): TableViewOptions {
   return {
     hidden: options.hidden,
-    manualPosition: options.manualPosition ? { ...options.manualPosition } : undefined,
+    // A manual coordinate belongs to the layout in which the user dragged the
+    // table. Carrying it into a newly computed layout invalidates both edge
+    // geometry and the optimized quality audit.
+    manualPosition: preserveManualPosition && options.manualPosition
+      ? { ...options.manualPosition }
+      : undefined,
     modelId: options.modelId,
     showMethodHighlights: options.showMethodHighlights,
     showMethods: options.showMethods,
@@ -149,6 +159,7 @@ function restoreViewport(
   previousLayout: LayoutSnapshot | undefined,
   nextLayout: LayoutSnapshot,
   viewState: RefreshViewStateSnapshot,
+  nextTableOptions: TableViewOptions[],
   selectedModelId: ModelId | undefined,
   refreshKind: "full" | "layout",
   fitCompletedLayout: boolean,
@@ -160,7 +171,7 @@ function restoreViewport(
   if (!fitCompletedLayout && refreshKind === "layout" && selectedModelId) {
     const selectedCenter = computeNodeCenter(
       nextLayout,
-      viewState.tableOptions,
+      nextTableOptions,
       selectedModelId,
     );
     if (selectedCenter) {
@@ -171,7 +182,7 @@ function restoreViewport(
   const previousBounds = previousLayout
     ? computeBounds(previousLayout, viewState.tableOptions)
     : undefined;
-  const nextBounds = computeBounds(nextLayout, viewState.tableOptions);
+  const nextBounds = computeBounds(nextLayout, nextTableOptions);
 
   if (fitCompletedLayout && nextBounds) {
     return createFittedViewport(nextBounds, width, height);

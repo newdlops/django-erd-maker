@@ -1,0 +1,41 @@
+{
+  "kind": "single-owner-promotion-provenance-counter-scope-reconciliation-v1",
+  "candidateSha256": "7aa76f957e12361b8e72add0e12e08d97494d78cc087309d9d15448f237cfcda",
+  "candidateGeometryChanged": false,
+  "mainArchiveManifestSha256": "8c24abd16db00344e05fcce1441a00b2c1b002db723185c3f36e93c4b3d52f15",
+  "provenanceBeforeSha256": "0158bbac0073bc8be7180fff1367991609dbdabcba7882012b4255a0c16f58e6",
+  "changes": {
+    "acceptedGraphBranchActions": 0,
+    "syntheticRewardMeasurementsArchived": 0,
+    "graphBranchMode": "none",
+    "trainingMeasurementCountsScope": "latest single-owner continuation only; zero new training updates",
+    "newNetworkTrainingUpdatesInLatestContinuation": 0,
+    "inheritedBoundedPolicyCounters": {
+      "acceptedGraphBranchActions": 986,
+      "syntheticRewardMeasurementsArchived": 276480,
+      "graphBranchMode": "cut",
+      "actualCaptainRewardMeasurementsUsedForTraining": 0
+    },
+    "individualCriticParentTraining": {
+      "checkpointSha256": "915a84051eedea56c9695a479737706772eef6213ac8b986118ce952c37a7a10",
+      "kind": "owner-amplitude-synthetic-cycle-critic-v1",
+      "sourceArchiveManifest": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/manifest.json",
+      "sourceArchiveManifestSha256": "6b31d46cd53ab370048e36ba43ed04bdc423e3507adddd42423dca0426a565a7",
+      "trainingReportSha256": "175bc9105b219eb324f5d60370fd99c65b91abb807f09a09daf2a9168c69545c",
+      "datasetRowsByKind": {
+        "captain": 5120,
+        "positive": 4096,
+        "negative": 4096,
+        "mixed": 4096
+      },
+      "trainingRows": 13729,
+      "captainDatasetRows": 5120,
+      "captainValidationRows": 607,
+      "captainTrainingRows": 4513,
+      "newTrainingUpdatesExecutedInParent": 12192,
+      "selectedCheckpointUpdatesInParent": 10287,
+      "trainedOnSingleOwnerMoves": false
+    }
+  },
+  "toolSha256": "da4b7017c79ac2751d5239a789d2bb7325ec5072c0a958172654bf09812974a2"
+}

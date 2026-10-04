@@ -1,0 +1,78 @@
+[
+  {
+    "stage": "overview-cut-trained1",
+    "outcomes": {
+      "spacing": 7753,
+      "individual-hard": 1864,
+      "overview-regression": 2786,
+      "accepted-neutral": 622,
+      "projection": 504,
+      "overview-hard": 3489,
+      "frame": 377,
+      "accepted": 2
+    },
+    "groupedOutcomes": {
+      "overview-regression": 1040,
+      "accepted-neutral": 256,
+      "spacing": 5072,
+      "individual-hard": 1002,
+      "overview-hard": 1235,
+      "projection": 356,
+      "frame": 346,
+      "accepted": 1
+    },
+    "improvements": [
+      {
+        "root": "db.LegalPartner",
+        "cards": 2,
+        "gain": 1
+      },
+      {
+        "root": "db.DirectorsMeetingNoticeEmail",
+        "cards": 1,
+        "gain": 1
+      }
+    ]
+  },
+  {
+    "stage": "individual-cut-trained1",
+    "outcomes": {
+      "overview-regression": 4702,
+      "accepted-neutral": 773,
+      "overview-hard": 6998,
+      "spacing": 7359,
+      "accepted": 4,
+      "frame": 164
+    },
+    "groupedOutcomes": {
+      "overview-regression": 1269,
+      "spacing": 2595,
+      "overview-hard": 1642,
+      "accepted-neutral": 137,
+      "frame": 81,
+      "accepted": 1
+    },
+    "improvements": [
+      {
+        "root": "db.IrConsultingRequest",
+        "cards": 1,
+        "gain": 1
+      },
+      {
+        "root": "db.ArticlesOfIncorporationBeforeChangeDocument",
+        "cards": 1,
+        "gain": 1
+      },
+      {
+        "root": "db.VentureBusinessCertificationExpirationNotificationLog",
+        "cards": 1,
+        "gain": 1
+      },
+      {
+        "root": "db.OptionExerciseClaim",
+        "cards": 6,
+        "gain": 1
+      }
+    ]
+  }
+]

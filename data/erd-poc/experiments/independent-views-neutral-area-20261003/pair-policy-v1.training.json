@@ -1,0 +1,277 @@
+{
+  "kind": "pair-swap-ranker-v1",
+  "schema": "relative-pair-swap-context-v1-64",
+  "features": 64,
+  "trainedUpdates": 3270,
+  "bestEpoch": 8,
+  "seed": 241,
+  "gainCap": 32.0,
+  "datasetSha256": "893b5fb7da05e7493ba7b10600a849d4c441d3daa0aee8093839b149e6de08cb",
+  "trainingGraphIds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50
+  ],
+  "validationGraphIds": [
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63
+  ],
+  "captainTrainingExamples": 0,
+  "adaptationSourceSha256": null,
+  "adaptationWeight": null,
+  "trainingData": "synthetic pair rewards only",
+  "absoluteCoordinatesAsInput": false,
+  "modelNamesAsInput": false,
+  "actionSelection": "descending trained score over a uniformly sampled pair vocabulary",
+  "checkpoint": ".tmp/visualcross-ml-targets-20261003/pair-policy-v1.npz",
+  "checkpointSha256": "754ab205afe2213648d8b04f4f50d5c48c33b2ce74b061f901a45c91e48617d9",
+  "rows": 34512,
+  "positiveRows": 10993,
+  "parameterCount": 8385,
+  "initialValidationLoss": 0.6912641981918126,
+  "bestValidationLoss": 0.23408419168467814,
+  "validationTopDecileGainLift": 3.581515691003742,
+  "validationTopDecilePositiveRate": 0.7919762258543833,
+  "seconds": 0.9912209589965641,
+  "history": [
+    {
+      "epoch": 1,
+      "updates": 109,
+      "validationWeightedBce": 0.2666311204220889,
+      "seconds": 0.03740725002717227
+    },
+    {
+      "epoch": 2,
+      "updates": 218,
+      "validationWeightedBce": 0.2472136388796134,
+      "seconds": 0.06956604198785499
+    },
+    {
+      "epoch": 3,
+      "updates": 327,
+      "validationWeightedBce": 0.24441945277688962,
+      "seconds": 0.10353962500812486
+    },
+    {
+      "epoch": 4,
+      "updates": 436,
+      "validationWeightedBce": 0.2408468841085491,
+      "seconds": 0.13571829203283414
+    },
+    {
+      "epoch": 5,
+      "updates": 545,
+      "validationWeightedBce": 0.2416343713818218,
+      "seconds": 0.1668013749876991
+    },
+    {
+      "epoch": 6,
+      "updates": 654,
+      "validationWeightedBce": 0.2369457123993878,
+      "seconds": 0.19795666699064896
+    },
+    {
+      "epoch": 7,
+      "updates": 763,
+      "validationWeightedBce": 0.2354941625413544,
+      "seconds": 0.22949870902812108
+    },
+    {
+      "epoch": 8,
+      "updates": 872,
+      "validationWeightedBce": 0.23408419168467814,
+      "seconds": 0.2618813749868423
+    },
+    {
+      "epoch": 9,
+      "updates": 981,
+      "validationWeightedBce": 0.23596769607481027,
+      "seconds": 0.2939588340232149
+    },
+    {
+      "epoch": 10,
+      "updates": 1090,
+      "validationWeightedBce": 0.23465733725808335,
+      "seconds": 0.32595504203345627
+    },
+    {
+      "epoch": 11,
+      "updates": 1199,
+      "validationWeightedBce": 0.23493325837810541,
+      "seconds": 0.3575765839777887
+    },
+    {
+      "epoch": 12,
+      "updates": 1308,
+      "validationWeightedBce": 0.24440724010674691,
+      "seconds": 0.38999204197898507
+    },
+    {
+      "epoch": 13,
+      "updates": 1417,
+      "validationWeightedBce": 0.2374691846180276,
+      "seconds": 0.4225005420157686
+    },
+    {
+      "epoch": 14,
+      "updates": 1526,
+      "validationWeightedBce": 0.23769662705559125,
+      "seconds": 0.45461608399637043
+    },
+    {
+      "epoch": 15,
+      "updates": 1635,
+      "validationWeightedBce": 0.2365002042036999,
+      "seconds": 0.4863371669780463
+    },
+    {
+      "epoch": 16,
+      "updates": 1744,
+      "validationWeightedBce": 0.235327725197164,
+      "seconds": 0.518798874982167
+    },
+    {
+      "epoch": 17,
+      "updates": 1853,
+      "validationWeightedBce": 0.242233266624774,
+      "seconds": 0.5511242499924265
+    },
+    {
+      "epoch": 18,
+      "updates": 1962,
+      "validationWeightedBce": 0.24397513306156507,
+      "seconds": 0.5835619170102291
+    },
+    {
+      "epoch": 19,
+      "updates": 2071,
+      "validationWeightedBce": 0.2393458456272833,
+      "seconds": 0.6157853750046343
+    },
+    {
+      "epoch": 20,
+      "updates": 2180,
+      "validationWeightedBce": 0.2496121646427098,
+      "seconds": 0.6480892919935286
+    },
+    {
+      "epoch": 21,
+      "updates": 2289,
+      "validationWeightedBce": 0.2458653367776263,
+      "seconds": 0.6796042500063777
+    },
+    {
+      "epoch": 22,
+      "updates": 2398,
+      "validationWeightedBce": 0.2515201928398504,
+      "seconds": 0.7114342090208083
+    },
+    {
+      "epoch": 23,
+      "updates": 2507,
+      "validationWeightedBce": 0.2531035609818505,
+      "seconds": 0.7445433340035379
+    },
+    {
+      "epoch": 24,
+      "updates": 2616,
+      "validationWeightedBce": 0.2503849468111411,
+      "seconds": 0.7773250000318512
+    },
+    {
+      "epoch": 25,
+      "updates": 2725,
+      "validationWeightedBce": 0.25202455448405636,
+      "seconds": 0.809136583993677
+    },
+    {
+      "epoch": 26,
+      "updates": 2834,
+      "validationWeightedBce": 0.2549685529846662,
+      "seconds": 0.8415299170301296
+    },
+    {
+      "epoch": 27,
+      "updates": 2943,
+      "validationWeightedBce": 0.24869365149757877,
+      "seconds": 0.8769528749980964
+    },
+    {
+      "epoch": 28,
+      "updates": 3052,
+      "validationWeightedBce": 0.25456415234423274,
+      "seconds": 0.9088233340298757
+    },
+    {
+      "epoch": 29,
+      "updates": 3161,
+      "validationWeightedBce": 0.2597332552079873,
+      "seconds": 0.9405466670286842
+    },
+    {
+      "epoch": 30,
+      "updates": 3270,
+      "validationWeightedBce": 0.25879604011306767,
+      "seconds": 0.971610167005565
+    }
+  ]
+}

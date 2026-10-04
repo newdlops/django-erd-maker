@@ -1,0 +1,170 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+
+    {
+      "name": "Run Captain (ML latest checkpoints)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "${workspaceFolder}/.vscode/captain-leaf-cards.code-workspace"
+      ],
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "preLaunchTask": "verify:ml-preview",
+      "env": {
+        "DJERD_CONSOLIDATE_EDGES": "1",
+        "DJERD_MATRIX_FACING": "1",
+        "DJERD_LAYOUT_FROM_FILE": "${workspaceFolder}/data/erd-poc/candidates/captain-ml-latest-checkpoints.layout.json",
+        "DJERD_DISABLE_CLUSTER_FALLBACK": "1",
+        "DJERD_FINAL_EXPORT_RETOUCH": "0"
+      }
+    },
+
+    {
+      "name": "Run Captain (ML best 285-1963)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "${workspaceFolder}/.vscode/captain-leaf-cards.code-workspace"
+      ],
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "preLaunchTask": "verify:ml-preview",
+      "env": {
+        "DJERD_CONSOLIDATE_EDGES": "1",
+        "DJERD_MATRIX_FACING": "1",
+        "DJERD_LAYOUT_FROM_FILE": "${workspaceFolder}/data/erd-poc/candidates/captain-ml-independent-views.layout.json",
+        "DJERD_DISABLE_CLUSTER_FALLBACK": "1",
+        "DJERD_FINAL_EXPORT_RETOUCH": "0"
+      }
+    },
+
+    {
+      "name": "Run Captain (Leaf cards 468)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "${workspaceFolder}/.vscode/captain-leaf-cards.code-workspace"
+      ],
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "preLaunchTask": "build:extension:bounded",
+      "env": {
+        "DJERD_CONSOLIDATE_EDGES": "1",
+        "DJERD_MATRIX_FACING": "1",
+        "DJERD_LAYOUT_FROM_FILE": "${workspaceFolder}/data/erd-poc/candidates/captain-leaf-card-connections-468.layout.json",
+        "DJERD_DISABLE_CLUSTER_FALLBACK": "1",
+        "DJERD_FINAL_EXPORT_RETOUCH": "0"
+      }
+    },
+
+    {
+      "name": "Run Captain (June overview control 405)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}", "/Users/lky/project/captain"],
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "preLaunchTask": "build:extension",
+      "env": {
+        "DJERD_CONSOLIDATE_EDGES": "1",
+        "DJERD_MATRIX_FACING": "1",
+        "DJERD_LAYOUT_FROM_FILE": "${workspaceFolder}/data/erd-poc/candidates/captain-june-405.layout.json",
+        "DJERD_DISABLE_CLUSTER_FALLBACK": "1",
+        "DJERD_FINAL_EXPORT_RETOUCH": "0"
+      }
+    },
+
+    {
+      "name": "Run Captain (June bundles 473)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "/Users/lky/project/captain"
+      ],
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "preLaunchTask": "build:extension",
+      "env": {
+        "DJERD_CONSOLIDATE_EDGES": "1",
+        "DJERD_MATRIX_FACING": "1",
+        "DJERD_LAYOUT_FROM_FILE": "${workspaceFolder}/data/erd-poc/candidates/captain-june-473.layout.json",
+        "DJERD_DISABLE_CLUSTER_FALLBACK": "1",
+        "DJERD_FINAL_EXPORT_RETOUCH": "0"
+      }
+    },
+
+    {
+      "name": "Run Django ERD Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/out/**/*.js"
+      ],
+      "preLaunchTask": "build",
+      "env": {
+        "DJERD_CONSOLIDATE_EDGES": "1",
+        "DJERD_MATRIX_FACING": "1",
+        "DJANGO_ERD_PRESERVE_LAYOUT_INPUTS": "1",
+        "DJERD_DISABLE_CLUSTER_FALLBACK": "1",
+        // Heavy post-passes that ran by default and added 4-5 min on
+        // 1250-node ERDs even outside cluster_graph mode. Disabled so
+        // fmmm / hierarchical_barycenter return in ~30s. Cluster-graph
+        // mode still benefits from these in principle, but quality has
+        // not been reproduced yet, so we leave them off until needed.
+        "DJERD_EDGE_DETOUR": "0",
+        "DJERD_XINGS_DETOUR": "0",
+        "DJERD_VISUAL_KNOT": "0",
+        "DJERD_FACE_RASTER": "0",
+        "DJERD_FACE_UNTANGLE": "0",
+        "DJERD_STUCK_LEAF_2D": "0",
+        "DJERD_HOT_REGION_SA": "0",
+        "DJERD_ISOLATED_STASH": "0",
+        "DJERD_NO_KNOT_MIN": "1"
+      }
+    },
+    {
+      "name": "Run Django ERD Extension (v35 Carrier 401)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "/Users/lky/project/captain"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/out/**/*.js"
+      ],
+      "preLaunchTask": "build",
+      "env": {
+        "DJERD_CONSOLIDATE_EDGES": "1",
+        "DJERD_MATRIX_FACING": "1",
+        "DJANGO_ERD_PRESERVE_LAYOUT_INPUTS": "1",
+        "DJERD_LAYOUT_FROM_FILE": "/tmp/v35-rendered-carrier-t14.json"
+      }
+    },
+    {
+      "name": "Run Django ERD Extension (v35 Pure R35 Actual)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "/Users/lky/project/captain"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/out/**/*.js"
+      ],
+      "preLaunchTask": "build",
+      "env": {
+        "DJANGO_ERD_PRESERVE_LAYOUT_INPUTS": "1",
+        "DJERD_CONSOLIDATE_EDGES": "0",
+        "DJERD_NO_CARRIER_CROSS": "1",
+        "DJERD_HUB_CARRIER_CROSS_FINAL": "0",
+        "DJERD_RENDERED_CARRIER_METRICS_FINAL": "0",
+        "DJERD_LAYOUT_FROM_FILE": "/tmp/v35-pure-r35-extension-reroute.json"
+      }
+    }
+  ]
+}

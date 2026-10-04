@@ -1,0 +1,49 @@
+{
+  "source": "data/erd-poc/candidates/captain-leaf-card-connections-ml-387.layout.json",
+  "sourceSha256": "564b2be9743708ebcf048b5a1db1c73ca405caf199cad77e100593eb5832cfed",
+  "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+  "checkpoint": ".tmp/visualcross-ml-targets-20261003/component-policy-v6.npz",
+  "checkpointSha256": "2ff93c849d0c0cf73afdfc7ca019bc74dea841d942b58ccc8e869dc60341ec75",
+  "nativeBinarySha256": "122b36a993d66b3b7a02cb79d741b6f04d587551b214f968bfa8f52fbce1e662",
+  "candidateSha256": "9e1de82cd2f416d9f7a0d5c669ade3d9db1ebcf1e2b078a5595a8bd3846d84b4",
+  "visualCrossings": 387,
+  "individualVisualCrossings": 3460,
+  "proposalAuthority": "frozen learned policy",
+  "heuristicSearchCalls": 0,
+  "frozenActionReplay": true,
+  "productFileLoadVerified": true,
+  "browserVerified": false,
+  "seconds": 22.52134933398338,
+  "stages": [
+    {
+      "stage": "export",
+      "exitCode": 0,
+      "seconds": 0.8385753749753349
+    },
+    {
+      "stage": "components",
+      "exitCode": 0,
+      "seconds": 0.5833957919967361
+    },
+    {
+      "stage": "inference",
+      "exitCode": 0,
+      "seconds": 15.44534829101758
+    },
+    {
+      "stage": "replay",
+      "exitCode": 0,
+      "seconds": 1.105126999958884
+    },
+    {
+      "stage": "apply",
+      "exitCode": 0,
+      "seconds": 1.7585804580012336
+    },
+    {
+      "stage": "product",
+      "exitCode": 0,
+      "seconds": 2.7857161670108326
+    }
+  ]
+}

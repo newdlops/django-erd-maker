@@ -21,6 +21,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <functional>
+#include <iterator>
 #include <limits>
 #include <queue>
 #include <random>
@@ -6644,33 +6645,30 @@ ClusterGraphResult runClusterGraphLayout(
   }  // end if (!skipCgOpt) — §13/§14/§15 block
 
   cgCheckpoint("pre-bus-bundle");
-  // === Bus bundle detection (graph-terminology.md §3.7.5 extension) ===
+  // === Bus node-bundle detection (graph-terminology.md §3.7.5 extension) ===
   // Standard leaf bundles group degree-1 children of one parent. A "bus
-  // bundle" extends this to nodes that share the SAME multi-root
-  // signature: e.g., 5+ tables that all FK to {User, Company} are
-  // structurally a single bus and should render as a matrix block.
-  // Detection: compute per-node sorted set of connected cluster roots;
-  // group nodes with identical signatures. Place each group as a matrix
-  // at the signature centroid and emit as leafMatrixGroup so the
-  // existing pipeline (bbox metadata, webview frame, bundle-clear)
-  // handles them.
+  // bundle" extends this to data models that share a multi-root semantic
+  // core, e.g. tables centred on {User, Company}. Membership intentionally
+  // does NOT require an identical root signature: {User, Company, Team} and
+  // {User, Company, Workspace} still belong to one node family. The common
+  // root intersection is kept at size >= 2, while a small number of
+  // per-model extra/missing relations is absorbed and retained as ordinary
+  // individual edges. No edge is merged, hidden, or rerouted here.
   std::size_t busBundleCount = 0;
   std::size_t busMemberCount = 0;
+  std::size_t fuzzyAbsorbed = 0;
   {
-    // Per user request: bundle ANY group of nodes (size ≥ 2) sharing
-    // the same multi-root signature — including connector pairs and
-    // router triples. Threshold 2 captures the "multiple connectors
-    // bridging the same A↔B" case as a single visual bus.
-    // Threshold 2: tested 1 (5x more bundles) but +26% carrier cross
-    // because 1-member matrix adds frame bbox + empty grouping with
-    // no visual aggregation benefit. 2 is the sweet spot.
+    // A one-member family has no grouping benefit. Two is enough to capture
+    // connector pairs while avoiding empty/synthetic grouping constructs.
     constexpr std::size_t kBusThreshold = 2;
     // Build root index set + rootIdx → clusterId.
     std::unordered_set<std::size_t> rootSet;
     std::unordered_map<std::size_t, std::string> rootIdxToCidBus;
+    std::unordered_map<std::string, std::size_t> cidToRootIdxBus;
     for (const ClusterRecord& c : result.clusters) {
       rootSet.insert(c.rootIdx);
       rootIdxToCidBus[c.rootIdx] = c.clusterId;
+      cidToRootIdxBus[c.clusterId] = c.rootIdx;
     }
     // Track which nodes are already in a leaf bundle (skip them).
     std::unordered_set<std::size_t> leafBundleAbsorbed;
@@ -6678,55 +6676,169 @@ ClusterGraphResult runClusterGraphLayout(
       leafBundleAbsorbed.insert(g.parentIdx);
       for (std::size_t l : g.leafIdxs) leafBundleAbsorbed.insert(l);
     }
-    // Group non-root, non-leaf-bundle nodes by signature.
-    std::map<std::string, std::vector<std::size_t>> busGroups;
+    struct BusCandidate {
+      std::size_t nodeIdx = 0;
+      std::set<std::string> roots;
+    };
+    struct FuzzyBusGroup {
+      std::vector<std::size_t> members;
+      // Every member contains at least these roots. This intersection may
+      // shrink while models are absorbed but is never allowed below two.
+      std::set<std::string> commonRoots;
+      // Used only to prefer the semantically closest compatible family.
+      std::set<std::string> allRoots;
+    };
+    std::vector<BusCandidate> busCandidates;
+    std::unordered_map<std::size_t, std::set<std::string>> signatureByNode;
     for (std::size_t v = 0; v < nodes.size(); ++v) {
       if (rootSet.count(v)) continue;
       if (leafBundleAbsorbed.count(v)) continue;
-      // Build signature: sorted set of cluster IDs of connected roots.
       std::set<std::string> sig;
       for (std::size_t u : adj[v]) {
         auto rIt = rootIdxToCidBus.find(u);
         if (rIt != rootIdxToCidBus.end()) sig.insert(rIt->second);
       }
       if (sig.size() < 2) continue;  // need multi-root
-      std::string key;
-      for (const auto& c : sig) {
-        key += c;
-        key += '|';
-      }
-      busGroups[key].push_back(v);
+      signatureByNode.emplace(v, sig);
+      busCandidates.push_back({v, std::move(sig)});
     }
-    // For each group with size >= threshold, place as matrix.
-    for (auto& kv : busGroups) {
-      auto& members = kv.second;
-      if (members.size() < kBusThreshold) continue;
-      std::sort(members.begin(), members.end());  // determinism
-      // Pick "parent" root: highest-deg cluster root in the signature.
-      // Re-extract signature roots from any member's adj.
-      std::set<std::string> sigCids;
-      for (std::size_t u : adj[members[0]]) {
-        auto rIt = rootIdxToCidBus.find(u);
-        if (rIt != rootIdxToCidBus.end()) sigCids.insert(rIt->second);
+    // Small signatures establish the stable semantic core first. Larger data
+    // nodes can then be absorbed without letting a chain of merely pairwise
+    // similarities collapse unrelated families together.
+    std::sort(
+      busCandidates.begin(),
+      busCandidates.end(),
+      [&](const BusCandidate& left, const BusCandidate& right) {
+        if (left.roots.size() != right.roots.size()) {
+          return left.roots.size() < right.roots.size();
+        }
+        return nodes[left.nodeIdx].modelId < nodes[right.nodeIdx].modelId;
+      });
+    std::vector<FuzzyBusGroup> busGroups;
+    for (const BusCandidate& candidate : busCandidates) {
+      std::size_t bestGroup = busGroups.size();
+      std::size_t bestCommon = 0;
+      double bestJaccard = -1.0;
+      std::size_t bestSize = 0;
+      for (std::size_t groupIndex = 0;
+           groupIndex < busGroups.size(); ++groupIndex) {
+        const FuzzyBusGroup& group = busGroups[groupIndex];
+        std::vector<std::string> nextCommon;
+        std::set_intersection(
+          group.commonRoots.begin(), group.commonRoots.end(),
+          candidate.roots.begin(), candidate.roots.end(),
+          std::back_inserter(nextCommon));
+        if (nextCommon.size() < 2) continue;
+
+        std::vector<std::string> sharedWithFamily;
+        std::set_intersection(
+          group.allRoots.begin(), group.allRoots.end(),
+          candidate.roots.begin(), candidate.roots.end(),
+          std::back_inserter(sharedWithFamily));
+        std::vector<std::string> combinedRoots;
+        std::set_union(
+          group.allRoots.begin(), group.allRoots.end(),
+          candidate.roots.begin(), candidate.roots.end(),
+          std::back_inserter(combinedRoots));
+        const double jaccard = combinedRoots.empty()
+          ? 0.0
+          : static_cast<double>(sharedWithFamily.size())
+            / static_cast<double>(combinedRoots.size());
+        const std::size_t extrasBeyondCore =
+          candidate.roots.size() - nextCommon.size();
+        const std::size_t missingFromCore =
+          group.commonRoots.size() - nextCommon.size();
+        const bool smallDifference =
+          extrasBeyondCore + missingFromCore <= 2;
+        if (!smallDifference && jaccard < 0.5) continue;
+
+        if (nextCommon.size() > bestCommon
+            || (nextCommon.size() == bestCommon && jaccard > bestJaccard)
+            || (nextCommon.size() == bestCommon && jaccard == bestJaccard
+                && group.members.size() > bestSize)) {
+          bestGroup = groupIndex;
+          bestCommon = nextCommon.size();
+          bestJaccard = jaccard;
+          bestSize = group.members.size();
+        }
       }
+      if (bestGroup == busGroups.size()) {
+        busGroups.push_back({
+          {candidate.nodeIdx}, candidate.roots, candidate.roots});
+        continue;
+      }
+      FuzzyBusGroup& group = busGroups[bestGroup];
+      const std::set<std::string> previousCommon = group.commonRoots;
+      std::set<std::string> nextCommon;
+      std::set_intersection(
+        group.commonRoots.begin(), group.commonRoots.end(),
+        candidate.roots.begin(), candidate.roots.end(),
+        std::inserter(nextCommon, nextCommon.end()));
+      std::set<std::string> nextAll;
+      std::set_union(
+        group.allRoots.begin(), group.allRoots.end(),
+        candidate.roots.begin(), candidate.roots.end(),
+        std::inserter(nextAll, nextAll.end()));
+      if (candidate.roots != previousCommon) ++fuzzyAbsorbed;
+      group.members.push_back(candidate.nodeIdx);
+      group.commonRoots = std::move(nextCommon);
+      group.allRoots = std::move(nextAll);
+    }
+
+    // Place each useful family as a real-node matrix. Ordering by the angle of
+    // each member's complete (possibly different) root centroid lets those
+    // retained extra edges influence placement instead of being discarded.
+    for (FuzzyBusGroup& group : busGroups) {
+      auto& members = group.members;
+      if (members.size() < kBusThreshold) continue;
+      const std::set<std::string>& sigCids = group.commonRoots;
       std::size_t parentRootIdx = std::numeric_limits<std::size_t>::max();
       std::size_t parentDeg = 0;
       double sumX = 0.0, sumY = 0.0;
       std::size_t cnt = 0;
-      for (const ClusterRecord& c : result.clusters) {
-        if (!sigCids.count(c.clusterId)) continue;
-        sumX += attributes.x(nodes[c.rootIdx].handle);
-        sumY += attributes.y(nodes[c.rootIdx].handle);
+      for (const std::string& clusterId : sigCids) {
+        auto rootIt = cidToRootIdxBus.find(clusterId);
+        if (rootIt == cidToRootIdxBus.end()) continue;
+        const std::size_t rootIdx = rootIt->second;
+        sumX += attributes.x(nodes[rootIdx].handle);
+        sumY += attributes.y(nodes[rootIdx].handle);
         ++cnt;
-        if (adj[c.rootIdx].size() > parentDeg) {
-          parentDeg = adj[c.rootIdx].size();
-          parentRootIdx = c.rootIdx;
+        if (adj[rootIdx].size() > parentDeg) {
+          parentDeg = adj[rootIdx].size();
+          parentRootIdx = rootIdx;
         }
       }
       if (parentRootIdx == std::numeric_limits<std::size_t>::max()
           || cnt == 0) continue;
       const double sigCx = sumX / static_cast<double>(cnt);
       const double sigCy = sumY / static_cast<double>(cnt);
+      std::sort(
+        members.begin(),
+        members.end(),
+        [&](std::size_t left, std::size_t right) {
+          auto rootAngle = [&](std::size_t member) {
+            auto signatureIt = signatureByNode.find(member);
+            if (signatureIt == signatureByNode.end()) return 0.0;
+            double x = 0.0;
+            double y = 0.0;
+            std::size_t count = 0;
+            for (const std::string& clusterId : signatureIt->second) {
+              auto rootIt = cidToRootIdxBus.find(clusterId);
+              if (rootIt == cidToRootIdxBus.end()) continue;
+              x += attributes.x(nodes[rootIt->second].handle);
+              y += attributes.y(nodes[rootIt->second].handle);
+              ++count;
+            }
+            if (count == 0) return 0.0;
+            return std::atan2(
+              y / static_cast<double>(count) - sigCy,
+              x / static_cast<double>(count) - sigCx);
+          };
+          const double leftAngle = rootAngle(left);
+          const double rightAngle = rootAngle(right);
+          if (leftAngle != rightAngle) return leftAngle < rightAngle;
+          return nodes[left].modelId < nodes[right].modelId;
+        });
       // Matrix dimensions.
       const std::size_t M = members.size();
       double maxChildW = 0.0, maxChildH = 0.0;
@@ -6734,8 +6846,10 @@ ClusterGraphResult runClusterGraphLayout(
         maxChildW = std::max(maxChildW, nodes[m].width);
         maxChildH = std::max(maxChildH, nodes[m].height);
       }
-      const double cellW = maxChildW + 4.0;
-      const double cellH = maxChildH + 4.0;
+      // Real cards remain visible in direct mode. Leave enough room for both
+      // cards' 8px visual margins instead of packing them four pixels apart.
+      const double cellW = maxChildW + 24.0;
+      const double cellH = maxChildH + 24.0;
       const std::size_t cols = std::max<std::size_t>(1,
         static_cast<std::size_t>(std::ceil(
           std::sqrt(static_cast<double>(M)
@@ -6757,32 +6871,32 @@ ClusterGraphResult runClusterGraphLayout(
         attributes.y(nodes[members[i]].handle) =
           std::round(cellY * 100.0) / 100.0;
       }
-      // Emit as a LeafMatrixGroup so downstream (bbox metadata, frame
-      // rendering, bundle-clear) treats this as a unified block.
-      // sharedRootIdxs lists ALL cluster roots in the signature so the
-      // webview can consolidate carrier edges from each shared root to
-      // the bundle anchor (per user request: "버스나 router의 경우
-      // 같은 root를 공유하는 경우 leafbundle처럼 하나의 노드와
-      // 엣지로 묶자").
-      ClusterGraphResult::LeafMatrixGroup group;
-      group.parentIdx = parentRootIdx;
-      group.leafIdxs.assign(members.begin(), members.end());
-      for (const ClusterRecord& c : result.clusters) {
-        if (sigCids.count(c.clusterId)) {
-          group.sharedRootIdxs.push_back(c.rootIdx);
+      // Emit membership metadata for the real-node block. sharedRootIdxs is
+      // the common semantic core only. Direct rendering still draws every
+      // member card and every relationship independently; this record drives
+      // placement and selection-time family highlighting, not proxy nodes or
+      // carrier substitution.
+      ClusterGraphResult::LeafMatrixGroup matrixGroup;
+      matrixGroup.parentIdx = parentRootIdx;
+      matrixGroup.leafIdxs.assign(members.begin(), members.end());
+      for (const std::string& clusterId : sigCids) {
+        auto rootIt = cidToRootIdxBus.find(clusterId);
+        if (rootIt != cidToRootIdxBus.end()) {
+          matrixGroup.sharedRootIdxs.push_back(rootIt->second);
         }
       }
-      group.anchorX = sigCx;
-      group.anchorY = sigCy;
-      result.leafMatrixGroups.push_back(std::move(group));
+      matrixGroup.anchorX = sigCx;
+      matrixGroup.anchorY = sigCy;
+      result.leafMatrixGroups.push_back(std::move(matrixGroup));
       ++busBundleCount;
       busMemberCount += M;
     }
   }
   if (busBundleCount > 0) {
     std::fprintf(stderr,
-      "[bus-bundle] Created %zu bus bundles (%zu members, sig ≥ 2 roots).\n",
-      busBundleCount, busMemberCount);
+      "[bus-bundle] Created %zu fuzzy bus node bundles (%zu members, "
+      "%zu differing signatures absorbed, common roots >= 2).\n",
+      busBundleCount, busMemberCount, fuzzyAbsorbed);
   }
 
   // === Crossings hotspot diagnostic ===

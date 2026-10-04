@@ -31,6 +31,12 @@ export interface OptimizedLayoutCacheSelection {
 
 export interface OptimizedLayoutCacheSelectionOptions {
   readonly maxCanonicalVisualDebtPerGain?: number;
+  readonly qualityTargets?: OptimizedLayoutQualityTargets;
+}
+
+export interface OptimizedLayoutQualityTargets {
+  readonly visualCrossings?: number;
+  readonly boundingBoxArea?: number;
 }
 
 const optimizedLayoutFlights = new Map<string, Promise<void>>();
@@ -118,27 +124,63 @@ async function waitForPreviousFlight(
   }
 }
 
-// Negative means left is preferable, positive means right is preferable.
-// Every logical edge remains visible at every zoom level, so rawRouteCrossings
-// is the primary quality metric. Carrier-only visualCrossings is a secondary
-// tie-breaker and must never hide a regression in the complete route set.
+const AUTHORITATIVE_VISIBLE_VISUAL_SCOPE = "rendered-canonical-direct-node-bundles-v3";
+
+function hasAuthoritativeVisibleVisualScope(
+  metadata: LayoutEngineMetadata | undefined,
+): boolean {
+  return metadata?.visualCrossingsScope === AUTHORITATIVE_VISIBLE_VISUAL_SCOPE;
+}
+
+// Negative means left is preferable, positive means right is preferable. New
+// snapshots measure visualCrossings from every visible semantic carrier
+// segment, including branches, trunks, and table penetrations, so that the
+// exact scene is primary.
+// Legacy carrier-scoped snapshots retain the older raw-route-first ordering.
 export function compareOptimizedLayoutQuality(
   left: LayoutEngineMetadata | undefined,
   right: LayoutEngineMetadata | undefined,
+  targets: OptimizedLayoutQualityTargets = {},
 ): number {
-  const lowerIsBetter: Array<keyof LayoutEngineMetadata> = [
-    "rawRouteCrossings",
-    "visualCrossings",
-    "nodeOverlaps",
-    "bundleNodeOverlaps",
-    "edgeNodeIntersections",
-    "edgeCrossings",
-    "bundleEdgeIntersections",
-    "overlappingEdges",
-    "edgeSegmentOverlaps",
-    "nodeSpacingOverlaps",
-    "boundingBoxArea",
-  ];
+  const exactVisibleScene = hasAuthoritativeVisibleVisualScope(left)
+    && hasAuthoritativeVisibleVisualScope(right);
+  if (exactVisibleScene) {
+    // Once both requested limits are met, an area-invalid result cannot win
+    // merely by having one fewer crossing. Route/canonical safety gates are
+    // still applied by selection before this quality comparison.
+    const leftMeetsTargets = meetsVisualAndAreaTargets(left, targets);
+    const rightMeetsTargets = meetsVisualAndAreaTargets(right, targets);
+    if (leftMeetsTargets !== rightMeetsTargets) {
+      return leftMeetsTargets ? -1 : 1;
+    }
+  }
+  const lowerIsBetter: Array<keyof LayoutEngineMetadata> = exactVisibleScene
+    ? [
+        "visualCrossings",
+        "nodeOverlaps",
+        "edgeNodeIntersections",
+        "edgeCrossings",
+        "rawRouteCrossings",
+        "bundleNodeOverlaps",
+        "bundleEdgeIntersections",
+        "overlappingEdges",
+        "edgeSegmentOverlaps",
+        "nodeSpacingOverlaps",
+        "boundingBoxArea",
+      ]
+    : [
+        "rawRouteCrossings",
+        "visualCrossings",
+        "nodeOverlaps",
+        "bundleNodeOverlaps",
+        "edgeNodeIntersections",
+        "edgeCrossings",
+        "bundleEdgeIntersections",
+        "overlappingEdges",
+        "edgeSegmentOverlaps",
+        "nodeSpacingOverlaps",
+        "boundingBoxArea",
+      ];
   for (const key of lowerIsBetter) {
     const comparison = compareFiniteMetric(left?.[key], right?.[key]);
     if (comparison !== 0) {
@@ -160,6 +202,21 @@ export function compareOptimizedLayoutQuality(
   return rightQuality - leftQuality;
 }
 
+function meetsVisualAndAreaTargets(
+  metadata: LayoutEngineMetadata | undefined,
+  targets: OptimizedLayoutQualityTargets,
+): boolean {
+  const visual = finiteNumber(metadata?.visualCrossings);
+  const area = finiteNumber(metadata?.boundingBoxArea);
+  const areaTarget = targets.boundingBoxArea ?? 1e9;
+  return visual !== undefined
+    && visual >= 0
+    && visual <= (targets.visualCrossings ?? 500)
+    && area !== undefined
+    && area > 0
+    && (areaTarget <= 0 || area <= areaTarget);
+}
+
 export function selectPreferredOptimizedLayoutJson(
   existingJson: string,
   candidateJson: string,
@@ -179,10 +236,15 @@ export function selectPreferredOptimizedLayoutJson(
     return selection("candidate", candidateJson, undefined, candidate);
   }
 
-  if (!evaluateAllEdgeCrossingNonRegression(
-    existing.engineMetadata,
-    candidate.engineMetadata,
-  ).ok) {
+  const exactVisibleScene = hasAuthoritativeVisibleVisualScope(existing.engineMetadata)
+    && hasAuthoritativeVisibleVisualScope(candidate.engineMetadata);
+  if (
+    !exactVisibleScene
+    && !evaluateAllEdgeCrossingNonRegression(
+      existing.engineMetadata,
+      candidate.engineMetadata,
+    ).ok
+  ) {
     return selection(
       "existing",
       existingJson,
@@ -225,6 +287,7 @@ export function selectPreferredOptimizedLayoutJson(
   if (compareOptimizedLayoutQuality(
     existing.engineMetadata,
     candidate.engineMetadata,
+    options.qualityTargets,
   ) <= 0) {
     return selection("existing", existingJson, existing, candidate, "quality");
   }

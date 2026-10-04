@@ -1,0 +1,51 @@
+{
+  "checkpoint": ".tmp/visualcross-ml-targets-20261003/component-policy-v10.npz",
+  "checkpointSha256": "f7e9994590ad9b86e21c0128f04d4dfd99d03cd71750564460c15db747d976c7",
+  "untrainedControl": false,
+  "sourceDirectory": ".tmp/visualcross-ml-targets-20261003/individual11",
+  "syntheticSeed": null,
+  "policyProposalSource": "conditional mixture neural network",
+  "heuristicSearchCalls": 0,
+  "overviewOnly": false,
+  "initial": {
+    "ready": true,
+    "eligible": 1727,
+    "visual": 2217,
+    "individualVisual": 2217
+  },
+  "final": {
+    "initialVisual": 2217,
+    "visual": 2190,
+    "initialIndividualVisual": 2217,
+    "individualVisual": 2190,
+    "hardConditions": 0,
+    "initialHardConditions": 0,
+    "individualHardConditions": 0,
+    "initialIndividualHardConditions": 0,
+    "canonicalStart": false,
+    "rolloutInitialVisual": 2217,
+    "rolloutInitialIndividualVisual": 2217,
+    "jointMoves": false,
+    "overviewOnly": false,
+    "swapSlots": false,
+    "portActions": true,
+    "overlap": 0,
+    "spacing": 0,
+    "policyActionsEvaluated": 20000,
+    "acceptedActions": 23,
+    "heuristicSearchCalls": 0,
+    "proposalAuthority": "external-policy",
+    "decoder": "model boundary parameters on original endpoint sides; straight lines"
+  },
+  "budget": 20000,
+  "seed": 153,
+  "seconds": 4.52927949995501,
+  "observationsSha256": "917a8a8f6294455c172af3d3a83c0d30c2dcc2b88b23d4375e752185aa1f9f0f",
+  "actionsSha256": "f5028f3892d59bdd2603dd883b4619f5cd5dbaef48e317886ac5a82923257b28",
+  "portInputHashes": {
+    "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+    "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+    "individual.positions.tsv": "b399445bf91dbe51d564a6abb60fd3b351bac2a96ad9c28a413ead6a3400963b",
+    "individual.routes.tsv": "a13cb289a7f0a15de0ff530e59f3a54fa028b0ad05c3f9ca2c339e90d218b5a4"
+  }
+}

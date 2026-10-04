@@ -1,0 +1,50 @@
+{
+  "build": {
+    "command": "/usr/bin/python3 scripts/erd-poc/run_memory_bounded.py -- node --max-old-space-size=96 --max-semi-space-size=8 node_modules/typescript/bin/tsc -p .",
+    "passed": true,
+    "peakMiB": 190.7
+  },
+  "tests": [
+    {
+      "files": [
+        "independent-view-layout.test.mjs",
+        "june-relationship-overview.test.mjs",
+        "leaf-card-render.test.mjs"
+      ],
+      "passed": 20,
+      "note": "Three independent-view tests rerun after the empty-Leaf switch fix and passed; existing 17 tests passed."
+    },
+    {
+      "files": [
+        "phase8-webview-render.test.mjs",
+        "selected-relationship-edges.test.mjs",
+        "related-diagram.test.mjs"
+      ],
+      "passed": 42
+    }
+  ],
+  "sourceGuidelineReview": {
+    "scope": "changed view controls and switching behavior only",
+    "source": "https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md",
+    "findings": [],
+    "checked": [
+      "existing semantic buttons and pressed states retained",
+      "no DOM replacement of focused controls",
+      "existing keyboard focus styles retained",
+      "synchronous switch without added animation",
+      "existing wrapping toolbar retained"
+    ]
+  },
+  "browserVerified": false,
+  "viewportsChecked": [],
+  "browserBlocker": "Browser plugin import failed: Importing module node:process is not allowed in node_repl. No browser was selected.",
+  "guardStops": [
+    {
+      "stage": "combined1",
+      "observedMiB": 457.0,
+      "limitMiB": 256,
+      "terminated": true,
+      "successfulFollowup": "combined2 and combined3 with 128MiB V8 heap cap and small comparisons"
+    }
+  ]
+}

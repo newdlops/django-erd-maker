@@ -1,0 +1,98 @@
+{
+  "scope": "Captain-trained joint neural batch",
+  "view": "overview",
+  "promoted": false,
+  "source": ".tmp/visualcross-ml-targets-20261003/overview-final-moving1/candidate.layout.json",
+  "sourceSha256": "23c020f04cbc7ce41c244f70e628d8272d7fb85fa03a07c70450a36e9448fc95",
+  "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+  "environmentSha256": "ecb50b141605bedf33e64b31403a9c8531be6a71e3426cc0675ff3309f57f54d",
+  "inputHashes": {
+    "nodes.tsv": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+    "edges.tsv": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+    "positions.tsv": "41611eb1101e6c6e4d324d0b4ec62dc8555286110ccd28df63f8f6e750a8b6a6",
+    "routes.tsv": "8220f04430cf6287612b015ae82a83cf7157af0b2a9bb30072af8f66616d7c89",
+    "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+    "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+    "individual.positions.tsv": "13e85432ff837ccbf261391e587fb3d311509b2e58413f378549ea057ccdb797",
+    "individual.routes.tsv": "adadae7d475e0656fa9807564a59479aee81c7793f4d69637552dcaca0340857",
+    "components.tsv": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+    "groups.tsv": "8382a3cb554b102b38b58173e45815c60dab8fadb392904c100f193c178d2fd9"
+  },
+  "proposalAuthority": "frozen neural network batches",
+  "heuristicSearchCalls": 0,
+  "sourceVisual": 299,
+  "maxStep": 1024.0,
+  "seed": 523,
+  "learningRate": 0.0005,
+  "spacingWeight": 20.0,
+  "temporaryRegressionLimit": 100,
+  "inferenceOnly": true,
+  "lossKind": "boundary-clipped separating-axis margins v4",
+  "implementationHashes": {
+    "run_joint_neural_layout.py": "0d067d0b82ad0c2883d25f55143685ecb5284bc4e998ee6c9e63f6da121b0131",
+    "joint_layout_proxy.py": "3738d32a22beed52d8db3567d61274f52d8c87c242b9cedd29e81ea651666290",
+    "ml_joint_batch_environment.cpp": "907055a7319c56b8e6bb5a702641638d2b5004a1e0e48a7c5b89aae7ee699164",
+    "ml_component_environment.cpp": "4f7a54126bdedfda1b9ea1084c30cc6df0bf735f489348c4789be865e483ec67"
+  },
+  "trainingScope": "Captain-specific differentiable training; no unseen-graph evaluation",
+  "observationsSha256": "f418bb6395e48018eb16e267fcc459a7b49920c2ccd612670855a2617d3c9d12",
+  "initialCheckpoint": ".tmp/visualcross-ml-150-750-20261003/overview-joint1/joint-policy-0216.npz",
+  "initialCheckpointSha256": "293cce239e86b2ccac27814a247af117b2716370a55c861b1e17db43d44fa2c8",
+  "priorTrainingUpdates": 216,
+  "parameterCount": 6306,
+  "proxyCandidatePairs": {
+    "cross_pairs": 30198,
+    "hit_pairs": 45074,
+    "near_pairs": 16588
+  },
+  "frozenNetworkBatchesReplayed": 1,
+  "frozenWinningGeometryReplayed": true,
+  "unchangedSourceVerified": false,
+  "bestCheckpoint": ".tmp/visualcross-ml-150-750-20261003/overview-joint-stage1/joint-policy-0001.npz",
+  "bestCheckpointSha256": "d9ec5eee45ca79a4125fd05300a708111fed88bf641fad195ec9f54e32094248",
+  "iterations": 0,
+  "neuralChecksPassed": true,
+  "neuralSeconds": 0.7828568749828264,
+  "browserVerified": false,
+  "history": [
+    {
+      "iteration": 1,
+      "preUpdateProxy": {
+        "softCrossingCount": 205.3889476848193,
+        "softCardHitCount": 116.02624753899302,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 0.0002360017596252297,
+        "total": 321.4154312255719,
+        "binaryCrossings": 205,
+        "binaryCardHits": 116
+      },
+      "geometry": {
+        "accepted": true,
+        "legal": true,
+        "visual": 321,
+        "individualVisual": 4390,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    }
+  ],
+  "verifiedOutputHashes": {
+    "learned.tsv": "da77e7efa330d03516831fa46a395b90de6501e666d5846e7375562cce42ef5b",
+    "learned.tsv.individual": "9274bc64a6a35e9de657053f56f5a69445858956cb0b7708414024195b831473",
+    "learned.tsv.routes.tsv": "36073de2d858038de51f0f3f111906124ab8f2524d2b7679273f1cd83d41d2a9",
+    "learned.tsv.individual.routes.tsv": "6547d7514765570feed0026bbf00b6334be3077ae29b2df9243d79375fd11ca9",
+    "learned.tsv.stats.json": "3fc20ef74c2b3f7b008e79a0f31dc97f3d0b4f853f706a3e65cafb37c97891f9",
+    "learned.tsv.policy.json": "07fa2ca1c14b333b5866afd4835654033fe04b6b7ffb6f0a90a0f99621e7370b"
+  },
+  "candidate": ".tmp/visualcross-ml-150-750-20261003/overview-joint-stage1/candidate.layout.json",
+  "candidateSha256": "774add0b01c7c010e1d1a35b9548a6015c4de9ea2f1d2cc6ddcae652627ced5b",
+  "visualCrossings": 321,
+  "improvesSource": false,
+  "allChecksPassed": true,
+  "seconds": 6.497986000031233,
+  "trainingExitedBeforeProductAudit": true,
+  "resumedProductAudit": false,
+  "productFileLoadVerified": true
+}

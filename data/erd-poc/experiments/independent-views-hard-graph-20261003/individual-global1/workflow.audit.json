@@ -1,0 +1,3346 @@
+{
+  "scope": "Captain-trained joint neural batch",
+  "view": "individual",
+  "promoted": false,
+  "source": ".tmp/visualcross-ml-150-750-20261003/individual-joint-refine2/candidate.individual.layout.json",
+  "sourceSha256": "5030eb40433fdc2ebace235efea9b2c3cef0d46622a45b746d8050a18c0a0d4c",
+  "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+  "environmentSha256": "94b272a7f0380e9e7d1055c00f483cc998f193bf53628e91c20b9e097ef4dc24",
+  "inputHashes": {
+    "nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+    "edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+    "positions.tsv": "6105f301754e8be065e8790cfc680793779314a40292fcc96de410101cf60790",
+    "routes.tsv": "74dd7df94ec74884da3a535fd12243bf7f580c57e58d814dd9bb0545e67cdc53",
+    "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+    "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+    "individual.positions.tsv": "6105f301754e8be065e8790cfc680793779314a40292fcc96de410101cf60790",
+    "individual.routes.tsv": "74dd7df94ec74884da3a535fd12243bf7f580c57e58d814dd9bb0545e67cdc53",
+    "components.tsv": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+    "groups.tsv": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d"
+  },
+  "proposalAuthority": "frozen neural network batches",
+  "heuristicSearchCalls": 0,
+  "sourceVisual": 1996,
+  "maxStep": 50000.0,
+  "seed": 533,
+  "learningRate": 0.0005,
+  "spacingWeight": 20.0,
+  "lossTemperatureStart": 64.0,
+  "lossAnnealFraction": 0.6,
+  "groupedRouteLoss": false,
+  "attachedPorts": false,
+  "hardGeometryWeight": 0.0,
+  "quantizedLoss": false,
+  "roundingGradientEstimator": null,
+  "graphChannels": 16,
+  "sampledTrainingPairs": 8192,
+  "initialHeadStd": 0.08,
+  "samplingSeed": 9533,
+  "exactNativeValidation": true,
+  "temporaryRegressionLimit": 0,
+  "inferenceOnly": false,
+  "lossKind": "boundary-clipped separating-axis margins v4",
+  "implementationHashes": {
+    "run_joint_neural_layout.py": "ee63b1edd144f389d8eb2edbc36671df5486334609d76ea1c45bab747147ed48",
+    "joint_layout_proxy.py": "222b41ebae00c8b0516289c2d9fb7526666e79f93dde9943d61ce3e5c003e2be",
+    "joint_grouped_routes.py": "3b7757e76590aa0e1e935e7f757035f89a6fece56e6a10deb7791e71f1642f6f",
+    "joint_hard_geometry.py": "bf17fdce996bf591b7e1ef3f641b974775c393a391dccde2411df89028613639",
+    "joint_graph_features.py": "41ed03b5f9d6c45a711eba92dee764fed4c1295d788ec3dfb08f70edf23e2e44",
+    "joint_sampled_proxy.py": "7131d7c3fb328f350a70cbf71ab8e1ca8b4ed08d10a73387b64822e57f35fbf5",
+    "ml_joint_batch_environment.cpp": "aa5c8f2b878abf0e378a25673e6aff62790d02a18ad8308e7fe220a9e8406bd3",
+    "ml_component_environment.cpp": "4f7a54126bdedfda1b9ea1084c30cc6df0bf735f489348c4789be865e483ec67"
+  },
+  "trainingScope": "Captain-specific differentiable training; no unseen-graph evaluation",
+  "observationsSha256": "2742b0c36afa922b770b33375533309a57152e48b2368a60bbe363c3fba13967",
+  "graphFeatureReport": {
+    "kind": "sparse Laplacian subspace iteration",
+    "channels": 16,
+    "nonzeroChannels": 16,
+    "eigenvalues": [
+      0.025455728553297786,
+      0.03401682045303802,
+      0.0382553503515284,
+      0.04264704486210447,
+      0.04666804325507999,
+      0.050635668561714316,
+      0.053547750149971894,
+      0.054773112644304164,
+      0.06304560741828731,
+      0.06811077443266206,
+      0.06960195565781215,
+      0.07538683190620127,
+      0.0798155087061581,
+      0.08254013218397108,
+      0.08439421054859757,
+      0.08792528445368254
+    ],
+    "maxEigenResidual": 0.006406101893179675,
+    "isolatedNodes": 68,
+    "usesLayoutCoordinates": false,
+    "proposesCoordinates": false,
+    "denseNodeMatrixAllocated": false,
+    "passes": 64,
+    "seconds": 0.10783562500728294
+  },
+  "featureMatrixSha256": "7e22ef484b8b119059bf6594f94e44b6d39fdff6b358f08f8f6d85a40db05e25",
+  "parameterCount": 7330,
+  "proxyCandidatePairs": {
+    "cross_pairs": 8033,
+    "hit_pairs": 8180,
+    "near_pairs": 16
+  },
+  "frozenNetworkBatchesReplayed": 129,
+  "frozenWinningGeometryReplayed": false,
+  "unchangedSourceVerified": true,
+  "bestCheckpoint": null,
+  "bestCheckpointSha256": null,
+  "iterations": 512,
+  "neuralChecksPassed": true,
+  "neuralSeconds": 11.030222750036046,
+  "browserVerified": false,
+  "history": [
+    {
+      "iteration": 1,
+      "lossTemperature": 63.99322415063175,
+      "preUpdateProxy": {
+        "softCrossingCount": 39694.112128088185,
+        "softCardHitCount": 3749.3958150766352,
+        "spacingPenalty": 224377.83685964622,
+        "movementPenalty": 11.750035893722554,
+        "total": 267833.09483870474,
+        "sampleCrossings": 207,
+        "sampleCardHits": 11,
+        "estimatedCrossings": 37660.27917480469,
+        "estimatedCardHits": 2884.79833984375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 45045,
+        "individualVisual": 45045,
+        "spacing": 298,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 4,
+      "lossTemperature": 61.44789077130394,
+      "preUpdateProxy": {
+        "softCrossingCount": 46916.65893290165,
+        "softCardHitCount": 4840.57849240359,
+        "spacingPenalty": 239870.54092929643,
+        "movementPenalty": 12.109738922872596,
+        "total": 291639.88809352455,
+        "sampleCrossings": 257,
+        "sampleCardHits": 17,
+        "estimatedCrossings": 46756.96496582031,
+        "estimatedCardHits": 4458.32470703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 48645,
+        "individualVisual": 48645,
+        "spacing": 338,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 8,
+      "lossTemperature": 58.202680756788524,
+      "preUpdateProxy": {
+        "softCrossingCount": 51346.24168725761,
+        "softCardHitCount": 4776.147306392462,
+        "spacingPenalty": 229039.76454772244,
+        "movementPenalty": 13.14484129604733,
+        "total": 285175.2983826686,
+        "sampleCrossings": 276,
+        "sampleCardHits": 16,
+        "estimatedCrossings": 50213.70556640625,
+        "estimatedCardHits": 4196.0703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 54601,
+        "individualVisual": 54601,
+        "spacing": 284,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 12,
+      "lossTemperature": 55.12885804143212,
+      "preUpdateProxy": {
+        "softCrossingCount": 56050.27391972229,
+        "softCardHitCount": 4758.040975570592,
+        "spacingPenalty": 147252.112458086,
+        "movementPenalty": 13.547360078053982,
+        "total": 208073.97471345693,
+        "sampleCrossings": 310,
+        "sampleCardHits": 15,
+        "estimatedCrossings": 56399.451904296875,
+        "estimatedCardHits": 3933.81591796875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 55945,
+        "individualVisual": 55945,
+        "spacing": 224,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 16,
+      "lossTemperature": 52.21737125223215,
+      "preUpdateProxy": {
+        "softCrossingCount": 52026.586670763645,
+        "softCardHitCount": 4050.893216560175,
+        "spacingPenalty": 106490.71771908048,
+        "movementPenalty": 13.719330685639239,
+        "total": 162581.91693708996,
+        "sampleCrossings": 285,
+        "sampleCardHits": 16,
+        "estimatedCrossings": 51851.10900878906,
+        "estimatedCardHits": 4196.0703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 56323,
+        "individualVisual": 56323,
+        "spacing": 216,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 20,
+      "lossTemperature": 49.45964704083336,
+      "preUpdateProxy": {
+        "softCrossingCount": 50429.43166814716,
+        "softCardHitCount": 4472.619624321064,
+        "spacingPenalty": 63589.36654393281,
+        "movementPenalty": 13.692697131314628,
+        "total": 118505.11053353234,
+        "sampleCrossings": 271,
+        "sampleCardHits": 15,
+        "estimatedCrossings": 49304.03698730469,
+        "estimatedCardHits": 3933.81591796875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 55983,
+        "individualVisual": 55983,
+        "spacing": 180,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 24,
+      "lossTemperature": 46.847564837903356,
+      "preUpdateProxy": {
+        "softCrossingCount": 49645.25968182912,
+        "softCardHitCount": 5560.778822015777,
+        "spacingPenalty": 33793.96086682666,
+        "movementPenalty": 13.713623725942107,
+        "total": 89013.71299439749,
+        "sampleCrossings": 273,
+        "sampleCardHits": 21,
+        "estimatedCrossings": 49667.90441894531,
+        "estimatedCardHits": 5507.34228515625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 55585,
+        "individualVisual": 55585,
+        "spacing": 140,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 28,
+      "lossTemperature": 44.37343294078994,
+      "preUpdateProxy": {
+        "softCrossingCount": 52051.76624190982,
+        "softCardHitCount": 3403.3412600437186,
+        "spacingPenalty": 12565.986068760889,
+        "movementPenalty": 13.700716812128338,
+        "total": 68034.79428752656,
+        "sampleCrossings": 283,
+        "sampleCardHits": 13,
+        "estimatedCrossings": 51487.24157714844,
+        "estimatedCardHits": 3409.30712890625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 55408,
+        "individualVisual": 55408,
+        "spacing": 104,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 32,
+      "lossTemperature": 42.02996586404647,
+      "preUpdateProxy": {
+        "softCrossingCount": 53029.406727166155,
+        "softCardHitCount": 3162.159033651842,
+        "spacingPenalty": 7920.284092100901,
+        "movementPenalty": 13.760604670294343,
+        "total": 64125.61045758919,
+        "sampleCrossings": 291,
+        "sampleCardHits": 11,
+        "estimatedCrossings": 52942.71130371094,
+        "estimatedCardHits": 2884.79833984375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 55550,
+        "individualVisual": 55550,
+        "spacing": 78,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 36,
+      "lossTemperature": 39.810262886130076,
+      "preUpdateProxy": {
+        "softCrossingCount": 56275.04698387073,
+        "softCardHitCount": 3436.3110590779024,
+        "spacingPenalty": 5679.73677899872,
+        "movementPenalty": 13.743941358876542,
+        "total": 65404.83876330623,
+        "sampleCrossings": 306,
+        "sampleCardHits": 11,
+        "estimatedCrossings": 55671.717041015625,
+        "estimatedCardHits": 2884.79833984375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 55790,
+        "individualVisual": 55790,
+        "spacing": 70,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 40,
+      "lossTemperature": 37.70778772910006,
+      "preUpdateProxy": {
+        "softCrossingCount": 47647.757085776975,
+        "softCardHitCount": 5598.574981732601,
+        "spacingPenalty": 7618.211996364245,
+        "movementPenalty": 13.73749484111842,
+        "total": 60878.28155871494,
+        "sampleCrossings": 262,
+        "sampleCardHits": 23,
+        "estimatedCrossings": 47666.633544921875,
+        "estimatedCardHits": 6031.85107421875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 55524,
+        "individualVisual": 55524,
+        "spacing": 74,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 44,
+      "lossTemperature": 35.71634931147998,
+      "preUpdateProxy": {
+        "softCrossingCount": 57276.63703662568,
+        "softCardHitCount": 5934.689543420241,
+        "spacingPenalty": 9147.326057624985,
+        "movementPenalty": 13.698134137003088,
+        "total": 72372.3507718079,
+        "sampleCrossings": 308,
+        "sampleCardHits": 23,
+        "estimatedCrossings": 56035.58447265625,
+        "estimatedCardHits": 6031.85107421875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 55350,
+        "individualVisual": 55350,
+        "spacing": 98,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 48,
+      "lossTemperature": 33.830083517607136,
+      "preUpdateProxy": {
+        "softCrossingCount": 52022.325569326356,
+        "softCardHitCount": 4905.0723291610775,
+        "spacingPenalty": 6278.140360900389,
+        "movementPenalty": 13.774360871062592,
+        "total": 63219.31262025889,
+        "sampleCrossings": 282,
+        "sampleCardHits": 19,
+        "estimatedCrossings": 51305.307861328125,
+        "estimatedCardHits": 4982.83349609375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 55126,
+        "individualVisual": 55126,
+        "spacing": 50,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 52,
+      "lossTemperature": 32.04343592978625,
+      "preUpdateProxy": {
+        "softCrossingCount": 49645.70937058038,
+        "softCardHitCount": 2769.3266873449625,
+        "spacingPenalty": 3857.6162558049864,
+        "movementPenalty": 13.612274421891497,
+        "total": 56286.26458815221,
+        "sampleCrossings": 274,
+        "sampleCardHits": 11,
+        "estimatedCrossings": 49849.838134765625,
+        "estimatedCardHits": 2884.79833984375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 54936,
+        "individualVisual": 54936,
+        "spacing": 64,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 56,
+      "lossTemperature": 30.35114547239943,
+      "preUpdateProxy": {
+        "softCrossingCount": 50229.520669719575,
+        "softCardHitCount": 2939.792029668815,
+        "spacingPenalty": 3920.8269608735486,
+        "movementPenalty": 13.631046864830829,
+        "total": 57103.77070712677,
+        "sampleCrossings": 276,
+        "sampleCardHits": 10,
+        "estimatedCrossings": 50213.70556640625,
+        "estimatedCardHits": 2622.5439453125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 54549,
+        "individualVisual": 54549,
+        "spacing": 42,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 60,
+      "lossTemperature": 28.748228919809765,
+      "preUpdateProxy": {
+        "softCrossingCount": 51183.67992117102,
+        "softCardHitCount": 3129.2950024173538,
+        "spacingPenalty": 6752.2016950822435,
+        "movementPenalty": 13.435475631620587,
+        "total": 61078.61209430223,
+        "sampleCrossings": 282,
+        "sampleCardHits": 12,
+        "estimatedCrossings": 51305.307861328125,
+        "estimatedCardHits": 3147.052734375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 53767,
+        "individualVisual": 53767,
+        "spacing": 42,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 64,
+      "lossTemperature": 27.229966222439582,
+      "preUpdateProxy": {
+        "softCrossingCount": 51902.352131666266,
+        "softCardHitCount": 2600.9499810138223,
+        "spacingPenalty": 4728.884033842842,
+        "movementPenalty": 13.620171831659029,
+        "total": 59245.80631835459,
+        "sampleCrossings": 288,
+        "sampleCardHits": 9,
+        "estimatedCrossings": 52396.91015625,
+        "estimatedCardHits": 2360.28955078125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 54325,
+        "individualVisual": 54325,
+        "spacing": 36,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 68,
+      "lossTemperature": 25.791886607813584,
+      "preUpdateProxy": {
+        "softCrossingCount": 49089.53088061512,
+        "softCardHitCount": 4727.420732554476,
+        "spacingPenalty": 4861.914736494956,
+        "movementPenalty": 13.60270170273549,
+        "total": 58692.46905136729,
+        "sampleCrossings": 265,
+        "sampleCardHits": 18,
+        "estimatedCrossings": 48212.43469238281,
+        "estimatedCardHits": 4720.5791015625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 53924,
+        "individualVisual": 53924,
+        "spacing": 42,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 72,
+      "lossTemperature": 24.429755415639118,
+      "preUpdateProxy": {
+        "softCrossingCount": 46537.592638980626,
+        "softCardHitCount": 5023.403452381422,
+        "spacingPenalty": 4756.03451861295,
+        "movementPenalty": 13.657946772782116,
+        "total": 56330.68855674777,
+        "sampleCrossings": 256,
+        "sampleCardHits": 18,
+        "estimatedCrossings": 46575.03125,
+        "estimatedCardHits": 4720.5791015625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 54294,
+        "individualVisual": 54294,
+        "spacing": 50,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 76,
+      "lossTemperature": 23.139561628157356,
+      "preUpdateProxy": {
+        "softCrossingCount": 46806.59597887365,
+        "softCardHitCount": 5052.726220435227,
+        "spacingPenalty": 8255.716179289117,
+        "movementPenalty": 13.578970355525747,
+        "total": 60128.61734895352,
+        "sampleCrossings": 255,
+        "sampleCardHits": 20,
+        "estimatedCrossings": 46393.09753417969,
+        "estimatedCardHits": 5245.087890625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 54160,
+        "individualVisual": 54160,
+        "spacing": 48,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 80,
+      "lossTemperature": 21.917506059046413,
+      "preUpdateProxy": {
+        "softCrossingCount": 46507.16038620924,
+        "softCardHitCount": 3449.390516689104,
+        "spacingPenalty": 5471.844732016981,
+        "movementPenalty": 13.537741653539324,
+        "total": 55441.933376568864,
+        "sampleCrossings": 254,
+        "sampleCardHits": 12,
+        "estimatedCrossings": 46211.163818359375,
+        "estimatedCardHits": 3147.052734375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 54011,
+        "individualVisual": 54011,
+        "spacing": 66,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 84,
+      "lossTemperature": 20.759990166096742,
+      "preUpdateProxy": {
+        "softCrossingCount": 48040.7622772691,
+        "softCardHitCount": 4457.107856259961,
+        "spacingPenalty": 3004.014411632561,
+        "movementPenalty": 13.46342066329734,
+        "total": 55515.34796582493,
+        "sampleCrossings": 263,
+        "sampleCardHits": 17,
+        "estimatedCrossings": 47848.56726074219,
+        "estimatedCardHits": 4458.32470703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 53583,
+        "individualVisual": 53583,
+        "spacing": 66,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 88,
+      "lossTemperature": 19.663605454715885,
+      "preUpdateProxy": {
+        "softCrossingCount": 54196.64326377083,
+        "softCardHitCount": 2697.2559401622043,
+        "spacingPenalty": 4560.727890943601,
+        "movementPenalty": 13.386094750237072,
+        "total": 61468.01318962687,
+        "sampleCrossings": 297,
+        "sampleCardHits": 9,
+        "estimatedCrossings": 54034.31359863281,
+        "estimatedCardHits": 2360.28955078125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 53250,
+        "individualVisual": 53250,
+        "spacing": 48,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 92,
+      "lossTemperature": 18.625123441059458,
+      "preUpdateProxy": {
+        "softCrossingCount": 49963.6389369458,
+        "softCardHitCount": 4205.217754359665,
+        "spacingPenalty": 5716.752209357104,
+        "movementPenalty": 13.508378282420953,
+        "total": 59899.117278944985,
+        "sampleCrossings": 276,
+        "sampleCardHits": 16,
+        "estimatedCrossings": 50213.70556640625,
+        "estimatedCardHits": 4196.0703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 53448,
+        "individualVisual": 53448,
+        "spacing": 48,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 96,
+      "lossTemperature": 17.641486145233213,
+      "preUpdateProxy": {
+        "softCrossingCount": 47586.35158297141,
+        "softCardHitCount": 5645.334132082918,
+        "spacingPenalty": 4109.6610932266885,
+        "movementPenalty": 13.550177510213555,
+        "total": 57354.89698579123,
+        "sampleCrossings": 261,
+        "sampleCardHits": 22,
+        "estimatedCrossings": 47484.69982910156,
+        "estimatedCardHits": 5769.5966796875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 53358,
+        "individualVisual": 53358,
+        "spacing": 36,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 100,
+      "lossTemperature": 16.709797086571793,
+      "preUpdateProxy": {
+        "softCrossingCount": 55296.33236389785,
+        "softCardHitCount": 5297.776244501331,
+        "spacingPenalty": 8220.844573213179,
+        "movementPenalty": 13.578508655595027,
+        "total": 68828.53169026795,
+        "sampleCrossings": 304,
+        "sampleCardHits": 21,
+        "estimatedCrossings": 55307.849609375,
+        "estimatedCardHits": 5507.34228515625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 53384,
+        "individualVisual": 53384,
+        "spacing": 38,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 104,
+      "lossTemperature": 15.82731275447838,
+      "preUpdateProxy": {
+        "softCrossingCount": 51156.62238497536,
+        "softCardHitCount": 5355.591813298848,
+        "spacingPenalty": 4130.1494539244995,
+        "movementPenalty": 13.581197844984834,
+        "total": 60655.94485004369,
+        "sampleCrossings": 284,
+        "sampleCardHits": 21,
+        "estimatedCrossings": 51669.17529296875,
+        "estimatedCardHits": 5507.34228515625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 53223,
+        "individualVisual": 53223,
+        "spacing": 42,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 108,
+      "lossTemperature": 14.991434529709643,
+      "preUpdateProxy": {
+        "softCrossingCount": 43964.214142781784,
+        "softCardHitCount": 1343.0949339072804,
+        "spacingPenalty": 4130.299390994267,
+        "movementPenalty": 13.493107490498536,
+        "total": 49451.10157517383,
+        "sampleCrossings": 239,
+        "sampleCardHits": 4,
+        "estimatedCrossings": 43482.15808105469,
+        "estimatedCardHits": 1049.017578125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 53178,
+        "individualVisual": 53178,
+        "spacing": 56,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 112,
+      "lossTemperature": 14.199701032316996,
+      "preUpdateProxy": {
+        "softCrossingCount": 54211.868552631335,
+        "softCardHitCount": 3800.2714982439425,
+        "spacingPenalty": 9026.704753944336,
+        "movementPenalty": 13.3103337745548,
+        "total": 67052.15513859417,
+        "sampleCrossings": 300,
+        "sampleCardHits": 14,
+        "estimatedCrossings": 54580.11474609375,
+        "estimatedCardHits": 3671.5615234375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 52476,
+        "individualVisual": 52476,
+        "spacing": 64,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 116,
+      "lossTemperature": 13.449780873711328,
+      "preUpdateProxy": {
+        "softCrossingCount": 48641.90166306203,
+        "softCardHitCount": 4197.317640449446,
+        "spacingPenalty": 8707.65724635805,
+        "movementPenalty": 13.45781697199381,
+        "total": 61560.334366841525,
+        "sampleCrossings": 268,
+        "sampleCardHits": 16,
+        "estimatedCrossings": 48758.23583984375,
+        "estimatedCardHits": 4196.0703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 52732,
+        "individualVisual": 52732,
+        "spacing": 52,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 120,
+      "lossTemperature": 12.739465791508554,
+      "preUpdateProxy": {
+        "softCrossingCount": 45680.161797084955,
+        "softCardHitCount": 4288.491885440661,
+        "spacingPenalty": 6148.580602754827,
+        "movementPenalty": 13.279289663172575,
+        "total": 56130.513574943616,
+        "sampleCrossings": 252,
+        "sampleCardHits": 15,
+        "estimatedCrossings": 45847.29638671875,
+        "estimatedCardHits": 3933.81591796875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 52147,
+        "individualVisual": 52147,
+        "spacing": 54,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 124,
+      "lossTemperature": 12.06666414694036,
+      "preUpdateProxy": {
+        "softCrossingCount": 48953.31182653368,
+        "softCardHitCount": 4835.45348309458,
+        "spacingPenalty": 5336.1267837556525,
+        "movementPenalty": 13.255816412709754,
+        "total": 59138.14790979662,
+        "sampleCrossings": 269,
+        "sampleCardHits": 19,
+        "estimatedCrossings": 48940.16955566406,
+        "estimatedCardHits": 4982.83349609375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 51624,
+        "individualVisual": 51624,
+        "spacing": 46,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 128,
+      "lossTemperature": 11.429394765682247,
+      "preUpdateProxy": {
+        "softCrossingCount": 48049.75915402587,
+        "softCardHitCount": 4985.334514461742,
+        "spacingPenalty": 6058.977329306809,
+        "movementPenalty": 13.270626123050233,
+        "total": 59107.34162391747,
+        "sampleCrossings": 266,
+        "sampleCardHits": 20,
+        "estimatedCrossings": 48394.368408203125,
+        "estimatedCardHits": 5245.087890625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 51219,
+        "individualVisual": 51219,
+        "spacing": 40,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 132,
+      "lossTemperature": 10.82578110396217,
+      "preUpdateProxy": {
+        "softCrossingCount": 49414.997022322656,
+        "softCardHitCount": 4644.034066605348,
+        "spacingPenalty": 6298.067388842506,
+        "movementPenalty": 13.411505815822418,
+        "total": 60370.50998358633,
+        "sampleCrossings": 273,
+        "sampleCardHits": 17,
+        "estimatedCrossings": 49667.90441894531,
+        "estimatedCardHits": 4458.32470703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 51897,
+        "individualVisual": 51897,
+        "spacing": 58,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 136,
+      "lossTemperature": 10.25404572277092,
+      "preUpdateProxy": {
+        "softCrossingCount": 52930.10533823618,
+        "softCardHitCount": 3374.323204687911,
+        "spacingPenalty": 7708.144480098282,
+        "movementPenalty": 13.441578393235739,
+        "total": 64026.014601415605,
+        "sampleCrossings": 291,
+        "sampleCardHits": 12,
+        "estimatedCrossings": 52942.71130371094,
+        "estimatedCardHits": 3147.052734375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 51576,
+        "individualVisual": 51576,
+        "spacing": 58,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 140,
+      "lossTemperature": 9.71250505390267,
+      "preUpdateProxy": {
+        "softCrossingCount": 49049.62590968073,
+        "softCardHitCount": 2495.342233717277,
+        "spacingPenalty": 3579.8084231746825,
+        "movementPenalty": 13.479732390211701,
+        "total": 55138.2562989629,
+        "sampleCrossings": 268,
+        "sampleCardHits": 10,
+        "estimatedCrossings": 48758.23583984375,
+        "estimatedCardHits": 2622.5439453125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 51775,
+        "individualVisual": 51775,
+        "spacing": 38,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 144,
+      "lossTemperature": 9.199564442413433,
+      "preUpdateProxy": {
+        "softCrossingCount": 51486.89014862276,
+        "softCardHitCount": 5836.509871222495,
+        "spacingPenalty": 3970.079954279505,
+        "movementPenalty": 13.527332605969073,
+        "total": 61307.00730673073,
+        "sampleCrossings": 283,
+        "sampleCardHits": 22,
+        "estimatedCrossings": 51487.24157714844,
+        "estimatedCardHits": 5769.5966796875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 52030,
+        "individualVisual": 52030,
+        "spacing": 44,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 148,
+      "lossTemperature": 8.71371345089914,
+      "preUpdateProxy": {
+        "softCrossingCount": 51988.76080403346,
+        "softCardHitCount": 2964.1929812340713,
+        "spacingPenalty": 3123.0256636888944,
+        "movementPenalty": 13.492015251927969,
+        "total": 58089.47146420835,
+        "sampleCrossings": 288,
+        "sampleCardHits": 12,
+        "estimatedCrossings": 52396.91015625,
+        "estimatedCardHits": 3147.052734375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 51385,
+        "individualVisual": 51385,
+        "spacing": 64,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 152,
+      "lossTemperature": 8.253521411766021,
+      "preUpdateProxy": {
+        "softCrossingCount": 48131.76813325116,
+        "softCardHitCount": 4179.200632019638,
+        "spacingPenalty": 3438.2302293639736,
+        "movementPenalty": 13.46688752506035,
+        "total": 55762.665882159825,
+        "sampleCrossings": 264,
+        "sampleCardHits": 16,
+        "estimatedCrossings": 48030.5009765625,
+        "estimatedCardHits": 4196.0703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 51659,
+        "individualVisual": 51659,
+        "spacing": 48,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 156,
+      "lossTemperature": 7.81763321439621,
+      "preUpdateProxy": {
+        "softCrossingCount": 48485.059039187574,
+        "softCardHitCount": 4021.554250871508,
+        "spacingPenalty": 1846.3247359243362,
+        "movementPenalty": 13.422790062524962,
+        "total": 54366.36081604595,
+        "sampleCrossings": 269,
+        "sampleCardHits": 15,
+        "estimatedCrossings": 48940.16955566406,
+        "estimatedCardHits": 3933.81591796875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 51243,
+        "individualVisual": 51243,
+        "spacing": 32,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 160,
+      "lossTemperature": 7.4047653148032335,
+      "preUpdateProxy": {
+        "softCrossingCount": 45710.31620760513,
+        "softCardHitCount": 4011.3734642772547,
+        "spacingPenalty": 3205.9259552711296,
+        "movementPenalty": 13.446069786920711,
+        "total": 52941.06169694044,
+        "sampleCrossings": 251,
+        "sampleCardHits": 16,
+        "estimatedCrossings": 45665.36267089844,
+        "estimatedCardHits": 4196.0703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 51258,
+        "individualVisual": 51258,
+        "spacing": 32,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 164,
+      "lossTemperature": 7.013701956027088,
+      "preUpdateProxy": {
+        "softCrossingCount": 41521.947260723726,
+        "softCardHitCount": 3934.084156765021,
+        "spacingPenalty": 7882.194773596771,
+        "movementPenalty": 13.37235208737929,
+        "total": 53351.5985431729,
+        "sampleCrossings": 226,
+        "sampleCardHits": 15,
+        "estimatedCrossings": 41117.019775390625,
+        "estimatedCardHits": 3933.81591796875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50464,
+        "individualVisual": 50464,
+        "spacing": 44,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 168,
+      "lossTemperature": 6.643291588139331,
+      "preUpdateProxy": {
+        "softCrossingCount": 43198.43423044757,
+        "softCardHitCount": 3630.302600724469,
+        "spacingPenalty": 8182.684852297392,
+        "movementPenalty": 13.419887249208594,
+        "total": 55024.84157071864,
+        "sampleCrossings": 239,
+        "sampleCardHits": 14,
+        "estimatedCrossings": 43482.15808105469,
+        "estimatedCardHits": 3671.5615234375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50461,
+        "individualVisual": 50461,
+        "spacing": 42,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 172,
+      "lossTemperature": 6.292443477316238,
+      "preUpdateProxy": {
+        "softCrossingCount": 47156.51816373766,
+        "softCardHitCount": 5927.739105679408,
+        "spacingPenalty": 5921.688885805678,
+        "movementPenalty": 13.260940619889931,
+        "total": 59019.207095842634,
+        "sampleCrossings": 260,
+        "sampleCardHits": 23,
+        "estimatedCrossings": 47302.76611328125,
+        "estimatedCardHits": 6031.85107421875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50202,
+        "individualVisual": 50202,
+        "spacing": 42,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 176,
+      "lossTemperature": 5.960124493994924,
+      "preUpdateProxy": {
+        "softCrossingCount": 41213.89731686834,
+        "softCardHitCount": 2510.2626445306923,
+        "spacingPenalty": 7523.977909913651,
+        "movementPenalty": 13.197624466034464,
+        "total": 51261.33549577871,
+        "sampleCrossings": 226,
+        "sampleCardHits": 10,
+        "estimatedCrossings": 41117.019775390625,
+        "estimatedCardHits": 2622.5439453125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50547,
+        "individualVisual": 50547,
+        "spacing": 50,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 180,
+      "lossTemperature": 5.645356070654614,
+      "preUpdateProxy": {
+        "softCrossingCount": 40696.4977176768,
+        "softCardHitCount": 2872.326803774932,
+        "spacingPenalty": 3075.3332681181364,
+        "movementPenalty": 13.236240916951973,
+        "total": 46657.394030486816,
+        "sampleCrossings": 225,
+        "sampleCardHits": 11,
+        "estimatedCrossings": 40935.08605957031,
+        "estimatedCardHits": 2884.79833984375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50392,
+        "individualVisual": 50392,
+        "spacing": 66,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 184,
+      "lossTemperature": 5.347211320264755,
+      "preUpdateProxy": {
+        "softCrossingCount": 54747.423663705245,
+        "softCardHitCount": 3868.81923382733,
+        "spacingPenalty": 11084.549585403325,
+        "movementPenalty": 13.236536249374115,
+        "total": 69714.02901918527,
+        "sampleCrossings": 302,
+        "sampleCardHits": 15,
+        "estimatedCrossings": 54943.982177734375,
+        "estimatedCardHits": 3933.81591796875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 49725,
+        "individualVisual": 49725,
+        "spacing": 58,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 188,
+      "lossTemperature": 5.064812306914778,
+      "preUpdateProxy": {
+        "softCrossingCount": 40112.00763772634,
+        "softCardHitCount": 6259.906945099788,
+        "spacingPenalty": 1993.1290543886253,
+        "movementPenalty": 13.075651019205168,
+        "total": 48378.11928823396,
+        "sampleCrossings": 221,
+        "sampleCardHits": 24,
+        "estimatedCrossings": 40207.35119628906,
+        "estimatedCardHits": 6294.10546875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 49441,
+        "individualVisual": 49441,
+        "spacing": 32,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 192,
+      "lossTemperature": 4.797327460588425,
+      "preUpdateProxy": {
+        "softCrossingCount": 47242.912882135584,
+        "softCardHitCount": 4511.913285211562,
+        "spacingPenalty": 5314.951114415051,
+        "movementPenalty": 13.215587400100324,
+        "total": 57082.9928691623,
+        "sampleCrossings": 260,
+        "sampleCardHits": 17,
+        "estimatedCrossings": 47302.76611328125,
+        "estimatedCardHits": 4458.32470703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 49706,
+        "individualVisual": 49706,
+        "spacing": 52,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 196,
+      "lossTemperature": 4.543969128470023,
+      "preUpdateProxy": {
+        "softCrossingCount": 47763.91173474536,
+        "softCardHitCount": 3654.541929737651,
+        "spacingPenalty": 3647.9511418632824,
+        "movementPenalty": 13.39866948454316,
+        "total": 55079.803475830835,
+        "sampleCrossings": 264,
+        "sampleCardHits": 14,
+        "estimatedCrossings": 48030.5009765625,
+        "estimatedCardHits": 3671.5615234375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 49985,
+        "individualVisual": 49985,
+        "spacing": 48,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 200,
+      "lossTemperature": 4.303991255572126,
+      "preUpdateProxy": {
+        "softCrossingCount": 47460.87928761457,
+        "softCardHitCount": 2967.6345909353113,
+        "spacingPenalty": 4224.359012381672,
+        "movementPenalty": 13.300893472590102,
+        "total": 54666.17378440414,
+        "sampleCrossings": 259,
+        "sampleCardHits": 12,
+        "estimatedCrossings": 47120.83239746094,
+        "estimatedCardHits": 3147.052734375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 49572,
+        "individualVisual": 49572,
+        "spacing": 44,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 204,
+      "lossTemperature": 4.076687187854766,
+      "preUpdateProxy": {
+        "softCrossingCount": 45408.188089686024,
+        "softCardHitCount": 4691.981352746026,
+        "spacingPenalty": 4992.830854472961,
+        "movementPenalty": 13.203735185039571,
+        "total": 55106.20403209005,
+        "sampleCrossings": 251,
+        "sampleCardHits": 18,
+        "estimatedCrossings": 45665.36267089844,
+        "estimatedCardHits": 4720.5791015625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 49305,
+        "individualVisual": 49305,
+        "spacing": 28,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 208,
+      "lossTemperature": 3.861387591367213,
+      "preUpdateProxy": {
+        "softCrossingCount": 43248.318127247454,
+        "softCardHitCount": 3449.9075268025686,
+        "spacingPenalty": 7192.635954492848,
+        "movementPenalty": 13.249460409163527,
+        "total": 53904.111068952036,
+        "sampleCrossings": 237,
+        "sampleCardHits": 13,
+        "estimatedCrossings": 43118.29064941406,
+        "estimatedCardHits": 3409.30712890625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 49799,
+        "individualVisual": 49799,
+        "spacing": 42,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 212,
+      "lossTemperature": 3.6574584812848476,
+      "preUpdateProxy": {
+        "softCrossingCount": 42697.24130459532,
+        "softCardHitCount": 3176.2406565776078,
+        "spacingPenalty": 5245.754989741825,
+        "movementPenalty": 13.277141846445273,
+        "total": 51132.5140927612,
+        "sampleCrossings": 236,
+        "sampleCardHits": 12,
+        "estimatedCrossings": 42936.35693359375,
+        "estimatedCardHits": 3147.052734375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50395,
+        "individualVisual": 50395,
+        "spacing": 62,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 216,
+      "lossTemperature": 3.4642993550372982,
+      "preUpdateProxy": {
+        "softCrossingCount": 47855.8296914645,
+        "softCardHitCount": 3366.4076552821366,
+        "spacingPenalty": 2501.976955127741,
+        "movementPenalty": 13.385089161837636,
+        "total": 53737.599391036216,
+        "sampleCrossings": 263,
+        "sampleCardHits": 13,
+        "estimatedCrossings": 47848.56726074219,
+        "estimatedCardHits": 3409.30712890625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50698,
+        "individualVisual": 50698,
+        "spacing": 28,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 220,
+      "lossTemperature": 3.2813414240305514,
+      "preUpdateProxy": {
+        "softCrossingCount": 47134.861078383925,
+        "softCardHitCount": 2913.175135628548,
+        "spacingPenalty": 2681.6928489961083,
+        "movementPenalty": 13.348304890936964,
+        "total": 52743.07736789952,
+        "sampleCrossings": 259,
+        "sampleCardHits": 11,
+        "estimatedCrossings": 47120.83239746094,
+        "estimatedCardHits": 2884.79833984375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50646,
+        "individualVisual": 50646,
+        "spacing": 26,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 224,
+      "lossTemperature": 3.1080459387560415,
+      "preUpdateProxy": {
+        "softCrossingCount": 44778.23786130548,
+        "softCardHitCount": 3926.947517791034,
+        "spacingPenalty": 5888.592190970162,
+        "movementPenalty": 13.338915458872956,
+        "total": 54607.116485525556,
+        "sampleCrossings": 247,
+        "sampleCardHits": 15,
+        "estimatedCrossings": 44937.62780761719,
+        "estimatedCardHits": 3933.81591796875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50711,
+        "individualVisual": 50711,
+        "spacing": 50,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 228,
+      "lossTemperature": 2.943902602354732,
+      "preUpdateProxy": {
+        "softCrossingCount": 41426.63794315768,
+        "softCardHitCount": 2359.5426698451424,
+        "spacingPenalty": 1792.0134243727543,
+        "movementPenalty": 13.33935943776965,
+        "total": 45591.53339681334,
+        "sampleCrossings": 228,
+        "sampleCardHits": 9,
+        "estimatedCrossings": 41480.88720703125,
+        "estimatedCardHits": 2360.28955078125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50510,
+        "individualVisual": 50510,
+        "spacing": 40,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 232,
+      "lossTemperature": 2.788428067964675,
+      "preUpdateProxy": {
+        "softCrossingCount": 48101.567949478165,
+        "softCardHitCount": 4553.405695811094,
+        "spacingPenalty": 2719.69301796687,
+        "movementPenalty": 13.273073356449286,
+        "total": 55387.93973661258,
+        "sampleCrossings": 264,
+        "sampleCardHits": 18,
+        "estimatedCrossings": 48030.5009765625,
+        "estimatedCardHits": 4720.5791015625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50189,
+        "individualVisual": 50189,
+        "spacing": 60,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 236,
+      "lossTemperature": 2.641164515427234,
+      "preUpdateProxy": {
+        "softCrossingCount": 49245.61507245003,
+        "softCardHitCount": 3395.501057188101,
+        "spacingPenalty": 13550.642867046252,
+        "movementPenalty": 13.337208479746721,
+        "total": 66205.09620516413,
+        "sampleCrossings": 270,
+        "sampleCardHits": 13,
+        "estimatedCrossings": 49122.103271484375,
+        "estimatedCardHits": 3409.30712890625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50348,
+        "individualVisual": 50348,
+        "spacing": 50,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 240,
+      "lossTemperature": 2.501678303160858,
+      "preUpdateProxy": {
+        "softCrossingCount": 44985.747535818846,
+        "softCardHitCount": 4157.197822938126,
+        "spacingPenalty": 4445.169470563347,
+        "movementPenalty": 13.406383119811768,
+        "total": 53601.52121244014,
+        "sampleCrossings": 247,
+        "sampleCardHits": 16,
+        "estimatedCrossings": 44937.62780761719,
+        "estimatedCardHits": 4196.0703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50452,
+        "individualVisual": 50452,
+        "spacing": 52,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 244,
+      "lossTemperature": 2.3695586912326183,
+      "preUpdateProxy": {
+        "softCrossingCount": 46240.75511385392,
+        "softCardHitCount": 4173.312803302057,
+        "spacingPenalty": 5277.833955194829,
+        "movementPenalty": 13.415748017515003,
+        "total": 55705.31762036832,
+        "sampleCrossings": 254,
+        "sampleCardHits": 16,
+        "estimatedCrossings": 46211.163818359375,
+        "estimatedCardHits": 4196.0703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50732,
+        "individualVisual": 50732,
+        "spacing": 26,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 248,
+      "lossTemperature": 2.2444166318673973,
+      "preUpdateProxy": {
+        "softCrossingCount": 49933.899458631684,
+        "softCardHitCount": 4199.5353766946455,
+        "spacingPenalty": 2127.3704615920765,
+        "movementPenalty": 13.431121606280842,
+        "total": 56274.236418524684,
+        "sampleCrossings": 274,
+        "sampleCardHits": 16,
+        "estimatedCrossings": 49849.838134765625,
+        "estimatedCardHits": 4196.0703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50936,
+        "individualVisual": 50936,
+        "spacing": 38,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 252,
+      "lossTemperature": 2.1258836238331744,
+      "preUpdateProxy": {
+        "softCrossingCount": 48206.67081873128,
+        "softCardHitCount": 2675.91395488814,
+        "spacingPenalty": 2581.608722990485,
+        "movementPenalty": 13.486677952423486,
+        "total": 53477.68017456234,
+        "sampleCrossings": 265,
+        "sampleCardHits": 10,
+        "estimatedCrossings": 48212.43469238281,
+        "estimatedCardHits": 2622.5439453125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50586,
+        "individualVisual": 50586,
+        "spacing": 34,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 256,
+      "lossTemperature": 2.0136106273289633,
+      "preUpdateProxy": {
+        "softCrossingCount": 45159.65958768377,
+        "softCardHitCount": 5157.950706281398,
+        "spacingPenalty": 3873.9380723975255,
+        "movementPenalty": 13.49138429502758,
+        "total": 54205.03975065772,
+        "sampleCrossings": 248,
+        "sampleCardHits": 20,
+        "estimatedCrossings": 45119.5615234375,
+        "estimatedCardHits": 5245.087890625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50096,
+        "individualVisual": 50096,
+        "spacing": 42,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 260,
+      "lossTemperature": 1.9072670361801145,
+      "preUpdateProxy": {
+        "softCrossingCount": 48113.61435391394,
+        "softCardHitCount": 3888.8517104393823,
+        "spacingPenalty": 3023.4784210373887,
+        "movementPenalty": 13.239159798218232,
+        "total": 55039.18364518893,
+        "sampleCrossings": 265,
+        "sampleCardHits": 15,
+        "estimatedCrossings": 48212.43469238281,
+        "estimatedCardHits": 3933.81591796875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 49912,
+        "individualVisual": 49912,
+        "spacing": 32,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 264,
+      "lossTemperature": 1.8065397043144402,
+      "preUpdateProxy": {
+        "softCrossingCount": 45100.80907556726,
+        "softCardHitCount": 5224.5304966257045,
+        "spacingPenalty": 2269.795447590656,
+        "movementPenalty": 13.22553640593467,
+        "total": 52608.36055618955,
+        "sampleCrossings": 248,
+        "sampleCardHits": 20,
+        "estimatedCrossings": 45119.5615234375,
+        "estimatedCardHits": 5245.087890625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 49682,
+        "individualVisual": 49682,
+        "spacing": 30,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 268,
+      "lossTemperature": 1.7111320236524579,
+      "preUpdateProxy": {
+        "softCrossingCount": 42522.69027245471,
+        "softCardHitCount": 3665.486652805529,
+        "spacingPenalty": 10646.30266867541,
+        "movementPenalty": 13.100916872825454,
+        "total": 56847.580510808475,
+        "sampleCrossings": 234,
+        "sampleCardHits": 14,
+        "estimatedCrossings": 42572.489501953125,
+        "estimatedCardHits": 3671.5615234375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 49967,
+        "individualVisual": 49967,
+        "spacing": 52,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 272,
+      "lossTemperature": 1.6207630506964616,
+      "preUpdateProxy": {
+        "softCrossingCount": 50948.5099523923,
+        "softCardHitCount": 2112.547964502838,
+        "spacingPenalty": 9508.71247813964,
+        "movementPenalty": 13.10872772711142,
+        "total": 62582.87912276189,
+        "sampleCrossings": 281,
+        "sampleCardHits": 8,
+        "estimatedCrossings": 51123.37414550781,
+        "estimatedCardHits": 2098.03515625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 50148,
+        "individualVisual": 50148,
+        "spacing": 42,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 276,
+      "lossTemperature": 1.535166679246508,
+      "preUpdateProxy": {
+        "softCrossingCount": 43307.51417909701,
+        "softCardHitCount": 1049.015964601611,
+        "spacingPenalty": 2552.936130002251,
+        "movementPenalty": 13.017779417798385,
+        "total": 46922.48405311867,
+        "sampleCrossings": 238,
+        "sampleCardHits": 4,
+        "estimatedCrossings": 43300.224365234375,
+        "estimatedCardHits": 1049.017578125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 49610,
+        "individualVisual": 49610,
+        "spacing": 44,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 280,
+      "lossTemperature": 1.4540908568072504,
+      "preUpdateProxy": {
+        "softCrossingCount": 45139.331709520746,
+        "softCardHitCount": 3991.005637281583,
+        "spacingPenalty": 4836.480241367442,
+        "movementPenalty": 12.97955614061853,
+        "total": 53979.79714431039,
+        "sampleCrossings": 247,
+        "sampleCardHits": 15,
+        "estimatedCrossings": 44937.62780761719,
+        "estimatedCardHits": 3933.81591796875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 49356,
+        "individualVisual": 49356,
+        "spacing": 50,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 284,
+      "lossTemperature": 1.3772968423782006,
+      "preUpdateProxy": {
+        "softCrossingCount": 45950.082810900996,
+        "softCardHitCount": 2620.177149306737,
+        "spacingPenalty": 15458.778188634806,
+        "movementPenalty": 12.756266818408097,
+        "total": 64041.794415660945,
+        "sampleCrossings": 251,
+        "sampleCardHits": 10,
+        "estimatedCrossings": 45665.36267089844,
+        "estimatedCardHits": 2622.5439453125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 48624,
+        "individualVisual": 48624,
+        "spacing": 48,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 288,
+      "lossTemperature": 1.3045585034418625,
+      "preUpdateProxy": {
+        "softCrossingCount": 46371.75456897352,
+        "softCardHitCount": 4981.529148768891,
+        "spacingPenalty": 5202.960296658544,
+        "movementPenalty": 12.863125268254867,
+        "total": 56569.107139669206,
+        "sampleCrossings": 255,
+        "sampleCardHits": 19,
+        "estimatedCrossings": 46393.09753417969,
+        "estimatedCardHits": 4982.83349609375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 48602,
+        "individualVisual": 48602,
+        "spacing": 26,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 292,
+      "lossTemperature": 1.2356616500796012,
+      "preUpdateProxy": {
+        "softCrossingCount": 45837.95898713291,
+        "softCardHitCount": 1836.793898763245,
+        "spacingPenalty": 23508.66511994449,
+        "movementPenalty": 12.888204976944591,
+        "total": 71196.3062108176,
+        "sampleCrossings": 251,
+        "sampleCardHits": 7,
+        "estimatedCrossings": 45665.36267089844,
+        "estimatedCardHits": 1835.78076171875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 48338,
+        "individualVisual": 48338,
+        "spacing": 72,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 296,
+      "lossTemperature": 1.1704034042544473,
+      "preUpdateProxy": {
+        "softCrossingCount": 42511.37729807635,
+        "softCardHitCount": 4453.5777346715295,
+        "spacingPenalty": 9301.546947023533,
+        "movementPenalty": 13.04238654094107,
+        "total": 56279.54436631235,
+        "sampleCrossings": 234,
+        "sampleCardHits": 17,
+        "estimatedCrossings": 42572.489501953125,
+        "estimatedCardHits": 4458.32470703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 48467,
+        "individualVisual": 48467,
+        "spacing": 50,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 300,
+      "lossTemperature": 1.1085916024035818,
+      "preUpdateProxy": {
+        "softCrossingCount": 42153.77768373195,
+        "softCardHitCount": 2884.7957231773157,
+        "spacingPenalty": 3779.57022759444,
+        "movementPenalty": 13.080706570499549,
+        "total": 48831.22434107421,
+        "sampleCrossings": 231,
+        "sampleCardHits": 11,
+        "estimatedCrossings": 42026.68835449219,
+        "estimatedCardHits": 2884.79833984375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 48672,
+        "individualVisual": 48672,
+        "spacing": 36,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 304,
+      "lossTemperature": 1.0500442295813421,
+      "preUpdateProxy": {
+        "softCrossingCount": 41958.51111917996,
+        "softCardHitCount": 2884.1208708460294,
+        "spacingPenalty": 22053.134574985015,
+        "movementPenalty": 13.01196470644197,
+        "total": 66908.77852971744,
+        "sampleCrossings": 231,
+        "sampleCardHits": 11,
+        "estimatedCrossings": 42026.68835449219,
+        "estimatedCardHits": 2884.79833984375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47770,
+        "individualVisual": 47770,
+        "spacing": 68,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 308,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 38999.87433184295,
+        "softCardHitCount": 3671.377290724579,
+        "spacingPenalty": 8115.406691162983,
+        "movementPenalty": 13.162852285127023,
+        "total": 50799.82116601564,
+        "sampleCrossings": 215,
+        "sampleCardHits": 14,
+        "estimatedCrossings": 39115.74890136719,
+        "estimatedCardHits": 3671.5615234375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 48297,
+        "individualVisual": 48297,
+        "spacing": 52,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 312,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 48388.906505144514,
+        "softCardHitCount": 2810.743059863059,
+        "spacingPenalty": 2549.3150797542007,
+        "movementPenalty": 13.228551553654542,
+        "total": 53762.193196315435,
+        "sampleCrossings": 266,
+        "sampleCardHits": 11,
+        "estimatedCrossings": 48394.368408203125,
+        "estimatedCardHits": 2884.79833984375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 48460,
+        "individualVisual": 48460,
+        "spacing": 40,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 316,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 46556.25167386815,
+        "softCardHitCount": 4206.779489148246,
+        "spacingPenalty": 15258.608100715046,
+        "movementPenalty": 13.08293342761451,
+        "total": 66034.72219715906,
+        "sampleCrossings": 256,
+        "sampleCardHits": 16,
+        "estimatedCrossings": 46575.03125,
+        "estimatedCardHits": 4196.0703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 48129,
+        "individualVisual": 48129,
+        "spacing": 50,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 320,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 45785.57076157951,
+        "softCardHitCount": 3256.4310775233103,
+        "spacingPenalty": 5370.673010071795,
+        "movementPenalty": 13.264984021363485,
+        "total": 54425.93983319598,
+        "sampleCrossings": 252,
+        "sampleCardHits": 12,
+        "estimatedCrossings": 45847.29638671875,
+        "estimatedCardHits": 3147.052734375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 48434,
+        "individualVisual": 48434,
+        "spacing": 40,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 324,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 46587.61634934459,
+        "softCardHitCount": 3169.1337424560634,
+        "spacingPenalty": 6228.735970339345,
+        "movementPenalty": 13.24482298483562,
+        "total": 55998.73088512484,
+        "sampleCrossings": 256,
+        "sampleCardHits": 12,
+        "estimatedCrossings": 46575.03125,
+        "estimatedCardHits": 3147.052734375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 48091,
+        "individualVisual": 48091,
+        "spacing": 30,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 328,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 41331.897506047855,
+        "softCardHitCount": 4892.766541283193,
+        "spacingPenalty": 10354.051607776411,
+        "movementPenalty": 13.045574650019427,
+        "total": 56591.76122975748,
+        "sampleCrossings": 226,
+        "sampleCardHits": 19,
+        "estimatedCrossings": 41117.019775390625,
+        "estimatedCardHits": 4982.83349609375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 48544,
+        "individualVisual": 48544,
+        "spacing": 44,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 332,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 38979.87763060951,
+        "softCardHitCount": 3830.398627679392,
+        "spacingPenalty": 3368.109176238755,
+        "movementPenalty": 13.058177050378477,
+        "total": 46191.44361157804,
+        "sampleCrossings": 214,
+        "sampleCardHits": 14,
+        "estimatedCrossings": 38933.815185546875,
+        "estimatedCardHits": 3671.5615234375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47636,
+        "individualVisual": 47636,
+        "spacing": 46,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 336,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 45562.42035193532,
+        "softCardHitCount": 4720.690452594839,
+        "spacingPenalty": 7099.286687199621,
+        "movementPenalty": 12.94782162676163,
+        "total": 57395.34531335654,
+        "sampleCrossings": 250,
+        "sampleCardHits": 18,
+        "estimatedCrossings": 45483.428955078125,
+        "estimatedCardHits": 4720.5791015625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47161,
+        "individualVisual": 47161,
+        "spacing": 60,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 340,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 39328.24879146594,
+        "softCardHitCount": 4536.475561320419,
+        "spacingPenalty": 4678.995847238977,
+        "movementPenalty": 12.925019958283075,
+        "total": 48556.64521998362,
+        "sampleCrossings": 216,
+        "sampleCardHits": 17,
+        "estimatedCrossings": 39297.6826171875,
+        "estimatedCardHits": 4458.32470703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46915,
+        "individualVisual": 46915,
+        "spacing": 58,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 344,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 43784.403529735944,
+        "softCardHitCount": 2098.4741717222655,
+        "spacingPenalty": 4589.261051982404,
+        "movementPenalty": 12.886531481046804,
+        "total": 50485.025284921656,
+        "sampleCrossings": 241,
+        "sampleCardHits": 8,
+        "estimatedCrossings": 43846.02551269531,
+        "estimatedCardHits": 2098.03515625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46694,
+        "individualVisual": 46694,
+        "spacing": 34,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 348,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 43333.07062590674,
+        "softCardHitCount": 4196.070314650903,
+        "spacingPenalty": 5396.305685172356,
+        "movementPenalty": 12.761360629758453,
+        "total": 52938.207986359754,
+        "sampleCrossings": 238,
+        "sampleCardHits": 16,
+        "estimatedCrossings": 43300.224365234375,
+        "estimatedCardHits": 4196.0703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46308,
+        "individualVisual": 46308,
+        "spacing": 40,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 352,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 45194.43435325088,
+        "softCardHitCount": 3860.207478699066,
+        "spacingPenalty": 10861.868386218553,
+        "movementPenalty": 12.739890934092589,
+        "total": 59929.250109102584,
+        "sampleCrossings": 248,
+        "sampleCardHits": 15,
+        "estimatedCrossings": 45119.5615234375,
+        "estimatedCardHits": 3933.81591796875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46371,
+        "individualVisual": 46371,
+        "spacing": 32,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 356,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 39108.6790889033,
+        "softCardHitCount": 3146.4408619303817,
+        "spacingPenalty": 7240.460093105031,
+        "movementPenalty": 12.794690798010047,
+        "total": 49508.37473473672,
+        "sampleCrossings": 215,
+        "sampleCardHits": 12,
+        "estimatedCrossings": 39115.74890136719,
+        "estimatedCardHits": 3147.052734375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46353,
+        "individualVisual": 46353,
+        "spacing": 40,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 360,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 42374.00973297006,
+        "softCardHitCount": 2030.0315047243573,
+        "spacingPenalty": 7602.712216017962,
+        "movementPenalty": 12.666035112468126,
+        "total": 52019.419488824846,
+        "sampleCrossings": 233,
+        "sampleCardHits": 8,
+        "estimatedCrossings": 42390.55578613281,
+        "estimatedCardHits": 2098.03515625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46263,
+        "individualVisual": 46263,
+        "spacing": 42,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 364,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 41401.497706629874,
+        "softCardHitCount": 2622.5576088551443,
+        "spacingPenalty": 5780.740386376325,
+        "movementPenalty": 12.734558782207035,
+        "total": 49817.53026064355,
+        "sampleCrossings": 228,
+        "sampleCardHits": 10,
+        "estimatedCrossings": 41480.88720703125,
+        "estimatedCardHits": 2622.5439453125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46114,
+        "individualVisual": 46114,
+        "spacing": 50,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 368,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 40344.621012605836,
+        "softCardHitCount": 3326.941511000302,
+        "spacingPenalty": 1506.9923741617138,
+        "movementPenalty": 12.743524135527574,
+        "total": 45191.29842190338,
+        "sampleCrossings": 222,
+        "sampleCardHits": 13,
+        "estimatedCrossings": 40389.284912109375,
+        "estimatedCardHits": 3409.30712890625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46123,
+        "individualVisual": 46123,
+        "spacing": 36,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 372,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 42368.30953737296,
+        "softCardHitCount": 3661.519300404834,
+        "spacingPenalty": 28085.569042441835,
+        "movementPenalty": 12.816547662471967,
+        "total": 74128.21442788209,
+        "sampleCrossings": 233,
+        "sampleCardHits": 14,
+        "estimatedCrossings": 42390.55578613281,
+        "estimatedCardHits": 3671.5615234375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46923,
+        "individualVisual": 46923,
+        "spacing": 94,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 376,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 47586.55852123576,
+        "softCardHitCount": 2630.9408935598544,
+        "spacingPenalty": 9752.113844369069,
+        "movementPenalty": 12.887552148035295,
+        "total": 59982.500811312726,
+        "sampleCrossings": 262,
+        "sampleCardHits": 10,
+        "estimatedCrossings": 47666.633544921875,
+        "estimatedCardHits": 2622.5439453125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47115,
+        "individualVisual": 47115,
+        "spacing": 56,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 380,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 42205.02346866476,
+        "softCardHitCount": 2887.074258765083,
+        "spacingPenalty": 5218.876534149027,
+        "movementPenalty": 12.866473430785813,
+        "total": 50323.84073500965,
+        "sampleCrossings": 232,
+        "sampleCardHits": 11,
+        "estimatedCrossings": 42208.6220703125,
+        "estimatedCardHits": 2884.79833984375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47336,
+        "individualVisual": 47336,
+        "spacing": 52,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 384,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 43980.0834533638,
+        "softCardHitCount": 5696.802468327331,
+        "spacingPenalty": 4756.141148769033,
+        "movementPenalty": 12.632975886751911,
+        "total": 54445.660046346915,
+        "sampleCrossings": 240,
+        "sampleCardHits": 22,
+        "estimatedCrossings": 43664.091796875,
+        "estimatedCardHits": 5769.5966796875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46367,
+        "individualVisual": 46367,
+        "spacing": 68,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 388,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 40253.74019426443,
+        "softCardHitCount": 3671.2642214025586,
+        "spacingPenalty": 16015.357417828911,
+        "movementPenalty": 12.690184875944466,
+        "total": 59953.05201837185,
+        "sampleCrossings": 221,
+        "sampleCardHits": 14,
+        "estimatedCrossings": 40207.35119628906,
+        "estimatedCardHits": 3671.5615234375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46003,
+        "individualVisual": 46003,
+        "spacing": 82,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 392,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 43853.01991869964,
+        "softCardHitCount": 4227.907557980223,
+        "spacingPenalty": 9625.594534403861,
+        "movementPenalty": 12.676782215981037,
+        "total": 57719.19879329971,
+        "sampleCrossings": 241,
+        "sampleCardHits": 16,
+        "estimatedCrossings": 43846.02551269531,
+        "estimatedCardHits": 4196.0703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46457,
+        "individualVisual": 46457,
+        "spacing": 58,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 396,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 40374.290238618,
+        "softCardHitCount": 4479.09187471653,
+        "spacingPenalty": 5456.576303603638,
+        "movementPenalty": 12.596004116846254,
+        "total": 50322.55442105501,
+        "sampleCrossings": 222,
+        "sampleCardHits": 17,
+        "estimatedCrossings": 40389.284912109375,
+        "estimatedCardHits": 4458.32470703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46514,
+        "individualVisual": 46514,
+        "spacing": 54,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 400,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 37901.1120905897,
+        "softCardHitCount": 3673.5357405140044,
+        "spacingPenalty": 8168.1084304674205,
+        "movementPenalty": 12.649651781517848,
+        "total": 49755.40591335264,
+        "sampleCrossings": 208,
+        "sampleCardHits": 14,
+        "estimatedCrossings": 37842.212890625,
+        "estimatedCardHits": 3671.5615234375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46417,
+        "individualVisual": 46417,
+        "spacing": 74,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 404,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 41810.10240794344,
+        "softCardHitCount": 5272.399447508282,
+        "spacingPenalty": 3561.879425077084,
+        "movementPenalty": 12.809990840084227,
+        "total": 50657.19127136889,
+        "sampleCrossings": 230,
+        "sampleCardHits": 20,
+        "estimatedCrossings": 41844.754638671875,
+        "estimatedCardHits": 5245.087890625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46751,
+        "individualVisual": 46751,
+        "spacing": 34,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 408,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 42271.60665895939,
+        "softCardHitCount": 3938.5176863530637,
+        "spacingPenalty": 3409.142864415267,
+        "movementPenalty": 12.773294231594242,
+        "total": 49632.04050395932,
+        "sampleCrossings": 233,
+        "sampleCardHits": 15,
+        "estimatedCrossings": 42390.55578613281,
+        "estimatedCardHits": 3933.81591796875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46361,
+        "individualVisual": 46361,
+        "spacing": 46,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 412,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 42242.60247936648,
+        "softCardHitCount": 4394.332028131428,
+        "spacingPenalty": 4043.4190578782373,
+        "movementPenalty": 12.759089973792179,
+        "total": 50693.112655349934,
+        "sampleCrossings": 232,
+        "sampleCardHits": 17,
+        "estimatedCrossings": 42208.6220703125,
+        "estimatedCardHits": 4458.32470703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46047,
+        "individualVisual": 46047,
+        "spacing": 32,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 416,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 41634.797430175764,
+        "softCardHitCount": 4458.312722267503,
+        "spacingPenalty": 4613.272693772822,
+        "movementPenalty": 12.917995617154018,
+        "total": 50719.30084183325,
+        "sampleCrossings": 230,
+        "sampleCardHits": 17,
+        "estimatedCrossings": 41844.754638671875,
+        "estimatedCardHits": 4458.32470703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46767,
+        "individualVisual": 46767,
+        "spacing": 40,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 420,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 43210.633362349385,
+        "softCardHitCount": 5242.696956731242,
+        "spacingPenalty": 11353.023015065946,
+        "movementPenalty": 12.844790136293541,
+        "total": 59819.19812428287,
+        "sampleCrossings": 237,
+        "sampleCardHits": 20,
+        "estimatedCrossings": 43118.29064941406,
+        "estimatedCardHits": 5245.087890625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47130,
+        "individualVisual": 47130,
+        "spacing": 34,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 424,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 43900.07028820436,
+        "softCardHitCount": 3493.983316571438,
+        "spacingPenalty": 5497.567181449558,
+        "movementPenalty": 12.77975558003538,
+        "total": 52904.40054180539,
+        "sampleCrossings": 241,
+        "sampleCardHits": 13,
+        "estimatedCrossings": 43846.02551269531,
+        "estimatedCardHits": 3409.30712890625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46754,
+        "individualVisual": 46754,
+        "spacing": 54,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 428,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 41364.16473145579,
+        "softCardHitCount": 3688.223693898621,
+        "spacingPenalty": 5171.293936802596,
+        "movementPenalty": 12.683013843167478,
+        "total": 50236.36537600018,
+        "sampleCrossings": 227,
+        "sampleCardHits": 14,
+        "estimatedCrossings": 41298.95349121094,
+        "estimatedCardHits": 3671.5615234375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46887,
+        "individualVisual": 46887,
+        "spacing": 42,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 432,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 47598.51661590022,
+        "softCardHitCount": 4236.502203408531,
+        "spacingPenalty": 6014.509028250586,
+        "movementPenalty": 12.777637956376081,
+        "total": 57862.30548551571,
+        "sampleCrossings": 262,
+        "sampleCardHits": 16,
+        "estimatedCrossings": 47666.633544921875,
+        "estimatedCardHits": 4196.0703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47031,
+        "individualVisual": 47031,
+        "spacing": 46,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 436,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 40031.11552187693,
+        "softCardHitCount": 4903.273120009586,
+        "spacingPenalty": 5897.428529080687,
+        "movementPenalty": 12.716640543808591,
+        "total": 50844.53381151101,
+        "sampleCrossings": 220,
+        "sampleCardHits": 19,
+        "estimatedCrossings": 40025.41748046875,
+        "estimatedCardHits": 4982.83349609375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46847,
+        "individualVisual": 46847,
+        "spacing": 36,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 440,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 45671.65181823914,
+        "softCardHitCount": 2881.991477320485,
+        "spacingPenalty": 1290.959763242232,
+        "movementPenalty": 12.900828962876759,
+        "total": 49857.50388776473,
+        "sampleCrossings": 251,
+        "sampleCardHits": 11,
+        "estimatedCrossings": 45665.36267089844,
+        "estimatedCardHits": 2884.79833984375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47487,
+        "individualVisual": 47487,
+        "spacing": 34,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 444,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 47276.67746894441,
+        "softCardHitCount": 4458.323837262873,
+        "spacingPenalty": 3674.9916729081515,
+        "movementPenalty": 12.84238261783396,
+        "total": 55422.83536173327,
+        "sampleCrossings": 260,
+        "sampleCardHits": 17,
+        "estimatedCrossings": 47302.76611328125,
+        "estimatedCardHits": 4458.32470703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47751,
+        "individualVisual": 47751,
+        "spacing": 36,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 448,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 50056.43475867077,
+        "softCardHitCount": 3671.960183706117,
+        "spacingPenalty": 2559.8565716905678,
+        "movementPenalty": 12.849802391545829,
+        "total": 56301.101316459004,
+        "sampleCrossings": 275,
+        "sampleCardHits": 14,
+        "estimatedCrossings": 50031.77185058594,
+        "estimatedCardHits": 3671.5615234375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47513,
+        "individualVisual": 47513,
+        "spacing": 26,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 452,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 43077.53465558753,
+        "softCardHitCount": 4279.92568883751,
+        "spacingPenalty": 3255.9308196362244,
+        "movementPenalty": 12.69211577668344,
+        "total": 50626.08327983795,
+        "sampleCrossings": 237,
+        "sampleCardHits": 16,
+        "estimatedCrossings": 43118.29064941406,
+        "estimatedCardHits": 4196.0703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47376,
+        "individualVisual": 47376,
+        "spacing": 36,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 456,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 43861.00992263176,
+        "softCardHitCount": 5780.317861138684,
+        "spacingPenalty": 9715.438248216617,
+        "movementPenalty": 12.531570039842517,
+        "total": 59369.297602026905,
+        "sampleCrossings": 241,
+        "sampleCardHits": 22,
+        "estimatedCrossings": 43846.02551269531,
+        "estimatedCardHits": 5769.5966796875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46820,
+        "individualVisual": 46820,
+        "spacing": 62,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 460,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 39702.76006045104,
+        "softCardHitCount": 4398.773797613522,
+        "spacingPenalty": 5854.799601249265,
+        "movementPenalty": 12.631725286304444,
+        "total": 49968.96518460013,
+        "sampleCrossings": 218,
+        "sampleCardHits": 17,
+        "estimatedCrossings": 39661.550048828125,
+        "estimatedCardHits": 4458.32470703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47554,
+        "individualVisual": 47554,
+        "spacing": 46,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 464,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 41631.2406115469,
+        "softCardHitCount": 2851.0063168416527,
+        "spacingPenalty": 7000.744817393277,
+        "movementPenalty": 12.856190466591519,
+        "total": 51495.84793624842,
+        "sampleCrossings": 229,
+        "sampleCardHits": 11,
+        "estimatedCrossings": 41662.82092285156,
+        "estimatedCardHits": 2884.79833984375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 48326,
+        "individualVisual": 48326,
+        "spacing": 48,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 468,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 43519.80889343484,
+        "softCardHitCount": 2884.185700874784,
+        "spacingPenalty": 8008.844236800158,
+        "movementPenalty": 12.966958864629905,
+        "total": 54425.80578997441,
+        "sampleCrossings": 240,
+        "sampleCardHits": 11,
+        "estimatedCrossings": 43664.091796875,
+        "estimatedCardHits": 2884.79833984375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 48020,
+        "individualVisual": 48020,
+        "spacing": 42,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 472,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 44756.211390659366,
+        "softCardHitCount": 3576.752849892634,
+        "spacingPenalty": 9381.72202502621,
+        "movementPenalty": 12.947632017881178,
+        "total": 57727.63389759609,
+        "sampleCrossings": 246,
+        "sampleCardHits": 14,
+        "estimatedCrossings": 44755.694091796875,
+        "estimatedCardHits": 3671.5615234375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47972,
+        "individualVisual": 47972,
+        "spacing": 44,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 476,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 43150.81044447798,
+        "softCardHitCount": 4890.64053200231,
+        "spacingPenalty": 3200.817103449024,
+        "movementPenalty": 13.079442273923926,
+        "total": 51255.34752220324,
+        "sampleCrossings": 237,
+        "sampleCardHits": 19,
+        "estimatedCrossings": 43118.29064941406,
+        "estimatedCardHits": 4982.83349609375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 48407,
+        "individualVisual": 48407,
+        "spacing": 34,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 480,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 44004.701407193956,
+        "softCardHitCount": 5245.641627754567,
+        "spacingPenalty": 2890.0732716755747,
+        "movementPenalty": 13.048274251195517,
+        "total": 52153.46458087529,
+        "sampleCrossings": 242,
+        "sampleCardHits": 20,
+        "estimatedCrossings": 44027.959228515625,
+        "estimatedCardHits": 5245.087890625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 48256,
+        "individualVisual": 48256,
+        "spacing": 26,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 484,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 43491.01118679362,
+        "softCardHitCount": 3146.8285079880748,
+        "spacingPenalty": 5743.894654196383,
+        "movementPenalty": 12.951896209846554,
+        "total": 52394.68624518792,
+        "sampleCrossings": 239,
+        "sampleCardHits": 12,
+        "estimatedCrossings": 43482.15808105469,
+        "estimatedCardHits": 3147.052734375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47830,
+        "individualVisual": 47830,
+        "spacing": 32,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 488,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 43500.775389970346,
+        "softCardHitCount": 3990.551930156477,
+        "spacingPenalty": 4864.100795769147,
+        "movementPenalty": 12.688950877764082,
+        "total": 52368.11706677374,
+        "sampleCrossings": 239,
+        "sampleCardHits": 15,
+        "estimatedCrossings": 43482.15808105469,
+        "estimatedCardHits": 3933.81591796875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47399,
+        "individualVisual": 47399,
+        "spacing": 52,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 492,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 39284.94317827254,
+        "softCardHitCount": 4195.558567754121,
+        "spacingPenalty": 2281.962700820713,
+        "movementPenalty": 12.676221693960526,
+        "total": 45775.14066854133,
+        "sampleCrossings": 216,
+        "sampleCardHits": 16,
+        "estimatedCrossings": 39297.6826171875,
+        "estimatedCardHits": 4196.0703125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47070,
+        "individualVisual": 47070,
+        "spacing": 28,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 496,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 45160.38171859291,
+        "softCardHitCount": 3933.7082502742714,
+        "spacingPenalty": 3819.3413324275143,
+        "movementPenalty": 12.654785245114352,
+        "total": 52926.086086539806,
+        "sampleCrossings": 248,
+        "sampleCardHits": 15,
+        "estimatedCrossings": 45119.5615234375,
+        "estimatedCardHits": 3933.81591796875
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46990,
+        "individualVisual": 46990,
+        "spacing": 24,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 500,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 41424.691589555485,
+        "softCardHitCount": 4719.070270176858,
+        "spacingPenalty": 2236.916297231523,
+        "movementPenalty": 12.59564038730303,
+        "total": 48393.273797351176,
+        "sampleCrossings": 227,
+        "sampleCardHits": 18,
+        "estimatedCrossings": 41298.95349121094,
+        "estimatedCardHits": 4720.5791015625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 46899,
+        "individualVisual": 46899,
+        "spacing": 38,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 504,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 40878.46408047356,
+        "softCardHitCount": 4716.533642790148,
+        "spacingPenalty": 6491.775883853078,
+        "movementPenalty": 12.82308170266214,
+        "total": 52099.59668881945,
+        "sampleCrossings": 225,
+        "sampleCardHits": 18,
+        "estimatedCrossings": 40935.08605957031,
+        "estimatedCardHits": 4720.5791015625
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47416,
+        "individualVisual": 47416,
+        "spacing": 34,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 508,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 43856.53308611651,
+        "softCardHitCount": 2872.724581356992,
+        "spacingPenalty": 3157.338218772249,
+        "movementPenalty": 12.851369950201992,
+        "total": 49899.44725619595,
+        "sampleCrossings": 241,
+        "sampleCardHits": 11,
+        "estimatedCrossings": 43846.02551269531,
+        "estimatedCardHits": 2884.79833984375
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47380,
+        "individualVisual": 47380,
+        "spacing": 30,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    },
+    {
+      "iteration": 512,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 42985.06577078626,
+        "softCardHitCount": 2377.072037527606,
+        "spacingPenalty": 15792.520525619973,
+        "movementPenalty": 12.875706414517515,
+        "total": 61167.53404034836,
+        "sampleCrossings": 236,
+        "sampleCardHits": 9,
+        "estimatedCrossings": 42936.35693359375,
+        "estimatedCardHits": 2360.28955078125
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 47548,
+        "individualVisual": 47548,
+        "spacing": 58,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "spacing"
+      }
+    }
+  ],
+  "verifiedOutputHashes": {
+    "joint-input-features.npy": "7e22ef484b8b119059bf6594f94e44b6d39fdff6b358f08f8f6d85a40db05e25",
+    "learned.tsv": "6105f301754e8be065e8790cfc680793779314a40292fcc96de410101cf60790",
+    "learned.tsv.individual": "6105f301754e8be065e8790cfc680793779314a40292fcc96de410101cf60790",
+    "learned.tsv.routes.tsv": "74dd7df94ec74884da3a535fd12243bf7f580c57e58d814dd9bb0545e67cdc53",
+    "learned.tsv.individual.routes.tsv": "74dd7df94ec74884da3a535fd12243bf7f580c57e58d814dd9bb0545e67cdc53",
+    "learned.tsv.stats.json": "b2c9c7249e1b1fc3007819f9f9371048e9171c439a216522b0d3d61ebe63fc7b",
+    "learned.tsv.policy.json": "e593a12814a9659b28ec5b5e04ed1b86f46a814705906715ebca798cf2c028f9"
+  },
+  "candidate": ".tmp/visualcross-ml-150-750-20261003/individual-global1/candidate.individual.layout.json",
+  "candidateSha256": "5030eb40433fdc2ebace235efea9b2c3cef0d46622a45b746d8050a18c0a0d4c",
+  "visualCrossings": 1996,
+  "improvesSource": false,
+  "allChecksPassed": true,
+  "seconds": 11.80055058299331,
+  "trainingExitedBeforeProductAudit": true,
+  "resumedProductAudit": false,
+  "individualVisual": 1996
+}

@@ -1,0 +1,111 @@
+{
+  "candidate": "data/erd-poc/candidates/captain-leaf-card-connections-ml-386.layout.json",
+  "candidateSha256": "907cf119e674b265dbbbaf47c0308f8a86a0dfef92715973fb221db4aec045fc",
+  "source": "data/erd-poc/candidates/captain-leaf-card-connections-ml-387.layout.json",
+  "sourceProvenance": "data/erd-poc/candidates/captain-leaf-card-connections-ml-387.provenance.json",
+  "visualCrossings": 386,
+  "individualVisualCrossings": 3453,
+  "target": {
+    "overviewMaximum": 300,
+    "individualExclusiveMaximum": 2000,
+    "met": false
+  },
+  "proposalAuthority": "frozen learned mixture policies",
+  "heuristicSearchCalls": 0,
+  "models": [
+    {
+      "checkpoint": "data/erd-poc/checkpoints/leaf-component-policy-v6.npz",
+      "sha256": "2ff93c849d0c0cf73afdfc7ca019bc74dea841d942b58ccc8e869dc60341ec75",
+      "training": "data/erd-poc/checkpoints/leaf-component-policy-v6.training.json"
+    },
+    {
+      "checkpoint": "data/erd-poc/checkpoints/leaf-component-policy-v7.npz",
+      "sha256": "fe1624651ea1a05aac93662637f090f5e56cd6c5be6b83db113834f3461700eb",
+      "training": "data/erd-poc/checkpoints/leaf-component-policy-v7.training.json"
+    }
+  ],
+  "stages": [
+    {
+      "stage": 6,
+      "candidateSha256": "9e1de82cd2f416d9f7a0d5c669ade3d9db1ebcf1e2b078a5595a8bd3846d84b4",
+      "checkpointSha256": "2ff93c849d0c0cf73afdfc7ca019bc74dea841d942b58ccc8e869dc60341ec75",
+      "initial": {
+        "ready": true,
+        "eligible": 1035,
+        "visual": 387,
+        "individualVisual": 3492,
+        "canonicalStart": false,
+        "sourceVisual": 387,
+        "sourceIndividualVisual": 3492
+      },
+      "final": {
+        "initialVisual": 387,
+        "visual": 387,
+        "initialIndividualVisual": 3492,
+        "individualVisual": 3460,
+        "hardConditions": 0,
+        "initialHardConditions": 0,
+        "individualHardConditions": 46,
+        "initialIndividualHardConditions": 46,
+        "canonicalStart": false,
+        "rolloutInitialVisual": 387,
+        "rolloutInitialIndividualVisual": 3492,
+        "overlap": 0,
+        "spacing": 0,
+        "policyActionsEvaluated": 20000,
+        "acceptedActions": 19,
+        "heuristicSearchCalls": 0,
+        "proposalAuthority": "external-policy",
+        "decoder": "rigid component translation with every port attached"
+      },
+      "actionsReplayed": 20000
+    },
+    {
+      "stage": 7,
+      "candidateSha256": "907cf119e674b265dbbbaf47c0308f8a86a0dfef92715973fb221db4aec045fc",
+      "checkpointSha256": "fe1624651ea1a05aac93662637f090f5e56cd6c5be6b83db113834f3461700eb",
+      "initial": {
+        "ready": true,
+        "eligible": 1035,
+        "visual": 387,
+        "individualVisual": 3460,
+        "canonicalStart": false,
+        "sourceVisual": 387,
+        "sourceIndividualVisual": 3460
+      },
+      "final": {
+        "initialVisual": 387,
+        "visual": 386,
+        "initialIndividualVisual": 3460,
+        "individualVisual": 3453,
+        "hardConditions": 0,
+        "initialHardConditions": 0,
+        "individualHardConditions": 46,
+        "initialIndividualHardConditions": 46,
+        "canonicalStart": false,
+        "rolloutInitialVisual": 387,
+        "rolloutInitialIndividualVisual": 3460,
+        "jointMoves": true,
+        "overlap": 0,
+        "spacing": 0,
+        "policyActionsEvaluated": 12000,
+        "acceptedActions": 6,
+        "heuristicSearchCalls": 0,
+        "proposalAuthority": "external-policy",
+        "decoder": "rigid component translation with every port attached"
+      },
+      "actionsReplayed": 12000
+    }
+  ],
+  "allActionsReplayed": true,
+  "resourcePolicy": {
+    "threads": 1,
+    "rssGuardMiB": 256,
+    "serialized": true,
+    "inferenceSecondsPerRun": 20,
+    "hostTwentyPercentMeasured": false
+  },
+  "productFileLoadVerified": true,
+  "browserVerified": false,
+  "f5DefaultUnchanged": 468
+}

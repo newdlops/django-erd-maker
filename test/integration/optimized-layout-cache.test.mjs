@@ -103,6 +103,27 @@ test("optimized cache prioritizes the complete edge set over carrier crossings",
   ) < 0);
 });
 
+test("optimized cache prioritizes the audited visible semantic scene over its raw subset", () => {
+  const existing = snapshot(5_806, {
+    rawRouteCrossings: 4_484,
+    visualCrossingsScope: "rendered-canonical-direct-node-bundles-v3",
+  });
+  const lowerVisibleConflicts = snapshot(5_600, {
+    rawRouteCrossings: 4_600,
+    visualCrossingsScope: "rendered-canonical-direct-node-bundles-v3",
+  });
+  const selection = selectPreferredOptimizedLayoutJson(
+    JSON.stringify(existing),
+    JSON.stringify(lowerVisibleConflicts),
+  );
+
+  assert.equal(selection.source, "candidate");
+  assert.ok(compareOptimizedLayoutQuality(
+    lowerVisibleConflicts.engineMetadata,
+    existing.engineMetadata,
+  ) < 0);
+});
+
 test("optimized cache quality uses conflict tie-breakers and keeps exact ties", () => {
   const cleanerTie = snapshot(446, { edgeNodeIntersections: 100 });
   const dirtierTie = snapshot(446, { edgeNodeIntersections: 120 });
@@ -116,6 +137,51 @@ test("optimized cache quality uses conflict tie-breakers and keeps exact ties", 
     JSON.stringify(cleanerTie),
   );
   assert.equal(exactTie.source, "existing");
+});
+
+test("optimized cache prioritizes simultaneous visual and area targets", () => {
+  const scope = "rendered-canonical-direct-node-bundles-v3";
+  const outsideArea = snapshot(499, {
+    boundingBoxArea: 2e9,
+    visualCrossingsScope: scope,
+  });
+  const withinBoth = snapshot(500, {
+    boundingBoxArea: 1e9,
+    visualCrossingsScope: scope,
+  });
+  assert.equal(selectPreferredOptimizedLayoutJson(
+    JSON.stringify(outsideArea), JSON.stringify(withinBoth),
+  ).source, "candidate");
+  assert.equal(selectPreferredOptimizedLayoutJson(
+    JSON.stringify(withinBoth), JSON.stringify(outsideArea),
+  ).source, "existing");
+
+  // Configured limits, rather than a hard-coded 500/1B, determine success.
+  assert.equal(selectPreferredOptimizedLayoutJson(
+    JSON.stringify(outsideArea), JSON.stringify(withinBoth),
+    { qualityTargets: { visualCrossings: 499, boundingBoxArea: 1e9 } },
+  ).source, "existing");
+});
+
+test("missing area is not a target pass and canonical safety is preserved", () => {
+  const scope = "rendered-canonical-direct-node-bundles-v3";
+  const valid = snapshot(500, { boundingBoxArea: 1e9, visualCrossingsScope: scope });
+  for (const boundingBoxArea of [undefined, 0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assert.ok(compareOptimizedLayoutQuality(valid.engineMetadata, {
+      visualCrossings: 1, boundingBoxArea, visualCrossingsScope: scope,
+    }) < 0);
+  }
+  const existing = snapshot(499, {
+    boundingBoxArea: 2e9, visualCrossingsScope: scope,
+    canonicalCrossing: canonicalCrossing(0, 0),
+  });
+  const unsafe = snapshot(500, {
+    boundingBoxArea: 1e9, visualCrossingsScope: scope,
+    canonicalCrossing: canonicalCrossing(1, 0),
+  });
+  assert.equal(selectPreferredOptimizedLayoutJson(
+    JSON.stringify(existing), JSON.stringify(unsafe),
+  ).preservationReason, "canonical-non-regression");
 });
 
 test("optimized cache never rewards legacy edge aggregation metadata", () => {

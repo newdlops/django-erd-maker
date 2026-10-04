@@ -1,0 +1,37 @@
+{
+  "views": [
+    {
+      "input": ".tmp/visualcross-ml-150-750-20261003/individual-outward-joint1",
+      "activePairLoss": true,
+      "zeroOutputEndpointsPreserved": 3454,
+      "routeGradientChecks": 24,
+      "networkWeightGradientChecks": 28,
+      "baselineVisual": 1990,
+      "baselineHardPenalty": 0.0,
+      "frozenRoundtripExact": true,
+      "parameterCount": 8804,
+      "allChecksPassed": true
+    },
+    {
+      "input": ".tmp/visualcross-ml-150-750-20261003/overview-hard1",
+      "activePairLoss": true,
+      "zeroOutputEndpointsPreserved": 3454,
+      "routeGradientChecks": 24,
+      "networkWeightGradientChecks": 28,
+      "baselineVisual": 299,
+      "baselineHardPenalty": 0.0,
+      "frozenRoundtripExact": true,
+      "parameterCount": 8804,
+      "allChecksPassed": true
+    }
+  ],
+  "continuousGradientChecks": true,
+  "nativeValidationStillRequired": true,
+  "implementationHashes": {
+    "validate_joint_neural_ports.py": "dba1293345cc013de9cfdb4d4cc9e8217ac1a54f0019c8c55d2fd2ae6f5455a1",
+    "joint_neural_ports.py": "6a54cc90ac60d5435a39dfcc5e63e55ffa02e82040c210b36318bd093f47f94d",
+    "joint_layout_proxy.py": "7b7081ca47a2336dbdc85b06024e0e74d623656f2936bb2a1e28a9977e3195dd",
+    "joint_hard_geometry.py": "ab4ef586709c39fc9f68829bc1596dbaa2c47c36b07a929d3001d3f4157e172b",
+    "joint_active_proxy.py": "f74810486b45f5e2119b53952dd60df3a9d1603138b42bfe32e9ff02575d03be"
+  }
+}

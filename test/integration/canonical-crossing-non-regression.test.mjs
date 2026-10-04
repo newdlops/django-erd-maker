@@ -403,7 +403,7 @@ test("route-repair-only gate requires strict node-hit gain and every canonical c
   );
 });
 
-test("v30 orchestration caches relationship-faithful rendered metrics", async () => {
+test("v35 orchestration scores and reuses only audited visible semantic scenes", async () => {
   const source = await fs.readFile(
     path.resolve(
       __dirname,
@@ -412,8 +412,28 @@ test("v30 orchestration caches relationship-faithful rendered metrics", async ()
     "utf8",
   );
 
-  assert.match(source, /"optimized-layout-cache-v30-relationship-faithful-v3"/);
-  assert.match(source, /"relationshipCarrier=faithful-v1"/);
+  assert.match(source, /"optimized-layout-cache-v35-reusable-direct-scene-v1"/);
+  assert.match(source, /isReusableDegradedOptimizedLayout/);
+  assert.match(source, /quality=degraded-safe/);
+  assert.match(source, /let optimizedWarmStartStdout: string \| undefined/);
+  assert.match(
+    source,
+    /if \(cachedHardTargets\.pass\)[\s\S]*?loadedOptimizedFinalFromCache = true;[\s\S]*?optimizedWarmStartStdout = stdout;/,
+  );
+  assert.match(
+    source,
+    /cache warm start:[\s\S]*?continuing optimization/,
+  );
+  assert.match(source, /!loadedFromFile && !optimizedWarmStartStdout/);
+  assert.match(source, /!clusterGraphLayout && !optimizedWarmStartStdout/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v34-canonical-routed-direct-v2"/);
+  assert.match(source, /"relationshipCarrier=direct-edges-node-bundles-v3"/);
+  assert.match(source, /DJERD_CARRIER_AWARE_COST: "0"/);
+  assert.match(source, /DJERD_NO_CARRIER_CROSS: "1"/);
+  assert.match(source, /DJERD_HUB_CARRIER_CROSS_FINAL: "0"/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v33-direct-exact-endpoints-v1"/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v32-target-kind-bundle-v5"/);
+  assert.doesNotMatch(source, /"optimized-layout-cache-v31-target-kind-bundle-v4"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v29-semantic-carrier-v2"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v28-rendered-visual-v1"/);
   assert.doesNotMatch(source, /"optimized-layout-cache-v27-bundle-edge-hard-target"/);
@@ -434,9 +454,9 @@ test("v30 orchestration caches relationship-faithful rendered metrics", async ()
   assert.match(source, /const DEFAULT_EDGE_NODE_TARGET = 0;/);
   assert.match(source, /const DEFAULT_BUNDLE_EDGE_TARGET = 0;/);
   assert.doesNotMatch(source, /DJERD_ADAPTIVE_CARRIER_TARGET_FINAL/);
-  assert.match(
+  assert.doesNotMatch(
     source,
-    /DJERD_NO_CARRIER_CROSS:\s*"0"/,
+    /function ogdfRenderedCarrierEnv[\s\S]*?DJERD_NO_CARRIER_CROSS:\s*"0"[\s\S]*?DJERD_RENDERED_CARRIER_METRICS_FINAL/,
   );
   assert.match(
     source,
@@ -452,7 +472,7 @@ test("v30 orchestration caches relationship-faithful rendered metrics", async ()
   );
   assert.match(
     source,
-    /DJERD_HUB_CARRIER_CROSS_FINAL:\s*"1"/,
+    /DJERD_HUB_CARRIER_CROSS_FINAL:\s*"0"/,
   );
   assert.match(
     source,
@@ -460,11 +480,11 @@ test("v30 orchestration caches relationship-faithful rendered metrics", async ()
   );
   assert.match(
     source,
-    /DJERD_INHERITANCE_CARRIER_FINAL:\s*"1"/,
+    /DJERD_INHERITANCE_CARRIER_FINAL:\s*"0"/,
   );
   assert.match(
     source,
-    /DJERD_INTRA_CLUSTER_CARRIER_FINAL:\s*"1"/,
+    /DJERD_INTRA_CLUSTER_CARRIER_FINAL:\s*"0"/,
   );
   assert.match(
     source,
@@ -638,11 +658,23 @@ test("v30 orchestration caches relationship-faithful rendered metrics", async ()
   );
   assert.match(
     source,
-    /const DEFAULT_OPTIMIZED_LAYOUT_BUDGET_MS = 90_000;/,
+    /const DEFAULT_OPTIMIZED_LAYOUT_BUDGET_MS = 0;/,
   );
   assert.match(
     source,
-    /DJERD_OPTIMIZED_TOTAL_BUDGET_MS[\s\S]*covers=cache-wait,baseline,scorer,reroute,bbox,polish,retouch/,
+    /DJERD_OPTIMIZED_TOTAL_BUDGET_MS[\s\S]*timeLimit=none[\s\S]*covers=cache-wait,baseline,scorer,reroute,bbox,polish,retouch/,
+  );
+  assert.match(
+    source,
+    /deadline\?\.unlimited[\s\S]*timeoutMs: 0/,
+  );
+  assert.match(
+    source,
+    /configuredOptimizedLayoutBudgetMs\(\) === 0/,
+  );
+  assert.match(
+    source,
+    /DJERD_DISABLE_WALL_CLOCK_BUDGETS:[\s\S]*?unlimitedOptimizedSearch \? "1" : "0"/,
   );
   assert.match(
     source,
@@ -673,6 +705,11 @@ test("v30 orchestration caches relationship-faithful rendered metrics", async ()
   assert.match(source, /detached: useProcessGroup/);
   assert.match(source, /process\.kill\(-pid, "SIGKILL"\)/);
   assert.match(source, /native process exceeded hard timeout/);
+  assert.match(source, /DEFAULT_LAYOUT_PROCESS_MEMORY_LIMIT_MIB = 512/);
+  assert.match(source, /layoutProcessQueue/);
+  assert.match(source, /readProcessGroupResidentMemoryMiB/);
+  assert.match(source, /layout process group exceeded/);
+  assert.match(source, /memoryLimited: true/);
 });
 
 test("node-pair retouch honors its native time budget", async () => {
@@ -690,6 +727,17 @@ test("node-pair retouch honors its native time budget", async () => {
   );
   assert.match(source, /DJERD_RENDERED_NODE_CLEARANCE_FINAL_BATCHES/);
   assert.match(source, /DJERD_RENDERED_CARRIER_NODE_TARGET_BUDGET_MS/);
+  assert.match(source, /DJERD_DISABLE_WALL_CLOCK_BUDGETS/);
+  assert.match(
+    source,
+    /return !disableWallClockBudgets[\s\S]*?effectiveGeometryBudgetMs/,
+  );
+  assert.match(
+    source,
+    /return !disableWallClockBudgets[\s\S]*?targetBudgetMs/,
+  );
+  assert.match(source, /if \(disableWallClockBudgets\) return false;/);
+  assert.match(source, /verifiedCrossings=%zu budget=unlimited/);
   assert.match(source, /DJERD_RENDERED_CARRIER_NODE_CLEAR_VISUAL_SLACK/);
   assert.match(
     source,

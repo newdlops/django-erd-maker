@@ -1,0 +1,5 @@
+{"step": "inference", "command": ["nice", "-n", "10", "/Users/lky/.asdf/installs/python/3.11.15/bin/python3", "scripts/erd-poc/learn_card_policy.py", "infer", "--checkpoint", "data/erd-poc/checkpoints/leaf-component-policy-v11.npz", "--environment", ".tmp/visualcross-ml-150-750-20261003/port-environment-v5", "--directory", ".tmp/visualcross-ml-150-750-20261003/individual-separation-port2", "--out", ".tmp/visualcross-ml-150-750-20261003/individual-separation-port2/learned.tsv", "--budget", "20000", "--rounds", "16", "--samples", "12", "--observations", "768", "--seconds", "20", "--seed", "12631", "--allow-neutral"]}
+Traceback (most recent call last):
+  File "/Users/lky/project/django-erd-maker/scripts/erd-poc/learn_card_policy.py", line 23, in <module>
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'

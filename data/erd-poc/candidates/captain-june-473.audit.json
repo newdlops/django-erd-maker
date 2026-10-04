@@ -1,0 +1,33 @@
+{
+  "presentation": "june-bundled",
+  "bundleBundleOverlaps": 0,
+  "bundleEdgeIntersections": 0,
+  "bundleNodeOverlaps": 0,
+  "edgeCount": 1009,
+  "edgeCrossings": 313,
+  "edgeNodeIntersections": 160,
+  "nodeOverlaps": 0,
+  "routeSegments": 1009,
+  "visualCrossings": 473,
+  "bboxB": 0.9903617051328,
+  "spacingViolations": 0,
+  "cards": 1219,
+  "canonicalRelationships": 1684,
+  "groups": 62,
+  "individualVisualCrossings": 1815,
+  "straight": true,
+  "inputs": {
+    "data/erd-poc/candidates/captain-straight-1815.layout.json": "bc1111bd1deacfedb57e4eee49c63655a823abf099495e988faf39d3c33d151c",
+    ".tmp/erd-lowmem/captain-current-payload.json": "438587e93b79eb4816f2b0eec96097f456b510a87db8619bc53e4d8628ddff51",
+    "data/erd-poc/recovered/captain-june-bundle-memberships.json": "53a2a4f327389faf563a7e70fa3fb014026c8a4ecc7b22447de13389ed0fb5c9"
+  },
+  "output": "data/erd-poc/candidates/captain-june-473.layout.json",
+  "sha256": "a6fe95a86a4f6b597c3a3bd3ba058c3edf01436ce4bc138c31ffe3b42906b6a1",
+  "canonicalIdRenames": [
+    {
+      "from": "edge:declared:db.RsuAdjustEvent:source_event",
+      "to": "edge:inheritance:db.RsuAdjustEvent->db.Event"
+    }
+  ],
+  "exactJuneReplay": false
+}

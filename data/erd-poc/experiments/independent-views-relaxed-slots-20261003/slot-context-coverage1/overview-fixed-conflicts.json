@@ -1,0 +1,24 @@
+{
+  "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52",
+  "initialCheckpointSha256": "f643e6088fd522a948c33cf9a739d168cba342be9b130cf2849c867df44c2bd4",
+  "fixedCrossings": [
+    [
+      "edge:declared:db.AgendaHeadOfficeRelocation:meeting_draft",
+      "edge:declared:db.ShareholdersMeetingAgenda:agenda_change_of_articles_of_incorporation"
+    ],
+    [
+      "edge:declared:db.AgendaNewIssue:meeting_draft",
+      "edge:declared:db.ShareholdersMeetingAgenda:agenda_director_compensation_decision"
+    ]
+  ],
+  "fixedCardHits": [
+    [
+      "edge:declared:db.ShareholdersMeetingAgenda:agenda_change_of_articles_of_incorporation",
+      "db.ShareholdersMeetingConvocationNoticeEmail"
+    ],
+    [
+      "edge:inheritance:db.OptionExerciseClaimMeetingDocument->db.MeetingDocument",
+      "leaf-card:32"
+    ]
+  ]
+}

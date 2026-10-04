@@ -1,0 +1,351 @@
+{
+  "scope": "Captain-trained joint neural batch",
+  "view": "overview",
+  "promoted": false,
+  "source": ".tmp/visualcross-ml-targets-20261003/overview-final-moving1/candidate.layout.json",
+  "sourceSha256": "23c020f04cbc7ce41c244f70e628d8272d7fb85fa03a07c70450a36e9448fc95",
+  "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+  "environmentSha256": "e2a58da4e295d6fd26f9473d1ff371f7cea7ad7e4685b786cefa3838b58d3082",
+  "inputHashes": {
+    "nodes.tsv": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+    "edges.tsv": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+    "positions.tsv": "41611eb1101e6c6e4d324d0b4ec62dc8555286110ccd28df63f8f6e750a8b6a6",
+    "routes.tsv": "8220f04430cf6287612b015ae82a83cf7157af0b2a9bb30072af8f66616d7c89",
+    "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+    "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+    "individual.positions.tsv": "13e85432ff837ccbf261391e587fb3d311509b2e58413f378549ea057ccdb797",
+    "individual.routes.tsv": "adadae7d475e0656fa9807564a59479aee81c7793f4d69637552dcaca0340857",
+    "components.tsv": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+    "groups.tsv": "8382a3cb554b102b38b58173e45815c60dab8fadb392904c100f193c178d2fd9"
+  },
+  "proposalAuthority": "frozen neural network batches",
+  "heuristicSearchCalls": 0,
+  "sourceVisual": 299,
+  "maxStep": 4096.0,
+  "seed": 883,
+  "learningRate": 0.0005,
+  "spacingWeight": 1000.0,
+  "spacingPadding": 0.0,
+  "lossTemperatureStart": 1.0,
+  "lossAnnealFraction": 0.6,
+  "groupedRouteLoss": false,
+  "attachedPorts": false,
+  "neuralPerimeterPorts": true,
+  "portSpan": 0.125,
+  "sharedSourceEndpoints": true,
+  "rayConditionedPorts": false,
+  "localizedPatch": true,
+  "hardGeometryWeight": 0.0,
+  "quantizedLoss": false,
+  "roundingGradientEstimator": null,
+  "graphChannels": 16,
+  "gridOrder": false,
+  "slotPermutation": false,
+  "latentGraphStress": false,
+  "exactRewardTraining": true,
+  "rewardSigma": 0.004,
+  "rewardEndpointHead": true,
+  "rewardDirections": 4,
+  "sortingGradientEstimator": null,
+  "sampledTrainingPairs": 0,
+  "initialHeadStd": 0.0,
+  "activePairLoss": false,
+  "crossingDepthWeight": 0.0,
+  "samplingSeed": null,
+  "exactNativeValidation": true,
+  "temporaryRegressionLimit": 0,
+  "inferenceOnly": false,
+  "lossKind": "exact native reward with antithetic neural-head probes",
+  "implementationHashes": {
+    "run_joint_neural_layout.py": "28dc4857e6a6d34d37a4cdb637e63c00e280250d49fd9bdc6aac61292aea98fd",
+    "joint_layout_proxy.py": "d21091db3bbde2b659cced3ed9c2161a98a69cbe4659ac4954f36cfb41176428",
+    "joint_grouped_routes.py": "3b7757e76590aa0e1e935e7f757035f89a6fece56e6a10deb7791e71f1642f6f",
+    "joint_neural_ports.py": "e8ef7617d71b3957fdefe258ed971028c21bfa6278dd5e72d48dfca056284e9b",
+    "joint_grid_policy.py": "e158cccb95c88e224a7dfd417650c9258a9a5468609bd9d892509b9fc1343811",
+    "joint_slot_policy.py": "f3d1e5e3fb9732eba5a8867f315625295e1bb4ee9afdc065938808ce2f5b317e",
+    "joint_reward_training.py": "2303116881b6651c4f9c2c5a68cbc7700a82b55155fbf6a68f2296e19af4b116",
+    "joint_graph_stress.py": "768927fc5839284f36960251f0d4f2d5797b1cac4f6177f14afc6ca16e43d5e1",
+    "joint_hard_geometry.py": "ab4ef586709c39fc9f68829bc1596dbaa2c47c36b07a929d3001d3f4157e172b",
+    "joint_graph_features.py": "41ed03b5f9d6c45a711eba92dee764fed4c1295d788ec3dfb08f70edf23e2e44",
+    "joint_sampled_proxy.py": "7131d7c3fb328f350a70cbf71ab8e1ca8b4ed08d10a73387b64822e57f35fbf5",
+    "joint_active_proxy.py": "4eda3b4534787e03cd5f39f0c9845ae1f015d27f4fdbc36e1d1f6407280f4666",
+    "ml_joint_batch_environment.cpp": "c01d080ddb2ab1f1fcba9a00e8d4595266da3494168d56406a29ebd49de47e8e",
+    "ml_component_environment.cpp": "36bd5693595f19f4a5dd719871fb3687a06566a0116860b839f2ca11679357d9",
+    "constrained_boundary_sweep.h": "296dab7012fe0e0192e2d526bda778f38595f1b8d446d0e2b124d4576297aa79",
+    "audit_individual_policy_experiment.cjs": "e58d4559ea56f758ff25ac335c878475ad82bcca7acdaf385dcabeba2710105f"
+  },
+  "trainingScope": "Captain-specific differentiable training; no unseen-graph evaluation",
+  "patchNodesSha256": "43cb127a52ed19adb09f99ea1c1fcfd22145c9c13444a112d9eae9832c0b2665",
+  "patchSelection": "among the six most conflicted source edges, activate the lower-degree endpoint with greatest conflicts per incident edge",
+  "observationsSha256": "f418bb6395e48018eb16e267fcc459a7b49920c2ccd612670855a2617d3c9d12",
+  "graphFeatureReport": {
+    "kind": "sparse Laplacian subspace iteration",
+    "channels": 16,
+    "nonzeroChannels": 16,
+    "eigenvalues": [
+      0.013398714922510494,
+      0.016004141529802337,
+      0.017260442886348128,
+      0.019960291094524865,
+      0.0227976267226806,
+      0.028341424947278114,
+      0.03060274021425079,
+      0.03323475530884051,
+      0.037112034905856225,
+      0.039344559037292615,
+      0.04172787456747994,
+      0.04522534479937385,
+      0.04799354892501633,
+      0.049655226734208774,
+      0.051693987808615255,
+      0.05384485512233402
+    ],
+    "maxEigenResidual": 0.005391589629182633,
+    "isolatedNodes": 92,
+    "usesLayoutCoordinates": false,
+    "proposesCoordinates": false,
+    "denseNodeMatrixAllocated": false,
+    "passes": 64,
+    "seconds": 0.06604587502079085
+  },
+  "featureMatrixSha256": "25ff53fe9efd6343e69a0c02d98168c0a933c3d69c8ddc877688409f46a30700",
+  "parameterCount": 9828,
+  "activeNodeOutputs": 1,
+  "activeEndpointOutputs": 6,
+  "sourceEndpointGroups": 3431,
+  "sharedEndpointGroups": 16,
+  "proxyCandidatePairs": {},
+  "rewardTrainableKeys": [
+    "wo",
+    "ewo"
+  ],
+  "rewardParameterScales": [
+    1.0,
+    4.0
+  ],
+  "rewardInitialCheckpoint": ".tmp/visualcross-ml-150-750-20261003/overview-coupled-reward1/reward-initial-policy.npz",
+  "rewardInitialCheckpointSha256": "083264649f756bdec1b5e67f9cd730451c3e343da73f813c6c077c03ed87e412",
+  "rewardHeadParameters": 128,
+  "rewardEncoderFixed": true,
+  "rewardMeasurementsReplayed": 256,
+  "rewardAdamUpdatesReplayed": 32,
+  "rewardTraceSha256": "3e2d1bb9b75cbe3526f7a67ffc81e4f001c04fbda1884666e1e4fa12ea6ae3be",
+  "frozenNetworkBatchesReplayed": 9,
+  "frozenWinningGeometryReplayed": false,
+  "unchangedSourceVerified": true,
+  "bestCheckpoint": null,
+  "bestCheckpointSha256": null,
+  "iterations": 32,
+  "neuralChecksPassed": true,
+  "neuralSeconds": 21.35705816600239,
+  "browserVerified": false,
+  "history": [
+    {
+      "iteration": 1,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "total": 753050.375,
+        "rewardMeasurements": 8,
+        "minimumMeasuredObjective": 299.0,
+        "gradientNorm": 451867673.01202995,
+        "headUpdated": true
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 299,
+        "measureOnly": false,
+        "individualVisual": 4337,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 4,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "total": 752051.5,
+        "rewardMeasurements": 32,
+        "minimumMeasuredObjective": 300.0,
+        "gradientNorm": 478875729.1580842,
+        "headUpdated": true
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 300,
+        "measureOnly": false,
+        "individualVisual": 4338,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 8,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "total": 752550.5,
+        "rewardMeasurements": 64,
+        "minimumMeasuredObjective": 300.0,
+        "gradientNorm": 1597960.522617143,
+        "headUpdated": true
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 300,
+        "measureOnly": false,
+        "individualVisual": 4338,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 12,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "total": 751801.625,
+        "rewardMeasurements": 96,
+        "minimumMeasuredObjective": 300.0,
+        "gradientNorm": 392.07726712292316,
+        "headUpdated": true
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 300,
+        "measureOnly": false,
+        "individualVisual": 4338,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 16,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "total": 626550.875,
+        "rewardMeasurements": 128,
+        "minimumMeasuredObjective": 300.0,
+        "gradientNorm": 379689652.635119,
+        "headUpdated": true
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 300,
+        "measureOnly": false,
+        "individualVisual": 4338,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 20,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "total": 501300.875,
+        "rewardMeasurements": 160,
+        "minimumMeasuredObjective": 300.0,
+        "gradientNorm": 546910844.1819304,
+        "headUpdated": true
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 300,
+        "measureOnly": false,
+        "individualVisual": 4339,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 24,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "total": 627051.25,
+        "rewardMeasurements": 192,
+        "minimumMeasuredObjective": 299.0,
+        "gradientNorm": 354698510.3322902,
+        "headUpdated": true
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 300,
+        "measureOnly": false,
+        "individualVisual": 4339,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 28,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "total": 250800.25,
+        "rewardMeasurements": 224,
+        "minimumMeasuredObjective": 300.0,
+        "gradientNorm": 0.0,
+        "headUpdated": true
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 300,
+        "measureOnly": false,
+        "individualVisual": 4339,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 32,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "total": 376050.375,
+        "rewardMeasurements": 256,
+        "minimumMeasuredObjective": 299.0,
+        "gradientNorm": 585795260.8491286,
+        "headUpdated": true
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 300,
+        "measureOnly": false,
+        "individualVisual": 4339,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    }
+  ],
+  "verifiedOutputHashes": {
+    "joint-input-features.npy": "25ff53fe9efd6343e69a0c02d98168c0a933c3d69c8ddc877688409f46a30700",
+    "learned.tsv": "4815d045910bb7bc919b5e5bcea1d2e08abec2075bda8ab146d4546d2bde1093",
+    "learned.tsv.individual": "4a7218fb9a05b1bdd84df584af72341114ffd2bbfbc8577626ef1143eba8fdc3",
+    "learned.tsv.routes.tsv": "49dc6e854f0ca738508b2df421b5cc4528bea5d2c2cc717cb8906f77703bc975",
+    "learned.tsv.individual.routes.tsv": "5e3e209853acb60de27a2780d9c87073471f5e84f218ee2a1f9fbbc2c35375c4",
+    "learned.tsv.stats.json": "8887f1cb720442a495e9c1fc2ec1506dc38f330af2a7bc9c81b308869afd99a0",
+    "learned.tsv.policy.json": "549e7fdba21de1e500f44c9306d13f61acacd3030bf72778eedeed97477b67db"
+  }
+}

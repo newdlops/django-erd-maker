@@ -1,0 +1,201 @@
+{
+  "cardCount": 1244,
+  "widths": {
+    "236.0": 454,
+    "240.0": 42,
+    "247.0": 26,
+    "248.0": 180,
+    "252.0": 12,
+    "254.0": 24,
+    "259.0": 5,
+    "260.0": 29,
+    "262.0": 23,
+    "266.0": 11,
+    "269.0": 23,
+    "272.0": 9,
+    "274.0": 7,
+    "277.0": 23,
+    "278.0": 1,
+    "281.0": 6,
+    "284.0": 21,
+    "286.0": 1,
+    "289.0": 5,
+    "291.0": 22,
+    "293.0": 3,
+    "296.0": 8,
+    "299.0": 21,
+    "303.0": 7,
+    "306.0": 18,
+    "308.0": 5,
+    "311.0": 7,
+    "314.0": 12,
+    "318.0": 5,
+    "320.0": 3,
+    "321.0": 13,
+    "326.0": 2,
+    "328.0": 12,
+    "330.0": 1,
+    "332.0": 1,
+    "333.0": 3,
+    "336.0": 16,
+    "338.0": 1,
+    "340.0": 3,
+    "343.0": 18,
+    "344.0": 1,
+    "348.0": 2,
+    "351.0": 14,
+    "355.0": 1,
+    "356.0": 1,
+    "358.0": 14,
+    "363.0": 4,
+    "365.0": 12,
+    "367.0": 1,
+    "368.0": 1,
+    "370.0": 2,
+    "373.0": 12,
+    "375.0": 1,
+    "377.0": 1,
+    "380.0": 15,
+    "385.0": 2,
+    "388.0": 7,
+    "395.0": 6,
+    "396.0": 64
+  },
+  "heightQuantiles": [
+    74.0,
+    74.0,
+    74.0,
+    82.0,
+    98.0,
+    434.0
+  ],
+  "frame": [
+    44140.259999999995,
+    33299.64
+  ],
+  "area": 1469854767.5063999,
+  "topDegrees": [
+    [
+      "db.Company",
+      169
+    ],
+    [
+      "db.MeetingDocument",
+      78
+    ],
+    [
+      "db.FileAttachment",
+      58
+    ],
+    [
+      "db.VentureCapital",
+      44
+    ],
+    [
+      "db.HrmEmp",
+      36
+    ],
+    [
+      "db.Stakeholder",
+      36
+    ],
+    [
+      "db.Event",
+      33
+    ],
+    [
+      "db.MeetingDraft",
+      29
+    ],
+    [
+      "db.Hrm",
+      28
+    ],
+    [
+      "db.InvestmentAssociation",
+      26
+    ],
+    [
+      "db.ShareholdersMeetingAgenda",
+      26
+    ],
+    [
+      "db.InvestorRelations",
+      25
+    ]
+  ],
+  "largestTripleCommonNeighbors": [
+    [
+      10,
+      "db.MeetingDraft",
+      "db.ShareholdersMeetingAgenda",
+      "db.DirectorsMeetingAgenda"
+    ],
+    [
+      4,
+      "db.FileAttachment",
+      "db.MeetingDraft",
+      "db.ShareholdersMeetingAgenda"
+    ],
+    [
+      3,
+      "db.FileAttachment",
+      "db.ShareholdersMeetingAgenda",
+      "db.DirectorsMeetingAgenda"
+    ],
+    [
+      3,
+      "db.FileAttachment",
+      "db.MeetingDraft",
+      "db.DirectorsMeetingAgenda"
+    ],
+    [
+      3,
+      "db.Company",
+      "db.FileAttachment",
+      "db.Meeting"
+    ],
+    [
+      2,
+      "db.VentureCapital",
+      "db.InvestmentAssociation",
+      "db.LegalPartner"
+    ],
+    [
+      2,
+      "db.ShareholdersMeetingAgenda",
+      "db.Address",
+      "db.DirectorsMeetingAgenda"
+    ],
+    [
+      2,
+      "db.Purchase",
+      "db.InvestorMatching",
+      "db.PortfolioCompany"
+    ],
+    [
+      2,
+      "db.MeetingDraft",
+      "db.ShareholdersMeetingAgenda",
+      "db.Address"
+    ],
+    [
+      2,
+      "db.MeetingDraft",
+      "db.Address",
+      "db.DirectorsMeetingAgenda"
+    ],
+    [
+      2,
+      "db.MeetingDocument",
+      "db.FileAttachment",
+      "db.Meeting"
+    ],
+    [
+      2,
+      "db.Meeting",
+      "db.IncorporationRequest",
+      "db.StockTransferAgreement"
+    ]
+  ]
+}

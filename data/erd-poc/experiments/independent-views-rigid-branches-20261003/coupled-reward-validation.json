@@ -1,0 +1,40 @@
+{
+  "fixtures": [
+    {
+      "rewardOptimizationFixturePassed": true,
+      "coupledHeads": false,
+      "probeActionsReplayed": 768,
+      "adamUpdatesReplayed": 96,
+      "finalSquaredError": 0.0001393481211660965,
+      "passed": true
+    },
+    {
+      "rewardOptimizationFixturePassed": true,
+      "coupledHeads": true,
+      "probeActionsReplayed": 1280,
+      "adamUpdatesReplayed": 160,
+      "finalSquaredError": 1.1516767099511537e-05,
+      "passed": true
+    }
+  ],
+  "legacyCaptainReplay": [
+    {
+      "stage": "individual-patch-reward1",
+      "measurementsReplayed": 180,
+      "adamUpdatesReplayed": 45,
+      "allWeightsMatchFinalCheckpoint": true
+    },
+    {
+      "stage": "overview-patch-reward1",
+      "measurementsReplayed": 356,
+      "adamUpdatesReplayed": 89,
+      "allWeightsMatchFinalCheckpoint": true
+    }
+  ],
+  "allChecksPassed": true,
+  "implementationHashes": {
+    "joint_reward_training.py": "2303116881b6651c4f9c2c5a68cbc7700a82b55155fbf6a68f2296e19af4b116",
+    "run_joint_neural_layout.py": "28dc4857e6a6d34d37a4cdb637e63c00e280250d49fd9bdc6aac61292aea98fd",
+    "joint_neural_ports.py": "e8ef7617d71b3957fdefe258ed971028c21bfa6278dd5e72d48dfca056284e9b"
+  }
+}

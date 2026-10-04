@@ -37,6 +37,7 @@ export function getBrowserDomSource(): string {
             modelId: table.modelId || "",
             modelName: table.modelName || "",
             properties: Array.isArray(table.properties) ? table.properties.slice() : [],
+            selfRelationshipCount: Number(table.selfRelationshipCount || 0),
             tableName: table.databaseTableName || table.modelName || "",
             width: Number(table.size?.width || 0),
           };
@@ -157,54 +158,8 @@ export function getBrowserDomSource(): string {
           );
         }
 
-        function inspectorRelationshipKindLabel(kind) {
-          switch (kind) {
-            case "foreign_key": return "FK";
-            case "one_to_one": return "O2O";
-            case "many_to_many": return "M2M";
-            case "inheritance": return "IS-A";
-            case "reverse_foreign_key": return "REV FK";
-            case "reverse_one_to_one": return "REV O2O";
-            case "reverse_many_to_many": return "REV M2M";
-            default: return String(kind || "REL").toUpperCase();
-          }
-        }
-
         function renderInspectorRelationships(table) {
-          const relationships = Array.isArray(table.relationships) ? table.relationships : [];
-          if (relationships.length === 0) {
-            return '<p class="erd-panel__hint">No declared database relationships.</p>';
-          }
-
-          return (
-            '<ul class="erd-list erd-relationship-list">' +
-            relationships.map((relationship) => {
-              const direction = relationship.direction === "incoming"
-                ? "incoming"
-                : relationship.direction === "self" ? "self" : "outgoing";
-              const label = direction === "incoming"
-                ? "← " + relationship.otherModelId + "." + relationship.fieldName
-                : direction === "self"
-                  ? relationship.fieldName + " ↻ " + table.modelId
-                  : relationship.fieldName + " → " + relationship.otherModelId;
-              return (
-                '<li class="erd-list__item erd-relationship">' +
-                '<span class="erd-relationship__header">' +
-                '<span class="erd-badge erd-badge--relation-' +
-                escapeInspectorHtml(String(relationship.kind || "relation").replaceAll("_", "-")) +
-                '">' +
-                escapeInspectorHtml(inspectorRelationshipKindLabel(relationship.kind)) +
-                "</span>" +
-                '<span class="erd-sidebar__meta">' + direction + "</span>" +
-                "</span>" +
-                '<button type="button" class="erd-relationship__target" data-focus-related-model data-model-id="' +
-                escapeInspectorHtml(relationship.otherModelId) +
-                '">' + escapeInspectorHtml(label) + "</button>" +
-                "</li>"
-              );
-            }).join("") +
-            "</ul>"
-          );
+          return relationshipExplorer.render(table, connectionOptions());
         }
 
         function renderInspectorPanelMarkup(modelId) {
@@ -214,7 +169,7 @@ export function getBrowserDomSource(): string {
               '<header class="erd-panel__header">' +
               '<p class="erd-panel__eyebrow">No Selection</p>' +
               "<h2>Select a model</h2>" +
-              '<p class="erd-panel__meta">Click a node in the diagram to inspect its model details.</p>' +
+              '<p class="erd-panel__meta">Find a model above or select a card to explore its connections.</p>' +
               "</header>" +
               "</section>"
             );
@@ -263,6 +218,7 @@ export function getBrowserDomSource(): string {
               escapeInspectorHtml(table.databaseTableName) +
               "</p>" +
               "</header>" +
+              renderInspectorRelationships(table) +
               '<div class="erd-panel__controls">' +
               renderInspectorToggleButton(table, "hidden", options.hidden ? "Show Table" : "Hide Table", options) +
               "</div>" +
@@ -293,6 +249,8 @@ export function getBrowserDomSource(): string {
             ) +
             "</p>" +
             "</header>" +
+            renderInspectorRelationships(table) +
+            '<details class="erd-model-details" data-model-details><summary>Fields, properties &amp; methods</summary>' +
             '<div class="erd-panel__controls">' +
             renderInspectorToggleButton(table, "hidden", options.hidden ? "Show Table" : "Hide Table", options) +
             renderInspectorToggleButton(table, "showMethods", "Methods", options) +
@@ -317,10 +275,6 @@ export function getBrowserDomSource(): string {
             "</ul>" +
             "</div>" +
             '<div class="erd-panel__section">' +
-            "<h3>Relationships</h3>" +
-            renderInspectorRelationships(table) +
-            "</div>" +
-            '<div class="erd-panel__section">' +
             "<h3>Properties</h3>" +
             '<p class="erd-panel__hint" data-empty-property-hint ' +
             (properties.length > 0 ? "hidden" : "") +
@@ -342,6 +296,7 @@ export function getBrowserDomSource(): string {
             '>No user-defined methods.</p>' +
             renderInspectorMethodButtons(table) +
             "</div>" +
+            "</details>" +
             "</section>"
           );
         }

@@ -1,0 +1,1642 @@
+{
+  "scope": "Captain-trained joint neural batch",
+  "view": "individual",
+  "promoted": false,
+  "source": ".tmp/visualcross-ml-targets-20261003/individual43/candidate.individual.layout.json",
+  "sourceSha256": "81f9b2eb511503ba4f9a4cc940507fda95f2542b623449da51a0577ec2b0857d",
+  "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+  "environmentSha256": "80454a0c4b715f2413f15451407639405604b6cab70ad1ee7327197a14e7f946",
+  "inputHashes": {
+    "nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+    "edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+    "positions.tsv": "81a316bf81828e2ee910b1ef659497b9f783558c99b73b1dddce4c945f663703",
+    "routes.tsv": "a309938abbeb13939e9923c3293569e663a14552b4adec35d06f399ad74171c5",
+    "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+    "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+    "individual.positions.tsv": "81a316bf81828e2ee910b1ef659497b9f783558c99b73b1dddce4c945f663703",
+    "individual.routes.tsv": "a309938abbeb13939e9923c3293569e663a14552b4adec35d06f399ad74171c5",
+    "components.tsv": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+    "groups.tsv": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d"
+  },
+  "proposalAuthority": "frozen neural network batches",
+  "heuristicSearchCalls": 0,
+  "sourceVisual": 1997,
+  "maxStep": 512.0,
+  "seed": 517,
+  "learningRate": 0.00025,
+  "spacingWeight": 20.0,
+  "lossKind": "boundary-clipped sigmoid crossing and card-hit margins v3",
+  "implementationHashes": {
+    "run_joint_neural_layout.py": "8f35514800320c5f407b277a3adb160937143869f395de94179a171df362c6b1",
+    "joint_layout_proxy.py": "86b1284682717466172ce2597b7f81538dd2f1393110d170f28f777b65e8a420",
+    "ml_joint_batch_environment.cpp": "10a5a5443233f9317acf5c60232a35e1c4d99b7f8704a3b7fe6bd3996bba9468",
+    "ml_component_environment.cpp": "4f7a54126bdedfda1b9ea1084c30cc6df0bf735f489348c4789be865e483ec67"
+  },
+  "trainingScope": "Captain-specific differentiable training; no unseen-graph evaluation",
+  "observationsSha256": "964e22786cb122afc7a096dd3764f3f790ec72032f6601915809cd4cc2db63a5",
+  "initialCheckpoint": ".tmp/visualcross-ml-150-750-20261003/individual-joint3/joint-policy-0256.npz",
+  "initialCheckpointSha256": "4edc3887569026c8e4ecf5aa6ba5430a6c2622d6c73a87c99b6f0220db8d8498",
+  "priorTrainingUpdates": 256,
+  "parameterCount": 6306,
+  "proxyCandidatePairs": {
+    "cross_pairs": 49781,
+    "hit_pairs": 47578,
+    "near_pairs": 7656
+  },
+  "candidate": ".tmp/visualcross-ml-150-750-20261003/individual-joint4/candidate.individual.layout.json",
+  "candidateSha256": "81f9b2eb511503ba4f9a4cc940507fda95f2542b623449da51a0577ec2b0857d",
+  "visualCrossings": 1997,
+  "improvesSource": false,
+  "frozenNetworkBatchesReplayed": 79,
+  "frozenWinningGeometryReplayed": false,
+  "unchangedSourceVerified": true,
+  "bestCheckpoint": null,
+  "bestCheckpointSha256": null,
+  "iterations": 309,
+  "allChecksPassed": true,
+  "seconds": 21.985450291016605,
+  "browserVerified": false,
+  "history": [
+    {
+      "iteration": 1,
+      "preUpdateProxy": {
+        "softCrossingCount": 1537.7775268106539,
+        "softCardHitCount": 523.0518152276073,
+        "spacingPenalty": 0.0006380215224439623,
+        "movementPenalty": 0.000368338993340838,
+        "total": 2060.8303483987766
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2027,
+        "individualVisual": 2027,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 4,
+      "preUpdateProxy": {
+        "softCrossingCount": 1537.9632795485209,
+        "softCardHitCount": 522.8224440692932,
+        "spacingPenalty": 0.2666017270614174,
+        "movementPenalty": 0.0003724538069701082,
+        "total": 2061.0526977986824
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2027,
+        "individualVisual": 2027,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 8,
+      "preUpdateProxy": {
+        "softCrossingCount": 1537.8279747399924,
+        "softCardHitCount": 522.623814934085,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 0.00037653348981805447,
+        "total": 2060.452166207567
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2026,
+        "individualVisual": 2026,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 12,
+      "preUpdateProxy": {
+        "softCrossingCount": 1537.3655148142902,
+        "softCardHitCount": 522.6147140383804,
+        "spacingPenalty": 0.017194639322389932,
+        "movementPenalty": 0.0003764045956175127,
+        "total": 2059.9977998965887
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2026,
+        "individualVisual": 2026,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 16,
+      "preUpdateProxy": {
+        "softCrossingCount": 1537.4035401613758,
+        "softCardHitCount": 522.3357220850288,
+        "spacingPenalty": 0.04021186148222533,
+        "movementPenalty": 0.00038044847992250443,
+        "total": 2059.7798545563664
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2027,
+        "individualVisual": 2027,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 20,
+      "preUpdateProxy": {
+        "softCrossingCount": 1537.1325013633862,
+        "softCardHitCount": 522.4077900597682,
+        "spacingPenalty": 0.01813734178006162,
+        "movementPenalty": 0.00038559670830251027,
+        "total": 2059.558814361643
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2026,
+        "individualVisual": 2026,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 24,
+      "preUpdateProxy": {
+        "softCrossingCount": 1536.9635299830961,
+        "softCardHitCount": 522.2915586862217,
+        "spacingPenalty": 0.03263010061877621,
+        "movementPenalty": 0.0003860259108357712,
+        "total": 2059.2881047958476
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2026,
+        "individualVisual": 2026,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 28,
+      "preUpdateProxy": {
+        "softCrossingCount": 1536.9925319009378,
+        "softCardHitCount": 522.1150258433493,
+        "spacingPenalty": 0.0006046220803257692,
+        "movementPenalty": 0.00038998347910051387,
+        "total": 2059.1085523498464
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2026,
+        "individualVisual": 2026,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 32,
+      "preUpdateProxy": {
+        "softCrossingCount": 1536.6325212095708,
+        "softCardHitCount": 522.2953718291417,
+        "spacingPenalty": 0.010369225014949326,
+        "movementPenalty": 0.00039418572312981457,
+        "total": 2058.9386564494507
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2026,
+        "individualVisual": 2026,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 36,
+      "preUpdateProxy": {
+        "softCrossingCount": 1536.5472504823747,
+        "softCardHitCount": 522.121794241735,
+        "spacingPenalty": 0.011823146220083992,
+        "movementPenalty": 0.0004009656534083889,
+        "total": 2058.6812688359837
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2026,
+        "individualVisual": 2026,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 40,
+      "preUpdateProxy": {
+        "softCrossingCount": 1536.5382420813125,
+        "softCardHitCount": 521.9851584003754,
+        "spacingPenalty": 0.038495243548628794,
+        "movementPenalty": 0.00040626499931657674,
+        "total": 2058.562301990236
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2026,
+        "individualVisual": 2026,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 44,
+      "preUpdateProxy": {
+        "softCrossingCount": 1536.2947367368952,
+        "softCardHitCount": 522.0282434513654,
+        "spacingPenalty": 0.01670803103854471,
+        "movementPenalty": 0.00040986353088494105,
+        "total": 2058.34009808283
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2026,
+        "individualVisual": 2026,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 48,
+      "preUpdateProxy": {
+        "softCrossingCount": 1536.1690892147408,
+        "softCardHitCount": 521.9707332613806,
+        "spacingPenalty": 0.018609966166962044,
+        "movementPenalty": 0.0004141125047192478,
+        "total": 2058.158846554793
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2026,
+        "individualVisual": 2026,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 52,
+      "preUpdateProxy": {
+        "softCrossingCount": 1536.0987155029766,
+        "softCardHitCount": 521.8649241322785,
+        "spacingPenalty": 0.051291569444395745,
+        "movementPenalty": 0.0004195828741723932,
+        "total": 2058.015350787574
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2026,
+        "individualVisual": 2026,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 56,
+      "preUpdateProxy": {
+        "softCrossingCount": 1535.9246163134735,
+        "softCardHitCount": 521.8876849204095,
+        "spacingPenalty": 0.09980913645356422,
+        "movementPenalty": 0.00042558617552257086,
+        "total": 2057.912535956512
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2025,
+        "individualVisual": 2025,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 60,
+      "preUpdateProxy": {
+        "softCrossingCount": 1535.7727164377197,
+        "softCardHitCount": 521.860476194152,
+        "spacingPenalty": 0.019605841915928072,
+        "movementPenalty": 0.0004315889233014268,
+        "total": 2057.653230062711
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2025,
+        "individualVisual": 2025,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 64,
+      "preUpdateProxy": {
+        "softCrossingCount": 1535.7613076851121,
+        "softCardHitCount": 521.7071132357678,
+        "spacingPenalty": 0.002091238377690374,
+        "movementPenalty": 0.00043543516372616606,
+        "total": 2057.470947594421
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2025,
+        "individualVisual": 2025,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 68,
+      "preUpdateProxy": {
+        "softCrossingCount": 1535.6866585962798,
+        "softCardHitCount": 521.6334863731639,
+        "spacingPenalty": 0.03005541474151675,
+        "movementPenalty": 0.00043841921220429695,
+        "total": 2057.3506388033975
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2025,
+        "individualVisual": 2025,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 72,
+      "preUpdateProxy": {
+        "softCrossingCount": 1535.5405813571888,
+        "softCardHitCount": 521.5735352215909,
+        "spacingPenalty": 0.04173226530650469,
+        "movementPenalty": 0.00044270684881990224,
+        "total": 2057.156291550935
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2025,
+        "individualVisual": 2025,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 76,
+      "preUpdateProxy": {
+        "softCrossingCount": 1535.3717844103473,
+        "softCardHitCount": 521.5795294912534,
+        "spacingPenalty": 0.015778648175840834,
+        "movementPenalty": 0.0004473023736381511,
+        "total": 2056.9675398521504
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2025,
+        "individualVisual": 2025,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 80,
+      "preUpdateProxy": {
+        "softCrossingCount": 1535.2935601070553,
+        "softCardHitCount": 521.4143711622123,
+        "spacingPenalty": 0.04693097751713095,
+        "movementPenalty": 0.0004544325667586701,
+        "total": 2056.7553166793514
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2025,
+        "individualVisual": 2025,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 84,
+      "preUpdateProxy": {
+        "softCrossingCount": 1535.286217085842,
+        "softCardHitCount": 521.3182977051047,
+        "spacingPenalty": 0.002133437378337187,
+        "movementPenalty": 0.00045862513671427406,
+        "total": 2056.6071068534616
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2025,
+        "individualVisual": 2025,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 88,
+      "preUpdateProxy": {
+        "softCrossingCount": 1535.1339501160694,
+        "softCardHitCount": 521.266259025003,
+        "spacingPenalty": 0.014261083874681,
+        "movementPenalty": 0.0004604113683464944,
+        "total": 2056.4149306363156
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2024,
+        "individualVisual": 2024,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 92,
+      "preUpdateProxy": {
+        "softCrossingCount": 1535.1094535721738,
+        "softCardHitCount": 521.1541445941392,
+        "spacingPenalty": 0.02689378167699713,
+        "movementPenalty": 0.00046650128927323994,
+        "total": 2056.290958449279
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2024,
+        "individualVisual": 2024,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 96,
+      "preUpdateProxy": {
+        "softCrossingCount": 1535.0063445108185,
+        "softCardHitCount": 521.0913818222821,
+        "spacingPenalty": 0.05159141905435899,
+        "movementPenalty": 0.0004696566048863722,
+        "total": 2056.1497874087595
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2023,
+        "individualVisual": 2023,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 100,
+      "preUpdateProxy": {
+        "softCrossingCount": 1534.9163822684138,
+        "softCardHitCount": 521.0156976980511,
+        "spacingPenalty": 0.026595531954909414,
+        "movementPenalty": 0.0004761650168225565,
+        "total": 2055.9591516634364
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2024,
+        "individualVisual": 2024,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 104,
+      "preUpdateProxy": {
+        "softCrossingCount": 1534.8559084744222,
+        "softCardHitCount": 520.931305883169,
+        "spacingPenalty": 0.02654454103676497,
+        "movementPenalty": 0.0004830289473710026,
+        "total": 2055.8142419275755
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2024,
+        "individualVisual": 2024,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 108,
+      "preUpdateProxy": {
+        "softCrossingCount": 1534.6457313568053,
+        "softCardHitCount": 520.8677088867835,
+        "spacingPenalty": 0.00041861304568596074,
+        "movementPenalty": 0.0004924065653722,
+        "total": 2055.5143512632
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2024,
+        "individualVisual": 2024,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 112,
+      "preUpdateProxy": {
+        "softCrossingCount": 1534.2691213521252,
+        "softCardHitCount": 520.8426569350631,
+        "spacingPenalty": 9.477626399215122e-06,
+        "movementPenalty": 0.0005047473637754256,
+        "total": 2055.1122925121786
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 116,
+      "preUpdateProxy": {
+        "softCrossingCount": 1534.0587317483246,
+        "softCardHitCount": 520.7601278223798,
+        "spacingPenalty": 0.0027478864844549112,
+        "movementPenalty": 0.0005180095964048977,
+        "total": 2054.822125466785
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 120,
+      "preUpdateProxy": {
+        "softCrossingCount": 1533.8406445552116,
+        "softCardHitCount": 520.820545469564,
+        "spacingPenalty": 8.897228334306649e-05,
+        "movementPenalty": 0.0005269622737927502,
+        "total": 2054.6618059593325
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 124,
+      "preUpdateProxy": {
+        "softCrossingCount": 1533.856331753751,
+        "softCardHitCount": 520.7316056921348,
+        "spacingPenalty": 2.9522829651208834e-05,
+        "movementPenalty": 0.0005291576226215681,
+        "total": 2054.588496126338
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 128,
+      "preUpdateProxy": {
+        "softCrossingCount": 1533.6317306445217,
+        "softCardHitCount": 520.7382823331641,
+        "spacingPenalty": 0.16822564884882368,
+        "movementPenalty": 0.0005325095144872696,
+        "total": 2054.538771136049
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2023,
+        "individualVisual": 2023,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 132,
+      "preUpdateProxy": {
+        "softCrossingCount": 1533.6371478423443,
+        "softCardHitCount": 520.6518750774583,
+        "spacingPenalty": 0.002064752467200841,
+        "movementPenalty": 0.0005379853670934739,
+        "total": 2054.291625657637
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 136,
+      "preUpdateProxy": {
+        "softCrossingCount": 1533.668764485517,
+        "softCardHitCount": 520.4842304235001,
+        "spacingPenalty": 0.010352298251248422,
+        "movementPenalty": 0.0005432491158082352,
+        "total": 2054.1638904563843
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 140,
+      "preUpdateProxy": {
+        "softCrossingCount": 1533.5403000367335,
+        "softCardHitCount": 520.5424526243393,
+        "spacingPenalty": 0.012244076991098442,
+        "movementPenalty": 0.000553113134828272,
+        "total": 2054.0955498511985
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 144,
+      "preUpdateProxy": {
+        "softCrossingCount": 1533.3287806539843,
+        "softCardHitCount": 520.5938576518033,
+        "spacingPenalty": 0.015089542662420827,
+        "movementPenalty": 0.0005561907300388836,
+        "total": 2053.93828403918
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 148,
+      "preUpdateProxy": {
+        "softCrossingCount": 1533.319429663163,
+        "softCardHitCount": 520.4846665467239,
+        "spacingPenalty": 0.0032902213876394764,
+        "movementPenalty": 0.0005655429409046526,
+        "total": 2053.807951974215
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 152,
+      "preUpdateProxy": {
+        "softCrossingCount": 1533.2531297188243,
+        "softCardHitCount": 520.5000218304776,
+        "spacingPenalty": 0.011250818737419557,
+        "movementPenalty": 0.00057444211987198,
+        "total": 2053.7649768101596
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 156,
+      "preUpdateProxy": {
+        "softCrossingCount": 1533.2253377678248,
+        "softCardHitCount": 520.3958364378607,
+        "spacingPenalty": 0.016362448734199384,
+        "movementPenalty": 0.0005765004501586342,
+        "total": 2053.63811315487
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 160,
+      "preUpdateProxy": {
+        "softCrossingCount": 1533.0967381151168,
+        "softCardHitCount": 520.3933394639236,
+        "spacingPenalty": 0.033566055534646595,
+        "movementPenalty": 0.0005862141086752648,
+        "total": 2053.5242298486837
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 164,
+      "preUpdateProxy": {
+        "softCrossingCount": 1533.0126629941815,
+        "softCardHitCount": 520.3443014009453,
+        "spacingPenalty": 0.01506740006784964,
+        "movementPenalty": 0.0005897007532938475,
+        "total": 2053.372621495948
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 168,
+      "preUpdateProxy": {
+        "softCrossingCount": 1533.0384338208785,
+        "softCardHitCount": 520.2233485685623,
+        "spacingPenalty": 0.015216705110273641,
+        "movementPenalty": 0.0006006176981227382,
+        "total": 2053.277599712249
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 172,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.9616360314212,
+        "softCardHitCount": 520.3010917505981,
+        "spacingPenalty": 7.304205042493239e-07,
+        "movementPenalty": 0.0006069909902641726,
+        "total": 2053.2633355034304
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 176,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.8015089179314,
+        "softCardHitCount": 520.2873499356452,
+        "spacingPenalty": 0.34734813292970057,
+        "movementPenalty": 0.0006104707358638037,
+        "total": 2053.4368174572423
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 180,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.816898883085,
+        "softCardHitCount": 520.1605697838902,
+        "spacingPenalty": 0.025864859695650427,
+        "movementPenalty": 0.0006183885110613926,
+        "total": 2053.003951915182
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 184,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.7087091953704,
+        "softCardHitCount": 520.1627915446757,
+        "spacingPenalty": 0.026606664290106212,
+        "movementPenalty": 0.000624008508826203,
+        "total": 2052.8987314128453
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 188,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.6137977513608,
+        "softCardHitCount": 520.2156296250823,
+        "spacingPenalty": 0.018577913040466562,
+        "movementPenalty": 0.000633157734228279,
+        "total": 2052.848638447218
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 192,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.6212804097686,
+        "softCardHitCount": 520.0919079468199,
+        "spacingPenalty": 0.01651657670451483,
+        "movementPenalty": 0.0006367031818505372,
+        "total": 2052.730341636475
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 196,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.5212627052779,
+        "softCardHitCount": 520.1162340056129,
+        "spacingPenalty": 0.010985062522583185,
+        "movementPenalty": 0.0006407350990853194,
+        "total": 2052.649122508513
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 200,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.5120058858283,
+        "softCardHitCount": 520.0652148984864,
+        "spacingPenalty": 0.0063335114699850925,
+        "movementPenalty": 0.0006437233376979383,
+        "total": 2052.5841980191226
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 204,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.4330120483587,
+        "softCardHitCount": 519.6485201785213,
+        "spacingPenalty": 0.007759631149430042,
+        "movementPenalty": 0.0006473475077544206,
+        "total": 2052.089939205537
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 208,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.5526417537621,
+        "softCardHitCount": 519.3083561350152,
+        "spacingPenalty": 0.02223574352820202,
+        "movementPenalty": 0.0006493836176608048,
+        "total": 2051.883883015923
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 212,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.5932866900714,
+        "softCardHitCount": 519.1083897774513,
+        "spacingPenalty": 0.034896270777307184,
+        "movementPenalty": 0.0006528777774560829,
+        "total": 2051.7372256160775
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 216,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.4263318557707,
+        "softCardHitCount": 519.121389952764,
+        "spacingPenalty": 0.002774416271593893,
+        "movementPenalty": 0.0006541725592569314,
+        "total": 2051.5511503973657
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 220,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.3766141953988,
+        "softCardHitCount": 519.102813114793,
+        "spacingPenalty": 0.00017398734975682237,
+        "movementPenalty": 0.0006536947325138958,
+        "total": 2051.480254992274
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 224,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.3567569861646,
+        "softCardHitCount": 518.9750771742152,
+        "spacingPenalty": 0.015531047283102754,
+        "movementPenalty": 0.0006585980126115009,
+        "total": 2051.348023805676
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 228,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.239101838005,
+        "softCardHitCount": 519.0023791877002,
+        "spacingPenalty": 0.002621300083656293,
+        "movementPenalty": 0.0006619080620034113,
+        "total": 2051.2447642338507
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 232,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.2144454929619,
+        "softCardHitCount": 518.9679081153213,
+        "spacingPenalty": 0.0004956950818811509,
+        "movementPenalty": 0.0006632521554625821,
+        "total": 2051.1835125555203
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 236,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.1791209028297,
+        "softCardHitCount": 518.9169128043986,
+        "spacingPenalty": 0.00015010164642953664,
+        "movementPenalty": 0.0006633331703496198,
+        "total": 2051.096847142045
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2021,
+        "individualVisual": 2021,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 240,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.0017663527028,
+        "softCardHitCount": 518.9924817363687,
+        "spacingPenalty": 0.10616315500534504,
+        "movementPenalty": 0.0006669733770455512,
+        "total": 2051.101078217454
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 244,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.974279540966,
+        "softCardHitCount": 518.9542955047548,
+        "spacingPenalty": 0.011086239448469997,
+        "movementPenalty": 0.0006708816174660066,
+        "total": 2050.9403321667874
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 248,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.931667075851,
+        "softCardHitCount": 518.8808927401799,
+        "spacingPenalty": 0.030299685919719793,
+        "movementPenalty": 0.0006726500991175031,
+        "total": 2050.8435321520496
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 252,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.9394138432226,
+        "softCardHitCount": 518.9045812957042,
+        "spacingPenalty": 0.006056172846484881,
+        "movementPenalty": 0.0006778651728888624,
+        "total": 2050.850729176946
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 256,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.854053772854,
+        "softCardHitCount": 518.8792454582485,
+        "spacingPenalty": 0.0014265917471698733,
+        "movementPenalty": 0.0006774511739648316,
+        "total": 2050.7354032740236
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2021,
+        "individualVisual": 2021,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 260,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.8393225307696,
+        "softCardHitCount": 518.8300048607358,
+        "spacingPenalty": 0.03015278491496203,
+        "movementPenalty": 0.0006812522266291673,
+        "total": 2050.700161428647
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 264,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.8177896552384,
+        "softCardHitCount": 518.7718888994596,
+        "spacingPenalty": 0.007876282867318679,
+        "movementPenalty": 0.0006849953113160795,
+        "total": 2050.598239832877
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 268,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.651541870083,
+        "softCardHitCount": 518.895009217453,
+        "spacingPenalty": 0.006645211190506803,
+        "movementPenalty": 0.0006859907781960039,
+        "total": 2050.5538822895046
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 272,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.7325004282043,
+        "softCardHitCount": 518.8043276885347,
+        "spacingPenalty": 0.005524344814927071,
+        "movementPenalty": 0.000690675545869305,
+        "total": 2050.5430431370996
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 276,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.7555162611166,
+        "softCardHitCount": 518.6992737810536,
+        "spacingPenalty": 0.016367848685563277,
+        "movementPenalty": 0.0006904929363311857,
+        "total": 2050.4718483837923
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 280,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.5209348840262,
+        "softCardHitCount": 518.8154782515385,
+        "spacingPenalty": 0.00988769699409181,
+        "movementPenalty": 0.0006871219291336427,
+        "total": 2050.346987954488
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2021,
+        "individualVisual": 2021,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 284,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.5446445765342,
+        "softCardHitCount": 518.7862189297825,
+        "spacingPenalty": 0.0028911160022928283,
+        "movementPenalty": 0.00069012312782074,
+        "total": 2050.334444745447
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 288,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.6190524389167,
+        "softCardHitCount": 518.7132246313024,
+        "spacingPenalty": 0.022785141664416652,
+        "movementPenalty": 0.0006913198252762005,
+        "total": 2050.3557535317086
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 292,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.4984710663193,
+        "softCardHitCount": 518.777778981836,
+        "spacingPenalty": 0.02676808306597591,
+        "movementPenalty": 0.0006922840780934067,
+        "total": 2050.3037104152995
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 296,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.3803234936065,
+        "softCardHitCount": 518.8274241122577,
+        "spacingPenalty": 0.0320786888558791,
+        "movementPenalty": 0.0006926631384017001,
+        "total": 2050.240518957859
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2021,
+        "individualVisual": 2021,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 300,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.48004069477,
+        "softCardHitCount": 518.6563625948945,
+        "spacingPenalty": 0.03105252255792393,
+        "movementPenalty": 0.0006948209998760015,
+        "total": 2050.168150633222
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 304,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.3331663023168,
+        "softCardHitCount": 518.7034543319506,
+        "spacingPenalty": 0.08707885539016803,
+        "movementPenalty": 0.0006947838674622862,
+        "total": 2050.124394273525
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2021,
+        "individualVisual": 2021,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 308,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.3348707353216,
+        "softCardHitCount": 518.6255336754488,
+        "spacingPenalty": 0.03637730545466873,
+        "movementPenalty": 0.000699058052830128,
+        "total": 2049.997480774278
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    },
+    {
+      "iteration": 309,
+      "preUpdateProxy": {
+        "softCrossingCount": 1531.3716958205732,
+        "softCardHitCount": 518.609359824382,
+        "spacingPenalty": 0.025537166714261143,
+        "movementPenalty": 0.0007015431500726443,
+        "total": 2050.00729435482
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": true,
+        "visual": 2022,
+        "individualVisual": 2022,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    }
+  ],
+  "individualVisual": 1997
+}

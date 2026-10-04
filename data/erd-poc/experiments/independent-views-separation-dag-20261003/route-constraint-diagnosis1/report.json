@@ -1,0 +1,75 @@
+{
+  "proposalSource": "previously frozen bounded neural actions only",
+  "candidateCreated": false,
+  "nativeBinarySha256": "f3ea45015542ac373d3396a79a594bc4eb8abf143ae8c2e25d897b5c79630ab0",
+  "views": {
+    "individual": {
+      "sourceDirectory": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-bounded-trained2",
+      "traceSha256": "932f809d1d49ecaf4b13a4ad981e57e44dc8176f2caa52da21d01e0f127658a3",
+      "checkpointSha256": "52dfe940a7498f12cbfa016232044ce7df4bd4ade31a57abaef3ede80571aab2",
+      "actionsReplayed": 8284,
+      "hardRejectedActions": 3395,
+      "positiveGainHardRejectedActions": 0,
+      "distinctPositiveRoots": 0,
+      "sampledRoots": 0,
+      "candidatesWithCategory": {
+        "overviewHard": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "individualHard": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "samples": []
+    },
+    "overview": {
+      "sourceDirectory": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-bounded-trained2",
+      "traceSha256": "e63c0d36ff5f6320608489ca5042cee688eaa73771577012b5fd76b33b706332",
+      "checkpointSha256": "39a135d12be3e7c76d6005b87df65226464307232782920448db1ad68c417992",
+      "actionsReplayed": 6382,
+      "hardRejectedActions": 2854,
+      "positiveGainHardRejectedActions": 0,
+      "distinctPositiveRoots": 0,
+      "sampledRoots": 0,
+      "candidatesWithCategory": {
+        "overviewHard": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "individualHard": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "samples": []
+    }
+  },
+  "hardCategories": [
+    "outwardAtMovedCard",
+    "outwardAtFixedCard",
+    "ownCardReentry",
+    "adjacentCrossingDoubled",
+    "boundaryContactDoubled"
+  ],
+  "implementationHashes": {
+    "diagnose_learned_route_constraints.cpp": "74ee6472ce0fb92bfd2146a570908a00adba48db9e804149e6cac71141ee75fa",
+    "ml_component_environment.cpp": "10e599399a648df75ec86049aa3e2999cf8f0e37009d8ac643231c185e0fd327",
+    "constrained_scene.h": "ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6",
+    "constrained_dual_node_geometry.h": "aa984669fd96ddbcd375301d564f9f511cb406549a44619a17ce80cbdbdcf692",
+    "constrained_boundary_sweep.h": "296dab7012fe0e0192e2d526bda778f38595f1b8d446d0e2b124d4576297aa79"
+  }
+}

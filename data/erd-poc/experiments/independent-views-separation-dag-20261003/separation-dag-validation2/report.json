@@ -1,0 +1,186 @@
+{
+  "nativeBinarySha256": "e2a58da4e295d6fd26f9473d1ff371f7cea7ad7e4685b786cefa3838b58d3082",
+  "views": {
+    "individual": {
+      "sourceSha256": "42adab07b311c16463bd7f5dc0ee68941d6047ac0372415393ad9355c126fe22",
+      "sourceVisual": 1964,
+      "nodes": 1244,
+      "storedConstraints": 70156,
+      "zeroOutputEndpoints": 3454,
+      "fullCardsContained": true,
+      "nativeNoncommittingBatches": [
+        {
+          "accepted": false,
+          "legal": true,
+          "visual": 1964,
+          "measureOnly": true,
+          "individualVisual": 1964,
+          "spacing": 0,
+          "hard": 0,
+          "individualHard": 0,
+          "reason": "legal"
+        },
+        {
+          "accepted": false,
+          "legal": true,
+          "visual": 1964,
+          "measureOnly": true,
+          "individualVisual": 1964,
+          "spacing": 0,
+          "hard": 0,
+          "individualHard": 0,
+          "reason": "legal"
+        },
+        {
+          "accepted": false,
+          "legal": false,
+          "visual": 2172,
+          "measureOnly": true,
+          "individualVisual": 2172,
+          "spacing": 0,
+          "hard": 222,
+          "individualHard": 222,
+          "reason": "hard"
+        },
+        {
+          "accepted": false,
+          "legal": false,
+          "visual": 2878,
+          "measureOnly": true,
+          "individualVisual": 2878,
+          "spacing": 0,
+          "hard": 552,
+          "individualHard": 552,
+          "reason": "hard"
+        },
+        {
+          "accepted": false,
+          "legal": false,
+          "visual": 4483,
+          "measureOnly": true,
+          "individualVisual": 4483,
+          "spacing": 0,
+          "hard": 1212,
+          "individualHard": 1212,
+          "reason": "hard"
+        },
+        {
+          "accepted": false,
+          "legal": false,
+          "visual": 6755,
+          "measureOnly": true,
+          "individualVisual": 6755,
+          "spacing": 0,
+          "hard": 2690,
+          "individualHard": 2690,
+          "reason": "hard"
+        }
+      ],
+      "surrogateNetworkDerivatives": 28,
+      "finiteDifferenceSteps": [
+        1e-07,
+        1e-08
+      ],
+      "maximumDerivativeAbsoluteError": 1.2771510512266104e-05,
+      "frozenRoundtrip": true,
+      "sourceUnchanged": true
+    },
+    "overview": {
+      "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52",
+      "sourceVisual": 289,
+      "nodes": 1035,
+      "storedConstraints": 51458,
+      "zeroOutputEndpoints": 3454,
+      "fullCardsContained": true,
+      "nativeNoncommittingBatches": [
+        {
+          "accepted": false,
+          "legal": true,
+          "visual": 289,
+          "measureOnly": true,
+          "individualVisual": 4447,
+          "spacing": 0,
+          "hard": 0,
+          "individualHard": 0,
+          "reason": "legal"
+        },
+        {
+          "accepted": false,
+          "legal": true,
+          "visual": 289,
+          "measureOnly": true,
+          "individualVisual": 4447,
+          "spacing": 0,
+          "hard": 0,
+          "individualHard": 0,
+          "reason": "legal"
+        },
+        {
+          "accepted": false,
+          "legal": false,
+          "visual": 331,
+          "measureOnly": true,
+          "individualVisual": 4547,
+          "spacing": 0,
+          "hard": 34,
+          "individualHard": 112,
+          "reason": "hard"
+        },
+        {
+          "accepted": false,
+          "legal": false,
+          "visual": 445,
+          "measureOnly": true,
+          "individualVisual": 4793,
+          "spacing": 0,
+          "hard": 62,
+          "individualHard": 228,
+          "reason": "hard"
+        },
+        {
+          "accepted": false,
+          "legal": false,
+          "visual": 0,
+          "measureOnly": true,
+          "individualVisual": 0,
+          "spacing": 0,
+          "hard": 0,
+          "individualHard": 0,
+          "reason": "projection"
+        },
+        {
+          "accepted": false,
+          "legal": false,
+          "visual": 0,
+          "measureOnly": true,
+          "individualVisual": 0,
+          "spacing": 0,
+          "hard": 0,
+          "individualHard": 0,
+          "reason": "projection"
+        }
+      ],
+      "surrogateNetworkDerivatives": 28,
+      "finiteDifferenceSteps": [
+        1e-07,
+        1e-08
+      ],
+      "maximumDerivativeAbsoluteError": 1.2834904453029594e-05,
+      "frozenRoundtrip": true,
+      "sourceUnchanged": true
+    }
+  },
+  "fixtures": {
+    "geometryCases": 192,
+    "continuousDecoderDerivatives": 72,
+    "halfTieConstraint": true,
+    "zeroIdentity": true
+  },
+  "implementationHashes": {
+    "joint_separation_policy.py": "00f40118605c91fb61cdf8309016e8622ce881754aaea03c64d59d98d2dcd7bc",
+    "joint_neural_ports.py": "8d3514b08280a91257577e31211076ac1e3772eb412e48a5780b4e9423d32e9e",
+    "joint_layout_proxy.py": "d21091db3bbde2b659cced3ed9c2161a98a69cbe4659ac4954f36cfb41176428",
+    "joint_grouped_routes.py": "3b7757e76590aa0e1e935e7f757035f89a6fece56e6a10deb7791e71f1642f6f",
+    "run_joint_neural_layout.py": "660a6e56f2c06dbb6c38c8ee4788fb806ebbf08fe0350ac66f3bc9c2ea48e4e6"
+  }
+}

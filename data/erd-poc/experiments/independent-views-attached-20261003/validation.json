@@ -1,0 +1,48 @@
+{
+  "lossTemperatureGradients": {
+    "comparisons": 132,
+    "temperatures": [
+      1,
+      8,
+      32
+    ],
+    "passed": true,
+    "peakMiB": 39.4
+  },
+  "groupedRouteGradients": {
+    "comparisons": 56,
+    "baselineVisual": 364,
+    "nativeParity": true
+  },
+  "attachedRouteGradients": {
+    "comparisons": 38,
+    "overviewVisual": 299,
+    "individualVisual": 1996,
+    "nativeParity": true,
+    "baselinePreserved": true,
+    "peakMiB": 91.6
+  },
+  "nativeV3": {
+    "geometryComparisons": 384,
+    "legalBatches": 323,
+    "attachedOffsetsVerified": true,
+    "compilePeakMiB": 225.3,
+    "testPeakMiB": 2.7
+  },
+  "resourcePeaksMiB": {
+    "individual-annealed1": 189.2,
+    "overview-grouped1": 179.6,
+    "overview-grouped2": 177.8,
+    "overview-grouped-ports1": 188.9,
+    "overview-grouped-ports2": 190.1,
+    "overview-attached1": 181.0,
+    "individual-attached1": 197.8
+  },
+  "serializedJobs": true,
+  "mathThreads": 1,
+  "guardLimitMiB": 256,
+  "trainingExitedBeforeProductAudit": true,
+  "actualBrowserVerified": false,
+  "allNewExperimentsUnpromoted": true,
+  "remainingIssue": "Attached neural proposals violate native hard geometry; current soft loss excludes adjacent crossings and own-card hits."
+}

@@ -130,7 +130,7 @@ test("phase8 model sheet asks for a node instead of choosing one implicitly", ()
   const modelSheet = html.slice(modelSheetIndex, diagramSheetIndex);
 
   assert.match(modelSheet, /<h2>Select a model<\/h2>/);
-  assert.match(modelSheet, /Click a node in the diagram to inspect its model details\./);
+  assert.match(modelSheet, /Find a model above or select a card to explore its connections\./);
   assert.doesNotMatch(modelSheet, /data-model-id="blog\.Post"/);
 });
 
@@ -158,13 +158,15 @@ test("phase8 model inspector explains declared relationship kind, field, and dir
     payload.view.selectedModelId = "accounts.Author";
   });
 
-  assert.match(postHtml, /erd-badge--relation-foreign-key">FK<\/span>/);
-  assert.match(postHtml, /author → accounts\.Author/);
-  assert.match(postHtml, /erd-badge--relation-many-to-many">M2M<\/span>/);
-  assert.match(postHtml, /tags → taxonomy\.Tag/);
-  assert.match(authorHtml, /← blog\.Post\.author/);
+  assert.match(postHtml, /erd-badge--relation-foreign-key">Many → one<\/span>/);
+  assert.match(postHtml, /Preview: References accounts\.Author, field author/);
+  assert.match(postHtml, /erd-badge--relation-many-to-many">Many ↔ many<\/span>/);
+  assert.match(postHtml, /Preview: References taxonomy\.Tag, field tags/);
+  assert.match(authorHtml, /Preview: Referenced by blog\.Post, field author/);
   assert.doesNotMatch(authorHtml, />REV FK<\/span>/);
   assert.match(postHtml, /relationshipColor\(kinds, alpha\)/);
+  assert.match(postHtml, /Gather connected models into a compact diagram\./);
+  assert.match(postHtml, /data-relationship-edge-id="edge-post-author"/);
 });
 
 test("phase8 document surfaces layout fallback state and disables failed layout buttons", () => {
@@ -461,6 +463,20 @@ test("phase8 cluster focus appears only after selecting a member", () => {
   assert.match(html, /isModelInSelectedCluster\(record\.modelId\)/);
   assert.match(html, /selectedModelId: value\.selectedModelId \|\| undefined/);
   assert.match(html, /dispatch\(\{ type: "clear-selection" \}\)/);
+  assert.match(html, /const CANVAS_CLICK_MOVE_THRESHOLD = 4/);
+  assert.match(
+    html,
+    /completedDrag\.kind === "canvas"\s*&& !completedDrag\.moved\s*\) \{\s*\/\/ A background click clears focus;/,
+  );
+  const canvasPointerDown = html.slice(
+    html.indexOf('canvas.addEventListener("pointerdown"'),
+    html.indexOf('canvas.addEventListener("pointermove"'),
+  );
+  assert.doesNotMatch(
+    canvasPointerDown,
+    /clear-selection/,
+    "starting a canvas pan must not clear the selected model",
+  );
   assert.doesNotMatch(html, /clusterId \|\| appLabel/);
 });
 
@@ -603,8 +619,8 @@ test("catalog layout input resolves and audits the exact rendered bundle geometr
   assert.equal(layoutAudit.nodeOverlaps, 0);
   assert.equal(
     layoutAudit.objectCount,
-    payload.layout.nodes.length - 39 + 1,
-    "nested leaf tiles should be represented by one synthetic bundle table",
+    payload.layout.nodes.length,
+    "every packed leaf must remain an independently audited real table",
   );
 
   // This assertion block isolates table/bundle clearance. The catalog fixture's
@@ -736,6 +752,21 @@ test("optimized hard targets reject an edge that penetrates the actual final sce
   );
 });
 
+test("optimized area target includes its boundary and rejects the former two-percent slack", () => {
+  const payload = structuredClone(loadPhaseOneSample());
+  const areaB = measureLayoutRenderedTableClearance(payload, payload.layout).bboxArea / 1e9;
+  assert.ok(areaB > 0);
+  const atBoundary = evaluateOptimizedLayoutHardTargets(payload, payload.layout, {
+    bboxTargetB: areaB,
+  });
+  const overBoundary = evaluateOptimizedLayoutHardTargets(payload, payload.layout, {
+    bboxTargetB: areaB / 1.01,
+  });
+  assert.equal(atBoundary.bboxPass, true);
+  assert.equal(overBoundary.bboxPass, false);
+  assert.ok(overBoundary.failures.some((failure) => /BBOX/.test(failure)));
+});
+
 test("rendered visual metrics preserve carrier scores under an explicit scope", () => {
   const payload = structuredClone(loadPhaseOneSample());
   payload.layout.engineMetadata = {
@@ -747,6 +778,7 @@ test("rendered visual metrics preserve carrier scores under an explicit scope", 
     nodeOverlaps: 3,
     routeSegments: 468,
     visualCrossings: 88,
+    boundingBoxArea: 1,
   };
   const expected = measureLayoutRenderedVisualConflicts(payload, payload.layout);
   const actual = synchronizeLayoutRenderedVisualMetrics(payload, payload.layout);
@@ -754,7 +786,7 @@ test("rendered visual metrics preserve carrier scores under an explicit scope", 
   assert.deepEqual(actual, expected);
   assert.equal(
     payload.layout.engineMetadata.visualCrossingsScope,
-    "rendered-relationship-faithful-v3",
+    "rendered-canonical-direct-node-bundles-v3",
   );
   assert.equal(payload.layout.engineMetadata.carrierVisualCrossings, 88);
   assert.equal(payload.layout.engineMetadata.carrierEdgeCrossings, 26);
@@ -770,6 +802,9 @@ test("rendered visual metrics preserve carrier scores under an explicit scope", 
     expected.edgeNodeIntersections,
   );
   assert.equal(payload.layout.engineMetadata.renderedEdgeCount, expected.edgeCount);
+  const renderedArea = measureLayoutRenderedTableClearance(payload, payload.layout).bboxArea;
+  assert.notEqual(renderedArea, 1);
+  assert.equal(payload.layout.engineMetadata.boundingBoxArea, renderedArea);
 
   synchronizeLayoutRenderedVisualMetrics(payload, payload.layout);
   assert.equal(
@@ -910,6 +945,22 @@ test("phase8 browser runtime renders a GPU scene with minimap and viewport-aware
   assert.match(html, /straightBundlePenetrations/);
   assert.match(html, /straightNodePenetrations/);
   assert.match(html, /straightCollisionEdges/);
+  assert.doesNotMatch(html, /const bundledRelationshipEdgeIds = new Set/);
+  assert.doesNotMatch(html, /semantic-bundle/);
+  assert.doesNotMatch(html, /function createRevealedExactRelationshipEntries\(\)/);
+  assert.match(html, /relationshipByEdgeId\.get\(revealedRelationshipEdgeId\)/);
+  assert.match(html, /function edgeContainsRevealedRelationship\(meta\)/);
+  assert.match(
+    html,
+    /previewRelationship\(button\.dataset\.relationshipEdgeId\)/,
+  );
+  assert.doesNotMatch(
+    html,
+    /for \(const relationship of relationshipsByModelId\.get\(selectedModelId\)/,
+    "selecting a model must not expand every bundled member edge",
+  );
+  assert.doesNotMatch(html, /__relationbundle\./);
+  assert.match(html, /selfRelationshipCount/);
   assert.match(html, /function segmentRectangleInteriorInterval\(/);
   assert.match(html, /function createStraightEdgePath\(/);
   assert.doesNotMatch(html, /function routeEdgePathAroundTables\(/);
@@ -968,7 +1019,7 @@ test("phase8 browser runtime renders a GPU scene with minimap and viewport-aware
   assert.doesNotMatch(html, /data-edge-bundle-toggle/);
   assert.match(html, /function fitFontToWidth\(context, font, text, maxWidth\)/);
   assert.doesNotMatch(html, /function trimTextToWidth\(/);
-  assert.doesNotMatch(html, /…/);
+  assert.doesNotMatch(getBrowserCanvasDrawSource(), /…/, 'canvas labels must retain complete model names');
   assert.match(html, /overflow-wrap: anywhere/);
   assert.match(html, /drag\.currentPosition =/);
   assert.match(html, /scheduleViewportRender\(\)/);
@@ -1074,6 +1125,24 @@ test("phase8 browser keeps one straight segment and audits collisions without de
     carrierRoute.collisions.length,
     1,
     "logical carrier membership must not hide a physical table penetration",
+  );
+
+  const branchThroughLogicalTarget = createStraightEdgePath(
+    [{ x: 0, y: 0 }, { x: 800, y: 0 }],
+    {
+      physicalEndpointModelIds: ["test.Source"],
+      sourceModelId: "test.Source",
+      targetModelId: "test.LogicalTarget",
+    },
+    createRoutingScene([
+      routingTable("test.Source", -120, -60, 120, 120),
+      routingTable("test.LogicalTarget", 360, -60, 180, 120),
+    ]),
+  );
+  assert.equal(
+    branchThroughLogicalTarget.collisions.length,
+    1,
+    "a branch may exempt only the table it physically touches",
   );
 
   const tightEndpointScene = createRoutingScene([

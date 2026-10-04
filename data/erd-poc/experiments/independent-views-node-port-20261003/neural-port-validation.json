@@ -1,0 +1,34 @@
+{
+  "views": [
+    {
+      "input": ".tmp/visualcross-ml-150-750-20261003/individual-hard1",
+      "zeroOutputEndpointsPreserved": 3454,
+      "routeGradientChecks": 24,
+      "networkWeightGradientChecks": 28,
+      "baselineVisual": 1996,
+      "baselineHardPenalty": 0.0,
+      "frozenRoundtripExact": true,
+      "parameterCount": 8804,
+      "allChecksPassed": true
+    },
+    {
+      "input": ".tmp/visualcross-ml-150-750-20261003/overview-hard1",
+      "zeroOutputEndpointsPreserved": 3454,
+      "routeGradientChecks": 24,
+      "networkWeightGradientChecks": 28,
+      "baselineVisual": 299,
+      "baselineHardPenalty": 0.0,
+      "frozenRoundtripExact": true,
+      "parameterCount": 8804,
+      "allChecksPassed": true
+    }
+  ],
+  "continuousGradientChecks": true,
+  "nativeValidationStillRequired": true,
+  "implementationHashes": {
+    "validate_joint_neural_ports.py": "a7eb8fdd26e24a6fd5ed57aedcd0e5ae898b204723e9feab455ef8e269292d58",
+    "joint_neural_ports.py": "6a54cc90ac60d5435a39dfcc5e63e55ffa02e82040c210b36318bd093f47f94d",
+    "joint_layout_proxy.py": "e80ab7bb4a62d51d9b69b1a7b9a73d69c578cff4e6da739940a1f89be43e28b4",
+    "joint_hard_geometry.py": "ab4ef586709c39fc9f68829bc1596dbaa2c47c36b07a929d3001d3f4157e172b"
+  }
+}

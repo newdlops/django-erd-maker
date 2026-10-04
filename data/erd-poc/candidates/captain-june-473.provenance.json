@@ -1,0 +1,39 @@
+{
+  "savedAt": "2026-09-15",
+  "presentation": "june-bundled",
+  "candidateSha256": "a6fe95a86a4f6b597c3a3bd3ba058c3edf01436ce4bc138c31ffe3b42906b6a1",
+  "policyCommit": "aef540a2",
+  "membershipSnapshot": "Preserved July 10 leaf memberships, using the June 5 grouping policy.",
+  "exactJuneReplay": false,
+  "canonicalGeometryBase": "data/erd-poc/candidates/captain-straight-1815.layout.json",
+  "canonicalGeometryBaseSha256": "bc1111bd1deacfedb57e4eee49c63655a823abf099495e988faf39d3c33d151c",
+  "visualCrossings": 473,
+  "individualVisualCrossings": 1815,
+  "bboxB": 0.9903617051328,
+  "canonicalRelationships": 1684,
+  "visibleLines": 1009,
+  "bundledRelationships": 737,
+  "bundleGroups": 62,
+  "canonicalIdRenames": [
+    {
+      "from": "edge:declared:db.RsuAdjustEvent:source_event",
+      "to": "edge:inheritance:db.RsuAdjustEvent->db.Event"
+    }
+  ],
+  "overviewTargetMet": true,
+  "individualTargetMet": false,
+  "productFileLoadVerified": true,
+  "browserRouteFunctionParity": true,
+  "browserVerified": false,
+  "productDefaultCacheApplied": false,
+  "debugConfiguration": "Run Captain (June bundles 473)",
+  "report": "captain-layout-june-overview.md",
+  "verification": {
+    "integrationTests": 56,
+    "finalFocusedTests": 8,
+    "uniqueTests": 59,
+    "typeScriptBuild": true,
+    "browserFailure": "No browser is available; backend list empty. No viewport, GPU, pointer or keyboard verification.",
+    "mechanicalMarkupDetectorFindings": 0
+  }
+}

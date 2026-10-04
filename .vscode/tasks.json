@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "verify:ml-preview",
+      "type": "shell",
+      "command": "/usr/bin/python3 scripts/erd-poc/run_memory_bounded.py --limit-mib 128 -- node --max-old-space-size=40 --max-semi-space-size=1 scripts/erd-poc/verify_latest_patch_preview.cjs",
+      "problemMatcher": []
+    },
+    {
+      "label": "build:extension:bounded",
+      "type": "shell",
+      "command": "/usr/bin/python3 scripts/erd-poc/run_memory_bounded.py -- node --max-old-space-size=96 --max-semi-space-size=8 node_modules/typescript/bin/tsc -p .",
+      "group": "build",
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "build:extension",
+      "type": "shell",
+      "command": "npm exec --yes --package typescript -- tsc -p .",
+      "group": "build",
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "build:analyzer",
+      "type": "shell",
+      "command": "cargo build --manifest-path analyzer/Cargo.toml",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "build",
+      "dependsOn": [
+        "build:extension",
+        "build:analyzer"
+      ],
+      "dependsOrder": "sequence"
+    }
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "sourceSha256": "cd5f7b274b28a103c31868c9eff48991969887664db93f775be5c750167d616c",
+  "newTraining": false,
+  "newNativeMeasurements": 0,
+  "diagnosticBufferConversionOnly": true,
+  "hardInferenceUnchanged": true,
+  "views": {
+    "individual": {
+      "checkpointSha256": "7909bd93c517c699e61ace5f65e11efd71e47030b1d99f18053cd40e1fd33a2c",
+      "results": [
+        {
+          "version": 1,
+          "temperature": 0.1,
+          "maximumNodePositionGap": 177.15924879160787,
+          "differentPhysicalCards": 43,
+          "slotTemperature": 0.1,
+          "sinkhornPasses": 8,
+          "maximumColumnMassError": 0.06026645379223117,
+          "sourceCorrectionMaximumAbs": 0.0,
+          "trainingCoordinatesAreRelaxed": true,
+          "hardAssignmentGradientUsed": false,
+          "sortedScoreValuesDifferentiated": false,
+          "slotRelaxationVersion": 1
+        },
+        {
+          "version": 1,
+          "temperature": 0.05,
+          "maximumNodePositionGap": 177.26352930721254,
+          "differentPhysicalCards": 11,
+          "slotTemperature": 0.05,
+          "sinkhornPasses": 8,
+          "maximumColumnMassError": 0.058823529411877185,
+          "sourceCorrectionMaximumAbs": 0.0,
+          "trainingCoordinatesAreRelaxed": true,
+          "hardAssignmentGradientUsed": false,
+          "sortedScoreValuesDifferentiated": false,
+          "slotRelaxationVersion": 1
+        },
+        {
+          "version": 2,
+          "temperature": 0.1,
+          "maximumNodePositionGap": 23.313028597417713,
+          "differentPhysicalCards": 69,
+          "slotTemperature": 0.1,
+          "sinkhornPasses": 8,
+          "maximumColumnMassError": 2.220446049250313e-16,
+          "sourceCorrectionMaximumAbs": 0.0,
+          "trainingCoordinatesAreRelaxed": true,
+          "hardAssignmentGradientUsed": false,
+          "sortedScoreValuesDifferentiated": true,
+          "slotRelaxationVersion": 2
+        },
+        {
+          "version": 2,
+          "temperature": 0.05,
+          "maximumNodePositionGap": 0.0009621841962884688,
+          "differentPhysicalCards": 4,
+          "slotTemperature": 0.05,
+          "sinkhornPasses": 8,
+          "maximumColumnMassError": 1.1102230246251565e-16,
+          "sourceCorrectionMaximumAbs": 0.0,
+          "trainingCoordinatesAreRelaxed": true,
+          "hardAssignmentGradientUsed": false,
+          "sortedScoreValuesDifferentiated": true,
+          "slotRelaxationVersion": 2
+        }
+      ]
+    },
+    "overview": {
+      "checkpointSha256": "b1622df1d7955668133589d226c712e9b886fbf3487705a6ab16098318d456da",
+      "results": [
+        {
+          "version": 1,
+          "temperature": 0.1,
+          "maximumNodePositionGap": 450.69888258795055,
+          "differentPhysicalCards": 79,
+          "slotTemperature": 0.1,
+          "sinkhornPasses": 8,
+          "maximumColumnMassError": 0.07955858635993995,
+          "sourceCorrectionMaximumAbs": 0.0,
+          "trainingCoordinatesAreRelaxed": true,
+          "hardAssignmentGradientUsed": false,
+          "sortedScoreValuesDifferentiated": false,
+          "slotRelaxationVersion": 1
+        },
+        {
+          "version": 1,
+          "temperature": 0.05,
+          "maximumNodePositionGap": 450.69941176470616,
+          "differentPhysicalCards": 20,
+          "slotTemperature": 0.05,
+          "sinkhornPasses": 8,
+          "maximumColumnMassError": 0.07999531168683127,
+          "sourceCorrectionMaximumAbs": 0.0,
+          "trainingCoordinatesAreRelaxed": true,
+          "hardAssignmentGradientUsed": false,
+          "sortedScoreValuesDifferentiated": false,
+          "slotRelaxationVersion": 1
+        },
+        {
+          "version": 2,
+          "temperature": 0.1,
+          "maximumNodePositionGap": 126.1006302945916,
+          "differentPhysicalCards": 74,
+          "slotTemperature": 0.1,
+          "sinkhornPasses": 8,
+          "maximumColumnMassError": 4.228173366982446e-12,
+          "sourceCorrectionMaximumAbs": 0.0,
+          "trainingCoordinatesAreRelaxed": true,
+          "hardAssignmentGradientUsed": false,
+          "sortedScoreValuesDifferentiated": true,
+          "slotRelaxationVersion": 2
+        },
+        {
+          "version": 2,
+          "temperature": 0.05,
+          "maximumNodePositionGap": 0.0007881246071460048,
+          "differentPhysicalCards": 6,
+          "slotTemperature": 0.05,
+          "sinkhornPasses": 8,
+          "maximumColumnMassError": 1.1102230246251565e-16,
+          "sourceCorrectionMaximumAbs": 0.0,
+          "trainingCoordinatesAreRelaxed": true,
+          "hardAssignmentGradientUsed": false,
+          "sortedScoreValuesDifferentiated": true,
+          "slotRelaxationVersion": 2
+        }
+      ]
+    }
+  }
+}

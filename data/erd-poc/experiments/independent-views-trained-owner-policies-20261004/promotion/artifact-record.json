@@ -1,0 +1,164 @@
+{
+  "baseManifest": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/manifest.json",
+  "baseManifestSha256": "5a24ded20b6c2feec46b7d11f2911d9673052dece55c59762e8162e487e32f16",
+  "baseArchiveIndependentRestoreStatus": "pass",
+  "supplementScope": "post-promotion state, inherited metadata scope, documentation, receipts, Browser failure and guard telemetry; base manifest remains immutable",
+  "finalVerification": {
+    "status": "pass",
+    "candidateSha256": "4c88250bd2dce3ffb85d640c35d11d952664b0358658a0f0b35b94cbccd28688",
+    "archiveManifestSha256": "5a24ded20b6c2feec46b7d11f2911d9673052dece55c59762e8162e487e32f16",
+    "promotedBytesIdenticalToProductAuditedCandidate": true,
+    "overviewVisual": 286,
+    "individualVisual": 1963,
+    "individualViewExactlyPreservedAsJsonData": true,
+    "overviewChangedModels": [
+      "db.MeetingDraftAgendaDirectorCompensationItem"
+    ],
+    "all1244SizesPreserved": true,
+    "all1727RelationshipIdsPreserved": true,
+    "overviewCoordinatesAndRoutesExactlyMatchModelAppliedProduct": true,
+    "newTrainingUpdates": 0,
+    "inheritedTrainingAndMatchedControlScopeVerified": true,
+    "neuralProposals": 2771,
+    "completedStages": 8,
+    "cachedModelInputStateNativeControls": 82,
+    "allCachedModelInputsNativeVerifiedExactly": true,
+    "resourceLimitMiB": 128,
+    "resourceLimitRaised": false,
+    "productAuditPeakMiB": 114.1,
+    "browserCheckAttempted": true,
+    "browserVerified": false,
+    "targetMet": false,
+    "verifierSha256": "fa849ee67b37f31659ef51e1aa7577bed8e3702c1e5f3f66c918e7f721c920e7"
+  },
+  "files": [
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.layout.json",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/captain-ml-independent-views.layout.json",
+      "sha256": "4c88250bd2dce3ffb85d640c35d11d952664b0358658a0f0b35b94cbccd28688",
+      "bytes": 2428225
+    },
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.audit.json",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/captain-ml-independent-views.audit.json",
+      "sha256": "946fb6329b00f2cde57bc111d4583ccc5cec7359e1e31d8c0054884d91ef22a2",
+      "bytes": 1602
+    },
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.provenance.json",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/captain-ml-independent-views.provenance.json",
+      "sha256": "bd12f179d34eca310d8c3b547a169ee2935de5368e8a83474f81410c71f60feb",
+      "bytes": 21371
+    },
+    {
+      "source": "context.md",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/context.md",
+      "sha256": "2c33dcc0fe13c3ff412cfcaeabbaf0284aa12f570b8e50b34f1c859785dbc02b",
+      "bytes": 326643
+    },
+    {
+      "source": "data/erd-poc/candidates/README.md",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/README.md",
+      "sha256": "c1209ee734ead77be77f8d4acdf0f40d64194b46e7a5b382084d2fff0b8d3f92",
+      "bytes": 14190
+    },
+    {
+      "source": ".tmp/trained-owner-final-state-verification.json",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/trained-owner-final-state-verification.json",
+      "sha256": "2ddb937d18b21d8a73cbb12b2f9098ede0d3d2276f6ee5ff2163f31f71f2ac2a",
+      "bytes": 1101
+    },
+    {
+      "source": ".tmp/trained-owner-browser-bootstrap.audit.json",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/trained-owner-browser-bootstrap.audit.json",
+      "sha256": "8abb1400817fff0010572bed7cfdbc89864cf4ae4807af4b754df79d7a245940",
+      "bytes": 500
+    },
+    {
+      "source": ".tmp/trained-owner-cli-reference-followup.json",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/trained-owner-cli-reference-followup.json",
+      "sha256": "4fa97f29b9ee41885d5cce65349f17d0af04830e68eb1c03147f0e7bfb479617",
+      "bytes": 980
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/single-owner1/cli-transport-latest.json",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/cli-transport-latest.json",
+      "sha256": "9d3be7307de81f30d15381ad99a0fbe288bba728930a28d3378b1ccfb8f41b45",
+      "bytes": 941
+    },
+    {
+      "source": ".tmp/trained-owner-archive-seal-receipt.json",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/trained-owner-archive-seal-receipt.json",
+      "sha256": "07c9744dbab4fe4fda4dd212efd6aac2522611276059d0a53b7373946c464897",
+      "bytes": 416
+    },
+    {
+      "source": ".tmp/trained-owner-archive-independent-verification.json",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/trained-owner-archive-independent-verification.json",
+      "sha256": "07a1b5d210c9f4b9de9079e64c7c189fc1847e52b2f3c9085504576ce7c2b804",
+      "bytes": 392
+    },
+    {
+      "source": ".tmp/trained-owner-promotion-receipt.json",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/trained-owner-promotion-receipt.json",
+      "sha256": "daa5562e01b3522638708270182555783d8f3e285b3f31a4a6d98da6be013ded",
+      "bytes": 520
+    },
+    {
+      "source": ".tmp/trained-owner-archive-seal.guard.log",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/trained-owner-archive-seal.guard.log",
+      "sha256": "29e88d9f26f7c425d8c9e67cb6095edb6baec7bd618ecdfa0ed562c8dfdd3d26",
+      "bytes": 442
+    },
+    {
+      "source": ".tmp/trained-owner-archive-verification.guard.log",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/trained-owner-archive-verification.guard.log",
+      "sha256": "fff9857ae7d43aad725e15a3b5fd09b7cf89805c803dd5f5faa5c0611fd79427",
+      "bytes": 414
+    },
+    {
+      "source": ".tmp/trained-owner-promotion.guard.log",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/trained-owner-promotion.guard.log",
+      "sha256": "67dd93b4bae2b89a6b50b1de41ad5174d9658d2db194aa766c1ffed8bb0d2b57",
+      "bytes": 529
+    },
+    {
+      "source": ".tmp/promote_trained_owner_policies.py",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/promote_trained_owner_policies.py",
+      "sha256": "cd10219a5521608a3840a6118955f8de6cb3bc619ee8401cbdf709a53001e6d2",
+      "bytes": 7215
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/finalize_trained_owner_policies.py",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/finalize_trained_owner_policies.py",
+      "sha256": "fa849ee67b37f31659ef51e1aa7577bed8e3702c1e5f3f66c918e7f721c920e7",
+      "bytes": 12838
+    },
+    {
+      "source": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/provenance-before-scope-reconciliation.json",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/provenance-before-scope-reconciliation.json",
+      "sha256": "cf9f1819559a64bafc858c7231693c16ba5e767088008dfaf0cf3af5064e729e",
+      "bytes": 19998
+    },
+    {
+      "source": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/audit-before-browser-attempt-record.json",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/audit-before-browser-attempt-record.json",
+      "sha256": "ce440bc52a6ea538e219b24223ac09c0d308016a54b1945f59aa45b12c0a9e2f",
+      "bytes": 1490
+    },
+    {
+      "source": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/metadata-reconciliation.json",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/metadata-reconciliation.json",
+      "sha256": "20b943f18643e940bdb83e8dc0dc67bc6d2185bbc57a73fde1aa3cb86fa015e1",
+      "bytes": 890
+    },
+    {
+      "source": ".tmp/trained-owner-final-state.guard.log",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/promotion/trained-owner-final-state.guard.log",
+      "sha256": "7771154f6ef12898a5b43646ddaf951092bea8dd3710d79e044bd34572c94f00",
+      "bytes": 1084
+    }
+  ],
+  "allSupplementBytesCopyHashVerified": true,
+  "precedingSupplementRecordSha256": "b80f614876024ca3ed883288fba94d08698e1f0cd67c9f3d7eb02170c3246a9e"
+}

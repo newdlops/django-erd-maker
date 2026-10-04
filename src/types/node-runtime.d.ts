@@ -23,6 +23,7 @@ declare module "node:child_process" {
     options: {
       cwd?: string;
       detached?: boolean;
+      encoding?: "utf8";
       env?: Record<string, string | undefined>;
       killSignal?: string;
       maxBuffer?: number;

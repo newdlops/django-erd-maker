@@ -21,6 +21,9 @@ export function getBrowserTestSource(): string {
               initialized: Boolean(gpuRenderer),
               warningVisible: Boolean(gpuWarning && !gpuWarning.hidden),
             },
+            leafCards: ensureSceneGraph().leafBundles.filter((record) => record.kind === "leaf-card")
+              .map((record) => ({ id: record.id, label: record.parentName, leafCount: record.leafCount,
+                x: record.x, y: record.y, width: record.width, height: record.height })),
             hiddenModelIds: state.tableOptions
               .filter((options) => options.hidden)
               .map((options) => options.modelId),

@@ -1,0 +1,58 @@
+{
+  "scope": "independent individual-view experiment",
+  "promoted": false,
+  "allowNeutral": true,
+  "pairPolicy": false,
+  "branchMoves": true,
+  "areaExploration": false,
+  "explorationLimit": 0,
+  "initialTemperature": 2.0,
+  "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/candidate.individual.layout.json",
+  "sourceSha256": "4ed1984b3032be6ffb38432271127c783d867a7d2f8c34b8c5a7a3d0dca51ec8",
+  "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+  "checkpointSha256": "fb0dade64e0e4f42c0e03508ec448fb121a31a32376ed0fe4c358d187e0a9a41",
+  "environmentSha256": "0be42b1a7a3b6f932631211e0c10dd38bf788a28f232699b0a98b25007ce063f",
+  "sourceIndividualVisual": 1981,
+  "steps": [
+    {
+      "name": "inference",
+      "seconds": 20.530465583025943
+    },
+    {
+      "name": "frozen-action-replay",
+      "seconds": 1.1198037920403294
+    },
+    {
+      "name": "product-renderer-audit",
+      "seconds": 0.7815674999728799
+    }
+  ],
+  "branchMap": {
+    "schema": "source-bound-graph-branches-v1",
+    "sourceSha256": "4ed1984b3032be6ffb38432271127c783d867a7d2f8c34b8c5a7a3d0dca51ec8",
+    "branchMapSha256": "67e9da971634227b2e3be639e6447ed759ab263a18142436310f3e8ac7799cbd",
+    "inputHashes": {
+      "nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "positions.tsv": "d85935a264a0ad1184f3fbad9cf49302b7ae033f4aedec979c60081035a0cfe2",
+      "routes.tsv": "8f9b9867b4596bd94b8f75c84b40a3520894d3925009eeb83040a5d939993adc",
+      "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "individual.positions.tsv": "d85935a264a0ad1184f3fbad9cf49302b7ae033f4aedec979c60081035a0cfe2",
+      "individual.routes.tsv": "8f9b9867b4596bd94b8f75c84b40a3520894d3925009eeb83040a5d939993adc",
+      "components.tsv": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+      "groups.tsv": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d"
+    },
+    "nodes": 1244,
+    "twoCoreNodes": 650,
+    "multiCardContexts": 139,
+    "maximumContextCards": 75,
+    "positionsProposed": false
+  },
+  "candidate": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/candidate.individual.layout.json",
+  "candidateSha256": "3bdc7ba78c79c152a21c0821bfd47bb7fbee2a7cffb5cd7954a7b59c72822467",
+  "individualVisual": 1978,
+  "improvesSource": true,
+  "seconds": 22.432859708962496,
+  "allChecksPassed": true
+}

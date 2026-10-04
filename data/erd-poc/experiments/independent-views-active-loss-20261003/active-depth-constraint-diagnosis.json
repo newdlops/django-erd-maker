@@ -1,0 +1,52 @@
+[
+  {
+    "stage": "individual-active-depth1",
+    "checkpoint": ".tmp/visualcross-ml-150-750-20261003/individual-active-depth1/joint-policy-0193.npz",
+    "sourceEndpointGroups": 3425,
+    "sharedGroups": 17,
+    "sharedEndpoints": 46,
+    "largestSharedGroup": 6,
+    "fullAdjacentPairs": 28797,
+    "sourceSharedPairs": 51,
+    "positiveAdjacentPairs": 1,
+    "positiveFromSharedPairs": 1,
+    "positiveDepths": [
+      0.010044868014012154
+    ],
+    "finalNative": {
+      "accepted": false,
+      "legal": false,
+      "visual": 2001,
+      "individualVisual": 2001,
+      "spacing": 0,
+      "hard": 2,
+      "individualHard": 2,
+      "reason": "hard"
+    },
+    "coordinatesModified": false
+  },
+  {
+    "stage": "overview-active-depth1",
+    "checkpoint": ".tmp/visualcross-ml-150-750-20261003/overview-active-depth1/joint-policy-0292.npz",
+    "sourceEndpointGroups": 3431,
+    "sharedGroups": 16,
+    "sharedEndpoints": 39,
+    "largestSharedGroup": 7,
+    "fullAdjacentPairs": 28797,
+    "sourceSharedPairs": 40,
+    "positiveAdjacentPairs": 0,
+    "positiveFromSharedPairs": 0,
+    "positiveDepths": [],
+    "finalNative": {
+      "accepted": false,
+      "legal": true,
+      "visual": 299,
+      "individualVisual": 4331,
+      "spacing": 0,
+      "hard": 0,
+      "individualHard": 0,
+      "reason": "legal"
+    },
+    "coordinatesModified": false
+  }
+]

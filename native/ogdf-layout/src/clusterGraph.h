@@ -146,10 +146,10 @@ struct ClusterGraphResult {
   struct LeafMatrixGroup {
     std::size_t parentIdx = 0;
     std::vector<std::size_t> leafIdxs;
-    // For bus bundles: indices of all cluster roots the bundle members
-    // collectively connect to (multi-root signature). Includes
-    // parentIdx. For classic leaf bundles (single parent) this is just
-    // [parentIdx].
+    // For bus node bundles: the common semantic root intersection retained
+    // by every member. Individual members may have additional/different root
+    // relations; those edges stay independent. Includes parentIdx. For a
+    // classic leaf bundle this is just [parentIdx].
     std::vector<std::size_t> sharedRootIdxs;
     double anchorX = 0.0;
     double anchorY = 0.0;

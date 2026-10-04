@@ -1,0 +1,154 @@
+{
+  "partial": {
+    "nativeBinarySha256": "e2a58da4e295d6fd26f9473d1ff371f7cea7ad7e4685b786cefa3838b58d3082",
+    "implementationHashes": {
+      "joint_slot_anchor_policy.py": "58d2e290ff6d18dce7e8bc46734ae2f21b89d7e901b0da2978ff8e9ad63b863b",
+      "joint_anchor_ray_policy.py": "f292ed184dc7c4e24ec19b78f86f10bdff1ee4fc2fe2407f904347684b500877",
+      "joint_slot_policy.py": "f3d1e5e3fb9732eba5a8867f315625295e1bb4ee9afdc065938808ce2f5b317e",
+      "joint_separation_policy.py": "045b9552977486eb1b7e0f5fdb8a04968f97cd6ff706c3e9d917a04d14083b34",
+      "joint_neural_ports.py": "ea50adb9fbb27850ac93c53d16a6c00f456658cf45153c79588010f411ead02c",
+      "joint_layout_proxy.py": "d21091db3bbde2b659cced3ed9c2161a98a69cbe4659ac4954f36cfb41176428",
+      "joint_grouped_routes.py": "3b7757e76590aa0e1e935e7f757035f89a6fece56e6a10deb7791e71f1642f6f",
+      "joint_reward_training.py": "2303116881b6651c4f9c2c5a68cbc7700a82b55155fbf6a68f2296e19af4b116",
+      "run_joint_neural_layout.py": "6a77faf35ef7befb77a2d870c3d56a2282cd2e492deacc4f77be6165b36b0617"
+    },
+    "views": {
+      "individual": {
+        "sourceSha256": "42adab07b311c16463bd7f5dc0ee68941d6047ac0372415393ad9355c126fe22",
+        "sourceVisual": 1964,
+        "zeroOutputOriginalEndpointsPreserved": 3454,
+        "zeroEndpointMaximumAbsoluteError": 7.105427357601002e-15,
+        "endpointGeometryTolerance": 1e-08,
+        "rectangleMultisetFixtures": 6,
+        "maximumMovedCardsInUntrainedFixtures": 969,
+        "frozenRoundtripsExact": true,
+        "noncommittingFixtures": [
+          {
+            "headStd": 0.0003,
+            "movedCards": 0,
+            "result": {
+              "accepted": false,
+              "legal": true,
+              "visual": 1964,
+              "measureOnly": true,
+              "individualVisual": 1964,
+              "spacing": 0,
+              "hard": 0,
+              "individualHard": 0,
+              "reason": "legal"
+            },
+            "checkpointSha256": "8aabc4c6ac9c1a1f321c6a85e92a56547a83f6c52db72340715325125563792f"
+          },
+          {
+            "headStd": 0.001,
+            "movedCards": 47,
+            "result": {
+              "accepted": false,
+              "legal": false,
+              "visual": 2408,
+              "measureOnly": true,
+              "individualVisual": 2408,
+              "spacing": 0,
+              "hard": 20,
+              "individualHard": 20,
+              "reason": "hard"
+            },
+            "checkpointSha256": "67a864327a3365347b3d3c74253987b2947acc1516b45c0e2b22deeab6f56d83"
+          },
+          {
+            "headStd": 0.003,
+            "movedCards": 250,
+            "result": {
+              "accepted": false,
+              "legal": false,
+              "visual": 4453,
+              "measureOnly": true,
+              "individualVisual": 4453,
+              "spacing": 0,
+              "hard": 162,
+              "individualHard": 162,
+              "reason": "hard"
+            },
+            "checkpointSha256": "d80d14c5c53b97051a2566a3cb4b33f04e818420009c325f2bf6e89d09b6b016"
+          },
+          {
+            "headStd": 0.01,
+            "movedCards": 442,
+            "result": {
+              "accepted": false,
+              "legal": false,
+              "visual": 8962,
+              "measureOnly": true,
+              "individualVisual": 8962,
+              "spacing": 0,
+              "hard": 429,
+              "individualHard": 429,
+              "reason": "hard"
+            },
+            "checkpointSha256": "868a1b7ea48a2a6b82f1d7579d3bfc4767e591d8479c5ef6fae595d364c7549d"
+          },
+          {
+            "headStd": 0.03,
+            "movedCards": 672,
+            "result": {
+              "accepted": false,
+              "legal": false,
+              "visual": 27639,
+              "measureOnly": true,
+              "individualVisual": 27639,
+              "spacing": 0,
+              "hard": 744,
+              "individualHard": 744,
+              "reason": "hard"
+            },
+            "checkpointSha256": "fbd92c43ac5c014798091d95f09fcba5c1959408088a49dd42b82625f84a5a91"
+          },
+          {
+            "headStd": 0.1,
+            "movedCards": 969,
+            "result": {
+              "accepted": false,
+              "legal": false,
+              "visual": 95517,
+              "measureOnly": true,
+              "individualVisual": 95517,
+              "spacing": 0,
+              "hard": 1310,
+              "individualHard": 1310,
+              "reason": "hard"
+            },
+            "checkpointSha256": "c441674497fb34921d2420d32a48a3d101acf5f8df308c87f6b7467fcb0dc19b"
+          }
+        ],
+        "nativeRewardProbesReplayed": 12,
+        "adamUpdatesReplayed": 3,
+        "sharedEndpointGroups": 42,
+        "trainableHeadParameters": 32,
+        "sourceUnchanged": true
+      }
+    },
+    "nativeHardValidityGuaranteedByDecoder": false,
+    "sortingGradientUsed": false,
+    "fixturesOnly": true,
+    "sourceGeometryPreserved": true,
+    "legacyAnchorActionReplays": [
+      {
+        "checkpointSha256": "65fec4422053220908ae0dae0df0dfd374e45fc03210838e8d1de828b6e409c6",
+        "actionSha256": "3678c241e5c9bdded7bbefae21b48e4e482e564e7f7db5c43184c689b51a2506"
+      },
+      {
+        "checkpointSha256": "aa3ebc1b799e84db4e5df1507c8a6db9173d063d656bcf3ec869a6adda0181d9",
+        "actionSha256": "0fab302276f2fe558fe92865c5176c93ecf4b4291d8f3a41df249c630891032f"
+      },
+      {
+        "checkpointSha256": "09293d967316652ec7c855393cf59d5c46f968cd2e2601cf7628f1ff2ccbe599",
+        "actionSha256": "535abe6fbc3aec91a937b5ee6c284b55bef6bdd1adba71959d93a735d6d66ac5"
+      },
+      {
+        "checkpointSha256": "686f736fca24d86dfa3e277d491b559111944039fb51734446d74016698a29bf",
+        "actionSha256": "420fcb41378ff21a88fc2859dcd36fe5a71feb496fd6069df632b2176b44c30f"
+      }
+    ]
+  },
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/validate_slot_anchor_policy.py\", line 97, in <module>\n    np.testing.assert_allclose(after, before, rtol=0, atol=1e-8)\n  File \"/Users/lky/project/django-erd-maker/.venv-ml/lib/python3.11/site-packages/numpy/testing/_private/utils.py\", line 1768, in assert_allclose\n    assert_array_compare(compare, actual, desired, err_msg=str(err_msg),\n  File \"/Users/lky/project/django-erd-maker/.venv-ml/lib/python3.11/site-packages/numpy/testing/_private/utils.py\", line 983, in assert_array_compare\n    raise AssertionError(msg)\nAssertionError: \nNot equal to tolerance rtol=0, atol=1e-08\n\nMismatched elements: 5 / 720 (0.694%)\nMismatch at indices:\n [35, 1]: 35518.71 (ACTUAL), 34309.83 (DESIRED)\n [36, 1]: 35811.79 (ACTUAL), 35518.71 (DESIRED)\n [37, 1]: 34309.83 (ACTUAL), 35811.79 (DESIRED)\n [41, 1]: 37555.87 (ACTUAL), 35211.35 (DESIRED)\n [42, 1]: 35211.35 (ACTUAL), 37555.87 (DESIRED)\nMax absolute difference among violations: 2344.52\nMax relative difference among violations: 0.06658421\n ACTUAL: array([[ 2039.94, 14902.59],\n       [ 2249.5 , 19739.59],\n       [ 2566.8 , 20115.71],...\n DESIRED: array([[ 2039.94, 14902.59],\n       [ 2249.5 , 19739.59],\n       [ 2566.8 , 20115.71],...\n"
+}

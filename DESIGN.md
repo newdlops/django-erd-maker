@@ -1,0 +1,33 @@
+# ERD relationship exploration
+
+This contract covers the existing VS Code diagram and its model inspector.
+
+- **User and task:** a developer inspecting Captain's 1,244 models needs to identify a model's references, understand a field's relationship, and follow it without losing their place.
+- **Primary flow:** search/select a model → open Related diagram or select a connection → inspect compact neighboring cards → explore another model → return with Back. Full diagram restores the entry model, overview viewport, and connection filters.
+- **Hierarchy:** model identity, navigation, and connections first; fields, properties, methods, and display switches in a disclosure. Search and viewport controls remain prominent; layout experiments live in a disclosure.
+- **Visual language:** retain the dark navy surfaces, mint selection accents, amber emphasis, existing relation colors, border radii, and GPU cards. Use the host sans-serif for controls and dense text. Relationship type and direction always have text labels; color is supplementary.
+- **Density and sizing:** compact rows with a model name, field, and relation type; four direction filters; 40 results initially with explicit Show more. Use 8/12/16px spacing and 12–14px interface text. Wrap long identifiers without losing the model's app label or field name. Controls have at least 32px hit height and visible keyboard focus.
+- **Diagram:** the overview retains its existing GPU cards and positions. The separate related diagram places only direct neighbors in a compact HTML grid and connects card boundaries with straight SVG lines. Selecting a peer filters the inspector; selecting a relationship highlights its peer and names the source field, target, and type. Local positions never change saved coordinates, membership, or the overview score.
+- **Selection in the overview:** selecting a model extracts its own relationships from representative overview lines and draws direct connections to every visible peer. Multiple fields between a model pair share one line; Leaf members still connect at their enclosing card boundary. Unrelated relationships keep their overview groups. Clearing selection restores the original groups. Verify physical endpoint coverage, not only membership IDs; the 468 overview score describes the unselected overview.
+- **Responsive behavior:** keep inspector and canvas side by side at desktop/editor widths; below 680px use a scrollable inspector above the canvas with bounded height. The canvas must remain visible; disclosures and the relationship strip must wrap without horizontal page overflow.
+- **States:** selected connection, previous-location navigation, empty relationships, no filter matches, hidden endpoint, internal/self connection, missing endpoint, long identifiers, dense hubs, refresh/reset, hover, disabled, focus-visible, and reduced motion. Preserve keyboard focus when the inspector updates.
+- **Motion:** immediate relationship changes and viewport updates. No decorative transitions; honor reduced motion for inherited styles.
+- **Acceptance:** the related diagram preserves every filtered relationship and draws one straight route per peer or existing Leaf group, with correct boundary endpoints. Back and Full diagram restore context. The unfiltered Captain overview remains 468 / 1.149B with all models and relationships. Functional checks and actual VS Code visual checks are recorded separately.
+
+Do not expand all bundle members when selecting a model or relationship, replace compact cards with decorative panels, or make graph meaning depend only on color.
+
+## Compact related diagram
+
+Selecting a relationship opens a separate local diagram in the stage. The model panel also offers **Related diagram** to open the entire immediate neighborhood. The selected model is central; only its direct connections appear. Cards get fresh positions in this view, independent of the saved overview. A peer can become the center, Back retraces that exploration, and **Full diagram** restores the original model, viewport, and filters.
+
+Use the existing dark surfaces, relation colors, and model/field typography. Draw one straight line per peer or existing Leaf group; preserve every field and direction in the inspector. Show member name previews to distinguish similarly named Leaf groups; identify mixed inheritance/reference groups in text. Clicking a peer filters the inspector to those connections. Keep self references explicit on the center card and mark unavailable peers. Do not include unrelated leaf siblings or silently drop filtered/paged relationships.
+
+Cards use normal document flow with readable text rather than shrinking a large layout. The wide view places peer stacks on both sides of the center; a narrow stage uses a center column and one peer column. SVG lines cross the empty gaps only. Show up to 8 peer cards per page (4 in a narrow stage), with counts, Previous/Next, search and direction filters. Both the full canvas and local diagram have separate rendering and scroll state. Avoid recalculating the global layout or writing temporary positions into saved table options.
+
+Acceptance: current Captain neighborhood coverage equals the filtered structural relationships, duplicate fields share one line, Leaf groups share one line, unrelated models are absent, long names wrap, navigation/exit restore context, and the full overview remains 468 / 1.149B. Verify empty, dense, filtered, selected, unavailable, self-reference, keyboard and resized states.
+
+## Optional independent individual geometry
+
+A saved layout may carry a second complete set of model positions and straight relationship routes. The existing June bundles and Leaf cards switches stay in place. When both grouping switches are off, use the individual geometry; every other combination uses the overview geometry. Switch positions and endpoints atomically, preserve card dimensions and relationship identity, and retain manual moves and viewport separately for each geometry. Keep selection and model details shared. Reset View restores the initial overview; Refresh opens the overview with its own saved positions, never positions from the individual view.
+
+The initial conflict readout must use the geometry actually selected. Reject incomplete alternate geometry or routes detached from their card boundaries. Legacy layouts without alternate geometry retain their existing behavior. Reuse the current buttons, pressed states, keyboard operation, focus styles and responsive layout. Functional acceptance includes switching in both orders, returning after manual moves, refresh/reset, and preserving all relationship endpoints. Actual viewport and interaction inspection remains a separate visual check.

@@ -1,0 +1,31 @@
+{
+  "scope": "independent individual-view experiment",
+  "promoted": false,
+  "allowNeutral": true,
+  "pairPolicy": false,
+  "source": ".tmp/visualcross-ml-targets-20261003/individual20/candidate.individual.layout.json",
+  "sourceSha256": "d9bab81c779b8c7586dcc77ed2ab137009c32a6a21f1700427302e60a676b21f",
+  "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+  "checkpointSha256": "c8977eb46de5ea53024d78a67aaf98a3af6fc717aa53aa7fa8cde01222b995dd",
+  "environmentSha256": "e7ea526574467fd8748dedae41d907c27098b46a72a9ffdc56a43a06b3e13c03",
+  "sourceIndividualVisual": 2150,
+  "steps": [
+    {
+      "name": "inference",
+      "seconds": 16.75071987498086
+    },
+    {
+      "name": "frozen-action-replay",
+      "seconds": 0.8959911669953726
+    },
+    {
+      "name": "product-renderer-audit",
+      "seconds": 0.5340449590003118
+    }
+  ],
+  "candidate": ".tmp/visualcross-ml-targets-20261003/individual21/candidate.individual.layout.json",
+  "candidateSha256": "3ad19a4de6551ab1e2500ceae26b19cd0501066896828f04d50e648705ed7c05",
+  "individualVisual": 2146,
+  "seconds": 18.181362792034633,
+  "allChecksPassed": true
+}

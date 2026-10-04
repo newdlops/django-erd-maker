@@ -1,0 +1,246 @@
+[
+  {
+    "view": "individual",
+    "sourceSha256": "e8c14059fbed1a6fabc28f1b0b5bf3bd3f143367126209507638dcebe2e2b874",
+    "sourceVisual": 1990,
+    "crossings": 1492,
+    "cardHits": 498,
+    "exactCountMatchesNativeSource": true,
+    "topNodes": [
+      [
+        "db.Company",
+        407
+      ],
+      [
+        "db.FileAttachment",
+        364
+      ],
+      [
+        "db.Meeting",
+        311
+      ],
+      [
+        "db.Stakeholder",
+        235
+      ],
+      [
+        "db.BulkEmailRecipient",
+        157
+      ],
+      [
+        "db.BulkEmail",
+        157
+      ],
+      [
+        "db.StockTransferAgreement",
+        156
+      ],
+      [
+        "db.Address",
+        153
+      ],
+      [
+        "db.MeetingDraft",
+        144
+      ],
+      [
+        "db.HrmEmp",
+        99
+      ],
+      [
+        "db.Event",
+        94
+      ],
+      [
+        "db.Purchase",
+        83
+      ]
+    ],
+    "topEdges": [
+      [
+        "edge:declared:db.StockTransferAgreementManagement:stock_transfer_agreement",
+        46
+      ],
+      [
+        "edge:declared:db.Stakeholder:standardized_address",
+        43
+      ],
+      [
+        "edge:declared:db.MeetingDraft:company",
+        40
+      ],
+      [
+        "edge:declared:db.Charge:meeting",
+        38
+      ],
+      [
+        "edge:declared:db.Purchase:_meeting",
+        36
+      ],
+      [
+        "edge:declared:db.RsuGrantContractModusignDocument:rsu_grant_contract",
+        35
+      ]
+    ],
+    "patches": [
+      {
+        "file": "individual-edge0-n12.json",
+        "activeNodes": 12,
+        "activeEdges": 331,
+        "coveredSourceConflicts": 1233
+      },
+      {
+        "file": "individual-edge0-n24.json",
+        "activeNodes": 24,
+        "activeEdges": 371,
+        "coveredSourceConflicts": 1326
+      },
+      {
+        "file": "individual-edge1-n12.json",
+        "activeNodes": 12,
+        "activeEdges": 379,
+        "coveredSourceConflicts": 1466
+      },
+      {
+        "file": "individual-edge1-n24.json",
+        "activeNodes": 24,
+        "activeEdges": 510,
+        "coveredSourceConflicts": 1569
+      },
+      {
+        "file": "individual-edge2-n12.json",
+        "activeNodes": 12,
+        "activeEdges": 407,
+        "coveredSourceConflicts": 1459
+      },
+      {
+        "file": "individual-edge2-n24.json",
+        "activeNodes": 24,
+        "activeEdges": 446,
+        "coveredSourceConflicts": 1550
+      }
+    ]
+  },
+  {
+    "view": "overview",
+    "sourceSha256": "23c020f04cbc7ce41c244f70e628d8272d7fb85fa03a07c70450a36e9448fc95",
+    "sourceVisual": 299,
+    "crossings": 199,
+    "cardHits": 100,
+    "exactCountMatchesNativeSource": true,
+    "topNodes": [
+      [
+        "db.BulkEmail",
+        46
+      ],
+      [
+        "db.FileAttachment",
+        38
+      ],
+      [
+        "db.Address",
+        37
+      ],
+      [
+        "db.Shareholder",
+        30
+      ],
+      [
+        "db.StockTransferAgreement",
+        28
+      ],
+      [
+        "db.OptionGrantContract",
+        25
+      ],
+      [
+        "db.AgendaBranchChange",
+        22
+      ],
+      [
+        "db.ShareholdersMeetingAgenda",
+        22
+      ],
+      [
+        "db.ShareholdersMeetingConvocationNoticeEmail",
+        21
+      ],
+      [
+        "db.AgendaHeadOfficeRelocation",
+        20
+      ],
+      [
+        "db.Stakeholder",
+        20
+      ],
+      [
+        "db.ModusignDocument",
+        19
+      ]
+    ],
+    "topEdges": [
+      [
+        "edge:declared:db.AgendaBranchChange:address",
+        12
+      ],
+      [
+        "edge:declared:db.AgendaHeadOfficeRelocation:address",
+        12
+      ],
+      [
+        "edge:declared:db.StockTransferAgreement:seller",
+        12
+      ],
+      [
+        "edge:inheritance:db.ShareholdersMeetingConvocationNoticeEmail->db.BulkEmail",
+        10
+      ],
+      [
+        "edge:inheritance:db.Director->db.Stakeholder",
+        10
+      ],
+      [
+        "edge:inheritance:db.OptionExerciseClaimAttachment->db.FileAttachment",
+        9
+      ]
+    ],
+    "patches": [
+      {
+        "file": "overview-edge0-n12.json",
+        "activeNodes": 12,
+        "activeEdges": 81,
+        "coveredSourceConflicts": 124
+      },
+      {
+        "file": "overview-edge0-n24.json",
+        "activeNodes": 19,
+        "activeEdges": 86,
+        "coveredSourceConflicts": 127
+      },
+      {
+        "file": "overview-edge1-n12.json",
+        "activeNodes": 12,
+        "activeEdges": 80,
+        "coveredSourceConflicts": 110
+      },
+      {
+        "file": "overview-edge1-n24.json",
+        "activeNodes": 19,
+        "activeEdges": 86,
+        "coveredSourceConflicts": 116
+      },
+      {
+        "file": "overview-edge2-n12.json",
+        "activeNodes": 12,
+        "activeEdges": 71,
+        "coveredSourceConflicts": 149
+      },
+      {
+        "file": "overview-edge2-n24.json",
+        "activeNodes": 20,
+        "activeEdges": 84,
+        "coveredSourceConflicts": 152
+      }
+    ]
+  }
+]

@@ -1,0 +1,288 @@
+{
+  "kind": "conditional-mixture-component-policy-v2",
+  "schema": "relative-component-context-v2-64",
+  "features": 64,
+  "mixtures": 4,
+  "actionScale": 1,
+  "perObservationScale": true,
+  "jointMoves": false,
+  "branchMoves": true,
+  "branchMode": "cut",
+  "overviewOnlyTraining": false,
+  "neighborMoves": false,
+  "gainPower": 1,
+  "gainCap": 32.0,
+  "environmentDecoder": "moving-ray",
+  "minLogSigma": -7.0,
+  "trainedUpdates": 12720,
+  "bestEpoch": 3,
+  "seed": 98408,
+  "trainingGraphIds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50
+  ],
+  "validationGraphIds": [
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63
+  ],
+  "datasetSha256": "efe1e861676c540f4d7e769c15a62d1516fe3a15a8329d5e663f880c69c89e45",
+  "trainingData": "procedural synthetic graphs only",
+  "captainTrainingExamples": 0,
+  "adaptationSourceSha256": null,
+  "adaptationWeight": null,
+  "validationScope": "held-out synthetic graphs",
+  "absoluteCoordinatesAsInput": false,
+  "modelNamesAsInput": false,
+  "checkpoint": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/cut-policy-training1/individual.npz",
+  "checkpointSha256": "397865149462c402a7fc707840c8ed6dee1ecdf9f42fca8236f1aa9466b51de7",
+  "states": 2105,
+  "trainingActions": 108480,
+  "validationActions": 26240,
+  "positiveTrainingActions": 6714,
+  "initialValidationNll": -1.6555788742929312,
+  "bestValidationNll": -2.3042775528515036,
+  "parameterCount": 9685,
+  "seconds": 5.052259624993894,
+  "history": [
+    {
+      "epoch": 1,
+      "updates": 424,
+      "validationNll": -2.057690394081736,
+      "seconds": 0.20015762496041134
+    },
+    {
+      "epoch": 2,
+      "updates": 848,
+      "validationNll": -2.0934191270291107,
+      "seconds": 0.3700199169688858
+    },
+    {
+      "epoch": 3,
+      "updates": 1272,
+      "validationNll": -2.3042775528515036,
+      "seconds": 0.5941132080042735
+    },
+    {
+      "epoch": 4,
+      "updates": 1696,
+      "validationNll": -2.2565230462766244,
+      "seconds": 0.7716144169680774
+    },
+    {
+      "epoch": 5,
+      "updates": 2120,
+      "validationNll": -2.0197832651182273,
+      "seconds": 0.9347582079935819
+    },
+    {
+      "epoch": 6,
+      "updates": 2544,
+      "validationNll": -2.129142276025287,
+      "seconds": 1.1030258749960922
+    },
+    {
+      "epoch": 7,
+      "updates": 2968,
+      "validationNll": -2.204724846816587,
+      "seconds": 1.2648458749754354
+    },
+    {
+      "epoch": 8,
+      "updates": 3392,
+      "validationNll": -2.081999540412096,
+      "seconds": 1.4279757919721305
+    },
+    {
+      "epoch": 9,
+      "updates": 3816,
+      "validationNll": -1.8975187560678393,
+      "seconds": 1.5962655419716612
+    },
+    {
+      "epoch": 10,
+      "updates": 4240,
+      "validationNll": -2.181307016030675,
+      "seconds": 1.756775124988053
+    },
+    {
+      "epoch": 11,
+      "updates": 4664,
+      "validationNll": -2.0516199162776787,
+      "seconds": 1.918466333008837
+    },
+    {
+      "epoch": 12,
+      "updates": 5088,
+      "validationNll": -1.9570412469589038,
+      "seconds": 2.0819875419838354
+    },
+    {
+      "epoch": 13,
+      "updates": 5512,
+      "validationNll": -1.9289543868696155,
+      "seconds": 2.2446822919882834
+    },
+    {
+      "epoch": 14,
+      "updates": 5936,
+      "validationNll": -2.0447413389645805,
+      "seconds": 2.4063324579619803
+    },
+    {
+      "epoch": 15,
+      "updates": 6360,
+      "validationNll": -2.042391977574404,
+      "seconds": 2.577065249963198
+    },
+    {
+      "epoch": 16,
+      "updates": 6784,
+      "validationNll": -1.9790710112254448,
+      "seconds": 2.7399358749971725
+    },
+    {
+      "epoch": 17,
+      "updates": 7208,
+      "validationNll": -1.895834902032628,
+      "seconds": 2.9025122500024736
+    },
+    {
+      "epoch": 18,
+      "updates": 7632,
+      "validationNll": -1.7895251799934613,
+      "seconds": 3.064786583010573
+    },
+    {
+      "epoch": 19,
+      "updates": 8056,
+      "validationNll": -1.8703605681337325,
+      "seconds": 3.228688750008587
+    },
+    {
+      "epoch": 20,
+      "updates": 8480,
+      "validationNll": -1.7840374198569744,
+      "seconds": 3.39348924998194
+    },
+    {
+      "epoch": 21,
+      "updates": 8904,
+      "validationNll": -1.7768305137510338,
+      "seconds": 3.556959374982398
+    },
+    {
+      "epoch": 22,
+      "updates": 9328,
+      "validationNll": -1.7221096767019124,
+      "seconds": 3.719287416955922
+    },
+    {
+      "epoch": 23,
+      "updates": 9752,
+      "validationNll": -1.7261776248706013,
+      "seconds": 3.8810293749556877
+    },
+    {
+      "epoch": 24,
+      "updates": 10176,
+      "validationNll": -1.7179445891760987,
+      "seconds": 4.052919332985766
+    },
+    {
+      "epoch": 25,
+      "updates": 10600,
+      "validationNll": -1.822410997976379,
+      "seconds": 4.222125166968908
+    },
+    {
+      "epoch": 26,
+      "updates": 11024,
+      "validationNll": -1.8762219574202081,
+      "seconds": 4.386418292007875
+    },
+    {
+      "epoch": 27,
+      "updates": 11448,
+      "validationNll": -1.706185185954003,
+      "seconds": 4.552219083008822
+    },
+    {
+      "epoch": 28,
+      "updates": 11872,
+      "validationNll": -1.5907887285662368,
+      "seconds": 4.716354166972451
+    },
+    {
+      "epoch": 29,
+      "updates": 12296,
+      "validationNll": -1.7707971535623992,
+      "seconds": 4.878804916981608
+    },
+    {
+      "epoch": 30,
+      "updates": 12720,
+      "validationNll": -1.7101702881309973,
+      "seconds": 5.041780458006542
+    }
+  ]
+}

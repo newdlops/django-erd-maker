@@ -1,0 +1,49 @@
+{
+  "source": ".tmp/visualcross-ml-targets-20261003/round2/candidate.layout.json",
+  "sourceSha256": "6a2112b3c051e60d01bc5ee05a01bb2cec04805a1bf1559b3b4c69100155cf0d",
+  "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+  "checkpoint": ".tmp/visualcross-ml-targets-20261003/component-policy-v3.npz",
+  "checkpointSha256": "d702424921d8c8f777d87603600fec03002d3fe28330219517277e23b550e1bf",
+  "nativeBinarySha256": "32a96946f7f49dcbf78f710d052362e17584d0ead879fba67a073c576e61e2ac",
+  "candidateSha256": "1bde8038aa3724862395d73a633c483e63c024791f6f2f551e2045a903837bd4",
+  "visualCrossings": 392,
+  "individualVisualCrossings": 3547,
+  "proposalAuthority": "frozen learned policy",
+  "heuristicSearchCalls": 0,
+  "frozenActionReplay": true,
+  "productFileLoadVerified": true,
+  "browserVerified": false,
+  "seconds": 16.47337541700108,
+  "stages": [
+    {
+      "stage": "export",
+      "exitCode": 0,
+      "seconds": 0.8521825830102898
+    },
+    {
+      "stage": "components",
+      "exitCode": 0,
+      "seconds": 0.8593422080157325
+    },
+    {
+      "stage": "inference",
+      "exitCode": 0,
+      "seconds": 9.41446508304216
+    },
+    {
+      "stage": "replay",
+      "exitCode": 0,
+      "seconds": 0.8591922920313664
+    },
+    {
+      "stage": "apply",
+      "exitCode": 0,
+      "seconds": 1.7256882499787025
+    },
+    {
+      "stage": "product",
+      "exitCode": 0,
+      "seconds": 2.75872750004055
+    }
+  ]
+}

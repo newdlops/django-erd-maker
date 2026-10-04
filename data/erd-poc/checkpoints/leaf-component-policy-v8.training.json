@@ -1,0 +1,289 @@
+{
+  "kind": "conditional-mixture-component-policy-v2",
+  "schema": "relative-component-context-v2-64",
+  "features": 64,
+  "mixtures": 4,
+  "actionScale": 1,
+  "perObservationScale": true,
+  "jointMoves": false,
+  "gainPower": 1,
+  "gainCap": 64.0,
+  "environmentDecoder": "ray",
+  "minLogSigma": -7.0,
+  "trainedUpdates": 15480,
+  "bestEpoch": 9,
+  "seed": 181,
+  "trainingGraphIds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    100000
+  ],
+  "validationGraphIds": [
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63
+  ],
+  "datasetSha256": "5bd09763a70ce037df71adb6063f58c37e27f84df69e547bdc749589c1d515e2",
+  "trainingData": "synthetic graphs plus Captain reward observations",
+  "captainTrainingExamples": 10752,
+  "adaptationSourceSha256": "a0a138d21e9f75024cef3def526ff5af2f2505192c97dd8d5418d3b93a225baa",
+  "adaptationWeight": 64.0,
+  "validationScope": "held-out synthetic graphs; Captain adaptation is not an unseen-graph evaluation",
+  "absoluteCoordinatesAsInput": false,
+  "modelNamesAsInput": false,
+  "checkpoint": "data/erd-poc/checkpoints/leaf-component-policy-v8.npz",
+  "checkpointSha256": "c8977eb46de5ea53024d78a67aaf98a3af6fc717aa53aa7fa8cde01222b995dd",
+  "states": 2481,
+  "trainingActions": 131968,
+  "validationActions": 31296,
+  "positiveTrainingActions": 14495,
+  "initialValidationNll": 2.0749828266918993,
+  "bestValidationNll": 0.30446704650741224,
+  "parameterCount": 9685,
+  "seconds": 7.3069984169560485,
+  "history": [
+    {
+      "epoch": 1,
+      "updates": 516,
+      "validationNll": 0.4909503061515953,
+      "seconds": 0.22814454196486622
+    },
+    {
+      "epoch": 2,
+      "updates": 1032,
+      "validationNll": 0.36815052184844144,
+      "seconds": 0.44437854195712134
+    },
+    {
+      "epoch": 3,
+      "updates": 1548,
+      "validationNll": 0.3437527845208091,
+      "seconds": 0.6694786249427125
+    },
+    {
+      "epoch": 4,
+      "updates": 2064,
+      "validationNll": 0.3401876962002738,
+      "seconds": 0.8861384169431403
+    },
+    {
+      "epoch": 5,
+      "updates": 2580,
+      "validationNll": 0.32066630488061,
+      "seconds": 1.0989198339520954
+    },
+    {
+      "epoch": 6,
+      "updates": 3096,
+      "validationNll": 0.31846887995160156,
+      "seconds": 1.415338166989386
+    },
+    {
+      "epoch": 7,
+      "updates": 3612,
+      "validationNll": 0.32671469083639804,
+      "seconds": 1.7377647499670275
+    },
+    {
+      "epoch": 8,
+      "updates": 4128,
+      "validationNll": 0.4003539243060445,
+      "seconds": 1.9872964169480838
+    },
+    {
+      "epoch": 9,
+      "updates": 4644,
+      "validationNll": 0.30446704650741224,
+      "seconds": 2.232650374993682
+    },
+    {
+      "epoch": 10,
+      "updates": 5160,
+      "validationNll": 0.31333435265541076,
+      "seconds": 2.589054166979622
+    },
+    {
+      "epoch": 11,
+      "updates": 5676,
+      "validationNll": 0.3361825989687953,
+      "seconds": 2.8320387089625
+    },
+    {
+      "epoch": 12,
+      "updates": 6192,
+      "validationNll": 0.399294226627648,
+      "seconds": 3.0335866249515675
+    },
+    {
+      "epoch": 13,
+      "updates": 6708,
+      "validationNll": 0.3443986950671742,
+      "seconds": 3.241556833963841
+    },
+    {
+      "epoch": 14,
+      "updates": 7224,
+      "validationNll": 0.3241241958245008,
+      "seconds": 3.4668176669511013
+    },
+    {
+      "epoch": 15,
+      "updates": 7740,
+      "validationNll": 0.30974944430066675,
+      "seconds": 3.711660166969523
+    },
+    {
+      "epoch": 16,
+      "updates": 8256,
+      "validationNll": 0.38398659326183776,
+      "seconds": 3.9277725419960916
+    },
+    {
+      "epoch": 17,
+      "updates": 8772,
+      "validationNll": 0.3608211404783478,
+      "seconds": 4.15483920898987
+    },
+    {
+      "epoch": 18,
+      "updates": 9288,
+      "validationNll": 0.4065016953097512,
+      "seconds": 4.387524499965366
+    },
+    {
+      "epoch": 19,
+      "updates": 9804,
+      "validationNll": 0.4517324749865001,
+      "seconds": 4.621232124976814
+    },
+    {
+      "epoch": 20,
+      "updates": 10320,
+      "validationNll": 0.40334159078882903,
+      "seconds": 4.849474374961574
+    },
+    {
+      "epoch": 21,
+      "updates": 10836,
+      "validationNll": 0.4700622227915203,
+      "seconds": 5.082062583998777
+    },
+    {
+      "epoch": 22,
+      "updates": 11352,
+      "validationNll": 0.3785554284183889,
+      "seconds": 5.374845458951313
+    },
+    {
+      "epoch": 23,
+      "updates": 11868,
+      "validationNll": 0.4307815114241679,
+      "seconds": 5.678554291953333
+    },
+    {
+      "epoch": 24,
+      "updates": 12384,
+      "validationNll": 0.4547080063261938,
+      "seconds": 5.953982958977576
+    },
+    {
+      "epoch": 25,
+      "updates": 12900,
+      "validationNll": 0.41246964829465227,
+      "seconds": 6.190521583950613
+    },
+    {
+      "epoch": 26,
+      "updates": 13416,
+      "validationNll": 0.42366768781497166,
+      "seconds": 6.411790291953366
+    },
+    {
+      "epoch": 27,
+      "updates": 13932,
+      "validationNll": 0.4349034783234916,
+      "seconds": 6.6327849169611
+    },
+    {
+      "epoch": 28,
+      "updates": 14448,
+      "validationNll": 0.44313096256919104,
+      "seconds": 6.855400666943751
+    },
+    {
+      "epoch": 29,
+      "updates": 14964,
+      "validationNll": 0.5032520503591517,
+      "seconds": 7.081126124947332
+    },
+    {
+      "epoch": 30,
+      "updates": 15480,
+      "validationNll": 0.4678732868646617,
+      "seconds": 7.297096958965994
+    }
+  ],
+  "originalCheckpoint": ".tmp/visualcross-ml-targets-20261003/component-policy-v8.npz",
+  "archivedDataset": "data/erd-poc/checkpoints/leaf-component-policy-v8.training-data.jsonl.gz",
+  "trainingScope": "Captain independent individual-view adaptation",
+  "checkpointUpdates": 4644
+}

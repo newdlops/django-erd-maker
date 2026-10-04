@@ -1,0 +1,243 @@
+{
+  "output": ".tmp/captain-improvement/captain-live-leaf-final.layout.json",
+  "bundleBundleOverlaps": 0,
+  "bundleEdgeIntersections": 2,
+  "bundleNodeOverlaps": 0,
+  "edgeCount": 1039,
+  "edgeCrossings": 299,
+  "edgeNodeIntersections": 167,
+  "nodeOverlaps": 0,
+  "routeSegments": 1039,
+  "visualCrossings": 468,
+  "bboxB": 1.14915248448,
+  "spacingViolations": 0,
+  "models": 1244,
+  "canonicalRelationships": 1727,
+  "groups": 62,
+  "leafCards": 49,
+  "leaves": 258,
+  "reattachedRoutes": 79,
+  "slotReuse": {
+    "db.Rsu": "db.RsuRsa",
+    "db.InvestmentContractDocument": "db.InvestmentAgreementDocument",
+    "db.InvestmentContractConsentSummary": "db.RtccConsentSummary",
+    "db.RtccAnalysisRun": "db.RtccSummaryAnalysisRequest"
+  },
+  "slotAdjustments": [
+    {
+      "modelId": "db.InvestmentAgreementDocument",
+      "dx": 0,
+      "dy": -20
+    }
+  ],
+  "additions": [
+    {
+      "modelId": "db.HrmAttendanceLocation",
+      "position": {
+        "x": 9296.470000000001,
+        "y": 17068.51
+      },
+      "anchor": "db.HrmAttendanceItem"
+    },
+    {
+      "modelId": "db.CompanyDocumentAIAnalysis",
+      "position": {
+        "x": 20112.874845729,
+        "y": 18145.969478859
+      },
+      "anchor": "db.FileAttachment"
+    },
+    {
+      "modelId": "db.HrmSelectiveWorkPlan",
+      "position": {
+        "x": 7446.63,
+        "y": 17493.37
+      },
+      "anchor": "db.HrmApprovable"
+    },
+    {
+      "modelId": "db.HrmSelectiveWorkPlanItem",
+      "position": {
+        "x": 7890.63,
+        "y": 17497.37
+      },
+      "anchor": "db.HrmSelectiveWorkPlan"
+    },
+    {
+      "modelId": "db.IncorporationRequestPromoterCustodian",
+      "position": {
+        "x": 21913.732381577,
+        "y": 17689.563043966
+      },
+      "anchor": "db.IncorporationRequestPromoter"
+    },
+    {
+      "modelId": "db.InvestmentAgreement",
+      "position": {
+        "x": 18028.775865328,
+        "y": 15095.40195214
+      },
+      "anchor": "db.InvestmentAgreementDocument"
+    },
+    {
+      "modelId": "db.RsuRsaSealedContractFile",
+      "position": {
+        "x": 16473.997701711,
+        "y": 14708.178066951
+      },
+      "anchor": "db.RsuGrantContract"
+    },
+    {
+      "modelId": "db.RtccSummaryAnalysisRequestDocument",
+      "position": {
+        "x": 16182.93,
+        "y": 10105.16
+      },
+      "anchor": "db.RtccSummaryAnalysisRequest"
+    },
+    {
+      "modelId": "db.RtccSummaryAnalysisResult",
+      "position": {
+        "x": 15601.27,
+        "y": 8852.43
+      },
+      "anchor": "db.RtccConsentSummary"
+    },
+    {
+      "modelId": "db.RtccSummaryAnalysisResultDocument",
+      "position": {
+        "x": 15574.27,
+        "y": 9156.43
+      },
+      "anchor": "db.RtccSummaryAnalysisResult"
+    },
+    {
+      "modelId": "db.AgendaOptionCancelOptionDistribution",
+      "position": {
+        "x": 15667.61,
+        "y": 21320.56
+      },
+      "anchor": "db.AgendaOptionCancelOption"
+    },
+    {
+      "modelId": "db.CompanySsoConfiguration",
+      "position": {
+        "x": 16400.620850106,
+        "y": 12421.51017772
+      },
+      "anchor": "db.Company"
+    },
+    {
+      "modelId": "db.CompanySsoEmailDomain",
+      "position": {
+        "x": 16406.620850106,
+        "y": 12129.51017772
+      },
+      "anchor": "db.CompanySsoConfiguration"
+    },
+    {
+      "modelId": "db.CompanySsoIdentity",
+      "position": {
+        "x": 16406.620850106,
+        "y": 12729.51017772
+      },
+      "anchor": "db.CompanySsoConfiguration"
+    },
+    {
+      "modelId": "db.HrmSelectiveWork",
+      "position": {
+        "x": 6763.88,
+        "y": 19210.18
+      },
+      "anchor": "db.HrmWorkBase"
+    },
+    {
+      "modelId": "db.HrmSelectiveWorkPlanConfig",
+      "position": {
+        "x": 6760.88,
+        "y": 19518.18
+      },
+      "anchor": "db.HrmSelectiveWork"
+    },
+    {
+      "modelId": "db.HrmSelectiveWorkSchedule",
+      "position": {
+        "x": 7209.88,
+        "y": 19218.18
+      },
+      "anchor": "db.HrmSelectiveWork"
+    },
+    {
+      "modelId": "db.HrmSelectiveWorkSettlementConfig",
+      "position": {
+        "x": 6298.38,
+        "y": 19518.18
+      },
+      "anchor": "db.HrmSelectiveWork"
+    },
+    {
+      "modelId": "db.HrmSlackIntegration",
+      "position": {
+        "x": 5239.4,
+        "y": 16378.84
+      },
+      "anchor": "db.Hrm"
+    },
+    {
+      "modelId": "db.HrmSlackChannelConfig",
+      "position": {
+        "x": 5239.4,
+        "y": 16678.84
+      },
+      "anchor": "db.HrmSlackIntegration"
+    },
+    {
+      "modelId": "db.IaPartnerWithdrawalEvent",
+      "position": {
+        "x": 33563.98,
+        "y": 17929.44
+      },
+      "anchor": "db.InvestmentAssociationPartner"
+    },
+    {
+      "modelId": "db.OptionExerciseManagementCommonSetting",
+      "position": {
+        "x": 14944.38,
+        "y": 15737.59
+      },
+      "anchor": "db.OptionExerciseManagement"
+    },
+    {
+      "modelId": "db.OptionExerciseManagementPaymentBankSetting",
+      "position": {
+        "x": 16774.620850106,
+        "y": 12129.51017772
+      },
+      "anchor": "db.Company"
+    },
+    {
+      "modelId": "db.RsaForfeitEvent",
+      "position": {
+        "x": 16114.37000001,
+        "y": 16855.340351174
+      },
+      "anchor": "db.Event"
+    },
+    {
+      "modelId": "db.RsaVestConfirmEvent",
+      "position": {
+        "x": 16994.37000001,
+        "y": 16855.340351174
+      },
+      "anchor": "db.Event"
+    },
+    {
+      "modelId": "db.UserMailIntegration",
+      "position": {
+        "x": 15144.907174418,
+        "y": 16913.960693038
+      },
+      "anchor": "db.BulkEmail"
+    }
+  ]
+}

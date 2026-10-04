@@ -1,0 +1,164 @@
+{
+  "nativeBinarySha256": "bc60819f4d526b92efc036567851e95110f1ed0be88706d416f531ab9fc8c986",
+  "implementationHashes": {
+    "ml_component_environment.cpp": "930e1170deae7e393b09034be95b636c5afc13d7e67d3f275688dbda9a6d9443",
+    "learned_pair_contexts.h": "70231fb76081d97c6fe749bbf590a87fb7d57de30eec299a9c3cdb57def8017f",
+    "learned_pair_contexts.py": "3d0361196361e07cdd20b1e6d55072bf58f906de50f3acf5e9a2b657d98ab607",
+    "constrained_dual_node_geometry.h": "aa984669fd96ddbcd375301d564f9f511cb406549a44619a17ce80cbdbdcf692",
+    "constrained_scene.h": "ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6",
+    "constrained_boundary_sweep.h": "296dab7012fe0e0192e2d526bda778f38595f1b8d446d0e2b124d4576297aa79",
+    "learned_branch_map.py": "0bee3bb1881f41ae7562bba545b181de194936c86853e60bde15d92bbc3c367f",
+    "learned_global_replay.py": "38bccbe20b4fb7cf4c548b8648f79f977b05d61e1391150b679c6d527d2d6f92",
+    "learned_bounded_replay.py": "dfe26868cf25d6d3c8039d5e481142d8a64b45a775c15f061da31760dcf932ae",
+    "learn_card_policy.py": "2447e4aae172b46d8c4f07fb7b774aebc1444adaafff5d87fe077ee0a885ba37",
+    "run_individual_policy_experiment.py": "566496292ee2786366f6c257c41a5acf30ab66d824032aa6feaaafbeb91a755e",
+    "run_learned_leaf_layout.py": "19328e05c989719856572d4cc53907e0e1eb9578de37c6054c1fce82a17ae080",
+    "run_memory_bounded.py": "7784ae78aec359887155ff86d37dd503628d490487d2a3e1f9b4e89f3c02a43d"
+  },
+  "compilerFlags": [
+    "-std=c++17",
+    "-O0",
+    "-ffp-contract=off"
+  ],
+  "views": {
+    "individual": {
+      "sourceSha256": "42adab07b311c16463bd7f5dc0ee68941d6047ac0372415393ad9355c126fe22",
+      "visual": 1964,
+      "branchMap": {
+        "schema": "source-bound-pair-contexts-v1",
+        "branchMode": "pair-cut",
+        "sourceSha256": "42adab07b311c16463bd7f5dc0ee68941d6047ac0372415393ad9355c126fe22",
+        "branchMapSha256": "dfd420a66bb364772cd873bb11d6d58c57fb7e0db4c19e43c3412f5a8c865e6c",
+        "inputHashes": {
+          "nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+          "edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+          "positions.tsv": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+          "routes.tsv": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+          "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+          "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+          "individual.positions.tsv": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+          "individual.routes.tsv": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+          "components.tsv": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+          "groups.tsv": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d"
+        },
+        "nodes": 1244,
+        "twoCoreNodes": 650,
+        "multiCardContexts": 30,
+        "maximumContextCards": 84,
+        "positionsProposed": false,
+        "contextIndexSchema": "independent-context-index-v1",
+        "contexts": 30,
+        "anchorLimit": 32,
+        "allPairsExhaustive": false
+      },
+      "boxesCompared": 30,
+      "observedContexts": 20,
+      "sourceGeometryPreserved": true,
+      "priorAnalysisMembershipMatches": true,
+      "wrongContextMapRejected": true
+    },
+    "overview": {
+      "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52",
+      "visual": 289,
+      "branchMap": {
+        "schema": "source-bound-pair-contexts-v1",
+        "branchMode": "pair-cut",
+        "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52",
+        "branchMapSha256": "54a34d09a0c71b0b62613a739afe19ed120001669be6e0f71da9dad22493a580",
+        "inputHashes": {
+          "nodes.tsv": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+          "edges.tsv": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+          "positions.tsv": "f22cbc759742ae9a2b5cc6f64f6cf02a25878fafde965f88e83161d6dce086be",
+          "routes.tsv": "107653e30b4d861d758ae1efca6a7444894939c9d6826039daa9e3c47d4f0063",
+          "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+          "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+          "individual.positions.tsv": "9a8f92a1e756d42a8177eca8947cd9700c0cc5e53e6a81b6d1eae37200742e72",
+          "individual.routes.tsv": "d3db0db863e5ce0042f53cd287a86aa67e9a31e55b5fc6e6acd884fadeb2d7d7",
+          "components.tsv": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+          "groups.tsv": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc"
+        },
+        "nodes": 1035,
+        "twoCoreNodes": 332,
+        "multiCardContexts": 18,
+        "maximumContextCards": 81,
+        "positionsProposed": false,
+        "contextIndexSchema": "independent-context-index-v1",
+        "contexts": 18,
+        "anchorLimit": 32,
+        "allPairsExhaustive": false
+      },
+      "boxesCompared": 18,
+      "observedContexts": 15,
+      "sourceGeometryPreserved": true,
+      "priorAnalysisMembershipMatches": true,
+      "wrongContextMapRejected": true
+    }
+  },
+  "pythonFixtures": {
+    "pairContextFixture": "pass",
+    "contexts": 5,
+    "outsideAttachmentsIncluded": true,
+    "longChainWithoutRecursion": true
+  },
+  "nativeTests": [
+    {
+      "selfTest": "pass",
+      "globalDeltaComparisons": 6424,
+      "acceptedSwaps": 126,
+      "acceptedNeighborMoves": 54,
+      "acceptedMovingRayMoves": 257,
+      "acceptedNeutralMoves": 126,
+      "translationInvariance": true
+    },
+    {
+      "explorationSelfTest": "pass",
+      "globalDeltaComparisons": 3072,
+      "acceptedUphillMoves": 367,
+      "restoredCheckpoints": 12,
+      "improvedCheckpoints": 70
+    },
+    {
+      "branchSelfTest": "pass",
+      "globalDeltaComparisons": 3072,
+      "acceptedMoves": 1598,
+      "acceptedGroupedMoves": 316,
+      "cutModeComparisons": 1536,
+      "acceptedCutGroupedMoves": 98,
+      "measurementsPreserveState": true
+    },
+    {
+      "boundedSelfTest": "pass",
+      "globalDeltaComparisons": 1152,
+      "acceptedMoves": 445,
+      "acceptedGroupedMoves": 71,
+      "measurementsPreserveState": true
+    },
+    {
+      "pairContextSelfTest": "pass",
+      "topologyFixtureContexts": 5,
+      "globalDeltaComparisons": 704,
+      "acceptedGroupedMoves": 228,
+      "boundedComparisons": 320,
+      "measurementsPreserveState": true
+    }
+  ],
+  "legacyReplay": {
+    "frozenCheckpointActionReplay": "pass",
+    "actions": 20000,
+    "untrainedControl": false,
+    "savedActionPrefix": -1,
+    "exploratoryAdmissionReplay": false,
+    "swapTargetAndFinalPositionReplay": false,
+    "portParametersAndFinalRoutesReplay": false,
+    "globalPositionsAndCanonicalRoutesReplay": false,
+    "neighborPairPositionsAndRoutesReplay": false,
+    "movingRayPositionsAndRoutesReplay": true,
+    "branchPositionsAndRoutesReplay": true,
+    "boundedLatentAndTranslationReplay": false,
+    "componentRayPositionsAndRoutesReplay": false,
+    "attachedComponentPositionsAndRoutesReplay": false
+  },
+  "unchangedCompletedChecksReusedFrom": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/failure.json",
+  "unchangedCompletedChecksReportSha256": "d523057dcf95924168cbe6f2be6277fdea7d30bbb1ebb4cb2e97df4060023f41",
+  "allChecksPassed": true
+}

@@ -7,6 +7,7 @@ export async function resolveAnalyzerBinaryPath(
   const envOverride = process.env.DJANGO_ERD_ANALYZER_BIN;
   const candidatePaths = [
     envOverride,
+    path.join(extensionRootPath, "bin", "analyzer", `${process.platform}-${process.arch}`, analyzerBinaryName()),
     path.join(extensionRootPath, "analyzer", "target", "release", analyzerBinaryName()),
     path.join(extensionRootPath, "analyzer", "target", "debug", analyzerBinaryName()),
   ].filter((value): value is string => Boolean(value));
@@ -18,7 +19,9 @@ export async function resolveAnalyzerBinaryPath(
   }
 
   throw new Error(
-    "Rust analyzer binary was not found. Run `npm run build` or set DJANGO_ERD_ANALYZER_BIN.",
+    `The Django ERD analyzer for ${process.platform}-${process.arch} was not found. `
+    + "Install the VSIX for this extension host's operating system and architecture. "
+    + "For a source checkout, run npm run build or set DJANGO_ERD_ANALYZER_BIN.",
   );
 }
 

@@ -1,0 +1,32 @@
+{
+  "sourceSha256": "42adab07b311c16463bd7f5dc0ee68941d6047ac0372415393ad9355c126fe22",
+  "initialCheckpointSha256": "0acad489390be9b6525a38dbff921c1c02e2d9779a444c16b3632b65aab5ac09",
+  "fixedCrossings": [
+    [
+      "edge:declared:db.AgendaHeadOfficeRelocation:meeting_draft",
+      "edge:declared:db.ShareholdersMeetingAgenda:agenda_change_of_articles_of_incorporation"
+    ],
+    [
+      "edge:declared:db.RsuExerciseClaimCandidate:hrm_emp",
+      "edge:declared:db.YetsEmployee:employee"
+    ],
+    [
+      "edge:declared:db.RsuExerciseClaimCandidate:hrm_emp",
+      "edge:inheritance:db.Employee->db.Stakeholder"
+    ]
+  ],
+  "fixedCardHits": [
+    [
+      "edge:declared:db.Meeting:meeting_draft",
+      "db.StockTransferAgreement"
+    ],
+    [
+      "edge:declared:db.MeetingDocument:meeting",
+      "db.MeetingDraft"
+    ],
+    [
+      "edge:declared:db.MeetingDocument:meeting",
+      "db.StockTransferAgreement"
+    ]
+  ]
+}

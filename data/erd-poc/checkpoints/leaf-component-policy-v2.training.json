@@ -1,0 +1,339 @@
+{
+  "kind": "conditional-mixture-component-policy-v2",
+  "schema": "relative-component-context-v2-64",
+  "features": 64,
+  "mixtures": 4,
+  "actionScale": 1,
+  "perObservationScale": true,
+  "trainedUpdates": 18960,
+  "bestEpoch": 9,
+  "seed": 73,
+  "trainingGraphIds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50
+  ],
+  "validationGraphIds": [
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63
+  ],
+  "datasetSha256": "6d848c6f66ea9cc89ba171a8682053c27a2acde0ab1adad19723f2c890454748",
+  "trainingData": "procedural synthetic graphs only",
+  "captainTrainingExamples": 0,
+  "absoluteCoordinatesAsInput": false,
+  "modelNamesAsInput": false,
+  "checkpoint": "data/erd-poc/checkpoints/leaf-component-policy-v2.npz",
+  "checkpointSha256": "5f26faefdd168971ef3c566af1bc941aa9c32aad6a1ee22b8c5453dd1c7c62db",
+  "states": 2383,
+  "trainingActions": 121216,
+  "validationActions": 31296,
+  "positiveTrainingActions": 14268,
+  "initialValidationNll": 1.0136287208866848,
+  "bestValidationNll": -0.15256497995664364,
+  "parameterCount": 9685,
+  "seconds": 8.766304292017594,
+  "history": [
+    {
+      "epoch": 1,
+      "updates": 474,
+      "validationNll": -0.000800253193303041,
+      "seconds": 0.23094083403702825
+    },
+    {
+      "epoch": 2,
+      "updates": 948,
+      "validationNll": -0.033085345139548195,
+      "seconds": 0.4392850419972092
+    },
+    {
+      "epoch": 3,
+      "updates": 1422,
+      "validationNll": -0.07567035793205171,
+      "seconds": 0.6811837920104153
+    },
+    {
+      "epoch": 4,
+      "updates": 1896,
+      "validationNll": -0.09599148932990054,
+      "seconds": 0.8993634590297006
+    },
+    {
+      "epoch": 5,
+      "updates": 2370,
+      "validationNll": -0.09945586422854956,
+      "seconds": 1.1209200840094127
+    },
+    {
+      "epoch": 6,
+      "updates": 2844,
+      "validationNll": -0.14121694954117528,
+      "seconds": 1.4236673340201378
+    },
+    {
+      "epoch": 7,
+      "updates": 3318,
+      "validationNll": -0.11030682787435296,
+      "seconds": 1.6129250840167515
+    },
+    {
+      "epoch": 8,
+      "updates": 3792,
+      "validationNll": -0.12595666788824947,
+      "seconds": 1.8010078340303153
+    },
+    {
+      "epoch": 9,
+      "updates": 4266,
+      "validationNll": -0.15256497995664364,
+      "seconds": 2.139237374998629
+    },
+    {
+      "epoch": 10,
+      "updates": 4740,
+      "validationNll": -0.13467408772953846,
+      "seconds": 2.4326945419888943
+    },
+    {
+      "epoch": 11,
+      "updates": 5214,
+      "validationNll": -0.09360657736222677,
+      "seconds": 2.7063874999876134
+    },
+    {
+      "epoch": 12,
+      "updates": 5688,
+      "validationNll": -0.10287383031730644,
+      "seconds": 2.99957245902624
+    },
+    {
+      "epoch": 13,
+      "updates": 6162,
+      "validationNll": -0.11262928008052664,
+      "seconds": 3.300826333987061
+    },
+    {
+      "epoch": 14,
+      "updates": 6636,
+      "validationNll": -0.11833474500338804,
+      "seconds": 3.5093440000200644
+    },
+    {
+      "epoch": 15,
+      "updates": 7110,
+      "validationNll": -0.1225095754548717,
+      "seconds": 3.7082031670142896
+    },
+    {
+      "epoch": 16,
+      "updates": 7584,
+      "validationNll": -0.0827986295994362,
+      "seconds": 3.9037250420078635
+    },
+    {
+      "epoch": 17,
+      "updates": 8058,
+      "validationNll": -0.08359605505503202,
+      "seconds": 4.090724292036612
+    },
+    {
+      "epoch": 18,
+      "updates": 8532,
+      "validationNll": -0.09199398135889104,
+      "seconds": 4.284568625036627
+    },
+    {
+      "epoch": 19,
+      "updates": 9006,
+      "validationNll": -0.07266241498509961,
+      "seconds": 4.46747241698904
+    },
+    {
+      "epoch": 20,
+      "updates": 9480,
+      "validationNll": -0.05736902259317493,
+      "seconds": 4.651787750015501
+    },
+    {
+      "epoch": 21,
+      "updates": 9954,
+      "validationNll": -0.03275783550166772,
+      "seconds": 4.835199208988342
+    },
+    {
+      "epoch": 22,
+      "updates": 10428,
+      "validationNll": -0.021617414980323567,
+      "seconds": 5.021806750039104
+    },
+    {
+      "epoch": 23,
+      "updates": 10902,
+      "validationNll": -0.009454093979160041,
+      "seconds": 5.208296208991669
+    },
+    {
+      "epoch": 24,
+      "updates": 11376,
+      "validationNll": -0.01147930422623554,
+      "seconds": 5.389193749986589
+    },
+    {
+      "epoch": 25,
+      "updates": 11850,
+      "validationNll": -0.009513994957323912,
+      "seconds": 5.575585084035993
+    },
+    {
+      "epoch": 26,
+      "updates": 12324,
+      "validationNll": 0.008785860952722699,
+      "seconds": 5.757629416999407
+    },
+    {
+      "epoch": 27,
+      "updates": 12798,
+      "validationNll": 0.047413549983029865,
+      "seconds": 5.9414384590345435
+    },
+    {
+      "epoch": 28,
+      "updates": 13272,
+      "validationNll": 0.026948541447368468,
+      "seconds": 6.1766460000071675
+    },
+    {
+      "epoch": 29,
+      "updates": 13746,
+      "validationNll": 0.09334156098547645,
+      "seconds": 6.368283417017665
+    },
+    {
+      "epoch": 30,
+      "updates": 14220,
+      "validationNll": 0.05333341299550392,
+      "seconds": 6.552380542038009
+    },
+    {
+      "epoch": 31,
+      "updates": 14694,
+      "validationNll": 0.034868727059928474,
+      "seconds": 6.740555167023558
+    },
+    {
+      "epoch": 32,
+      "updates": 15168,
+      "validationNll": 0.0753994830813307,
+      "seconds": 6.930650459020399
+    },
+    {
+      "epoch": 33,
+      "updates": 15642,
+      "validationNll": 0.04672837661649906,
+      "seconds": 7.1294425840023905
+    },
+    {
+      "epoch": 34,
+      "updates": 16116,
+      "validationNll": 0.11991463617998155,
+      "seconds": 7.374662709014956
+    },
+    {
+      "epoch": 35,
+      "updates": 16590,
+      "validationNll": 0.10373493827274513,
+      "seconds": 7.648323709028773
+    },
+    {
+      "epoch": 36,
+      "updates": 17064,
+      "validationNll": 0.12374402177928961,
+      "seconds": 7.924674375040922
+    },
+    {
+      "epoch": 37,
+      "updates": 17538,
+      "validationNll": 0.18120104124377898,
+      "seconds": 8.145513167022727
+    },
+    {
+      "epoch": 38,
+      "updates": 18012,
+      "validationNll": 0.16013176975835586,
+      "seconds": 8.350746584008448
+    },
+    {
+      "epoch": 39,
+      "updates": 18486,
+      "validationNll": 0.13036079876422113,
+      "seconds": 8.551389542000834
+    },
+    {
+      "epoch": 40,
+      "updates": 18960,
+      "validationNll": 0.1757813175900463,
+      "seconds": 8.757547667017207
+    }
+  ],
+  "originalCheckpoint": ".tmp/visualcross-ml-targets-20261003/component-policy-v2.npz",
+  "checkpointUpdates": 4266,
+  "archivedDataset": "data/erd-poc/checkpoints/leaf-component-policy-v2.training-data.jsonl.gz"
+}

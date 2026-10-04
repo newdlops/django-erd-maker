@@ -1,0 +1,1474 @@
+{
+  "scope": "Captain-trained joint neural batch",
+  "view": "overview",
+  "promoted": false,
+  "source": ".tmp/visualcross-ml-150-750-20261003/overview-bounded-trained2/candidate.layout.json",
+  "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52",
+  "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+  "environmentSha256": "e2a58da4e295d6fd26f9473d1ff371f7cea7ad7e4685b786cefa3838b58d3082",
+  "inputHashes": {
+    "nodes.tsv": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+    "edges.tsv": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+    "positions.tsv": "f22cbc759742ae9a2b5cc6f64f6cf02a25878fafde965f88e83161d6dce086be",
+    "routes.tsv": "107653e30b4d861d758ae1efca6a7444894939c9d6826039daa9e3c47d4f0063",
+    "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+    "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+    "individual.positions.tsv": "9a8f92a1e756d42a8177eca8947cd9700c0cc5e53e6a81b6d1eae37200742e72",
+    "individual.routes.tsv": "d3db0db863e5ce0042f53cd287a86aa67e9a31e55b5fc6e6acd884fadeb2d7d7",
+    "components.tsv": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+    "groups.tsv": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc"
+  },
+  "proposalAuthority": "frozen neural network batches",
+  "heuristicSearchCalls": 0,
+  "sourceVisual": 289,
+  "maxStep": 2048.0,
+  "seed": 12001,
+  "learningRate": 0.0001,
+  "spacingWeight": 20.0,
+  "spacingPadding": 0.0,
+  "lossTemperatureStart": 4.0,
+  "lossAnnealFraction": 0.6,
+  "groupedRouteLoss": false,
+  "attachedPorts": false,
+  "separationDag": true,
+  "neuralPerimeterPorts": true,
+  "portSpan": 0.125,
+  "sharedSourceEndpoints": false,
+  "rayConditionedPorts": true,
+  "localizedPatch": false,
+  "rigidPatch": false,
+  "hardGeometryWeight": 1000.0,
+  "quantizedLoss": true,
+  "roundingGradientEstimator": "straight-through",
+  "graphChannels": 0,
+  "gridOrder": false,
+  "slotPermutation": false,
+  "latentGraphStress": false,
+  "exactRewardTraining": false,
+  "rewardSigma": null,
+  "rewardEndpointHead": false,
+  "rewardDirections": 0,
+  "sortingGradientEstimator": null,
+  "sampledTrainingPairs": 0,
+  "initialHeadStd": 0.0,
+  "activePairLoss": true,
+  "crossingDepthWeight": 1.0,
+  "samplingSeed": null,
+  "exactNativeValidation": true,
+  "temporaryRegressionLimit": 0,
+  "inferenceOnly": false,
+  "lossKind": "boundary-clipped separating-axis margins v4",
+  "implementationHashes": {
+    "run_joint_neural_layout.py": "660a6e56f2c06dbb6c38c8ee4788fb806ebbf08fe0350ac66f3bc9c2ea48e4e6",
+    "joint_layout_proxy.py": "d21091db3bbde2b659cced3ed9c2161a98a69cbe4659ac4954f36cfb41176428",
+    "joint_grouped_routes.py": "3b7757e76590aa0e1e935e7f757035f89a6fece56e6a10deb7791e71f1642f6f",
+    "joint_neural_ports.py": "8d3514b08280a91257577e31211076ac1e3772eb412e48a5780b4e9423d32e9e",
+    "joint_separation_policy.py": "00f40118605c91fb61cdf8309016e8622ce881754aaea03c64d59d98d2dcd7bc",
+    "joint_grid_policy.py": "e158cccb95c88e224a7dfd417650c9258a9a5468609bd9d892509b9fc1343811",
+    "joint_slot_policy.py": "f3d1e5e3fb9732eba5a8867f315625295e1bb4ee9afdc065938808ce2f5b317e",
+    "joint_reward_training.py": "2303116881b6651c4f9c2c5a68cbc7700a82b55155fbf6a68f2296e19af4b116",
+    "joint_graph_stress.py": "768927fc5839284f36960251f0d4f2d5797b1cac4f6177f14afc6ca16e43d5e1",
+    "joint_hard_geometry.py": "ab4ef586709c39fc9f68829bc1596dbaa2c47c36b07a929d3001d3f4157e172b",
+    "joint_graph_features.py": "41ed03b5f9d6c45a711eba92dee764fed4c1295d788ec3dfb08f70edf23e2e44",
+    "joint_sampled_proxy.py": "7131d7c3fb328f350a70cbf71ab8e1ca8b4ed08d10a73387b64822e57f35fbf5",
+    "joint_active_proxy.py": "4eda3b4534787e03cd5f39f0c9845ae1f015d27f4fdbc36e1d1f6407280f4666",
+    "ml_joint_batch_environment.cpp": "c01d080ddb2ab1f1fcba9a00e8d4595266da3494168d56406a29ebd49de47e8e",
+    "ml_component_environment.cpp": "10e599399a648df75ec86049aa3e2999cf8f0e37009d8ac643231c185e0fd327",
+    "constrained_boundary_sweep.h": "296dab7012fe0e0192e2d526bda778f38595f1b8d446d0e2b124d4576297aa79",
+    "audit_individual_policy_experiment.cjs": "e58d4559ea56f758ff25ac335c878475ad82bcca7acdaf385dcabeba2710105f"
+  },
+  "trainingScope": "Captain-specific differentiable training; no unseen-graph evaluation",
+  "observationsSha256": "3c1a7b7eaea7e77b820e49f5753857e49b5b0b5523c4e6ce0a58fa541a9ce263",
+  "featureMatrixSha256": "85d12c112310a5aa1aa9f31e3b2b893ca898e4fe22bb5de2ec17319ceea43960",
+  "visualLossTailCutoff": 24.0,
+  "visualLossTailBound": 6.095354885770189e-05,
+  "visualLossChunkSize": 16384,
+  "nodeOutputDecoder": "source-order-separation-dag-v1",
+  "nodeQuantizationGradient": "straight-through floor-to-cent with ties toward positive infinity",
+  "separationConstraints": 51458,
+  "parameterCount": 8804,
+  "proxyCandidatePairs": {
+    "cross_pairs": 2479,
+    "hit_pairs": 2172,
+    "near_pairs": 9
+  },
+  "frozenNetworkBatchesReplayed": 27,
+  "frozenWinningGeometryReplayed": false,
+  "unchangedSourceVerified": true,
+  "bestCheckpoint": null,
+  "bestCheckpointSha256": null,
+  "iterations": 101,
+  "neuralChecksPassed": true,
+  "neuralSeconds": 23.961617583001498,
+  "browserVerified": false,
+  "history": [
+    {
+      "iteration": 1,
+      "lossTemperature": 3.9997601593331753,
+      "preUpdateProxy": {
+        "softCrossingCount": 214.06573017142597,
+        "crossingDepthPenalty": 458.33014688543904,
+        "softCardHitCount": 116.22602613111053,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 0.0,
+        "representationPenalty": 0.0,
+        "total": 788.6219031879755,
+        "binaryCrossings": 191,
+        "binaryCardHits": 98,
+        "activeCrossPairs": 3169,
+        "activeHitPairs": 2662,
+        "hardGeometryPenalty": 0.0,
+        "hardGeometryDetails": {
+          "total": 0.0,
+          "full": {
+            "total": 0.0,
+            "adjacentCrossingPenalty": 0.0,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 0,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.0,
+            "adjacentCrossingPenalty": 0.0,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 0,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 294,
+        "measureOnly": false,
+        "individualVisual": 4471,
+        "spacing": 0,
+        "hard": 14,
+        "individualHard": 56,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 4,
+      "lossTemperature": 3.697223675083922,
+      "preUpdateProxy": {
+        "softCrossingCount": 211.83343432795036,
+        "crossingDepthPenalty": 458.33167813110504,
+        "softCardHitCount": 114.31560228428734,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 8.059936523438123e-07,
+        "representationPenalty": 0.0,
+        "total": 859.8569685430932,
+        "binaryCrossings": 191,
+        "binaryCardHits": 98,
+        "activeCrossPairs": 3074,
+        "activeHitPairs": 2616,
+        "hardGeometryPenalty": 75.37625299375682,
+        "hardGeometryDetails": {
+          "total": 75.37625299375682,
+          "full": {
+            "total": 46.15150560859342,
+            "adjacentCrossingPenalty": 46.15150560859342,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 24,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 29.22474738516341,
+            "adjacentCrossingPenalty": 29.22474738516341,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 6,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 294,
+        "measureOnly": false,
+        "individualVisual": 4466,
+        "spacing": 0,
+        "hard": 9,
+        "individualHard": 37,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 8,
+      "lossTemperature": 3.335613563599127,
+      "preUpdateProxy": {
+        "softCrossingCount": 210.24959042417947,
+        "crossingDepthPenalty": 458.30710866500226,
+        "softCardHitCount": 113.48110599086243,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 7.990127563476568e-07,
+        "representationPenalty": 0.0,
+        "total": 791.6629559012102,
+        "binaryCrossings": 191,
+        "binaryCardHits": 100,
+        "activeCrossPairs": 3007,
+        "activeHitPairs": 2556,
+        "hardGeometryPenalty": 9.625150022153326,
+        "hardGeometryDetails": {
+          "total": 9.625150022153326,
+          "full": {
+            "total": 9.214826750915824,
+            "adjacentCrossingPenalty": 6.929826750765649,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 2.2850000001501756,
+            "binaryOutwardEndpoints": 5,
+            "binaryAdjacentCrossings": 15,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.4103232712375015,
+            "adjacentCrossingPenalty": 0.4103232712375015,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 2,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 294,
+        "measureOnly": false,
+        "individualVisual": 4470,
+        "spacing": 0,
+        "hard": 4,
+        "individualHard": 30,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 12,
+      "lossTemperature": 3.0363887116994372,
+      "preUpdateProxy": {
+        "softCrossingCount": 208.8038413831615,
+        "crossingDepthPenalty": 458.2900176459604,
+        "softCardHitCount": 112.29840775296358,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 1.5076660766601226e-06,
+        "representationPenalty": 0.0,
+        "total": 796.585917560688,
+        "binaryCrossings": 193,
+        "binaryCardHits": 100,
+        "activeCrossPairs": 2925,
+        "activeHitPairs": 2504,
+        "hardGeometryPenalty": 17.19364927093653,
+        "hardGeometryDetails": {
+          "total": 17.19364927093653,
+          "full": {
+            "total": 10.023305170448404,
+            "adjacentCrossingPenalty": 2.8971755586253147,
+            "ownCardPenalty": 0.0031296120902618574,
+            "outwardBoundaryPenalty": 7.122999999732828,
+            "binaryOutwardEndpoints": 3,
+            "binaryAdjacentCrossings": 14,
+            "binaryOwnCardHits": 1
+          },
+          "projected": {
+            "total": 7.1703441004881245,
+            "adjacentCrossingPenalty": 0.044214488665034773,
+            "ownCardPenalty": 0.0031296120902618574,
+            "outwardBoundaryPenalty": 7.122999999732828,
+            "binaryOutwardEndpoints": 3,
+            "binaryAdjacentCrossings": 2,
+            "binaryOwnCardHits": 1
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 292,
+        "measureOnly": false,
+        "individualVisual": 4466,
+        "spacing": 0,
+        "hard": 4,
+        "individualHard": 32,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 16,
+      "lossTemperature": 2.769525388733058,
+      "preUpdateProxy": {
+        "softCrossingCount": 207.48382107432593,
+        "crossingDepthPenalty": 458.30307749559154,
+        "softCardHitCount": 111.04722552240932,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 1.8433922729491552e-06,
+        "representationPenalty": 0.0,
+        "total": 780.5737885091476,
+        "binaryCrossings": 192,
+        "binaryCardHits": 98,
+        "activeCrossPairs": 2874,
+        "activeHitPairs": 2447,
+        "hardGeometryPenalty": 3.7396625734285522,
+        "hardGeometryDetails": {
+          "total": 3.7396625734285522,
+          "full": {
+            "total": 2.285998076854261,
+            "adjacentCrossingPenalty": 2.285998076854261,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 12,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 1.4536644965742913,
+            "adjacentCrossingPenalty": 1.4536644965742913,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 2,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 293,
+        "measureOnly": false,
+        "individualVisual": 4457,
+        "spacing": 0,
+        "hard": 4,
+        "individualHard": 12,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 20,
+      "lossTemperature": 2.5221039218960937,
+      "preUpdateProxy": {
+        "softCrossingCount": 206.19346161255794,
+        "crossingDepthPenalty": 458.33746708102257,
+        "softCardHitCount": 109.54721774688595,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 2.261438110351693e-06,
+        "representationPenalty": 0.0,
+        "total": 776.427216043249,
+        "binaryCrossings": 192,
+        "binaryCardHits": 99,
+        "activeCrossPairs": 2804,
+        "activeHitPairs": 2409,
+        "hardGeometryPenalty": 2.349067341344341,
+        "hardGeometryDetails": {
+          "total": 2.349067341344341,
+          "full": {
+            "total": 2.349067341344341,
+            "adjacentCrossingPenalty": 2.349067341344341,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 4,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.0,
+            "adjacentCrossingPenalty": 0.0,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 0,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 290,
+        "measureOnly": false,
+        "individualVisual": 4454,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 10,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 24,
+      "lossTemperature": 2.304325422861036,
+      "preUpdateProxy": {
+        "softCrossingCount": 204.8209012364087,
+        "crossingDepthPenalty": 458.3446000366518,
+        "softCardHitCount": 108.6289146261613,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 2.8344348754882843e-06,
+        "representationPenalty": 0.0,
+        "total": 771.9967850303062,
+        "binaryCrossings": 191,
+        "binaryCardHits": 100,
+        "activeCrossPairs": 2760,
+        "activeHitPairs": 2374,
+        "hardGeometryPenalty": 0.20236629664948502,
+        "hardGeometryDetails": {
+          "total": 0.20236629664948502,
+          "full": {
+            "total": 0.17308111188792272,
+            "adjacentCrossingPenalty": 0.17308111188792272,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 3,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.029285184761562305,
+            "adjacentCrossingPenalty": 0.029285184761562305,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 1,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 294,
+        "measureOnly": false,
+        "individualVisual": 4457,
+        "spacing": 0,
+        "hard": 4,
+        "individualHard": 12,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 28,
+      "lossTemperature": 2.111809045676767,
+      "preUpdateProxy": {
+        "softCrossingCount": 203.57184159356075,
+        "crossingDepthPenalty": 458.37408255728803,
+        "softCardHitCount": 107.28999751690685,
+        "spacingPenalty": 1.0339757656912846e-24,
+        "movementPenalty": 3.607425659179601e-06,
+        "representationPenalty": 0.0,
+        "total": 770.8702433574609,
+        "binaryCrossings": 192,
+        "binaryCardHits": 100,
+        "activeCrossPairs": 2711,
+        "activeHitPairs": 2342,
+        "hardGeometryPenalty": 1.6343180822796313,
+        "hardGeometryDetails": {
+          "total": 1.6343180822796313,
+          "full": {
+            "total": 1.1176136886368833,
+            "adjacentCrossingPenalty": 1.1176136886368833,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 8,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.516704393642748,
+            "adjacentCrossingPenalty": 0.516704393642748,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 3,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 293,
+        "measureOnly": false,
+        "individualVisual": 4458,
+        "spacing": 0,
+        "hard": 2,
+        "individualHard": 6,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 32,
+      "lossTemperature": 1.9267835526502848,
+      "preUpdateProxy": {
+        "softCrossingCount": 202.64523186131117,
+        "crossingDepthPenalty": 458.375520882621,
+        "softCardHitCount": 106.21235832954785,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 4.247869689941201e-06,
+        "representationPenalty": 0.0,
+        "total": 767.4476695543389,
+        "binaryCrossings": 192,
+        "binaryCardHits": 99,
+        "activeCrossPairs": 2672,
+        "activeHitPairs": 2313,
+        "hardGeometryPenalty": 0.21455423298905948,
+        "hardGeometryDetails": {
+          "total": 0.21455423298905948,
+          "full": {
+            "total": 0.13030125737169895,
+            "adjacentCrossingPenalty": 0.049301257429324535,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.08099999994237443,
+            "binaryOutwardEndpoints": 1,
+            "binaryAdjacentCrossings": 3,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.08425297561736053,
+            "adjacentCrossingPenalty": 0.0032529756749861056,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.08099999994237443,
+            "binaryOutwardEndpoints": 1,
+            "binaryAdjacentCrossings": 1,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 291,
+        "measureOnly": false,
+        "individualVisual": 4459,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 6,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 36,
+      "lossTemperature": 1.7612648216184996,
+      "preUpdateProxy": {
+        "softCrossingCount": 201.55584208287817,
+        "crossingDepthPenalty": 458.37334601177054,
+        "softCardHitCount": 105.12124122469324,
+        "spacingPenalty": 1.0339757656912846e-24,
+        "movementPenalty": 5.568214355468749e-06,
+        "representationPenalty": 0.0,
+        "total": 765.3921309156964,
+        "binaryCrossings": 192,
+        "binaryCardHits": 99,
+        "activeCrossPairs": 2630,
+        "activeHitPairs": 2285,
+        "hardGeometryPenalty": 0.34169602814018396,
+        "hardGeometryDetails": {
+          "total": 0.34169602814018396,
+          "full": {
+            "total": 0.24042948336102346,
+            "adjacentCrossingPenalty": 0.24042948336102346,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 4,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.10126654477916047,
+            "adjacentCrossingPenalty": 0.10126654477916047,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 2,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 292,
+        "measureOnly": false,
+        "individualVisual": 4462,
+        "spacing": 0,
+        "hard": 2,
+        "individualHard": 12,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 40,
+      "lossTemperature": 1.6097327084802848,
+      "preUpdateProxy": {
+        "softCrossingCount": 200.50942735014928,
+        "crossingDepthPenalty": 458.3793704507434,
+        "softCardHitCount": 104.23489002327682,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 6.580209350585933e-06,
+        "representationPenalty": 0.0,
+        "total": 763.4343812143107,
+        "binaryCrossings": 193,
+        "binaryCardHits": 100,
+        "activeCrossPairs": 2592,
+        "activeHitPairs": 2262,
+        "hardGeometryPenalty": 0.3106868099318236,
+        "hardGeometryDetails": {
+          "total": 0.3106868099318236,
+          "full": {
+            "total": 0.25257004288018947,
+            "adjacentCrossingPenalty": 0.25257004288018947,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 7,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.058116767051634176,
+            "adjacentCrossingPenalty": 0.058116767051634176,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 3,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 295,
+        "measureOnly": false,
+        "individualVisual": 4463,
+        "spacing": 0,
+        "hard": 6,
+        "individualHard": 12,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 44,
+      "lossTemperature": 1.4367320185199253,
+      "preUpdateProxy": {
+        "softCrossingCount": 199.27365532118017,
+        "crossingDepthPenalty": 458.3771926291934,
+        "softCardHitCount": 103.42728341319074,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 6.952105224609527e-06,
+        "representationPenalty": 0.0,
+        "total": 761.253115135487,
+        "binaryCrossings": 192,
+        "binaryCardHits": 100,
+        "activeCrossPairs": 2565,
+        "activeHitPairs": 2239,
+        "hardGeometryPenalty": 0.1749768198173481,
+        "hardGeometryDetails": {
+          "total": 0.1749768198173481,
+          "full": {
+            "total": 0.1749768198173481,
+            "adjacentCrossingPenalty": 0.1749768198173481,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 2,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.0,
+            "adjacentCrossingPenalty": 0.0,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 0,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 292,
+        "measureOnly": false,
+        "individualVisual": 4460,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 4,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 48,
+      "lossTemperature": 1.29034415186409,
+      "preUpdateProxy": {
+        "softCrossingCount": 198.2325992247275,
+        "crossingDepthPenalty": 458.37765798546945,
+        "softCardHitCount": 102.71056277030347,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 7.188950500488455e-06,
+        "representationPenalty": 0.0,
+        "total": 759.5313674184032,
+        "binaryCrossings": 191,
+        "binaryCardHits": 100,
+        "activeCrossPairs": 2530,
+        "activeHitPairs": 2213,
+        "hardGeometryPenalty": 0.2105402489522551,
+        "hardGeometryDetails": {
+          "total": 0.2105402489522551,
+          "full": {
+            "total": 0.19659545756004193,
+            "adjacentCrossingPenalty": 0.19659545756004193,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 9,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.013944791392213177,
+            "adjacentCrossingPenalty": 0.013944791392213177,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 2,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 294,
+        "measureOnly": false,
+        "individualVisual": 4469,
+        "spacing": 0,
+        "hard": 6,
+        "individualHard": 22,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 52,
+      "lossTemperature": 1.1819070580273006,
+      "preUpdateProxy": {
+        "softCrossingCount": 197.42962893290635,
+        "crossingDepthPenalty": 458.3772598938727,
+        "softCardHitCount": 102.129699839549,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 7.756401977539105e-06,
+        "representationPenalty": 0.0,
+        "total": 757.9510103680869,
+        "binaryCrossings": 191,
+        "binaryCardHits": 100,
+        "activeCrossPairs": 2509,
+        "activeHitPairs": 2194,
+        "hardGeometryPenalty": 0.014413945356820257,
+        "hardGeometryDetails": {
+          "total": 0.014413945356820257,
+          "full": {
+            "total": 0.011816205095500914,
+            "adjacentCrossingPenalty": 0.011816205095500914,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 2,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.0025977402613193428,
+            "adjacentCrossingPenalty": 0.0025977402613193428,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 1,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 292,
+        "measureOnly": false,
+        "individualVisual": 4456,
+        "spacing": 0,
+        "hard": 2,
+        "individualHard": 4,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 56,
+      "lossTemperature": 1.0834346676118107,
+      "preUpdateProxy": {
+        "softCrossingCount": 196.5819675113899,
+        "crossingDepthPenalty": 458.3756877269669,
+        "softCardHitCount": 101.47836046259388,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 8.830095947265615e-06,
+        "representationPenalty": 0.0,
+        "total": 757.1331275851154,
+        "binaryCrossings": 191,
+        "binaryCardHits": 100,
+        "activeCrossPairs": 2492,
+        "activeHitPairs": 2183,
+        "hardGeometryPenalty": 0.6971030540688291,
+        "hardGeometryDetails": {
+          "total": 0.6971030540688291,
+          "full": {
+            "total": 0.6634280186424103,
+            "adjacentCrossingPenalty": 0.6634280186424103,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 7,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.0336750354264188,
+            "adjacentCrossingPenalty": 0.0336750354264188,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 1,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 291,
+        "measureOnly": false,
+        "individualVisual": 4462,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 14,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 60,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 196.01420181444809,
+        "crossingDepthPenalty": 458.377606343371,
+        "softCardHitCount": 100.92322821472595,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 9.44091625976562e-06,
+        "representationPenalty": 0.0,
+        "total": 763.7529715120739,
+        "binaryCrossings": 191,
+        "binaryCardHits": 99,
+        "activeCrossPairs": 2477,
+        "activeHitPairs": 2172,
+        "hardGeometryPenalty": 8.437925698612723,
+        "hardGeometryDetails": {
+          "total": 8.437925698612723,
+          "full": {
+            "total": 8.437925698612723,
+            "adjacentCrossingPenalty": 8.356925698539381,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.08100000007334165,
+            "binaryOutwardEndpoints": 1,
+            "binaryAdjacentCrossings": 6,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.0,
+            "adjacentCrossingPenalty": 0.0,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 0,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 290,
+        "measureOnly": false,
+        "individualVisual": 4457,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 5,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 64,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 195.99096720858807,
+        "crossingDepthPenalty": 458.392779383775,
+        "softCardHitCount": 100.81581693776857,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 9.981904724121092e-06,
+        "representationPenalty": 0.0,
+        "total": 755.2438128088713,
+        "binaryCrossings": 191,
+        "binaryCardHits": 99,
+        "activeCrossPairs": 2481,
+        "activeHitPairs": 2172,
+        "hardGeometryPenalty": 0.044239296834998665,
+        "hardGeometryDetails": {
+          "total": 0.044239296834998665,
+          "full": {
+            "total": 0.03134124213583573,
+            "adjacentCrossingPenalty": 0.03134124213583573,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 4,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.012898054699162931,
+            "adjacentCrossingPenalty": 0.012898054699162931,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 2,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 291,
+        "measureOnly": false,
+        "individualVisual": 4458,
+        "spacing": 0,
+        "hard": 2,
+        "individualHard": 8,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 68,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 195.80121731355223,
+        "crossingDepthPenalty": 458.39576975886706,
+        "softCardHitCount": 100.5740548504861,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 1.1050210815429733e-05,
+        "representationPenalty": 0.0,
+        "total": 755.5810434124177,
+        "binaryCrossings": 192,
+        "binaryCardHits": 99,
+        "activeCrossPairs": 2477,
+        "activeHitPairs": 2173,
+        "hardGeometryPenalty": 0.8099904393014323,
+        "hardGeometryDetails": {
+          "total": 0.8099904393014323,
+          "full": {
+            "total": 0.7763264893585704,
+            "adjacentCrossingPenalty": 0.7763264893585704,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 8,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.033663949942861905,
+            "adjacentCrossingPenalty": 0.033663949942861905,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 1,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 291,
+        "measureOnly": false,
+        "individualVisual": 4463,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 14,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 72,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 195.7859101974491,
+        "crossingDepthPenalty": 458.39178399910304,
+        "softCardHitCount": 100.5334544187773,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 1.126213684082043e-05,
+        "representationPenalty": 0.0,
+        "total": 754.840871505335,
+        "binaryCrossings": 192,
+        "binaryCardHits": 99,
+        "activeCrossPairs": 2476,
+        "activeHitPairs": 2173,
+        "hardGeometryPenalty": 0.12971162786875554,
+        "hardGeometryDetails": {
+          "total": 0.12971162786875554,
+          "full": {
+            "total": 0.12971162786875554,
+            "adjacentCrossingPenalty": 0.12971162786875554,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 3,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.0,
+            "adjacentCrossingPenalty": 0.0,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 0,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 291,
+        "measureOnly": false,
+        "individualVisual": 4456,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 4,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 76,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 195.39509608891257,
+        "crossingDepthPenalty": 458.416085057811,
+        "softCardHitCount": 100.36460524712736,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 1.2499440673828268e-05,
+        "representationPenalty": 0.0,
+        "total": 754.1965280453909,
+        "binaryCrossings": 192,
+        "binaryCardHits": 99,
+        "activeCrossPairs": 2476,
+        "activeHitPairs": 2173,
+        "hardGeometryPenalty": 0.02072915209925919,
+        "hardGeometryDetails": {
+          "total": 0.02072915209925919,
+          "full": {
+            "total": 0.010364576049629594,
+            "adjacentCrossingPenalty": 0.010364576049629594,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 1,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.010364576049629594,
+            "adjacentCrossingPenalty": 0.010364576049629594,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 1,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 292,
+        "measureOnly": false,
+        "individualVisual": 4466,
+        "spacing": 0,
+        "hard": 2,
+        "individualHard": 18,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 80,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 195.17440838406074,
+        "crossingDepthPenalty": 458.4302534164117,
+        "softCardHitCount": 100.29053558206905,
+        "spacingPenalty": 4.1359030627651384e-24,
+        "movementPenalty": 1.3527732971191476e-05,
+        "representationPenalty": 0.0,
+        "total": 754.3160779064812,
+        "binaryCrossings": 191,
+        "binaryCardHits": 98,
+        "activeCrossPairs": 2478,
+        "activeHitPairs": 2172,
+        "hardGeometryPenalty": 0.4208669962066106,
+        "hardGeometryDetails": {
+          "total": 0.4208669962066106,
+          "full": {
+            "total": 0.2990426627127972,
+            "adjacentCrossingPenalty": 0.2990426627127972,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 5,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.12182433349381336,
+            "adjacentCrossingPenalty": 0.12182433349381336,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 2,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 290,
+        "measureOnly": false,
+        "individualVisual": 4459,
+        "spacing": 0,
+        "hard": 2,
+        "individualHard": 8,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 84,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 195.00226094709166,
+        "crossingDepthPenalty": 458.42863787695467,
+        "softCardHitCount": 100.20624809170366,
+        "spacingPenalty": 4.1359030627651384e-24,
+        "movementPenalty": 1.4608600646972597e-05,
+        "representationPenalty": 0.0,
+        "total": 757.0812881054574,
+        "binaryCrossings": 191,
+        "binaryCardHits": 98,
+        "activeCrossPairs": 2476,
+        "activeHitPairs": 2171,
+        "hardGeometryPenalty": 3.4441265811066764,
+        "hardGeometryDetails": {
+          "total": 3.4441265811066764,
+          "full": {
+            "total": 3.04118646584194,
+            "adjacentCrossingPenalty": 3.04118646584194,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 6,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.4029401152647364,
+            "adjacentCrossingPenalty": 0.4029401152647364,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 2,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 292,
+        "measureOnly": false,
+        "individualVisual": 4462,
+        "spacing": 0,
+        "hard": 6,
+        "individualHard": 16,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 88,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 194.8613343505424,
+        "crossingDepthPenalty": 458.4337614408258,
+        "softCardHitCount": 99.97771596922601,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 1.5441730712890776e-05,
+        "representationPenalty": 0.0,
+        "total": 753.3474484023159,
+        "binaryCrossings": 191,
+        "binaryCardHits": 98,
+        "activeCrossPairs": 2479,
+        "activeHitPairs": 2170,
+        "hardGeometryPenalty": 0.07462119999102448,
+        "hardGeometryDetails": {
+          "total": 0.07462119999102448,
+          "full": {
+            "total": 0.07462119999102448,
+            "adjacentCrossingPenalty": 0.07462119999102448,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 2,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.0,
+            "adjacentCrossingPenalty": 0.0,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 0,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 291,
+        "measureOnly": false,
+        "individualVisual": 4458,
+        "spacing": 0,
+        "hard": 4,
+        "individualHard": 12,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 92,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 194.81182304758545,
+        "crossingDepthPenalty": 458.43710025450537,
+        "softCardHitCount": 99.75260319897065,
+        "spacingPenalty": 4.1359030627651384e-24,
+        "movementPenalty": 1.722040808105454e-05,
+        "representationPenalty": 0.0,
+        "total": 753.4999070084481,
+        "binaryCrossings": 191,
+        "binaryCardHits": 98,
+        "activeCrossPairs": 2478,
+        "activeHitPairs": 2170,
+        "hardGeometryPenalty": 0.4983632869786358,
+        "hardGeometryDetails": {
+          "total": 0.4983632869786358,
+          "full": {
+            "total": 0.4921679201680376,
+            "adjacentCrossingPenalty": 0.4921679201680376,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 7,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.006195366810598197,
+            "adjacentCrossingPenalty": 0.006195366810598197,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 1,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 292,
+        "measureOnly": false,
+        "individualVisual": 4456,
+        "spacing": 0,
+        "hard": 4,
+        "individualHard": 8,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 96,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 194.82220630747202,
+        "crossingDepthPenalty": 458.4424037436944,
+        "softCardHitCount": 99.66381964754777,
+        "spacingPenalty": 0.0,
+        "movementPenalty": 1.9125085754394573e-05,
+        "representationPenalty": 0.0,
+        "total": 754.2215448245489,
+        "binaryCrossings": 192,
+        "binaryCardHits": 98,
+        "activeCrossPairs": 2479,
+        "activeHitPairs": 2172,
+        "hardGeometryPenalty": 1.2930960007491161,
+        "hardGeometryDetails": {
+          "total": 1.2930960007491161,
+          "full": {
+            "total": 1.0135582416065976,
+            "adjacentCrossingPenalty": 0.8515582415253978,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.1620000000811997,
+            "binaryOutwardEndpoints": 2,
+            "binaryAdjacentCrossings": 6,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.27953775914251855,
+            "adjacentCrossingPenalty": 0.19853775906917687,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.08100000007334165,
+            "binaryOutwardEndpoints": 1,
+            "binaryAdjacentCrossings": 1,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 290,
+        "measureOnly": false,
+        "individualVisual": 4454,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 9,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 100,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 194.9184952090008,
+        "crossingDepthPenalty": 458.42591295431,
+        "softCardHitCount": 99.7136911271453,
+        "spacingPenalty": 4.1359030627651384e-24,
+        "movementPenalty": 1.92108055419918e-05,
+        "representationPenalty": 0.0,
+        "total": 753.521346800588,
+        "binaryCrossings": 192,
+        "binaryCardHits": 98,
+        "activeCrossPairs": 2477,
+        "activeHitPairs": 2171,
+        "hardGeometryPenalty": 0.4632282993264088,
+        "hardGeometryDetails": {
+          "total": 0.4632282993264088,
+          "full": {
+            "total": 0.4632282993264088,
+            "adjacentCrossingPenalty": 0.4632282993264088,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 5,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.0,
+            "adjacentCrossingPenalty": 0.0,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 0,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 290,
+        "measureOnly": false,
+        "individualVisual": 4459,
+        "spacing": 0,
+        "hard": 2,
+        "individualHard": 12,
+        "reason": "hard"
+      }
+    },
+    {
+      "iteration": 101,
+      "lossTemperature": 1.0,
+      "preUpdateProxy": {
+        "softCrossingCount": 194.95111377657963,
+        "crossingDepthPenalty": 458.41836071259706,
+        "softCardHitCount": 99.76887578811721,
+        "spacingPenalty": 4.1359030627651384e-24,
+        "movementPenalty": 1.919283270263648e-05,
+        "representationPenalty": 0.0,
+        "total": 754.4050408574183,
+        "binaryCrossings": 191,
+        "binaryCardHits": 98,
+        "activeCrossPairs": 2478,
+        "activeHitPairs": 2171,
+        "hardGeometryPenalty": 1.2666713872915658,
+        "hardGeometryDetails": {
+          "total": 1.2666713872915658,
+          "full": {
+            "total": 1.2330051665414492,
+            "adjacentCrossingPenalty": 1.2330051665414492,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 6,
+            "binaryOwnCardHits": 0
+          },
+          "projected": {
+            "total": 0.033666220750116604,
+            "adjacentCrossingPenalty": 0.033666220750116604,
+            "ownCardPenalty": 0.0,
+            "outwardBoundaryPenalty": 0.0,
+            "binaryOutwardEndpoints": 0,
+            "binaryAdjacentCrossings": 1,
+            "binaryOwnCardHits": 0
+          }
+        }
+      },
+      "geometry": {
+        "accepted": false,
+        "legal": false,
+        "visual": 290,
+        "measureOnly": false,
+        "individualVisual": 4457,
+        "spacing": 0,
+        "hard": 2,
+        "individualHard": 8,
+        "reason": "hard"
+      }
+    }
+  ],
+  "verifiedOutputHashes": {
+    "joint-input-features.npy": "85d12c112310a5aa1aa9f31e3b2b893ca898e4fe22bb5de2ec17319ceea43960",
+    "learned.tsv": "ee097292d8553d695fa8867eab8be9741131f28288588e4340fc103be802e5d6",
+    "learned.tsv.individual": "bf0484d0c034c2aa2dfa8d341263750bc7a6923e20e90e18ddb309994c23e7f2",
+    "learned.tsv.routes.tsv": "cb6d17a73f96259285cef08dba715d6a2d4c94dbfdcc0a74de93a8d6cd60295a",
+    "learned.tsv.individual.routes.tsv": "dd4b962cab5d0b2e7389a09bb1286ca7ff76b30ecf74399aeb8e2bee369cdbcf",
+    "learned.tsv.stats.json": "9780a3e2ec7022fd72f71ae63593154e14b010a1288a893fbb8261e0ad5a0263",
+    "learned.tsv.policy.json": "9214bbed7127932dd98c0a187844f87035467df09632b09cf4d316dc32f64446"
+  },
+  "candidate": ".tmp/visualcross-ml-150-750-20261003/overview-separation-dag1/candidate.layout.json",
+  "candidateSha256": "b470da2bdbd126adb53042df56ad599b9c81ddb62da60b8be6250a7c4199d904",
+  "visualCrossings": 289,
+  "improvesSource": false,
+  "allChecksPassed": true,
+  "seconds": 37.972129832953215,
+  "trainingExitedBeforeProductAudit": true,
+  "resumedProductAudit": false,
+  "productFileLoadVerified": true
+}

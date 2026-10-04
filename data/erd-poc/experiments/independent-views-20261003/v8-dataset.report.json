@@ -1,0 +1,24 @@
+{
+  "scope": "Captain individual-view reward observations; no committed moves",
+  "source": ".tmp/visualcross-ml-targets-20261003/individual7/candidate.individual.layout.json",
+  "sourceSha256": "a0a138d21e9f75024cef3def526ff5af2f2505192c97dd8d5418d3b93a225baa",
+  "initialVisual": 2270,
+  "graphId": 100000,
+  "states": 98,
+  "actions": 10752,
+  "positiveActions": 227,
+  "collectionSeconds": 20.0296,
+  "measuredPeakMiB": 5.9,
+  "decoder": "ray",
+  "datasetSha256": "5bd09763a70ce037df71adb6063f58c37e27f84df69e547bdc749589c1d515e2",
+  "sourceData": [
+    {
+      "file": ".tmp/visualcross-ml-targets-20261003/component-training.jsonl",
+      "sha256": "6d848c6f66ea9cc89ba171a8682053c27a2acde0ab1adad19723f2c890454748"
+    },
+    {
+      "file": ".tmp/visualcross-ml-targets-20261003/adapt2270/rewards.jsonl",
+      "sha256": "378fe5734a4c1f03107c50c3ad2625935a366ea11a2769cf5e821fe11dbaa77f"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "checkpoint": ".tmp/visualcross-ml-targets-20261003/component-policy-v2.npz",
+  "checkpointSha256": "5f26faefdd168971ef3c566af1bc941aa9c32aad6a1ee22b8c5453dd1c7c62db",
+  "untrainedControl": true,
+  "sourceDirectory": ".tmp/visualcross-ml-targets-20261003",
+  "syntheticSeed": null,
+  "policyProposalSource": "conditional mixture neural network",
+  "heuristicSearchCalls": 0,
+  "initial": {
+    "ready": true,
+    "eligible": 1035,
+    "visual": 417,
+    "individualVisual": 4585
+  },
+  "final": {
+    "initialVisual": 417,
+    "visual": 404,
+    "initialIndividualVisual": 4585,
+    "individualVisual": 4067,
+    "hardConditions": 0,
+    "initialHardConditions": 0,
+    "individualHardConditions": 102,
+    "initialIndividualHardConditions": 174,
+    "overlap": 0,
+    "spacing": 0,
+    "policyActionsEvaluated": 12000,
+    "acceptedActions": 78,
+    "heuristicSearchCalls": 0,
+    "proposalAuthority": "external-policy",
+    "decoder": "rigid component translation plus center-ray incident ports"
+  },
+  "budget": 12000,
+  "seed": 123,
+  "seconds": 10.95132020796882,
+  "observationsSha256": "c6710832de57c7aa7d48a26651eda5c682d4f1e9c18c28d1e3cf8f938482bd0f",
+  "actionsSha256": "063bca49ecea53b1cd4a1229334f091d6876e4d2a59933470a01f745118de9fd"
+}

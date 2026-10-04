@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: independent geometry survives decoding and preserves complete boundary routes
+ok 1 - independent geometry survives decoding and preserves complete boundary routes
+  ---
+  duration_ms: 13.473416
+  type: 'test'
+  ...
+# Subtest: incomplete, duplicate, resized and detached alternate geometry fails explicitly
+ok 2 - incomplete, duplicate, resized and detached alternate geometry fails explicitly
+  ---
+  duration_ms: 3.008666
+  type: 'test'
+  ...
+# Subtest: both controls switch positions and ports together and retain separate edits and viewports
+ok 3 - both controls switch positions and ports together and retain separate edits and viewports
+  ---
+  duration_ms: 8.63125
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 32.558458
+memory guard: peak=53.5 MiB limit=128 MiB

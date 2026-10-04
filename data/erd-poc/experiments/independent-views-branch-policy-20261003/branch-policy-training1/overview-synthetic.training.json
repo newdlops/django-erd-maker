@@ -1,0 +1,227 @@
+{
+  "kind": "conditional-mixture-component-policy-v2",
+  "schema": "relative-component-context-v2-64",
+  "features": 64,
+  "mixtures": 4,
+  "actionScale": 1,
+  "perObservationScale": true,
+  "jointMoves": false,
+  "branchMoves": true,
+  "overviewOnlyTraining": true,
+  "neighborMoves": false,
+  "gainPower": 1,
+  "gainCap": 32.0,
+  "environmentDecoder": "moving-ray",
+  "minLogSigma": -7.0,
+  "trainedUpdates": 8570,
+  "bestEpoch": 4,
+  "seed": 98108,
+  "trainingGraphIds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50
+  ],
+  "validationGraphIds": [
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63
+  ],
+  "datasetSha256": "a568f584bc5d8418aedd779cf24b52ab9f779f752a0899f98524cc89b804791d",
+  "trainingData": "procedural synthetic graphs only",
+  "captainTrainingExamples": 0,
+  "adaptationSourceSha256": null,
+  "adaptationWeight": null,
+  "validationScope": "held-out synthetic graphs",
+  "absoluteCoordinatesAsInput": false,
+  "modelNamesAsInput": false,
+  "checkpoint": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-synthetic.npz",
+  "checkpointSha256": "11793ff5b65e5582716d71b813f60cd292f0cd8982fc56e9f940d32169d1e787",
+  "states": 2186,
+  "trainingActions": 110656,
+  "validationActions": 29248,
+  "positiveTrainingActions": 5797,
+  "initialValidationNll": -0.7207691679231591,
+  "bestValidationNll": -1.453083820041205,
+  "parameterCount": 9685,
+  "seconds": 8.066172582970466,
+  "history": [
+    {
+      "epoch": 1,
+      "updates": 433,
+      "validationNll": -1.0488723316183595,
+      "seconds": 0.519436875008978
+    },
+    {
+      "epoch": 2,
+      "updates": 866,
+      "validationNll": -1.3139247102693306,
+      "seconds": 1.0436203749850392
+    },
+    {
+      "epoch": 3,
+      "updates": 1299,
+      "validationNll": -1.2398147151472503,
+      "seconds": 1.4469247499946505
+    },
+    {
+      "epoch": 4,
+      "updates": 1732,
+      "validationNll": -1.453083820041205,
+      "seconds": 1.813098665967118
+    },
+    {
+      "epoch": 5,
+      "updates": 2165,
+      "validationNll": -1.300296715419543,
+      "seconds": 2.1515112909837626
+    },
+    {
+      "epoch": 6,
+      "updates": 2598,
+      "validationNll": -1.4165210809036128,
+      "seconds": 2.4804804159794003
+    },
+    {
+      "epoch": 7,
+      "updates": 3031,
+      "validationNll": -1.1361430081273576,
+      "seconds": 2.8519701659679413
+    },
+    {
+      "epoch": 8,
+      "updates": 3464,
+      "validationNll": -1.3969785682456275,
+      "seconds": 3.2361272079870105
+    },
+    {
+      "epoch": 9,
+      "updates": 3897,
+      "validationNll": -1.2625783047991654,
+      "seconds": 3.6907854579621926
+    },
+    {
+      "epoch": 10,
+      "updates": 4330,
+      "validationNll": -1.2732623779188246,
+      "seconds": 4.074885915964842
+    },
+    {
+      "epoch": 11,
+      "updates": 4763,
+      "validationNll": -1.2159534161987926,
+      "seconds": 4.44053066597553
+    },
+    {
+      "epoch": 12,
+      "updates": 5196,
+      "validationNll": -1.1362886222028141,
+      "seconds": 4.812655124987941
+    },
+    {
+      "epoch": 13,
+      "updates": 5629,
+      "validationNll": -1.2554443938946163,
+      "seconds": 5.163345000008121
+    },
+    {
+      "epoch": 14,
+      "updates": 6062,
+      "validationNll": -1.0961905871420734,
+      "seconds": 5.576535000000149
+    },
+    {
+      "epoch": 15,
+      "updates": 6495,
+      "validationNll": -1.3215029177916326,
+      "seconds": 5.977838582999539
+    },
+    {
+      "epoch": 16,
+      "updates": 6928,
+      "validationNll": -1.2723157660631985,
+      "seconds": 6.37408704101108
+    },
+    {
+      "epoch": 17,
+      "updates": 7361,
+      "validationNll": -1.2131322305702312,
+      "seconds": 6.839004583016504
+    },
+    {
+      "epoch": 18,
+      "updates": 7794,
+      "validationNll": -1.31967580764241,
+      "seconds": 7.238607540959492
+    },
+    {
+      "epoch": 19,
+      "updates": 8227,
+      "validationNll": -0.9823386620387046,
+      "seconds": 7.705934875004459
+    },
+    {
+      "epoch": 20,
+      "updates": 8570,
+      "validationNll": -1.1847403971169754,
+      "seconds": 8.041408624965698
+    }
+  ]
+}

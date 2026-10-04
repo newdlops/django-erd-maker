@@ -1,0 +1,20 @@
+{
+  "view": "individual",
+  "sourceSha256": "e8c14059fbed1a6fabc28f1b0b5bf3bd3f143367126209507638dcebe2e2b874",
+  "sourceVisual": 1990,
+  "nodeIds": [
+    "db.FileAttachment",
+    "db.Article",
+    "db.ArticlePublishHistory",
+    "db.FABContent",
+    "db.ThirdPartyArticleProvider",
+    "db.ThirdPartyArticleProviderUserRelation",
+    "db.UserProfileImage",
+    "db.UserProfileImageMapping"
+  ],
+  "coreRoot": "db.FileAttachment",
+  "rootConflictIncidences": 364,
+  "selection": "conflicted two-core root with all attached nodes outside the simple-graph two-core",
+  "positionsProposed": false,
+  "coordinatesAsTargets": false
+}

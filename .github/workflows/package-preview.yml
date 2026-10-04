@@ -1,0 +1,41 @@
+name: Package preview VSIX
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: macos-26
+    timeout-minutes: 120
+    env:
+      CARGO_BUILD_JOBS: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install build tools
+        run: |
+          rustup toolchain install 1.95.0 --profile default
+          rustup override set 1.95.0
+          npm ci --ignore-scripts
+          npm install --global @vscode/vsce@3.9.2
+          cmake --version
+      - name: Prepare release and corresponding sources
+        run: bash scripts/prepare-release.sh
+      - name: Check packaged binary resolution
+        run: python3 scripts/erd-poc/run_memory_bounded.py -- node --max-old-space-size=64 --test --test-concurrency=1 test/integration/release-packaging.test.mjs
+      - name: Package and inspect isolated runtime
+        run: bash scripts/package-release.sh
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: django-erd-maker-darwin-arm64-preview
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14

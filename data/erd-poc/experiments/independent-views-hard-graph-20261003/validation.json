@@ -1,0 +1,26 @@
+{
+  "continuousGradientComparisons": {
+    "baseThreeTemperatures": 132,
+    "hardGeometry": 40,
+    "sampledLoss": 24
+  },
+  "hardCountsOnFrozenFailedBatchesMatchNative": true,
+  "hardBaselineLossZeroInBothViews": true,
+  "sampledFullPopulationParity": true,
+  "graphFeaturesEdgeOrderInvariant": true,
+  "graphIsolatesZero": true,
+  "graphFeaturesUseLayoutCoordinates": false,
+  "sparseGraphFeatureFixtureEigenResidual": 6.661338147750939e-16,
+  "largeGraphSparseFeaturesAreApproximate": true,
+  "sparseLargeGraphEigenResidual": 0.006406101893179675,
+  "quantizedLossUsesStraightThroughGradient": true,
+  "boundaryContactLossImplemented": false,
+  "allNativeHardConditionsStillRequired": true,
+  "sampledTrainingStillUsesExactFullNativeValidation": true,
+  "fixedSourceFrameAndAreaPreserved": true,
+  "serializedJobs": true,
+  "mathThreads": 1,
+  "guardLimitMiB": 256,
+  "browserVerified": false,
+  "newCandidatePromoted": false
+}

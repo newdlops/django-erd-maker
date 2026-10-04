@@ -1,0 +1,1888 @@
+{
+  "sourceFile": "data/erd-poc/candidates/captain-leaf-card-connections-ml-417.layout.json",
+  "candidateFile": ".tmp/visualcross-ml-targets-20261003/candidate.layout.json",
+  "sourceSha256": "32df3d9061ab4ef3e308ec7e670ca0180459370e9b79e5a239add7941d48b73c",
+  "candidateSha256": "86cfaf67bd528a4648fe1af7ddc3d964754cbb43e530621a14967e7bfa046700",
+  "baseline": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 286,
+    "edgeNodeIntersections": 129,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 417
+  },
+  "metrics": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 3,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 274,
+    "edgeNodeIntersections": 124,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 401
+  },
+  "originalIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 3350,
+    "edgeNodeIntersections": 1235,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 4585
+  },
+  "candidateIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 2747,
+    "edgeNodeIntersections": 1188,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 3935
+  },
+  "changedNodes": [
+    {
+      "modelId": "db.AgendaCeoAddressChange",
+      "before": {
+        "x": 14204,
+        "y": 21884
+      },
+      "after": {
+        "x": 14451.45,
+        "y": 21770.86
+      }
+    },
+    {
+      "modelId": "db.AgendaCoCeoSystemChange",
+      "before": {
+        "x": 14204,
+        "y": 22524
+      },
+      "after": {
+        "x": 14446.74,
+        "y": 22406.31
+      }
+    },
+    {
+      "modelId": "db.AgendaCompanyNameChange",
+      "before": {
+        "x": 23210,
+        "y": 23164
+      },
+      "after": {
+        "x": 18921.14,
+        "y": 22922.63
+      }
+    },
+    {
+      "modelId": "db.AgendaCustom",
+      "before": {
+        "x": 14521,
+        "y": 22524
+      },
+      "after": {
+        "x": 14763.74,
+        "y": 22406.31
+      }
+    },
+    {
+      "modelId": "db.AgendaDirectorCompensationRule",
+      "before": {
+        "x": 23548,
+        "y": 23164
+      },
+      "after": {
+        "x": 19259.14,
+        "y": 22922.63
+      }
+    },
+    {
+      "modelId": "db.AgendaHeadOfficeRelocationAoiChange",
+      "before": {
+        "x": 23164,
+        "y": 23280
+      },
+      "after": {
+        "x": 18875.14,
+        "y": 23038.63
+      }
+    },
+    {
+      "modelId": "db.AgendaMethodOfGivingPublicNoticeChange",
+      "before": {
+        "x": 17564.01,
+        "y": 19249.84
+      },
+      "after": {
+        "x": 17572.66,
+        "y": 19633.27
+      }
+    },
+    {
+      "modelId": "db.AgendaNewOptionsRule",
+      "before": {
+        "x": 23568.5,
+        "y": 23280
+      },
+      "after": {
+        "x": 19279.64,
+        "y": 23038.63
+      }
+    },
+    {
+      "modelId": "db.AgendaNewOrChangeRsuRule",
+      "before": {
+        "x": 23204.5,
+        "y": 23400
+      },
+      "after": {
+        "x": 18915.64,
+        "y": 23158.63
+      }
+    },
+    {
+      "modelId": "db.AgendaOptionExercise",
+      "before": {
+        "x": 14204,
+        "y": 22008
+      },
+      "after": {
+        "x": 14451.45,
+        "y": 21894.86
+      }
+    },
+    {
+      "modelId": "db.AgendaOptionExerciseClaim",
+      "before": {
+        "x": 14477.114747245,
+        "y": 21262.31372343
+      },
+      "after": {
+        "x": 14454.38,
+        "y": 20775.07
+      }
+    },
+    {
+      "modelId": "db.AgendaPurposeChange",
+      "before": {
+        "x": 23562.5,
+        "y": 23396
+      },
+      "after": {
+        "x": 19273.64,
+        "y": 23154.63
+      }
+    },
+    {
+      "modelId": "db.AgendaPurposeChangeItem",
+      "before": {
+        "x": 17874.91,
+        "y": 20639.13
+      },
+      "after": {
+        "x": 16625.01,
+        "y": 24200.46
+      }
+    },
+    {
+      "modelId": "db.AgendaRsuGrant",
+      "before": {
+        "x": 14204,
+        "y": 22648
+      },
+      "after": {
+        "x": 14446.74,
+        "y": 22530.31
+      }
+    },
+    {
+      "modelId": "db.AgendaSubsidiaryEstablishment",
+      "before": {
+        "x": 14508,
+        "y": 22652
+      },
+      "after": {
+        "x": 14750.74,
+        "y": 22534.31
+      }
+    },
+    {
+      "modelId": "db.AgendaTemplate",
+      "before": {
+        "x": 23251.947358708,
+        "y": 7354.132165258
+      },
+      "after": {
+        "x": 22935.59,
+        "y": 7827.83
+      }
+    },
+    {
+      "modelId": "db.AuditLog",
+      "before": {
+        "x": 17310.77,
+        "y": 7391.78
+      },
+      "after": {
+        "x": 17904.55,
+        "y": 7145.81
+      }
+    },
+    {
+      "modelId": "db.BalanceCertificateDocument",
+      "before": {
+        "x": 18710,
+        "y": 23804
+      },
+      "after": {
+        "x": 18164.71,
+        "y": 23954.73
+      }
+    },
+    {
+      "modelId": "db.BulkEmailCommonAttachment",
+      "before": {
+        "x": 19246.998254266,
+        "y": 17845.034979489
+      },
+      "after": {
+        "x": 18997.06,
+        "y": 17620.8
+      }
+    },
+    {
+      "modelId": "db.BusinessRegistrationCertificate",
+      "before": {
+        "x": 23563.947358708,
+        "y": 7354.132165258
+      },
+      "after": {
+        "x": 23247.59,
+        "y": 7827.83
+      }
+    },
+    {
+      "modelId": "db.CapitalChangeEvent",
+      "before": {
+        "x": 16766,
+        "y": 1404
+      },
+      "after": {
+        "x": 17029.23,
+        "y": 6348.6
+      }
+    },
+    {
+      "modelId": "db.CaptableRequest",
+      "before": {
+        "x": 18112.775865328,
+        "y": 15379.40195214
+      },
+      "after": {
+        "x": 18146.53,
+        "y": 15333.32
+      }
+    },
+    {
+      "modelId": "db.CoCeoSystemChangeEvent",
+      "before": {
+        "x": 17060,
+        "y": 1404
+      },
+      "after": {
+        "x": 17323.23,
+        "y": 6348.6
+      }
+    },
+    {
+      "modelId": "db.CompanyAppointedTransferAgentChange",
+      "before": {
+        "x": 23941.447358708,
+        "y": 7354.132165258
+      },
+      "after": {
+        "x": 23625.09,
+        "y": 7827.83
+      }
+    },
+    {
+      "modelId": "db.CompanyAuthorizedSharesChange",
+      "before": {
+        "x": 24385.447358708,
+        "y": 7354.132165258
+      },
+      "after": {
+        "x": 24069.09,
+        "y": 7827.83
+      }
+    },
+    {
+      "modelId": "db.CompanyBenefit",
+      "before": {
+        "x": 23251.947358708,
+        "y": 7470.132165258
+      },
+      "after": {
+        "x": 22935.59,
+        "y": 7943.83
+      }
+    },
+    {
+      "modelId": "db.CompanyCreateAssignmentReadiness",
+      "before": {
+        "x": 23556.947358708,
+        "y": 7470.132165258
+      },
+      "after": {
+        "x": 23240.59,
+        "y": 7943.83
+      }
+    },
+    {
+      "modelId": "db.CompanyGuideState",
+      "before": {
+        "x": 23983.947358708,
+        "y": 7470.132165258
+      },
+      "after": {
+        "x": 23667.59,
+        "y": 7943.83
+      }
+    },
+    {
+      "modelId": "db.CompanyInvestmentContractInfo",
+      "before": {
+        "x": 24385.447358708,
+        "y": 7470.132165258
+      },
+      "after": {
+        "x": 24069.09,
+        "y": 7943.83
+      }
+    },
+    {
+      "modelId": "db.CompanyInvitation",
+      "before": {
+        "x": 23251.947358708,
+        "y": 7586.132165258
+      },
+      "after": {
+        "x": 22935.59,
+        "y": 8059.83
+      }
+    },
+    {
+      "modelId": "db.CompanyIrSetting",
+      "before": {
+        "x": 23584.447358708,
+        "y": 7586.132165258
+      },
+      "after": {
+        "x": 23268.09,
+        "y": 8059.83
+      }
+    },
+    {
+      "modelId": "db.CompanyManagementAssignment",
+      "before": {
+        "x": 23956.447358708,
+        "y": 7586.132165258
+      },
+      "after": {
+        "x": 23640.09,
+        "y": 8059.83
+      }
+    },
+    {
+      "modelId": "db.CompanyMnaSetting",
+      "before": {
+        "x": 24401.947358708,
+        "y": 7586.132165258
+      },
+      "after": {
+        "x": 24085.59,
+        "y": 8059.83
+      }
+    },
+    {
+      "modelId": "db.CompanyNameChange",
+      "before": {
+        "x": 23251.947358708,
+        "y": 7702.132165258
+      },
+      "after": {
+        "x": 22935.59,
+        "y": 8175.83
+      }
+    },
+    {
+      "modelId": "db.CompanyOptionRule",
+      "before": {
+        "x": 23584.447358708,
+        "y": 7702.132165258
+      },
+      "after": {
+        "x": 23268.09,
+        "y": 8175.83
+      }
+    },
+    {
+      "modelId": "db.CompanyOverview",
+      "before": {
+        "x": 23983.947358708,
+        "y": 7702.132165258
+      },
+      "after": {
+        "x": 23667.59,
+        "y": 8175.83
+      }
+    },
+    {
+      "modelId": "db.CompanyOwnerAddRequest",
+      "before": {
+        "x": 24401.947358708,
+        "y": 7702.132165258
+      },
+      "after": {
+        "x": 24085.59,
+        "y": 8175.83
+      }
+    },
+    {
+      "modelId": "db.CompanyOwnerAuditLog",
+      "before": {
+        "x": 12491.791031783,
+        "y": 7591.976877564
+      },
+      "after": {
+        "x": 11573.63,
+        "y": 8059.59
+      }
+    },
+    {
+      "modelId": "db.CompanyPolicyFile",
+      "before": {
+        "x": 23251.947358708,
+        "y": 7818.132165258
+      },
+      "after": {
+        "x": 22935.59,
+        "y": 8291.83
+      }
+    },
+    {
+      "modelId": "db.CompanyRegistrationAssignment",
+      "before": {
+        "x": 23571.447358708,
+        "y": 7818.132165258
+      },
+      "after": {
+        "x": 23255.09,
+        "y": 8291.83
+      }
+    },
+    {
+      "modelId": "db.CompanyRegistrationAssignmentLog",
+      "before": {
+        "x": 23956.447358708,
+        "y": 7818.132165258
+      },
+      "after": {
+        "x": 23640.09,
+        "y": 8291.83
+      }
+    },
+    {
+      "modelId": "db.CompanyStockTransferRestrictedChange",
+      "before": {
+        "x": 24355.947358708,
+        "y": 7818.132165258
+      },
+      "after": {
+        "x": 24039.59,
+        "y": 8291.83
+      }
+    },
+    {
+      "modelId": "db.CompanyStockValue",
+      "before": {
+        "x": 23251.947358708,
+        "y": 7934.132165258
+      },
+      "after": {
+        "x": 22935.59,
+        "y": 8407.83
+      }
+    },
+    {
+      "modelId": "db.CompanyTag",
+      "before": {
+        "x": 23584.447358708,
+        "y": 7934.132165258
+      },
+      "after": {
+        "x": 23268.09,
+        "y": 8407.83
+      }
+    },
+    {
+      "modelId": "db.CompanyTodo",
+      "before": {
+        "x": 23983.947358708,
+        "y": 7934.132165258
+      },
+      "after": {
+        "x": 23667.59,
+        "y": 8407.83
+      }
+    },
+    {
+      "modelId": "db.CorporationPostRegistrationEmail",
+      "before": {
+        "x": 15323.07,
+        "y": 8368.18
+      },
+      "after": {
+        "x": 14930.34,
+        "y": 7651.39
+      }
+    },
+    {
+      "modelId": "db.DebtConfirmationAndOffsetContractDocument",
+      "before": {
+        "x": 17679.580285932,
+        "y": 25412.029642491
+      },
+      "after": {
+        "x": 17923.1,
+        "y": 25252.12
+      }
+    },
+    {
+      "modelId": "db.EditableCompanyOwnerAuditLog",
+      "before": {
+        "x": 24385.447358708,
+        "y": 7934.132165258
+      },
+      "after": {
+        "x": 24069.09,
+        "y": 8407.83
+      }
+    },
+    {
+      "modelId": "db.EmailActivityRecipient",
+      "before": {
+        "x": 23329.428671968,
+        "y": 24390.318671968
+      },
+      "after": {
+        "x": 23674.28,
+        "y": 23194.87
+      }
+    },
+    {
+      "modelId": "db.EmployeeOptionExerciseEvent",
+      "before": {
+        "x": 17363.5,
+        "y": 1404
+      },
+      "after": {
+        "x": 17626.73,
+        "y": 6348.6
+      }
+    },
+    {
+      "modelId": "db.EventAttachment",
+      "before": {
+        "x": 16695.502489745,
+        "y": 16520.654127133
+      },
+      "after": {
+        "x": 16730.1,
+        "y": 16245.05
+      }
+    },
+    {
+      "modelId": "db.ExternalStockInfo",
+      "before": {
+        "x": 23251.947358708,
+        "y": 8050.132165258
+      },
+      "after": {
+        "x": 22935.59,
+        "y": 8523.83
+      }
+    },
+    {
+      "modelId": "db.FinancialStatementsForNewIssueFromConversionDocument",
+      "before": {
+        "x": 19103,
+        "y": 23808
+      },
+      "after": {
+        "x": 18557.71,
+        "y": 23958.73
+      }
+    },
+    {
+      "modelId": "db.HrmCompensatoryLeave",
+      "before": {
+        "x": 6985.652200402,
+        "y": 20822.399758904
+      },
+      "after": {
+        "x": 6811.41,
+        "y": 20677.13
+      }
+    },
+    {
+      "modelId": "db.HrmConciergeRequest",
+      "before": {
+        "x": 23584.447358708,
+        "y": 8050.132165258
+      },
+      "after": {
+        "x": 23268.09,
+        "y": 8523.83
+      }
+    },
+    {
+      "modelId": "db.HrmCustomLeave",
+      "before": {
+        "x": 7349.652200402,
+        "y": 20822.399758904
+      },
+      "after": {
+        "x": 7175.41,
+        "y": 20677.13
+      }
+    },
+    {
+      "modelId": "db.HrmFamilyCareLeave",
+      "before": {
+        "x": 6985.652200402,
+        "y": 20938.399758904
+      },
+      "after": {
+        "x": 6811.41,
+        "y": 20793.13
+      }
+    },
+    {
+      "modelId": "db.HrmInfertilityTreatmentLeave",
+      "before": {
+        "x": 7336.652200402,
+        "y": 20938.399758904
+      },
+      "after": {
+        "x": 7162.41,
+        "y": 20793.13
+      }
+    },
+    {
+      "modelId": "db.HrmLeaveCommonConfig",
+      "before": {
+        "x": 6985.652200402,
+        "y": 21054.399758904
+      },
+      "after": {
+        "x": 6811.41,
+        "y": 20909.13
+      }
+    },
+    {
+      "modelId": "db.HrmLeaveIndividualApprovalTemplateRelation",
+      "before": {
+        "x": 7277.652200402,
+        "y": 21054.399758904
+      },
+      "after": {
+        "x": 7103.41,
+        "y": 20909.13
+      }
+    },
+    {
+      "modelId": "db.HrmMaternityLeave",
+      "before": {
+        "x": 6985.652200402,
+        "y": 21170.399758904
+      },
+      "after": {
+        "x": 6811.41,
+        "y": 21025.13
+      }
+    },
+    {
+      "modelId": "db.HrmMenstrualLeave",
+      "before": {
+        "x": 7349.652200402,
+        "y": 21170.399758904
+      },
+      "after": {
+        "x": 7175.41,
+        "y": 21025.13
+      }
+    },
+    {
+      "modelId": "db.HrmMiscarriageLeave",
+      "before": {
+        "x": 6985.652200402,
+        "y": 21286.399758904
+      },
+      "after": {
+        "x": 6811.41,
+        "y": 21141.13
+      }
+    },
+    {
+      "modelId": "db.HrmPaternityLeave",
+      "before": {
+        "x": 7349.652200402,
+        "y": 21286.399758904
+      },
+      "after": {
+        "x": 7175.41,
+        "y": 21141.13
+      }
+    },
+    {
+      "modelId": "db.HrmReserveTrainingLeave",
+      "before": {
+        "x": 6985.652200402,
+        "y": 21402.399758904
+      },
+      "after": {
+        "x": 6811.41,
+        "y": 21257.13
+      }
+    },
+    {
+      "modelId": "db.IaConfirmationRequest",
+      "before": {
+        "x": 21632.852762492,
+        "y": 18205.574499918
+      },
+      "after": {
+        "x": 21657.24,
+        "y": 18102.48
+      }
+    },
+    {
+      "modelId": "db.IaOwnerAuditLog",
+      "before": {
+        "x": 22163.59,
+        "y": 6560.04
+      },
+      "after": {
+        "x": 22919.68,
+        "y": 4831.57
+      }
+    },
+    {
+      "modelId": "db.IaSealStamp",
+      "before": {
+        "x": 21690.352762492,
+        "y": 18337.574499918
+      },
+      "after": {
+        "x": 21714.74,
+        "y": 18234.48
+      }
+    },
+    {
+      "modelId": "db.RtccConsentSummary",
+      "before": {
+        "x": 15609.27,
+        "y": 8556.43
+      },
+      "after": {
+        "x": 15005.14,
+        "y": 10679.36
+      }
+    },
+    {
+      "modelId": "db.InvestmentAgreementDocument",
+      "before": {
+        "x": 18457.275865328,
+        "y": 15363.40195214
+      },
+      "after": {
+        "x": 18491.03,
+        "y": 15317.32
+      }
+    },
+    {
+      "modelId": "db.InvestmentRound",
+      "before": {
+        "x": 16957.01,
+        "y": 10050.47
+      },
+      "after": {
+        "x": 16863.81,
+        "y": 10074.46
+      }
+    },
+    {
+      "modelId": "db.InvestmentSimulation",
+      "before": {
+        "x": 16607.38549511,
+        "y": 7080.824374946
+      },
+      "after": {
+        "x": 16145.29,
+        "y": 6774.08
+      }
+    },
+    {
+      "modelId": "db.InvestmentSimulationInvestor",
+      "before": {
+        "x": 16901.33,
+        "y": 4974.37
+      },
+      "after": {
+        "x": 18377.54,
+        "y": 3908.83
+      }
+    },
+    {
+      "modelId": "db.IrCompanyCreate",
+      "before": {
+        "x": 23983.947358708,
+        "y": 8050.132165258
+      },
+      "after": {
+        "x": 23667.59,
+        "y": 8523.83
+      }
+    },
+    {
+      "modelId": "db.IrosOtpIssueMeetingDocument",
+      "before": {
+        "x": 11839,
+        "y": 21884
+      },
+      "after": {
+        "x": 11526.38,
+        "y": 22897.64
+      }
+    },
+    {
+      "modelId": "db.LawtalkSignup",
+      "before": {
+        "x": 18094.59,
+        "y": 14627.96
+      },
+      "after": {
+        "x": 18136.35,
+        "y": 14583.42
+      }
+    },
+    {
+      "modelId": "db.LedgerByCustomerDocument",
+      "before": {
+        "x": 18720,
+        "y": 23932
+      },
+      "after": {
+        "x": 18174.71,
+        "y": 24082.73
+      }
+    },
+    {
+      "modelId": "db.MnaBuyerAttachment",
+      "before": {
+        "x": 21789.34,
+        "y": 9642.93
+      },
+      "after": {
+        "x": 14938.3,
+        "y": 9748.17
+      }
+    },
+    {
+      "modelId": "db.ModusignCompanyUserConnection",
+      "before": {
+        "x": 24385.447358708,
+        "y": 8050.132165258
+      },
+      "after": {
+        "x": 24069.09,
+        "y": 8523.83
+      }
+    },
+    {
+      "modelId": "db.ModusignExceededSignings",
+      "before": {
+        "x": 23251.947358708,
+        "y": 8166.132165258
+      },
+      "after": {
+        "x": 22935.59,
+        "y": 8639.83
+      }
+    },
+    {
+      "modelId": "db.NewIssueNoticeEmailRecipient",
+      "before": {
+        "x": 15093.77,
+        "y": 20437.28
+      },
+      "after": {
+        "x": 14992.79,
+        "y": 20401.87
+      }
+    },
+    {
+      "modelId": "db.NewIssueSkipNoticeDocument",
+      "before": {
+        "x": 19138,
+        "y": 23928
+      },
+      "after": {
+        "x": 18592.71,
+        "y": 24078.73
+      }
+    },
+    {
+      "modelId": "db.NewIssueStockAcceptanceDocument",
+      "before": {
+        "x": 18108.580285932,
+        "y": 25412.029642491
+      },
+      "after": {
+        "x": 18352.1,
+        "y": 25252.12
+      }
+    },
+    {
+      "modelId": "db.NewIssueStockAllocationDocument",
+      "before": {
+        "x": 18684,
+        "y": 24052
+      },
+      "after": {
+        "x": 18138.71,
+        "y": 24202.73
+      }
+    },
+    {
+      "modelId": "db.NewIssueStockAllocationRecordDateNoticeDocument",
+      "before": {
+        "x": 20372.34,
+        "y": 23848.43
+      },
+      "after": {
+        "x": 19934.08,
+        "y": 23807.92
+      }
+    },
+    {
+      "modelId": "db.NewIssueStockSubscriptionDocument",
+      "before": {
+        "x": 17665.080285932,
+        "y": 25528.029642491
+      },
+      "after": {
+        "x": 17908.6,
+        "y": 25368.12
+      }
+    },
+    {
+      "modelId": "db.NewIssueStockUnissuedConfirmationDocument",
+      "before": {
+        "x": 18086.080285932,
+        "y": 25528.029642491
+      },
+      "after": {
+        "x": 18329.6,
+        "y": 25368.12
+      }
+    },
+    {
+      "modelId": "db.NotificationInbox",
+      "before": {
+        "x": 14618.14,
+        "y": 12530.99
+      },
+      "after": {
+        "x": 14699.56,
+        "y": 10225.59
+      }
+    },
+    {
+      "modelId": "db.OptionAdjustment",
+      "before": {
+        "x": 16766,
+        "y": 1520
+      },
+      "after": {
+        "x": 17029.23,
+        "y": 6464.6
+      }
+    },
+    {
+      "modelId": "db.OptionContractTemplatePermission",
+      "before": {
+        "x": 23556.947358708,
+        "y": 8166.132165258
+      },
+      "after": {
+        "x": 23240.59,
+        "y": 8639.83
+      }
+    },
+    {
+      "modelId": "db.OptionExerciseManagementTaxationDefaultSetting",
+      "before": {
+        "x": 23903.947358708,
+        "y": 8166.132165258
+      },
+      "after": {
+        "x": 23587.59,
+        "y": 8639.83
+      }
+    },
+    {
+      "modelId": "db.OptionTaxCalculatorSetting",
+      "before": {
+        "x": 24396.447358708,
+        "y": 8166.132165258
+      },
+      "after": {
+        "x": 24080.09,
+        "y": 8639.83
+      }
+    },
+    {
+      "modelId": "db.OptionValueChange",
+      "before": {
+        "x": 16973.12,
+        "y": 10443.95
+      },
+      "after": {
+        "x": 16459.8,
+        "y": 10165.69
+      }
+    },
+    {
+      "modelId": "db.OptionWithdrawEvent",
+      "before": {
+        "x": 17060,
+        "y": 1520
+      },
+      "after": {
+        "x": 17323.23,
+        "y": 6464.6
+      }
+    },
+    {
+      "modelId": "db.PhantomStockCancelEvent",
+      "before": {
+        "x": 17372.5,
+        "y": 1520
+      },
+      "after": {
+        "x": 17635.73,
+        "y": 6464.6
+      }
+    },
+    {
+      "modelId": "db.PhantomStockExerciseEvent",
+      "before": {
+        "x": 16764,
+        "y": 1636
+      },
+      "after": {
+        "x": 17027.23,
+        "y": 6580.6
+      }
+    },
+    {
+      "modelId": "db.PhantomStockGrantEvent",
+      "before": {
+        "x": 17060,
+        "y": 1636
+      },
+      "after": {
+        "x": 17323.23,
+        "y": 6580.6
+      }
+    },
+    {
+      "modelId": "db.PortalMenuVisibilitySetting",
+      "before": {
+        "x": 23242.947358708,
+        "y": 8282.132165258
+      },
+      "after": {
+        "x": 22926.59,
+        "y": 8755.83
+      }
+    },
+    {
+      "modelId": "db.PortalSetting",
+      "before": {
+        "x": 23584.447358708,
+        "y": 8282.132165258
+      },
+      "after": {
+        "x": 23268.09,
+        "y": 8755.83
+      }
+    },
+    {
+      "modelId": "db.RebootProductContactRequest",
+      "before": {
+        "x": 23974.947358708,
+        "y": 8282.132165258
+      },
+      "after": {
+        "x": 23658.59,
+        "y": 8755.83
+      }
+    },
+    {
+      "modelId": "db.RegistrationAgenda",
+      "before": {
+        "x": 14820,
+        "y": 21860
+      },
+      "after": {
+        "x": 14818.17,
+        "y": 21844.2
+      }
+    },
+    {
+      "modelId": "db.RegistrationCaseReportUpdateLog",
+      "before": {
+        "x": 24374.447358708,
+        "y": 8282.132165258
+      },
+      "after": {
+        "x": 24058.09,
+        "y": 8755.83
+      }
+    },
+    {
+      "modelId": "db.RegistrationFormHeadOfficeInsideRelocationDocument",
+      "before": {
+        "x": 18997.230664016,
+        "y": 23088.919335984
+      },
+      "after": {
+        "x": 19559.31,
+        "y": 22132.39
+      }
+    },
+    {
+      "modelId": "db.RegistrationFormHeadOfficeOutsideRelocationDocument",
+      "before": {
+        "x": 18997.230664016,
+        "y": 23204.919335984
+      },
+      "after": {
+        "x": 19559.31,
+        "y": 22248.39
+      }
+    },
+    {
+      "modelId": "db.RsuAdjustEvent",
+      "before": {
+        "x": 17372.5,
+        "y": 1636
+      },
+      "after": {
+        "x": 17635.73,
+        "y": 6580.6
+      }
+    },
+    {
+      "modelId": "db.RsuCancelEvent",
+      "before": {
+        "x": 16766,
+        "y": 1752
+      },
+      "after": {
+        "x": 17029.23,
+        "y": 6696.6
+      }
+    },
+    {
+      "modelId": "db.RsuExerciseManagement",
+      "before": {
+        "x": 13741.49,
+        "y": 16132.12
+      },
+      "after": {
+        "x": 13793.61,
+        "y": 16035.29
+      }
+    },
+    {
+      "modelId": "db.RsuGrantEvent",
+      "before": {
+        "x": 17060,
+        "y": 1752
+      },
+      "after": {
+        "x": 17323.23,
+        "y": 6696.6
+      }
+    },
+    {
+      "modelId": "db.RsuPerformanceAchievementEvent",
+      "before": {
+        "x": 17352,
+        "y": 1752
+      },
+      "after": {
+        "x": 17615.23,
+        "y": 6696.6
+      }
+    },
+    {
+      "modelId": "db.RsuVesting",
+      "before": {
+        "x": 14634.344602999,
+        "y": 14669.411003298
+      },
+      "after": {
+        "x": 14696.34,
+        "y": 14825.72
+      }
+    },
+    {
+      "modelId": "db.RsuVestingTraceable",
+      "before": {
+        "x": 14634.344602999,
+        "y": 14785.411003298
+      },
+      "after": {
+        "x": 14696.34,
+        "y": 14941.72
+      }
+    },
+    {
+      "modelId": "db.RtccSummaryAnalysisRequest",
+      "before": {
+        "x": 16210.43,
+        "y": 9801.16
+      },
+      "after": {
+        "x": 15786.95,
+        "y": 9573.13
+      }
+    },
+    {
+      "modelId": "db.SafeCreateEvent",
+      "before": {
+        "x": 17333.298295737,
+        "y": 17450.882425272
+      },
+      "after": {
+        "x": 17239.94,
+        "y": 17464.71
+      }
+    },
+    {
+      "modelId": "db.SealStampCardContinuedUseApplicationFormDocument",
+      "before": {
+        "x": 11772,
+        "y": 22000
+      },
+      "after": {
+        "x": 11459.38,
+        "y": 23013.64
+      }
+    },
+    {
+      "modelId": "db.SealStampDeclarationDocument",
+      "before": {
+        "x": 11809.5,
+        "y": 22116
+      },
+      "after": {
+        "x": 11496.88,
+        "y": 23129.64
+      }
+    },
+    {
+      "modelId": "db.ShareClass",
+      "before": {
+        "x": 16444.65,
+        "y": 18203.39
+      },
+      "after": {
+        "x": 16463.89,
+        "y": 18166.18
+      }
+    },
+    {
+      "modelId": "db.ShareholdersMeetingConvocationNoticeRecipient",
+      "before": {
+        "x": 19192.665979653,
+        "y": 21439.066220749
+      },
+      "after": {
+        "x": 18998.22,
+        "y": 21329
+      }
+    },
+    {
+      "modelId": "db.ShareholdersMeetingDirectorAttendance",
+      "before": {
+        "x": 15505.03,
+        "y": 22806.93
+      },
+      "after": {
+        "x": 15684.48,
+        "y": 22310.19
+      }
+    },
+    {
+      "modelId": "db.StockTransferAgreementSurvey",
+      "before": {
+        "x": 23238.947358708,
+        "y": 8398.132165258
+      },
+      "after": {
+        "x": 22922.59,
+        "y": 8871.83
+      }
+    },
+    {
+      "modelId": "db.StockUnissuedConfirmationRequest",
+      "before": {
+        "x": 18085.275865328,
+        "y": 15503.40195214
+      },
+      "after": {
+        "x": 18119.03,
+        "y": 15457.32
+      }
+    },
+    {
+      "modelId": "db.Subscription",
+      "before": {
+        "x": 20892.74,
+        "y": 11125.01
+      },
+      "after": {
+        "x": 20744.39,
+        "y": 11140.07
+      }
+    },
+    {
+      "modelId": "db.SubscriptionContract",
+      "before": {
+        "x": 21886,
+        "y": 11004
+      },
+      "after": {
+        "x": 19362.63,
+        "y": 11604.04
+      }
+    },
+    {
+      "modelId": "db.SubscriptionPackage",
+      "before": {
+        "x": 22180,
+        "y": 11004
+      },
+      "after": {
+        "x": 19656.63,
+        "y": 11604.04
+      }
+    },
+    {
+      "modelId": "db.SubscriptionPenaltyPayment",
+      "before": {
+        "x": 21884,
+        "y": 11120
+      },
+      "after": {
+        "x": 19360.63,
+        "y": 11720.04
+      }
+    },
+    {
+      "modelId": "db.SubscriptionPolicy",
+      "before": {
+        "x": 22180,
+        "y": 11120
+      },
+      "after": {
+        "x": 19656.63,
+        "y": 11720.04
+      }
+    },
+    {
+      "modelId": "db.SubscriptionPromotion",
+      "before": {
+        "x": 21886,
+        "y": 11236
+      },
+      "after": {
+        "x": 19362.63,
+        "y": 11836.04
+      }
+    },
+    {
+      "modelId": "db.TalingCoupon",
+      "before": {
+        "x": 23584.447358708,
+        "y": 8398.132165258
+      },
+      "after": {
+        "x": 23268.09,
+        "y": 8871.83
+      }
+    },
+    {
+      "modelId": "db.ValuationHistory",
+      "before": {
+        "x": 23983.947358708,
+        "y": 8398.132165258
+      },
+      "after": {
+        "x": 23667.59,
+        "y": 8871.83
+      }
+    },
+    {
+      "modelId": "db.VentureBusinessCertification",
+      "before": {
+        "x": 18444.275865328,
+        "y": 15503.40195214
+      },
+      "after": {
+        "x": 18478.03,
+        "y": 15457.32
+      }
+    },
+    {
+      "modelId": "db.CompanyDocumentAIAnalysis",
+      "before": {
+        "x": 20112.874845729,
+        "y": 18145.969478859
+      },
+      "after": {
+        "x": 18973.44,
+        "y": 16645.91
+      }
+    },
+    {
+      "modelId": "db.IncorporationRequestPromoterCustodian",
+      "before": {
+        "x": 21913.732381577,
+        "y": 17689.563043966
+      },
+      "after": {
+        "x": 21959.31,
+        "y": 17542.54
+      }
+    },
+    {
+      "modelId": "db.InvestmentAgreement",
+      "before": {
+        "x": 18028.775865328,
+        "y": 15095.40195214
+      },
+      "after": {
+        "x": 16855.84,
+        "y": 17534.41
+      }
+    },
+    {
+      "modelId": "db.RsuRsaSealedContractFile",
+      "before": {
+        "x": 16473.997701711,
+        "y": 14708.178066951
+      },
+      "after": {
+        "x": 16262.46,
+        "y": 14737.05
+      }
+    },
+    {
+      "modelId": "db.RtccSummaryAnalysisRequestDocument",
+      "before": {
+        "x": 16182.93,
+        "y": 10105.16
+      },
+      "after": {
+        "x": 16503.64,
+        "y": 11926.81
+      }
+    },
+    {
+      "modelId": "db.RtccSummaryAnalysisResult",
+      "before": {
+        "x": 15601.27,
+        "y": 8852.43
+      },
+      "after": {
+        "x": 15131.21,
+        "y": 9466.36
+      }
+    },
+    {
+      "modelId": "db.RtccSummaryAnalysisResultDocument",
+      "before": {
+        "x": 15574.27,
+        "y": 9156.43
+      },
+      "after": {
+        "x": 15561.99,
+        "y": 10811.05
+      }
+    },
+    {
+      "modelId": "db.CompanySsoEmailDomain",
+      "before": {
+        "x": 16214.62,
+        "y": 12193.51
+      },
+      "after": {
+        "x": 16000.34,
+        "y": 12380.46
+      }
+    },
+    {
+      "modelId": "db.CompanySsoIdentity",
+      "before": {
+        "x": 16406.620850106,
+        "y": 12729.51017772
+      },
+      "after": {
+        "x": 16184.42,
+        "y": 12587.84
+      }
+    },
+    {
+      "modelId": "db.OptionExerciseManagementPaymentBankSetting",
+      "before": {
+        "x": 16774.620850106,
+        "y": 12129.51017772
+      },
+      "after": {
+        "x": 16083.95,
+        "y": 12244.69
+      }
+    }
+  ],
+  "changedRoutes": [
+    "edge:declared:db.AgendaBonusIssueSharesToIssue:share_class",
+    "edge:declared:db.AgendaCeoAddressChange:meeting_draft",
+    "edge:declared:db.AgendaCeoAddressChangeItem:agenda_ceo_address_change",
+    "edge:declared:db.AgendaCoCeoSystemChange:meeting_draft",
+    "edge:declared:db.AgendaCompanyNameChange:meeting_draft",
+    "edge:declared:db.AgendaCustom:meeting_draft",
+    "edge:declared:db.AgendaDirectorCompensationRule:meeting_draft",
+    "edge:declared:db.AgendaHeadOfficeRelocationAoiChange:meeting_draft",
+    "edge:declared:db.AgendaMethodOfGivingPublicNoticeChange:daily_newspaper",
+    "edge:declared:db.AgendaMethodOfGivingPublicNoticeChange:meeting_draft",
+    "edge:declared:db.AgendaNewOptionsRule:meeting_draft",
+    "edge:declared:db.AgendaNewOrChangeRsuRule:meeting_draft",
+    "edge:declared:db.AgendaOptionExercise:meeting_draft",
+    "edge:declared:db.AgendaOptionExerciseClaim:option_exercise",
+    "edge:declared:db.AgendaOptionExerciseClaim:option_exercise_claim",
+    "edge:declared:db.AgendaOptionExerciseGrantee:option_exercise",
+    "edge:declared:db.AgendaPurposeChange:meeting_draft",
+    "edge:declared:db.AgendaPurposeChangeItem:agenda_purpose_change",
+    "edge:declared:db.AgendaRsuGrant:meeting_draft",
+    "edge:declared:db.AgendaRsuGrantGrantee:rsu_grant",
+    "edge:declared:db.AgendaSubsidiaryEstablishment:meeting_draft",
+    "edge:declared:db.AgendaTemplate:company",
+    "edge:declared:db.AuditLog:actor_api_key",
+    "edge:declared:db.BalanceCertificateDocument:new_issue_agenda",
+    "edge:declared:db.BalanceCertificateDocument:option_exercise_agenda",
+    "edge:declared:db.BulkEmailCommonAttachment:bulk_email",
+    "edge:declared:db.BulkEmailRecipient:email_activity_recipient",
+    "edge:declared:db.BusinessRegistrationCertificate:company",
+    "edge:declared:db.CaptableRequest:captable_file",
+    "edge:declared:db.CaptableRequest:company",
+    "edge:declared:db.CompanyAppointedTransferAgentChange:company",
+    "edge:declared:db.CompanyAuthorizedSharesChange:company",
+    "edge:declared:db.CompanyBenefit:company",
+    "edge:declared:db.CompanyCreateAssignmentReadiness:company",
+    "edge:declared:db.CompanyDocumentAIAnalysis:company",
+    "edge:declared:db.CompanyDocumentAIAnalysis:file",
+    "edge:declared:db.CompanyGuideState:company",
+    "edge:declared:db.CompanyInvestmentContractInfo:company",
+    "edge:declared:db.CompanyInvitation:invitee",
+    "edge:declared:db.CompanyIrSetting:company",
+    "edge:declared:db.CompanyManagementAssignment:company",
+    "edge:declared:db.CompanyMnaSetting:company",
+    "edge:declared:db.CompanyNameChange:company",
+    "edge:declared:db.CompanyOptionRule:company",
+    "edge:declared:db.CompanyOverview:company",
+    "edge:declared:db.CompanyOwnerAddRequest:company",
+    "edge:declared:db.CompanyOwnerAuditLog:company",
+    "edge:declared:db.CompanyOwnerAuditLogOwnerRoleRelation:company_owner_audit_log",
+    "edge:declared:db.CompanyPolicyFile:company",
+    "edge:declared:db.CompanyRegistrationAssignment:company",
+    "edge:declared:db.CompanyRegistrationAssignmentLog:company",
+    "edge:declared:db.CompanySsoEmailDomain:configuration",
+    "edge:declared:db.CompanySsoIdentity:configuration",
+    "edge:declared:db.CompanyStockTransferRestrictedChange:company",
+    "edge:declared:db.CompanyStockValue:company",
+    "edge:declared:db.CompanyTag:company_set",
+    "edge:declared:db.CompanyTodo:company",
+    "edge:declared:db.CorporationPostRegistrationEmail:company",
+    "edge:declared:db.CorporationPostRegistrationScheduledEmail:corporation_post_registration_email",
+    "edge:declared:db.DebtConfirmationAndOffsetContractDocument:new_issue_item",
+    "edge:declared:db.DirectorsMeetingAgenda:agenda_co_ceo_system_change",
+    "edge:declared:db.DirectorsMeetingAgenda:agenda_custom",
+    "edge:declared:db.DirectorsMeetingAgenda:agenda_rsu_grant",
+    "edge:declared:db.DirectorsMeetingAgenda:agenda_subsidiary_establishment",
+    "edge:declared:db.EditableCompanyOwnerAuditLog:company",
+    "edge:declared:db.EmailActivityRecipient:email_activity",
+    "edge:declared:db.EmailActivityRecipientStatusHistory:recipient",
+    "edge:declared:db.EventAttachment:company",
+    "edge:declared:db.EventAttachment:event",
+    "edge:declared:db.ExternalStockInfo:company",
+    "edge:declared:db.FinancialStatementsForNewIssueFromConversionDocument:new_issue",
+    "edge:declared:db.HrmConciergeRequest:company",
+    "edge:declared:db.HrmLeaveCommonConfig:leave",
+    "edge:declared:db.HrmLeaveIndividualApprovalTemplateRelation:leave",
+    "edge:declared:db.IaConfirmationRequest:investment_association",
+    "edge:declared:db.IaConfirmationRequest:partner_list_file",
+    "edge:declared:db.IaOwnerAuditLog:investment_association",
+    "edge:declared:db.IaSealStamp:image_file",
+    "edge:declared:db.IaSealStamp:investment_association",
+    "edge:declared:db.IaSealStampImage:seal_stamp",
+    "edge:declared:db.IncorporationRequestPromoterCustodian:address",
+    "edge:declared:db.IncorporationRequestPromoterCustodian:promoter",
+    "edge:declared:db.InvestmentAgreement:document",
+    "edge:declared:db.InvestmentAgreement:stakeholder",
+    "edge:declared:db.InvestmentAgreementDocument:company",
+    "edge:declared:db.InvestmentAgreementDocument:pdf_file",
+    "edge:declared:db.InvestmentRound:company",
+    "edge:declared:db.InvestmentRoundNewIssueEvent:investment_round",
+    "edge:declared:db.InvestmentSimulation:company",
+    "edge:declared:db.InvestmentSimulationInitialOptionGrantee:simulation",
+    "edge:declared:db.InvestmentSimulationInitialShareholder:simulation",
+    "edge:declared:db.InvestmentSimulationInvestor:simulation_round",
+    "edge:declared:db.InvestmentSimulationNewIssueInvestment:investor",
+    "edge:declared:db.InvestmentSimulationPurchaseInvestment:investor",
+    "edge:declared:db.InvestmentSimulationRound:simulation",
+    "edge:declared:db.IrCompanyCreate:company",
+    "edge:declared:db.IrosOtpIssueMeetingDocument:stakeholder",
+    "edge:declared:db.LawtalkSignup:company",
+    "edge:declared:db.LawtalkSignupAttachment:lawtalk_signup",
+    "edge:declared:db.LedgerByCustomerDocument:new_issue",
+    "edge:declared:db.MnaBuyerAttachment:mna_buyer",
+    "edge:declared:db.ModusignCompanyUserConnection:company",
+    "edge:declared:db.ModusignExceededSignings:company",
+    "edge:declared:db.NewIssueNoticeEmailRecipient:bulk_email_recipient",
+    "edge:declared:db.NewIssueNoticeEmailRecipient:email",
+    "edge:declared:db.NewIssueNoticeEmailRecipient:shareholder",
+    "edge:declared:db.NewIssueSkipNoticeDocument:new_issue_agenda",
+    "edge:declared:db.NewIssueSkipNoticeDocument:shareholder",
+    "edge:declared:db.NewIssueStockAcceptanceDocument:new_issue_item",
+    "edge:declared:db.NewIssueStockAllocationDocument:bonus_issue_agenda",
+    "edge:declared:db.NewIssueStockAllocationDocument:new_issue_agenda",
+    "edge:declared:db.NewIssueStockAllocationRecordDateNoticeDocument:bonus_issue_agenda",
+    "edge:declared:db.NewIssueStockSubscriptionDocument:new_issue_item",
+    "edge:declared:db.NewIssueStockUnissuedConfirmationDocument:new_issue_item",
+    "edge:declared:db.NotarizationPoaDirectorSigner:director",
+    "edge:declared:db.NotificationInbox:notification",
+    "edge:declared:db.OptionAdjustment:event",
+    "edge:declared:db.OptionContractTemplatePermission:company",
+    "edge:declared:db.OptionExerciseClaimMeetingDocument:exercise_claim",
+    "edge:declared:db.OptionExerciseManagementPaymentBankSetting:company",
+    "edge:declared:db.OptionExerciseManagementTaxationDefaultSetting:company",
+    "edge:declared:db.OptionGrantEvent:share_class",
+    "edge:declared:db.OptionTaxCalculatorSetting:company",
+    "edge:declared:db.OptionValueChange:company",
+    "edge:declared:db.OptionValueChange:investment_round",
+    "edge:declared:db.PortalMenuVisibilitySetting:company",
+    "edge:declared:db.PortalSetting:company",
+    "edge:declared:db.QuarterlyReportRequestRecipient:email_activity_recipient",
+    "edge:declared:db.RebootProductContactRequest:company",
+    "edge:declared:db.RegistrationAgenda:agenda_ceo_address_change",
+    "edge:declared:db.RegistrationAgenda:agenda_director_change",
+    "edge:declared:db.RegistrationAgenda:agenda_option_exercise",
+    "edge:declared:db.RegistrationAgenda:registration",
+    "edge:declared:db.RegistrationCaseReportUpdateLog:company",
+    "edge:declared:db.RegistrationFormHeadOfficeInsideRelocationDocument:head_office_relocation_agenda",
+    "edge:declared:db.RegistrationFormHeadOfficeOutsideRelocationDocument:head_office_relocation_agenda",
+    "edge:inheritance:db.RsuAdjustEvent->db.Event",
+    "edge:declared:db.RsuExerciseClaimCandidate:rsu_exercise_management",
+    "edge:declared:db.RsuExerciseManagement:company",
+    "edge:declared:db.RsuExerciseManagement:excluded_institution_set",
+    "edge:declared:db.RsuExerciseManagementAttachmentSetting:management",
+    "edge:declared:db.RsuExerciseManagementEmail:rsu_exercise_management",
+    "edge:declared:db.RsuRsaSealedContractFile:company",
+    "edge:declared:db.RsuRsaSealedContractFile:grant_contract",
+    "edge:declared:db.RsuVesting:rsu",
+    "edge:declared:db.RsuVestingItem:rsu_vesting",
+    "edge:declared:db.RsuVestingTraceable:rsu",
+    "edge:declared:db.RsuVestingTraceable:source_vesting_item",
+    "edge:declared:db.RtccConsentSummary:company",
+    "edge:declared:db.RtccConsentSummary:source_result",
+    "edge:declared:db.RtccSummaryAnalysisRequest:company",
+    "edge:declared:db.RtccSummaryAnalysisRequestDocument:document",
+    "edge:declared:db.RtccSummaryAnalysisRequestDocument:request",
+    "edge:declared:db.RtccSummaryAnalysisResult:request",
+    "edge:declared:db.RtccSummaryAnalysisResultDocument:document",
+    "edge:declared:db.RtccSummaryAnalysisResultDocument:result",
+    "edge:declared:db.SafeCreateEvent:contract_file",
+    "edge:declared:db.SealStampCardContinuedUseApplicationFormDocument:stakeholder",
+    "edge:declared:db.SealStampDeclarationDocument:stakeholder",
+    "edge:declared:db.ShareClass:company",
+    "edge:declared:db.ShareholdersMeeting:chairperson",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_co_ceo_system_change",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_company_name_change",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_custom",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_director_compensation_rule",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_head_office_relocation_aoi_change",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_method_of_giving_public_notice_change",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_new_options_rule",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_new_or_change_rsu_rule",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_purpose_change",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_rsu_grant",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_subsidiary_establishment",
+    "edge:declared:db.ShareholdersMeetingConvocationNoticeEmailRecipient:email_activity_recipient",
+    "edge:declared:db.ShareholdersMeetingConvocationNoticeRecipient:bulk_email_recipient",
+    "edge:declared:db.ShareholdersMeetingConvocationNoticeRecipient:convocation_notice_email",
+    "edge:declared:db.ShareholdersMeetingConvocationNoticeRecipient:shareholder",
+    "edge:declared:db.ShareholdersMeetingDirectorAttendance:stakeholder",
+    "edge:declared:db.Stock:share_class",
+    "edge:declared:db.StockTransferAgreementItem:share_class",
+    "edge:declared:db.StockTransferAgreementSurvey:company",
+    "edge:declared:db.StockTransferPrice:share_class",
+    "edge:declared:db.StockUnissuedConfirmationRequest:company",
+    "edge:declared:db.StockUnissuedConfirmationRequest:stock_unissued_confirmation_file",
+    "edge:declared:db.Subscription:company",
+    "edge:declared:db.Subscription:subscription_contract",
+    "edge:declared:db.Subscription:subscription_package",
+    "edge:declared:db.Subscription:subscription_plan",
+    "edge:declared:db.Subscription:subscription_policy",
+    "edge:declared:db.Subscription:subscription_promotion",
+    "edge:declared:db.SubscriptionBonus:subscription",
+    "edge:declared:db.SubscriptionContract:company",
+    "edge:declared:db.SubscriptionModusignDocumentUsageHistory:subscription",
+    "edge:declared:db.SubscriptionPackage:company",
+    "edge:declared:db.SubscriptionPaymentRequest:subscription",
+    "edge:declared:db.SubscriptionPenaltyPayment:company",
+    "edge:declared:db.SubscriptionPenaltyPayment:subscription",
+    "edge:declared:db.SubscriptionPeriod:subscription",
+    "edge:declared:db.SubscriptionPerk:subscription",
+    "edge:declared:db.SubscriptionPolicy:company",
+    "edge:declared:db.SubscriptionPromotion:company",
+    "edge:declared:db.SubscriptionSuspensionHistory:subscription",
+    "edge:declared:db.TalingCoupon:_company",
+    "edge:declared:db.ValuationHistory:company",
+    "edge:declared:db.VentureBusinessCertification:attachment",
+    "edge:declared:db.VentureBusinessCertification:company",
+    "edge:declared:db.VentureBusinessCertificationExpirationNotificationLog:venture_business_certification",
+    "edge:inheritance:db.BalanceCertificateDocument->db.MeetingDocument",
+    "edge:inheritance:db.BulkEmailCommonAttachment->db.FileAttachment",
+    "edge:inheritance:db.CapitalChangeEvent->db.Event",
+    "edge:inheritance:db.CoCeoSystemChangeEvent->db.Event",
+    "edge:inheritance:db.CompanyOwnerAuditLog->db.AuditLog",
+    "edge:inheritance:db.DebtConfirmationAndOffsetContractDocument->db.MeetingDocument",
+    "edge:inheritance:db.EmployeeOptionExerciseEvent->db.Event",
+    "edge:inheritance:db.FinancialStatementsForNewIssueFromConversionDocument->db.MeetingDocument",
+    "edge:inheritance:db.HrmCompensatoryLeave->db.HrmLeaveBase",
+    "edge:inheritance:db.HrmCustomLeave->db.HrmLeaveBase",
+    "edge:inheritance:db.HrmFamilyCareLeave->db.HrmLeaveBase",
+    "edge:inheritance:db.HrmInfertilityTreatmentLeave->db.HrmLeaveBase",
+    "edge:inheritance:db.HrmMaternityLeave->db.HrmLeaveBase",
+    "edge:inheritance:db.HrmMenstrualLeave->db.HrmLeaveBase",
+    "edge:inheritance:db.HrmMiscarriageLeave->db.HrmLeaveBase",
+    "edge:inheritance:db.HrmPaternityLeave->db.HrmLeaveBase",
+    "edge:inheritance:db.HrmReserveTrainingLeave->db.HrmLeaveBase",
+    "edge:inheritance:db.IaOwnerAuditLog->db.AuditLog",
+    "edge:inheritance:db.IrosOtpIssueMeetingDocument->db.MeetingDocument",
+    "edge:inheritance:db.LedgerByCustomerDocument->db.MeetingDocument",
+    "edge:inheritance:db.NewIssueSkipNoticeDocument->db.MeetingDocument",
+    "edge:inheritance:db.NewIssueStockAcceptanceDocument->db.MeetingDocument",
+    "edge:inheritance:db.NewIssueStockAllocationDocument->db.MeetingDocument",
+    "edge:inheritance:db.NewIssueStockAllocationRecordDateNoticeDocument->db.MeetingDocument",
+    "edge:inheritance:db.NewIssueStockSubscriptionDocument->db.MeetingDocument",
+    "edge:inheritance:db.NewIssueStockUnissuedConfirmationDocument->db.MeetingDocument",
+    "edge:inheritance:db.OptionWithdrawEvent->db.Event",
+    "edge:inheritance:db.PhantomStockCancelEvent->db.Event",
+    "edge:inheritance:db.PhantomStockExerciseEvent->db.Event",
+    "edge:inheritance:db.PhantomStockGrantEvent->db.Event",
+    "edge:inheritance:db.RegistrationFormHeadOfficeInsideRelocationDocument->db.MeetingDocument",
+    "edge:inheritance:db.RegistrationFormHeadOfficeOutsideRelocationDocument->db.MeetingDocument",
+    "edge:inheritance:db.RsuCancelEvent->db.Event",
+    "edge:inheritance:db.RsuGrantEvent->db.Event",
+    "edge:inheritance:db.RsuPerformanceAchievementEvent->db.Event",
+    "edge:inheritance:db.SafeCreateEvent->db.Event",
+    "edge:inheritance:db.SealStampCardContinuedUseApplicationFormDocument->db.MeetingDocument",
+    "edge:inheritance:db.SealStampDeclarationDocument->db.MeetingDocument",
+    "edge:inheritance:db.ShareholdersMeetingConvocationNoticeEmailRecipient->db.ShareholdersMeetingConvocationNoticeRecipient",
+    "edge:inheritance:db.ShareholdersMeetingConvocationNoticeWrittenRecipient->db.ShareholdersMeetingConvocationNoticeRecipient"
+  ],
+  "sizesPreserved": true,
+  "membershipsPreserved": true,
+  "rigidLeafGeometryPreserved": true,
+  "productRouteParity": true,
+  "nativeProposal": {
+    "initialVisual": 417,
+    "visual": 401,
+    "initialIndividualVisual": 4585,
+    "individualVisual": 3935,
+    "hardConditions": 0,
+    "initialHardConditions": 0,
+    "individualHardConditions": 80,
+    "initialIndividualHardConditions": 174,
+    "overlap": 0,
+    "spacing": 0,
+    "policyActionsEvaluated": 12000,
+    "acceptedActions": 86,
+    "heuristicSearchCalls": 0,
+    "proposalAuthority": "external-policy",
+    "decoder": "rigid component translation plus center-ray incident ports"
+  },
+  "learnedPolicy": {
+    "checkpoint": ".tmp/visualcross-ml-targets-20261003/component-policy-v2.npz",
+    "checkpointSha256": "5f26faefdd168971ef3c566af1bc941aa9c32aad6a1ee22b8c5453dd1c7c62db",
+    "untrainedControl": false,
+    "sourceDirectory": ".tmp/visualcross-ml-targets-20261003",
+    "syntheticSeed": null,
+    "policyProposalSource": "conditional mixture neural network",
+    "heuristicSearchCalls": 0,
+    "initial": {
+      "ready": true,
+      "eligible": 1035,
+      "visual": 417,
+      "individualVisual": 4585
+    },
+    "final": {
+      "initialVisual": 417,
+      "visual": 401,
+      "initialIndividualVisual": 4585,
+      "individualVisual": 3935,
+      "hardConditions": 0,
+      "initialHardConditions": 0,
+      "individualHardConditions": 80,
+      "initialIndividualHardConditions": 174,
+      "overlap": 0,
+      "spacing": 0,
+      "policyActionsEvaluated": 12000,
+      "acceptedActions": 86,
+      "heuristicSearchCalls": 0,
+      "proposalAuthority": "external-policy",
+      "decoder": "rigid component translation plus center-ray incident ports"
+    },
+    "budget": 12000,
+    "seed": 123,
+    "seconds": 13.05301337497076,
+    "observationsSha256": "7b1839a6cd074a2a41091dfbf27da87d4db13a6a086a71b6bd65e98292f45485",
+    "actionsSha256": "5fd4ab44ed4decc9745b07b92c860176a1c2987b62818eb38bff2be11d458c39"
+  },
+  "browserVerified": false
+}

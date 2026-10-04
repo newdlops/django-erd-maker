@@ -154,6 +154,68 @@ test("phase11 optimized layout refresh fits the complete graph instead of preser
   });
 });
 
+test("phase11 layout refresh drops coordinates dragged in the previous layout", () => {
+  const previous = createLiveDiagramResult({
+    mode: "hierarchical",
+    nodes: [createNode("app.Post", 0, 0), createNode("app.Author", 400, 0)],
+  });
+  const next = createLiveDiagramResult({
+    mode: "fmmm",
+    nodes: [createNode("app.Post", 1200, 900), createNode("app.Author", 1800, 900)],
+  });
+  const draggedPost = {
+    ...defaultTableOptions("app.Post"),
+    manualPosition: { x: 80, y: 60 },
+  };
+  const restored = restoreRefreshViewState(
+    next,
+    previous,
+    {
+      layoutMode: "hierarchical",
+      optimizedLayout: true,
+      selectedModelId: undefined,
+      tableOptions: [draggedPost, defaultTableOptions("app.Author")],
+      viewport: { panX: 0, panY: 0, zoom: 1 },
+      viewportRect: { height: 400, width: 500 },
+    },
+    "layout",
+  );
+
+  assert.equal(
+    restored.payload.view.tableOptions.find((entry) => entry.modelId === "app.Post")
+      ?.manualPosition,
+    undefined,
+  );
+});
+
+test("phase11 full refresh preserves a deliberate manual coordinate", () => {
+  const previous = createLiveDiagramResult({
+    mode: "hierarchical",
+    nodes: [createNode("app.Post", 0, 0), createNode("app.Author", 400, 0)],
+  });
+  const next = createLiveDiagramResult({
+    mode: "hierarchical",
+    nodes: [createNode("app.Post", 0, 0), createNode("app.Author", 400, 0)],
+  });
+  const restored = restoreRefreshViewState(
+    next,
+    previous,
+    {
+      layoutMode: "hierarchical",
+      selectedModelId: undefined,
+      tableOptions: [{
+        ...defaultTableOptions("app.Post"),
+        manualPosition: { x: 80, y: 60 },
+      }],
+      viewport: { panX: 0, panY: 0, zoom: 1 },
+      viewportRect: { height: 400, width: 500 },
+    },
+    "full",
+  );
+
+  assert.deepEqual(restored.payload.view.tableOptions[0]?.manualPosition, { x: 80, y: 60 });
+});
+
 function createLiveDiagramResult({ mode, nodes }) {
   return {
     basePayload: {

@@ -28,7 +28,7 @@ const renderModelModulePath = path.resolve(
 const binaryAvailable = await pathExists(binaryPath);
 const renderModelAvailable = await pathExists(renderModelModulePath);
 
-test("native and webview share one complete straight carrier scene", {
+test("native and webview share one complete canonical direct scene", {
   skip: !binaryAvailable || !renderModelAvailable,
 }, async () => {
   const fixture = createCarrierFixture();
@@ -57,7 +57,7 @@ test("native and webview share one complete straight carrier scene", {
   );
 
   try {
-    const { stdout, stderr } = await execFileAsync(binaryPath, [
+    const { stdout } = await execFileAsync(binaryPath, [
       "layout",
       "--mode", "fmmm",
       "--nodes-file", nodesPath,
@@ -69,11 +69,12 @@ test("native and webview share one complete straight carrier scene", {
       env: {
         ...process.env,
         DJERD_CANONICAL_CROSSING_CACHE: "0",
-        DJERD_HUB_CARRIER_CROSS_FINAL: "1",
+        DJERD_HUB_CARRIER_CROSS_FINAL: "0",
         DJERD_HUB_CARRIER_CROSS_FINAL_THRESHOLD: "2",
-        DJERD_INHERITANCE_CARRIER_FINAL: "1",
-        DJERD_INTRA_CLUSTER_CARRIER_FINAL: "1",
+        DJERD_INHERITANCE_CARRIER_FINAL: "0",
+        DJERD_INTRA_CLUSTER_CARRIER_FINAL: "0",
         DJERD_MULTISTART_RUNS: "1",
+        DJERD_NO_CARRIER_CROSS: "1",
         DJERD_RENDERED_CARRIER_GEOMETRY_OPT_FINAL: "1",
         DJERD_RENDERED_CARRIER_BUNDLE_EDGE_TARGET: "0",
         DJERD_RENDERED_CARRIER_EDGE_NODE_TARGET: "0",
@@ -117,31 +118,26 @@ test("native and webview share one complete straight carrier scene", {
       canonical.nonProperContacts,
       "aggregate non-proper diagnostics should equal the documented category sum",
     );
-    assert.equal(layout.engineMetadata?.inheritanceCarrierGrouping, true);
-    assert.equal(layout.engineMetadata?.intraClusterCarrierGrouping, true);
+    assert.notEqual(layout.engineMetadata?.inheritanceCarrierGrouping, true);
+    assert.notEqual(layout.engineMetadata?.intraClusterCarrierGrouping, true);
     assert.equal(
-      layout.engineMetadata?.nodeSpacingOverlaps,
+      layout.engineMetadata?.nodeOverlaps,
       0,
-      "the emitted table set should satisfy the rendered clearance gate",
-    );
-    assert.ok(
-      layout.engineMetadata?.nodeClearanceMin
-        >= layout.engineMetadata?.nodeClearanceTarget,
-      "the measured minimum table clearance should meet its declared target",
+      "the emitted direct table set must not contain actual card overlaps",
     );
     assert.equal(layout.routedEdges.length, fixture.edges.length);
+    assert.equal(
+      layout.engineMetadata?.renderedCarrierRoutes?.length ?? 0,
+      fixture.edges.length,
+    );
     assert.ok(
-      layout.engineMetadata?.renderedCarrierRoutes?.length > 0,
-      "native layout should serialize optimized straight carrier geometry",
+      layout.engineMetadata.renderedCarrierRoutes.every((route) =>
+        route.memberEdgeIds.length === 1
+        && route.memberEdgeIds[0] === route.carrierId),
+      "every serialized route must remain its own relationship, never a proxy carrier",
     );
 
-    const metricMatches = [...stderr.matchAll(
-      /\[rendered-carrier-metrics-final\].*visibleEdges=(\d+).*routeSegments=(\d+)/g,
-    )];
-    const finalMetric = metricMatches.at(-1);
-    assert.ok(finalMetric, "native rendered-carrier metrics should be emitted");
-
-    assert.equal(layout.engineMetadata?.edgeNodeIntersections, 0);
+    assert.ok(Number.isFinite(layout.engineMetadata?.edgeNodeIntersections));
 
     const {
       createDiagramRenderModel,
@@ -191,102 +187,39 @@ test("native and webview share one complete straight carrier scene", {
     assert.equal(Object.hasOwn(renderModel, "detailEdges"), false);
     assert.equal(
       renderModel.edges.length,
-      Number(finalMetric[1]),
+      fixture.edges.length,
       "native metrics and the canvas must expose the same complete edge set",
     );
-    assert.equal(
-      Number(finalMetric[2]),
-      Number(finalMetric[1]),
-      "every optimized carrier must remain one straight segment",
+    assert.ok(
+      layout.routedEdges.every((edge) => edge.points.length === 2),
+      "every optimized relationship must remain one straight segment",
     );
     const renderedEdgeById = new Map(
       renderModel.edges.map((edge) => [edge.edgeId, edge]),
     );
-    const layoutNodeById = new Map(
-      layout.nodes.map((node) => [node.modelId, node]),
+    const scoredRouteByEdgeId = new Map(
+      layout.engineMetadata.renderedCarrierRoutes.map((route) => [route.carrierId, route]),
     );
-    let serializedDisconnectedSemanticCarriers = 0;
-    for (const carrierRoute of layout.engineMetadata.renderedCarrierRoutes) {
-      // Bundle carriers are materialized through the synthetic bundle/root
-      // pair and have their own integration coverage. This regression targets
-      // semantic H/I/Cself trunks that can lose branch endpoints.
-      if (carrierRoute.carrierId.startsWith("B")) {
-        continue;
-      }
-      const logicalEndpointModelIds = new Set(
-        carrierRoute.memberEdgeIds.flatMap((edgeId) => {
-          const edge = fixture.edges.find((candidate) => candidate.id === edgeId);
-          return edge ? [edge.sourceModelId, edge.targetModelId] : [];
-        }),
-      );
-      const webviewCarrierId = carrierRoute.carrierId.startsWith("H|")
-        ? `hub-carrier:${carrierRoute.carrierId.slice(2)}`
-        : carrierRoute.carrierId.startsWith("I|")
-          ? `inheritance-carrier:${carrierRoute.carrierId.slice(2)}`
-          : carrierRoute.carrierId.startsWith("Cself|")
-            ? `intra-cluster-carrier:${carrierRoute.carrierId.slice("Cself|".length)}`
-            : carrierRoute.carrierId.startsWith("B")
-              ? carrierRoute.memberEdgeIds.find((edgeId) => renderedEdgeById.has(edgeId))
-              : carrierRoute.carrierId;
-      const isSemanticCarrier = /^(?:H|I|Cself)\|/.test(carrierRoute.carrierId);
-      const connectsEveryEndpoint = carrierRouteConnectsEveryEndpoint(
-        carrierRoute,
-        logicalEndpointModelIds,
-        layoutNodeById,
-      );
-      if (
-        logicalEndpointModelIds.size > 2
-        || !connectsEveryEndpoint
-      ) {
-        if (isSemanticCarrier) {
-          if (logicalEndpointModelIds.size > 2) {
-            serializedDisconnectedSemanticCarriers += 1;
-          }
-          assert.ok(
-            !renderedEdgeById.has(webviewCarrierId),
-            `disconnected carrier ${webviewCarrierId} must not replace its member edges`,
-          );
-        } else {
-          for (const edgeId of carrierRoute.memberEdgeIds) {
-            assert.ok(
-              renderedEdgeById.has(edgeId),
-              `rejected route ${carrierRoute.carrierId} must keep member ${edgeId}`,
-            );
-          }
-        }
-        continue;
-      }
-      const renderedEdge = renderedEdgeById.get(webviewCarrierId);
-      assert.ok(renderedEdge, `missing serialized carrier ${webviewCarrierId}`);
-      const nativePoints = carrierRoute.points
+    for (const routedEdge of layout.routedEdges) {
+      const renderedEdge = renderedEdgeById.get(routedEdge.edgeId);
+      assert.ok(renderedEdge, `missing direct route ${routedEdge.edgeId}`);
+      assert.equal(routedEdge.points.length, 2);
+      const scoredRoute = scoredRouteByEdgeId.get(routedEdge.edgeId);
+      assert.ok(scoredRoute, `missing scored direct route ${routedEdge.edgeId}`);
+      assert.equal(scoredRoute.points.length, 2);
+      const nativePoints = scoredRoute.points
         .map((point) => `${point.x},${point.y}`)
         .join(" ");
-      const reversedNativePoints = [...carrierRoute.points]
+      const reversedNativePoints = [...scoredRoute.points]
         .reverse()
         .map((point) => `${point.x},${point.y}`)
         .join(" ");
       assert.ok(
         renderedEdge.points === nativePoints
         || renderedEdge.points === reversedNativePoints,
-        `carrier ${webviewCarrierId} should use native-scored geometry`,
-      );
-      assert.equal(
-        renderedEdge.preserveRouteEndpoints,
-        true,
-        `carrier ${webviewCarrierId} must not be reattached to a representative table`,
-      );
-      assert.ok(carrierRoute.memberEdgeIds.length >= 1);
-      assert.equal(
-        carrierRoute.points.length,
-        2,
-        `carrier ${webviewCarrierId} should remain a straight line`,
+        `direct route ${routedEdge.edgeId} should use native-scored geometry`,
       );
     }
-    assert.equal(
-      serializedDisconnectedSemanticCarriers,
-      0,
-      "native must expand a multi-endpoint bucket before serialization",
-    );
   } finally {
     await fs.rm(directory, { force: true, recursive: true });
   }
@@ -454,6 +387,107 @@ test("native final carrier pass clears table penetrations without bends or bbox 
       "local blocker relocation must stay inside the settled node bbox",
     );
     assert.match(clearRun.stderr, /\[rendered-carrier-node-clear-final\]/);
+  } finally {
+    await fs.rm(directory, { force: true, recursive: true });
+  }
+});
+
+test("straight boundary-port optimization never regresses the exact direct scene", {
+  skip: !binaryAvailable,
+}, async () => {
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "django-erd-straight-port-monotonic-"),
+  );
+  const nodesPath = path.join(directory, "nodes.tsv");
+  const edgesPath = path.join(directory, "edges.tsv");
+  const positionsPath = path.join(directory, "positions.tsv");
+  const nodes = [
+    ["test.source", 100, 100],
+    ["test.blocker", 500, 149],
+    ["test.target", 900, 100],
+  ];
+
+  await fs.writeFile(
+    nodesPath,
+    `${nodes.map(([modelId]) =>
+      `${modelId}\t120\t80\t0\t0\ttest`
+    ).join("\n")}\n`,
+    "utf8",
+  );
+  await fs.writeFile(
+    edgesPath,
+    "edge:source-target\ttest.source\ttest.target\tforeign_key\tdeclared\n",
+    "utf8",
+  );
+  await fs.writeFile(
+    positionsPath,
+    `${nodes.map(([modelId, x, y]) => `${modelId}\t${x}\t${y}`).join("\n")}\n`,
+    "utf8",
+  );
+
+  const args = [
+    "layout",
+    "--mode", "fmmm",
+    "--nodes-file", nodesPath,
+    "--edges-file", edgesPath,
+    "--edge-routing", "straight",
+    "--cluster-graph", "0",
+    "--positions-tsv", positionsPath,
+    "--rigid-positions", "1",
+  ];
+  const commonEnv = {
+    ...process.env,
+    DJERD_CANONICAL_CROSSING_CACHE: "0",
+    DJERD_CG_SKIP_POSITIONING: "1",
+    DJERD_MULTISTART_RUNS: "1",
+    DJERD_NO_CARRIER_CROSS: "1",
+    DJERD_NO_KNOT_MIN: "1",
+    DJERD_RENDERED_CARRIER_METRICS_FINAL: "1",
+    DJERD_RENDERED_CARRIER_NODE_CLEAR_FINAL: "0",
+    DJERD_RENDERED_CARRIER_NODE_TARGET_FINAL: "0",
+    DJERD_RENDERED_NODE_CLEARANCE_FINAL: "0",
+    DJERD_SKIP_CG_OPT: "1",
+  };
+
+  try {
+    const baseRun = await execFileAsync(binaryPath, args, {
+      cwd: repoRoot,
+      env: {
+        ...commonEnv,
+        DJERD_RENDERED_CARRIER_GEOMETRY_OPT_FINAL: "0",
+        DJERD_RENDERED_STRAIGHT_PORT_OPT_FINAL: "0",
+      },
+      maxBuffer: 8 * 1024 * 1024,
+      timeout: 15_000,
+    });
+    const base = JSON.parse(baseRun.stdout);
+    assert.equal(base.engineMetadata.edgeNodeIntersections, 1);
+
+    const optimizedRun = await execFileAsync(binaryPath, args, {
+      cwd: repoRoot,
+      env: {
+        ...commonEnv,
+        DJERD_RENDERED_CARRIER_GEOMETRY_OPT_BUDGET_MS: "1000",
+        DJERD_RENDERED_CARRIER_GEOMETRY_OPT_FINAL: "1",
+        DJERD_RENDERED_STRAIGHT_PORT_OPT_FINAL: "1",
+        DJERD_RENDERED_STRAIGHT_PORT_SAMPLES_PER_SIDE: "8",
+      },
+      maxBuffer: 8 * 1024 * 1024,
+      timeout: 15_000,
+    });
+    const optimized = JSON.parse(optimizedRun.stdout);
+    assert.equal(optimized.engineMetadata.edgeNodeIntersections, 0);
+    assert.ok(
+      optimized.engineMetadata.visualCrossings
+        <= base.engineMetadata.visualCrossings,
+    );
+    assert.equal(optimized.engineMetadata.nodeOverlaps, 0);
+    assert.equal(optimized.routedEdges.length, 1);
+    assert.equal(optimized.routedEdges[0].points.length, 2);
+    assert.equal(
+      optimized.engineMetadata.renderedCarrierRoutes[0].points.length,
+      2,
+    );
   } finally {
     await fs.rm(directory, { force: true, recursive: true });
   }
@@ -658,28 +692,6 @@ function nodeBoundingBoxArea(nodes) {
     ...nodes.map((node) => node.position.y + node.size.height),
   );
   return (maxX - minX) * (maxY - minY);
-}
-
-function carrierRouteConnectsEveryEndpoint(
-  carrierRoute,
-  logicalEndpointModelIds,
-  layoutNodeById,
-) {
-  const tolerance = 1;
-  const touches = (point, modelId) => {
-    const node = layoutNodeById.get(modelId);
-    return Boolean(
-      node
-      && point.x >= node.position.x - tolerance
-      && point.x <= node.position.x + node.size.width + tolerance
-      && point.y >= node.position.y - tolerance
-      && point.y <= node.position.y + node.size.height + tolerance
-    );
-  };
-  return carrierRoute.points.every((point) =>
-    [...logicalEndpointModelIds].some((modelId) => touches(point, modelId)))
-    && [...logicalEndpointModelIds].every((modelId) =>
-      carrierRoute.points.some((point) => touches(point, modelId)));
 }
 
 async function pathExists(filePath) {

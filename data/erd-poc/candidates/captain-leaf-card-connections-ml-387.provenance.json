@@ -1,0 +1,212 @@
+{
+  "source": "data/erd-poc/candidates/captain-leaf-card-connections-ml-417.layout.json",
+  "candidate": "data/erd-poc/candidates/captain-leaf-card-connections-ml-387.layout.json",
+  "candidateSha256": "564b2be9743708ebcf048b5a1db1c73ca405caf199cad77e100593eb5832cfed",
+  "visualCrossings": 387,
+  "individualVisualCrossings": 3492,
+  "target": {
+    "overviewMaximum": 300,
+    "individualExclusiveMaximum": 2000,
+    "met": false
+  },
+  "proposalAuthority": "frozen learned mixture policies",
+  "heuristicSearchCalls": 0,
+  "models": [
+    {
+      "checkpoint": "data/erd-poc/checkpoints/leaf-component-policy-v2.npz",
+      "sha256": "5f26faefdd168971ef3c566af1bc941aa9c32aad6a1ee22b8c5453dd1c7c62db",
+      "training": "data/erd-poc/checkpoints/leaf-component-policy-v2.training.json"
+    },
+    {
+      "checkpoint": "data/erd-poc/checkpoints/leaf-component-policy-v3.npz",
+      "sha256": "d702424921d8c8f777d87603600fec03002d3fe28330219517277e23b550e1bf",
+      "training": "data/erd-poc/checkpoints/leaf-component-policy-v3.training.json"
+    },
+    {
+      "checkpoint": "data/erd-poc/checkpoints/leaf-component-policy-v4.npz",
+      "sha256": "d6a658b045dee27e962dbeee15953d7bebff33644e359f7b0c7540867d41b294",
+      "training": "data/erd-poc/checkpoints/leaf-component-policy-v4.training.json"
+    },
+    {
+      "checkpoint": "data/erd-poc/checkpoints/leaf-component-policy-v5.npz",
+      "sha256": "5f3147ddf932949e78b51b479b8663ad76ad6de73b41f2a79923f180d7803465",
+      "training": "data/erd-poc/checkpoints/leaf-component-policy-v5.training.json"
+    }
+  ],
+  "stages": [
+    {
+      "stage": 1,
+      "candidateSha256": "86cfaf67bd528a4648fe1af7ddc3d964754cbb43e530621a14967e7bfa046700",
+      "checkpointSha256": "5f26faefdd168971ef3c566af1bc941aa9c32aad6a1ee22b8c5453dd1c7c62db",
+      "initial": {
+        "ready": true,
+        "eligible": 1035,
+        "visual": 417,
+        "individualVisual": 4585
+      },
+      "final": {
+        "initialVisual": 417,
+        "visual": 401,
+        "initialIndividualVisual": 4585,
+        "individualVisual": 3935,
+        "hardConditions": 0,
+        "initialHardConditions": 0,
+        "individualHardConditions": 80,
+        "initialIndividualHardConditions": 174,
+        "overlap": 0,
+        "spacing": 0,
+        "policyActionsEvaluated": 12000,
+        "acceptedActions": 86,
+        "heuristicSearchCalls": 0,
+        "proposalAuthority": "external-policy",
+        "decoder": "rigid component translation plus center-ray incident ports"
+      },
+      "actionsReplayed": 12000,
+      "evidencePrefix": "data/erd-poc/experiments/learned-components-20261003/stage1"
+    },
+    {
+      "stage": 2,
+      "candidateSha256": "6a2112b3c051e60d01bc5ee05a01bb2cec04805a1bf1559b3b4c69100155cf0d",
+      "checkpointSha256": "5f26faefdd168971ef3c566af1bc941aa9c32aad6a1ee22b8c5453dd1c7c62db",
+      "initial": {
+        "ready": true,
+        "eligible": 1035,
+        "visual": 401,
+        "individualVisual": 3935
+      },
+      "final": {
+        "initialVisual": 401,
+        "visual": 395,
+        "initialIndividualVisual": 3935,
+        "individualVisual": 3663,
+        "hardConditions": 0,
+        "initialHardConditions": 0,
+        "individualHardConditions": 46,
+        "initialIndividualHardConditions": 80,
+        "overlap": 0,
+        "spacing": 0,
+        "policyActionsEvaluated": 16000,
+        "acceptedActions": 98,
+        "heuristicSearchCalls": 0,
+        "proposalAuthority": "external-policy",
+        "decoder": "rigid component translation plus center-ray incident ports"
+      },
+      "actionsReplayed": 16000,
+      "evidencePrefix": "data/erd-poc/experiments/learned-components-20261003/stage2"
+    },
+    {
+      "stage": 3,
+      "candidateSha256": "1bde8038aa3724862395d73a633c483e63c024791f6f2f551e2045a903837bd4",
+      "checkpointSha256": "d702424921d8c8f777d87603600fec03002d3fe28330219517277e23b550e1bf",
+      "initial": {
+        "ready": true,
+        "eligible": 1035,
+        "visual": 395,
+        "individualVisual": 3663
+      },
+      "final": {
+        "initialVisual": 395,
+        "visual": 392,
+        "initialIndividualVisual": 3663,
+        "individualVisual": 3547,
+        "hardConditions": 0,
+        "initialHardConditions": 0,
+        "individualHardConditions": 46,
+        "initialIndividualHardConditions": 46,
+        "overlap": 0,
+        "spacing": 0,
+        "policyActionsEvaluated": 16000,
+        "acceptedActions": 47,
+        "heuristicSearchCalls": 0,
+        "proposalAuthority": "external-policy",
+        "decoder": "rigid component translation plus center-ray incident ports"
+      },
+      "actionsReplayed": 16000,
+      "evidencePrefix": "data/erd-poc/experiments/learned-components-20261003/stage3"
+    },
+    {
+      "stage": 4,
+      "candidateSha256": "b5d9c8655ba8ffdeb0384ab2b9352cfcbe653080dcf263a556d8e35b0493547d",
+      "checkpointSha256": "d6a658b045dee27e962dbeee15953d7bebff33644e359f7b0c7540867d41b294",
+      "initial": {
+        "ready": true,
+        "eligible": 1035,
+        "visual": 392,
+        "individualVisual": 3547
+      },
+      "final": {
+        "initialVisual": 392,
+        "visual": 391,
+        "initialIndividualVisual": 3547,
+        "individualVisual": 3529,
+        "hardConditions": 0,
+        "initialHardConditions": 0,
+        "individualHardConditions": 46,
+        "initialIndividualHardConditions": 46,
+        "overlap": 0,
+        "spacing": 0,
+        "policyActionsEvaluated": 16000,
+        "acceptedActions": 19,
+        "heuristicSearchCalls": 0,
+        "proposalAuthority": "external-policy",
+        "decoder": "rigid translation, attached overview ports, center-ray other ports"
+      },
+      "actionsReplayed": 16000,
+      "evidencePrefix": "data/erd-poc/experiments/learned-components-20261003/stage4"
+    },
+    {
+      "stage": 5,
+      "candidateSha256": "564b2be9743708ebcf048b5a1db1c73ca405caf199cad77e100593eb5832cfed",
+      "checkpointSha256": "5f3147ddf932949e78b51b479b8663ad76ad6de73b41f2a79923f180d7803465",
+      "initial": {
+        "ready": true,
+        "eligible": 1035,
+        "visual": 391,
+        "individualVisual": 3529,
+        "canonicalStart": false,
+        "sourceVisual": 391,
+        "sourceIndividualVisual": 3529
+      },
+      "final": {
+        "initialVisual": 391,
+        "visual": 387,
+        "initialIndividualVisual": 3529,
+        "individualVisual": 3492,
+        "hardConditions": 0,
+        "initialHardConditions": 0,
+        "individualHardConditions": 46,
+        "initialIndividualHardConditions": 46,
+        "canonicalStart": false,
+        "rolloutInitialVisual": 391,
+        "rolloutInitialIndividualVisual": 3529,
+        "overlap": 0,
+        "spacing": 0,
+        "policyActionsEvaluated": 20000,
+        "acceptedActions": 25,
+        "heuristicSearchCalls": 0,
+        "proposalAuthority": "external-policy",
+        "decoder": "rigid component translation with every port attached"
+      },
+      "actionsReplayed": 20000,
+      "evidencePrefix": "data/erd-poc/experiments/learned-components-20261003/stage5"
+    }
+  ],
+  "resourcePolicy": {
+    "threads": 1,
+    "rssGuardMiB": 256,
+    "serialized": true,
+    "inferenceSecondsPerRun": 20,
+    "hostTwentyPercentMeasured": false
+  },
+  "productFileLoadVerified": true,
+  "allActionsReplayed": true,
+  "browserVerified": false,
+  "f5DefaultUnchanged": 468,
+  "codeHashes": {
+    "scripts/erd-poc/ml_component_environment.cpp": "2b6fc7ebfe34ca809c2ec19a8bd3d98424e4fe8a5d25cb875401e11896da0fed",
+    "scripts/erd-poc/learn_card_policy.py": "9ceb3118b999cfd30470d322c44e8fad465e13e8128339d113ed3b69f3dcbd42",
+    "scripts/erd-poc/export_learned_components.cjs": "45104df0f5a9329c6c41bfe59083ebbaeb9dd332590246777edc83ed73064dfe",
+    "scripts/erd-poc/apply_learned_components.cjs": "d53622e047a312320a9c525fc763f75b52d429cca130520fab045308e6e7f8f5",
+    "scripts/erd-poc/run_learned_leaf_layout.py": "5e43adabb97e1d60dbd4a5c46601e87c944304d8cf079b6b4d2177def4a4e277"
+  }
+}

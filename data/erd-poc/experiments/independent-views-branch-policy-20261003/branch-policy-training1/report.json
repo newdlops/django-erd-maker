@@ -1,0 +1,259 @@
+{
+  "proposalAuthority": "trained shared neural weights",
+  "rewardCollectionCommitsPositions": false,
+  "nativeBinarySha256": "0be42b1a7a3b6f932631211e0c10dd38bf788a28f232699b0a98b25007ce063f",
+  "learnerSha256": "3092b426a25bb43d1a5c6b0ad39eefa4eb4948ee7af44a58a2ee81ac5fa2b5ba",
+  "steps": [
+    {
+      "name": "individual-synthetic",
+      "command": [
+        ".tmp/visualcross-ml-150-750-20261003/component-environment-v24",
+        "--dataset",
+        ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/individual-synthetic.jsonl",
+        "--decoder",
+        "moving-ray",
+        "--branches",
+        "1",
+        "--graphs",
+        "64",
+        "--samples",
+        "64",
+        "--seconds",
+        "20",
+        "--seed",
+        "98021"
+      ],
+      "seconds": 2.6045778339612298
+    },
+    {
+      "name": "individual-actual",
+      "command": [
+        ".tmp/visualcross-ml-150-750-20261003/component-environment-v24",
+        "--adapt-dataset",
+        ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/individual-actual.jsonl",
+        "--directory",
+        ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1",
+        "--decoder",
+        "moving-ray",
+        "--branches",
+        "1",
+        "--samples",
+        "64",
+        "--seconds",
+        "15",
+        "--seed",
+        "98024"
+      ],
+      "seconds": 15.801694750029128
+    },
+    {
+      "name": "individual-synthetic-training",
+      "command": [
+        "/Users/lky/project/django-erd-maker/.venv-ml/bin/python",
+        "scripts/erd-poc/learn_card_policy.py",
+        "train",
+        "--dataset",
+        ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/individual-synthetic.jsonl",
+        "--checkpoint",
+        ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/individual-synthetic.npz",
+        "--schema",
+        "relative-component-context-v2-64",
+        "--decoder",
+        "moving-ray",
+        "--branch-training",
+        "--epochs",
+        "30",
+        "--seconds",
+        "8",
+        "--gain-cap",
+        "32",
+        "--min-log-sigma",
+        "-7",
+        "--seed",
+        "98028"
+      ],
+      "seconds": 8.523143208993133
+    },
+    {
+      "name": "overview-synthetic",
+      "command": [
+        ".tmp/visualcross-ml-150-750-20261003/component-environment-v24",
+        "--dataset",
+        ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-synthetic.jsonl",
+        "--decoder",
+        "moving-ray",
+        "--branches",
+        "1",
+        "--graphs",
+        "64",
+        "--samples",
+        "64",
+        "--seconds",
+        "20",
+        "--seed",
+        "98101",
+        "--overview-only",
+        "1"
+      ],
+      "seconds": 2.331401208997704
+    },
+    {
+      "name": "overview-actual",
+      "command": [
+        ".tmp/visualcross-ml-150-750-20261003/component-environment-v24",
+        "--adapt-dataset",
+        ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-actual.jsonl",
+        "--directory",
+        ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2",
+        "--decoder",
+        "moving-ray",
+        "--branches",
+        "1",
+        "--samples",
+        "64",
+        "--seconds",
+        "15",
+        "--seed",
+        "98104",
+        "--overview-only",
+        "1"
+      ],
+      "seconds": 15.350585958978627
+    },
+    {
+      "name": "overview-synthetic-training",
+      "command": [
+        "/Users/lky/project/django-erd-maker/.venv-ml/bin/python",
+        "scripts/erd-poc/learn_card_policy.py",
+        "train",
+        "--dataset",
+        ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-synthetic.jsonl",
+        "--checkpoint",
+        ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-synthetic.npz",
+        "--schema",
+        "relative-component-context-v2-64",
+        "--decoder",
+        "moving-ray",
+        "--branch-training",
+        "--epochs",
+        "30",
+        "--seconds",
+        "8",
+        "--gain-cap",
+        "32",
+        "--min-log-sigma",
+        "-7",
+        "--seed",
+        "98108",
+        "--overview-training"
+      ],
+      "seconds": 9.056227583030704
+    }
+  ],
+  "views": {
+    "individual": {
+      "sourceStage": "individual-branch-policy1",
+      "sourceSha256": "b89daa3062ca9aa67432bf0d20b206c7c68fe12eeb3881ac1332f4b60bd39e0e",
+      "branchMap": {
+        "schema": "source-bound-graph-branches-v1",
+        "sourceSha256": "b89daa3062ca9aa67432bf0d20b206c7c68fe12eeb3881ac1332f4b60bd39e0e",
+        "branchMapSha256": "67e9da971634227b2e3be639e6447ed759ab263a18142436310f3e8ac7799cbd",
+        "inputHashes": {
+          "nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+          "edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+          "positions.tsv": "94e4f61b8d2bb063403c630879602d86b972a67fd74b843c3d855306a524b385",
+          "routes.tsv": "ba151b90974496abb4186cdc90a5256e0a69eba2316571cc6ab5d4e2567c2efe",
+          "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+          "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+          "individual.positions.tsv": "94e4f61b8d2bb063403c630879602d86b972a67fd74b843c3d855306a524b385",
+          "individual.routes.tsv": "ba151b90974496abb4186cdc90a5256e0a69eba2316571cc6ab5d4e2567c2efe",
+          "components.tsv": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+          "groups.tsv": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d"
+        },
+        "nodes": 1244,
+        "twoCoreNodes": 650,
+        "multiCardContexts": 139,
+        "maximumContextCards": 75,
+        "positionsProposed": false
+      },
+      "datasets": {
+        "synthetic": {
+          "states": 2197,
+          "actions": 140608,
+          "positive": 8877,
+          "groupedPositive": 1000,
+          "groupedStates": 249,
+          "graphs": 64,
+          "sha256": "8f28b28faf0514a0a63af51547d5241d00e70a6e9ddde8ededf451b33343d019"
+        },
+        "actual": {
+          "states": 11,
+          "actions": 1408,
+          "positive": 0,
+          "groupedPositive": 0,
+          "groupedStates": 10,
+          "graphs": 1,
+          "sha256": "9a123894f02cb976821e991802a79d9142d3344d422c0f43df70f5b8dc834d96"
+        }
+      },
+      "models": {
+        "synthetic": {
+          "path": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/individual-synthetic.npz",
+          "sha256": "fb0dade64e0e4f42c0e03508ec448fb121a31a32376ed0fe4c358d187e0a9a41"
+        }
+      }
+    },
+    "overview": {
+      "sourceStage": "overview-branch-policy2",
+      "sourceSha256": "40086321fde1fbb01f84356553c1695ff66da1ec7e19615be7d065d50ad0f869",
+      "branchMap": {
+        "schema": "source-bound-graph-branches-v1",
+        "sourceSha256": "40086321fde1fbb01f84356553c1695ff66da1ec7e19615be7d065d50ad0f869",
+        "branchMapSha256": "13cb2d94b5c25a511de4ae9d75e9b6db24d400fce976d949ac545a4c99fe21cd",
+        "inputHashes": {
+          "nodes.tsv": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+          "edges.tsv": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+          "positions.tsv": "70a5f173b07ccf0c6d5a2e38ca5cd821269426b9cf52ec993dae289a16f859e7",
+          "routes.tsv": "d84cf2885d8f2e45833dabdd2587adabcebbeaea4d6d69f260d0241e44e6549c",
+          "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+          "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+          "individual.positions.tsv": "6d7f0967701e2c229370c242d736b8c667b3b9d7e7aabc5949f5762251c0e935",
+          "individual.routes.tsv": "517318dc84abc621144adcd453d680e7dbc3b73af91e8512308825184f597cef",
+          "components.tsv": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+          "groups.tsv": "3c9ce46a1abafe83d52102cf6d346b85e0734bf2c56725a3afcd467f72a486bc"
+        },
+        "nodes": 1035,
+        "twoCoreNodes": 332,
+        "multiCardContexts": 122,
+        "maximumContextCards": 27,
+        "positionsProposed": false
+      },
+      "datasets": {
+        "synthetic": {
+          "states": 2186,
+          "actions": 139904,
+          "positive": 7451,
+          "groupedPositive": 892,
+          "groupedStates": 261,
+          "graphs": 64,
+          "sha256": "a568f584bc5d8418aedd779cf24b52ab9f779f752a0899f98524cc89b804791d"
+        },
+        "actual": {
+          "states": 89,
+          "actions": 5696,
+          "positive": 0,
+          "groupedPositive": 0,
+          "groupedStates": 42,
+          "graphs": 1,
+          "sha256": "d7f79731927fd519854b37ebed97572f61eea22af6d2f2aabfb8302cc3bd441d"
+        }
+      },
+      "models": {
+        "synthetic": {
+          "path": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-synthetic.npz",
+          "sha256": "11793ff5b65e5582716d71b813f60cd292f0cd8982fc56e9f940d32169d1e787"
+        }
+      }
+    }
+  }
+}

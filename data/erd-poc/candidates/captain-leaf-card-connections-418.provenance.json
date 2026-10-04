@@ -1,0 +1,687 @@
+{
+  "sourceFile": "data/erd-poc/candidates/captain-leaf-card-connections-429.layout.json",
+  "candidateFile": "data/erd-poc/candidates/captain-leaf-card-connections-418.layout.json",
+  "sourceSha256": "7428629b6b351ad717314388ddf47a8dcc1c415e38903a288037fb26430957f3",
+  "candidateSha256": "d28edb3108fe652e22d406f222a8a56eaab83411e3fca415b1bd04ca9b6a6511",
+  "baseline": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 286,
+    "edgeNodeIntersections": 141,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 429
+  },
+  "metrics": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 287,
+    "edgeNodeIntersections": 129,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 418
+  },
+  "originalIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 3363,
+    "edgeNodeIntersections": 1270,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 4633
+  },
+  "candidateIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 3356,
+    "edgeNodeIntersections": 1235,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 4591
+  },
+  "bboxB": 1.14915248448,
+  "changedNodes": [
+    {
+      "modelId": "db.AgendaBorrowCapital",
+      "before": {
+        "x": 17456.7,
+        "y": 20210.43
+      },
+      "after": {
+        "x": 17392.7,
+        "y": 20146.43
+      },
+      "distance": 90.50966799187809
+    },
+    {
+      "modelId": "db.AgendaBranchChange",
+      "before": {
+        "x": 18700.725987322,
+        "y": 19740.427654537
+      },
+      "after": {
+        "x": 18684.73,
+        "y": 19756.43
+      },
+      "distance": 22.62623854560757
+    },
+    {
+      "modelId": "db.AgendaDirectorCompensation",
+      "before": {
+        "x": 16397.707751142,
+        "y": 21371.513964956
+      },
+      "after": {
+        "x": 16397.71,
+        "y": 21499.51
+      },
+      "distance": 127.99603506375375
+    },
+    {
+      "modelId": "db.AgendaOptionGrant",
+      "before": {
+        "x": 16510.93,
+        "y": 19560.56
+      },
+      "after": {
+        "x": 16478.93,
+        "y": 19592.56
+      },
+      "distance": 45.254833995939045
+    },
+    {
+      "modelId": "db.BulkEmailTemplateRevision",
+      "before": {
+        "x": 17528.366024297,
+        "y": 16640.255058033
+      },
+      "after": {
+        "x": 17688.37,
+        "y": 16480.26
+      },
+      "distance": 226.27348681573173
+    },
+    {
+      "modelId": "db.ConsentFormModusignEmbeddedDraft",
+      "before": {
+        "x": 21658.07,
+        "y": 22886.5
+      },
+      "after": {
+        "x": 21530.07,
+        "y": 23014.5
+      },
+      "distance": 181.01933598375618
+    },
+    {
+      "modelId": "db.CustomOptionGrantContractTemplate",
+      "before": {
+        "x": 19716.85,
+        "y": 16126.55
+      },
+      "after": {
+        "x": 19748.85,
+        "y": 16094.55
+      },
+      "distance": 45.254833995939045
+    },
+    {
+      "modelId": "db.EmployeeStockGuide",
+      "before": {
+        "x": 12530.987701711,
+        "y": 16329.591933049
+      },
+      "after": {
+        "x": 12514.99,
+        "y": 16313.59
+      },
+      "distance": 22.627158932105896
+    },
+    {
+      "modelId": "db.EmployeeStockGuideEmail",
+      "before": {
+        "x": 13983.173417718,
+        "y": 16984.632533793
+      },
+      "after": {
+        "x": 14111.17,
+        "y": 17112.63
+      },
+      "distance": 181.01512763104972
+    },
+    {
+      "modelId": "db.HrmEmpAffiliationDept",
+      "before": {
+        "x": 6633.39,
+        "y": 17540.99
+      },
+      "after": {
+        "x": 6761.39,
+        "y": 17412.99
+      },
+      "distance": 181.01933598375618
+    },
+    {
+      "modelId": "db.HrmEmpEmploymentTypeChangedEvent",
+      "before": {
+        "x": 9056.1,
+        "y": 16809.76
+      },
+      "after": {
+        "x": 8928.1,
+        "y": 16937.76
+      },
+      "distance": 181.01933598375618
+    },
+    {
+      "modelId": "db.HrmEmpJoinedEvent",
+      "before": {
+        "x": 8936.95,
+        "y": 16598.04
+      },
+      "after": {
+        "x": 9048.95,
+        "y": 16454.04
+      },
+      "distance": 182.42806801586207
+    },
+    {
+      "modelId": "db.HrmEmpWorkLocationAssignment",
+      "before": {
+        "x": 8372.62,
+        "y": 15887.72
+      },
+      "after": {
+        "x": 8372.62,
+        "y": 16143.72
+      },
+      "distance": 256
+    },
+    {
+      "modelId": "db.InvestmentSimulationInvestor",
+      "before": {
+        "x": 16349.16,
+        "y": 5077.54
+      },
+      "after": {
+        "x": 16605.16,
+        "y": 4821.54
+      },
+      "distance": 362.03867196751236
+    },
+    {
+      "modelId": "db.LawtalkSignupAttachment",
+      "before": {
+        "x": 18298.01,
+        "y": 14944.08
+      },
+      "after": {
+        "x": 18282.01,
+        "y": 14928.08
+      },
+      "distance": 22.627416997969522
+    },
+    {
+      "modelId": "db.ModusignAuthentication",
+      "before": {
+        "x": 20807.62,
+        "y": 19758.34
+      },
+      "after": {
+        "x": 20935.62,
+        "y": 19758.34
+      },
+      "distance": 128
+    },
+    {
+      "modelId": "db.OptionExerciseClaimMeetingDocument",
+      "before": {
+        "x": 14828.83,
+        "y": 21487.53
+      },
+      "after": {
+        "x": 14812.83,
+        "y": 21439.53
+      },
+      "distance": 50.59644256269407
+    },
+    {
+      "modelId": "db.OptionGrantContractModusignDocument",
+      "before": {
+        "x": 21160.45,
+        "y": 19776.4
+      },
+      "after": {
+        "x": 20904.45,
+        "y": 19520.4
+      },
+      "distance": 362.03867196751236
+    },
+    {
+      "modelId": "db.OptionManagement",
+      "before": {
+        "x": 15739.344941967,
+        "y": 19264.866024297
+      },
+      "after": {
+        "x": 15803.34,
+        "y": 19328.87
+      },
+      "distance": 90.50898495971101
+    },
+    {
+      "modelId": "db.Purpose",
+      "before": {
+        "x": 17793.42,
+        "y": 14863.91
+      },
+      "after": {
+        "x": 17729.42,
+        "y": 14863.91
+      },
+      "distance": 64
+    },
+    {
+      "modelId": "db.RegistrationFormCaptableDocument",
+      "before": {
+        "x": 18520.52,
+        "y": 23366.16
+      },
+      "after": {
+        "x": 18488.52,
+        "y": 23334.16
+      },
+      "distance": 45.254833995939045
+    },
+    {
+      "modelId": "db.RegistrationFormCaptableNotarizationRequestor",
+      "before": {
+        "x": 17970.27,
+        "y": 23060.9
+      },
+      "after": {
+        "x": 17986.27,
+        "y": 23044.9
+      },
+      "distance": 22.627416997969522
+    },
+    {
+      "modelId": "db.RsuExerciseManagementAttachmentSettingItem",
+      "before": {
+        "x": 14358.83,
+        "y": 15691.42
+      },
+      "after": {
+        "x": 14342.83,
+        "y": 15675.42
+      },
+      "distance": 22.627416997969522
+    },
+    {
+      "modelId": "db.ShareholdersMeetingConvocationNoticeEmailNewIssueAttachment",
+      "before": {
+        "x": 17868.56,
+        "y": 21564.88
+      },
+      "after": {
+        "x": 17612.56,
+        "y": 21820.88
+      },
+      "distance": 362.03867196751236
+    },
+    {
+      "modelId": "db.ShareholdersMeetingConvocationNoticeWrittenRecipient",
+      "before": {
+        "x": 19081.01,
+        "y": 21867.76
+      },
+      "after": {
+        "x": 19131.7,
+        "y": 21683.89
+      },
+      "distance": 190.7292662388231
+    },
+    {
+      "modelId": "db.SubscriptionModusignDocumentUsageHistory",
+      "before": {
+        "x": 23817.628044551,
+        "y": 13632.792921713
+      },
+      "after": {
+        "x": 23561.63,
+        "y": 13376.79
+      },
+      "distance": 362.0393552357624
+    },
+    {
+      "modelId": "db.TbkContract",
+      "before": {
+        "x": 21865.48,
+        "y": 15052.51
+      },
+      "after": {
+        "x": 21993.48,
+        "y": 15052.51
+      },
+      "distance": 128
+    },
+    {
+      "modelId": "db.AgendaOptionCancelOptionDistribution",
+      "before": {
+        "x": 15667.61,
+        "y": 21320.56
+      },
+      "after": {
+        "x": 15779.61,
+        "y": 21176.56
+      },
+      "distance": 182.42806801586207
+    },
+    {
+      "modelId": "db.CompanySsoConfiguration",
+      "before": {
+        "x": 16400.620850106,
+        "y": 12421.51017772
+      },
+      "after": {
+        "x": 16384.62,
+        "y": 12437.51
+      },
+      "distance": 22.62789245834184
+    },
+    {
+      "modelId": "db.CompanySsoEmailDomain",
+      "before": {
+        "x": 16406.620850106,
+        "y": 12129.51017772
+      },
+      "after": {
+        "x": 16214.62,
+        "y": 12193.51
+      },
+      "distance": 202.38652053261274
+    },
+    {
+      "modelId": "db.HrmSelectiveWork",
+      "before": {
+        "x": 6763.88,
+        "y": 19210.18
+      },
+      "after": {
+        "x": 6827.88,
+        "y": 19146.18
+      },
+      "distance": 90.50966799187809
+    }
+  ],
+  "changedRoutes": [
+    "edge:declared:db.AgendaBorrowCapital:meeting_draft",
+    "edge:declared:db.AgendaBranchChange:address",
+    "edge:declared:db.AgendaBranchChange:installation_event",
+    "edge:declared:db.AgendaBranchChange:meeting_draft",
+    "edge:declared:db.AgendaDirectorCompensationItem:director_compensation",
+    "edge:declared:db.AgendaOptionGrant:meeting_draft",
+    "edge:declared:db.AgendaOptionGrantGrantee:option_grant",
+    "edge:declared:db.BulkEmail:template_revision",
+    "edge:declared:db.BulkEmailTemplateRevision:template",
+    "edge:declared:db.ConsentFormModusignEmbeddedDraft:consent_form",
+    "edge:declared:db.DirectorsMeetingAgenda:agenda_branch_change",
+    "edge:declared:db.DirectorsMeetingAgenda:agenda_director_compensation_decision",
+    "edge:declared:db.EmployeeStockGuide:esop",
+    "edge:declared:db.EmployeeStockGuideAudience:employee_stock_guide",
+    "edge:declared:db.EmployeeStockGuideEmail:employee_stock_guide",
+    "edge:declared:db.HrmEmpAffiliationDept:affiliation",
+    "edge:declared:db.HrmEmpAffiliationDept:dept",
+    "edge:declared:db.HrmEmpWorkLocationAssignment:work_location",
+    "edge:declared:db.HrmEmpWorkLocationAssignment:work_location_config",
+    "edge:declared:db.InvestmentSimulationInvestor:simulation_round",
+    "edge:declared:db.InvestmentSimulationNewIssueInvestment:investor",
+    "edge:declared:db.InvestmentSimulationPurchaseInvestment:investor",
+    "edge:declared:db.LawtalkSignupAttachment:lawtalk_signup",
+    "edge:declared:db.ModusignAuthentication:modusign_account",
+    "edge:declared:db.OptionExerciseClaimMeetingDocument:exercise_claim",
+    "edge:declared:db.OptionExerciseClaimMeetingDocument:grantee",
+    "edge:declared:db.OptionGrantContractModusignDocument:option_grant_contract",
+    "edge:declared:db.OptionManagement:agenda_option_grant",
+    "edge:declared:db.OptionManagementStakeholderSeat:option_management",
+    "edge:declared:db.Purpose:articles_of_incorporation",
+    "edge:declared:db.Purpose:industrial_code",
+    "edge:declared:db.RegistrationFormCaptableDocument:captable",
+    "edge:declared:db.RegistrationFormCaptableNotarizationRequestor:registration_form_captable",
+    "edge:declared:db.RegistrationFormCaptableNotarizationRequestor:shareholder",
+    "edge:declared:db.RsuExerciseClaimAttachment:attachment_setting_item",
+    "edge:declared:db.RsuExerciseManagementAttachmentSettingItem:setting",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_branch_change",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_director_compensation_decision",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_option_grant",
+    "edge:declared:db.ShareholdersMeetingConvocationNoticeEmailNewIssueAttachment:email",
+    "edge:declared:db.ShareholdersMeetingConvocationNoticeEmailNewIssueAttachment:new_issue",
+    "edge:declared:db.SubscriptionModusignDocumentUsageHistory:subscription",
+    "edge:declared:db.TbkContract:tbk_consulting",
+    "edge:declared:db.TbkContractBenefit:tbk_contract",
+    "edge:declared:db.TbkContractSettlement:tbk_contract",
+    "edge:inheritance:db.ConsentFormModusignEmbeddedDraft->db.ModusignEmbeddedDraft",
+    "edge:inheritance:db.CustomOptionGrantContractTemplate->db.OptionGrantContractTemplate",
+    "edge:inheritance:db.EmployeeStockGuideEmail->db.BulkEmail",
+    "edge:inheritance:db.HrmEmpEmploymentTypeChangedEvent->db.HrmEmpEmploymentTypeEventBase",
+    "edge:inheritance:db.HrmEmpJoinedEvent->db.HrmEmpStatusEventBase",
+    "edge:inheritance:db.LawtalkSignupAttachment->db.FileAttachment",
+    "edge:inheritance:db.OptionExerciseClaimMeetingDocument->db.MeetingDocument",
+    "edge:inheritance:db.OptionGrantContractModusignDocument->db.ModusignDocument",
+    "edge:inheritance:db.RegistrationFormCaptableDocument->db.MeetingDocument",
+    "edge:inheritance:db.ShareholdersMeetingConvocationNoticeWrittenRecipient->db.ShareholdersMeetingConvocationNoticeRecipient",
+    "edge:inheritance:db.SubscriptionModusignDocumentUsageHistory->db.BaseModusignDocumentUsageHistory",
+    "edge:declared:db.AgendaOptionCancelOptionDistribution:option",
+    "edge:declared:db.Company:sso_configuration",
+    "edge:declared:db.CompanySsoEmailDomain:configuration",
+    "edge:declared:db.CompanySsoIdentity:configuration",
+    "edge:declared:db.HrmSelectiveWorkPlanConfig:selective_work",
+    "edge:declared:db.HrmSelectiveWorkSchedule:selective_work",
+    "edge:declared:db.HrmSelectiveWorkSettlementConfig:selective_work",
+    "edge:inheritance:db.HrmSelectiveWork->db.HrmWorkBase"
+  ],
+  "sizesPreserved": true,
+  "membershipsPreserved": true,
+  "leafCardGeometryPreserved": true,
+  "productRouteParity": true,
+  "nativeProposal": {
+    "initialVisual": 429,
+    "visual": 418,
+    "cross": 287,
+    "hit": 131,
+    "initialHardConditions": 0,
+    "hardConditions": 0,
+    "initialIndividualVisual": 4633,
+    "individualVisual": 4591,
+    "initialIndividualHardConditions": 176,
+    "individualHardConditions": 174,
+    "overlap": 0,
+    "spacing": 0,
+    "queries": 15957,
+    "changes": 37,
+    "changedNodes": 31,
+    "eligibleNodes": 132,
+    "selectedNodes": 132,
+    "rounds": 3,
+    "maxDisplacement": 384,
+    "timedOut": false,
+    "seconds": 2.88384
+  },
+  "resourcePolicy": {
+    "threads": 1,
+    "rssLimitMiB": 256,
+    "maxSearchSeconds": 20,
+    "maxSelectedRoutes": 256,
+    "withIndividual": true,
+    "maxSelectedNodes": 256,
+    "maxNodeDisplacement": 384,
+    "requestedHostCpuBudgetPercent": 20,
+    "hostLogicalCpuCount": 15,
+    "serialized": true,
+    "searchNiceIncrement": 10,
+    "largestReportedRssMiB": 171.6,
+    "searchProcessGroupPeakRssMiB": 20.0,
+    "totalNativeSearchSeconds": 22.92009,
+    "cpuUsagePercentMeasured": false,
+    "nodeSearchSeconds": 5.05699
+  },
+  "browserVerified": false,
+  "date": "2026-10-02",
+  "productAuditFile": "data/erd-poc/candidates/captain-leaf-card-connections-418.audit.json",
+  "acceptedGeometry": {
+    "initialVisual": 418,
+    "initialHardConditions": 0,
+    "visual": 418,
+    "cross": 287,
+    "hit": 131,
+    "hardConditions": 0,
+    "overlap": 0,
+    "spacing": 0,
+    "queries": 0,
+    "changes": 0,
+    "intervals": 0,
+    "selectedEdges": 230,
+    "rounds": 0,
+    "timedOut": false,
+    "seconds": 0.0620104
+  },
+  "acceptedIndividualGeometry": {
+    "initialVisual": 4591,
+    "initialHardConditions": 174,
+    "visual": 4591,
+    "cross": 3356,
+    "hit": 1235,
+    "hardConditions": 174,
+    "overlap": 0,
+    "spacing": 0,
+    "queries": 0,
+    "changes": 0,
+    "intervals": 0,
+    "selectedEdges": 230,
+    "rounds": 0,
+    "timedOut": false,
+    "seconds": 0.171323
+  },
+  "nativeValidation": {
+    "selfTest": "pass",
+    "globalDeltaComparisons": 4096
+  },
+  "installedAsDefault": false,
+  "freshSourceAnalysisVerified": false,
+  "nativeBinarySha256": "6a2a97763198ae19d9c55b5994e95b7f0ddcf1e8f6acab62f4143ee8f9ee18f2",
+  "verifierBinarySha256": "22db910be072dfd6385ead41214dddda13de6b78d0fb43fca4e80cd4183811ee",
+  "sourceCodeSha256": {
+    "scripts/erd-poc/probe_overview_boundary.cjs": "350d252f0553e1e2ce19be6ae1fa432869830fd09185578fb5de2f6160db01f0",
+    "scripts/erd-poc/probe_dual_boundary_sweep.cpp": "5ce793facbb51bb90fe8762ef14928380fd52ca13d4e24d1d0f49a6245f261aa",
+    "scripts/erd-poc/constrained_dual_boundary_sweep.h": "b435671ec4c35d4b51557ad847f4809e54f53af64e16e76021608cd0c44e4c7e",
+    "scripts/erd-poc/probe_boundary_sweep.cpp": "9ddd871deb2b7d445be30f5243e261fcf5f4907e8b8d85dada28219adada0b4a",
+    "scripts/erd-poc/constrained_boundary_sweep.h": "5dc43defe7f4348d58ead6028259e12b88dcdd25740c87d5127809f51a1eef30",
+    "scripts/erd-poc/constrained_scene.h": "ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6",
+    "scripts/erd-poc/run_memory_bounded.py": "90dc1dcdf63a5ac940b7b32f4997a60b4d5f5e8d1545d905bfcfc49febe79dba",
+    "scripts/erd-poc/run_capture.py": "c5a1a8f642b784f7faa752486c92ec4c115ed8de19004bd8b7b3c1b41366d339",
+    "scripts/erd-poc/audit_leaf_card_connections.cjs": "7870841810547d295a1a7648d26d7e465d71027fbae517b74e7003233df82517",
+    "out/webview/state/createDiagramRenderModel.js": "6c39e4590a22b5ba306f9ff3f195fb4f3edf997966a05c6edf693b95edc71b69",
+    "out/extension/services/layout/runOgdfLayout.js": "837f11cb58d5ee72aa83631bb00750512cf0fbe96357306644038afa2a478580",
+    "out/extension/services/layout/consolidateEdges.js": "802da9d4fa3d445535c46238846c15200c09e92c977492100d0ab0b6971af600",
+    "out/webview/interaction/runtime/browserLeafCardSource.js": "becaa5c4237df44fcdd20ad2d8de6dff4df3243c4747fbee9daecd433ef1348b",
+    "out/webview/interaction/runtime/browserLayoutSource.js": "9a736ac2049e7e4a5e3d056f3c570a7391e266966b831e316fb8058eabe1d112",
+    "scripts/erd-poc/probe_dual_node_search.cpp": "5161091fc44c93e985313f9c55f9174a1ae22e0a2b810af77fef31bfbae194ea",
+    "scripts/erd-poc/apply_dual_node_proposal.cjs": "4fab7fb7413bc82f52f20988cd262d5de0a0370ef9bc11be6e3a8d11029486a8"
+  },
+  "nativeInputSha256": {
+    ".tmp/visualcross-low-resource-20261002-node/nodes.tsv": "a340275b5f6408477df0873a179ec909a3a8e5cdbb4b94e506bb915a6d86880f",
+    ".tmp/visualcross-low-resource-20261002-node/positions.tsv": "39344a5985cb233e1f46b0afdf3537c9026a44b7ad641c556a6b4a87331807fa",
+    ".tmp/visualcross-low-resource-20261002-node/edges.tsv": "b07fca5eb6d55b581860d1d049c1cdcf6542d971aec2937956e75d2f21d196fa",
+    ".tmp/visualcross-low-resource-20261002-node/routes.tsv": "9950d5c474e7961dff0db4c7b7a606470b27df991738e0f764e085c266bbfb1c",
+    ".tmp/visualcross-low-resource-20261002-node/individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+    ".tmp/visualcross-low-resource-20261002-node/individual.positions.tsv": "7f0391ee778c030693a22efa9b9fe5a6f77f9b9d54ec9dfe93f5e55137b981bc",
+    ".tmp/visualcross-low-resource-20261002-node/individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+    ".tmp/visualcross-low-resource-20261002-node/individual.routes.tsv": "beaa3367123edef45abdc466fd310f07cad3de577b490776d0563af6b0d092f7",
+    ".tmp/visualcross-low-resource-20261002-node/eligible-singletons.txt": "8cdf8a314328558962b0e48619875509c879610f8bf56ac1d9dbbe1d5d90f775",
+    ".tmp/visualcross-low-resource-20261002-node/selection.txt": "52b84da88378c54da8d5886335bd681cd9cbaa60d0e4f782b1ceef8f2764401d",
+    ".tmp/visualcross-low-resource-20261002-node/self-test.json": "9cdea56ff45cc21f20dfee62fee71b72ab507b523ce31558a0db99f5cafa1d72"
+  },
+  "preliminaryProbe": {
+    "initialVisual": 429,
+    "visual": 418,
+    "cross": 287,
+    "hit": 131,
+    "initialHardConditions": 0,
+    "hardConditions": 0,
+    "initialIndividualVisual": 4633,
+    "individualVisual": 4591,
+    "initialIndividualHardConditions": 176,
+    "individualHardConditions": 174,
+    "overlap": 0,
+    "spacing": 0,
+    "queries": 10694,
+    "changes": 37,
+    "changedNodes": 31,
+    "eligibleNodes": 132,
+    "selectedNodes": 132,
+    "rounds": 2,
+    "maxDisplacement": 384,
+    "timedOut": false,
+    "seconds": 2.17315
+  },
+  "resourceMeasurementsMiB": {
+    "compilerPeak": 171.2,
+    "exportPeak": 125.4,
+    "selfTestProcessGroupPeak": 16.3,
+    "searchProcessGroupPeak": 20.0,
+    "productProposalPeak": 135.0,
+    "productFileLoadPeak": 171.6
+  },
+  "largestActualNodeDisplacement": 362.0393552357624,
+  "followupProbes": {
+    "postNodeBoundary": {
+      "native": {
+        "initialVisual": 418,
+        "initialHardConditions": 0,
+        "visual": 418,
+        "cross": 288,
+        "hit": 130,
+        "hardConditions": 0,
+        "initialIndividualVisual": 4591,
+        "individualVisual": 4590,
+        "initialIndividualHardConditions": 174,
+        "individualHardConditions": 174,
+        "overlap": 0,
+        "spacing": 0,
+        "queries": 8244,
+        "changes": 2,
+        "intervals": 217738,
+        "selectedEdges": 229,
+        "rounds": 2,
+        "timedOut": false,
+        "seconds": 17.8631
+      },
+      "accepted": false,
+      "reason": "Overview remains 418; strict overview improvement gate rejected the proposal.",
+      "productProposalVerifiedBeforeStrictGate": true,
+      "productFileLoadVerified": false,
+      "largestReportedRssMiB": 152.9,
+      "nativeBinarySha256": "b788d1dc79d8db73f315eac0bc2a903f787fe9c56342c587f3c92a53e5fd06fb",
+      "inputAndRejectionSha256": {
+        ".tmp/visualcross-low-resource-20261002-after-node/nodes.tsv": "a340275b5f6408477df0873a179ec909a3a8e5cdbb4b94e506bb915a6d86880f",
+        ".tmp/visualcross-low-resource-20261002-after-node/positions.tsv": "77cee4b55f02c3f6028c22d982bab0fb6a227bc9c874d26d3f4b2bad698553a4",
+        ".tmp/visualcross-low-resource-20261002-after-node/edges.tsv": "b07fca5eb6d55b581860d1d049c1cdcf6542d971aec2937956e75d2f21d196fa",
+        ".tmp/visualcross-low-resource-20261002-after-node/routes.tsv": "ae7634e54469c1887ea352fb6feb51c8a80267b45770006f5ff4daf2bb275351",
+        ".tmp/visualcross-low-resource-20261002-after-node/individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+        ".tmp/visualcross-low-resource-20261002-after-node/individual.positions.tsv": "4d3dfc8a7f5648c998be9eac3b48c953d7b43f78f2882362912a11a1d7025427",
+        ".tmp/visualcross-low-resource-20261002-after-node/individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+        ".tmp/visualcross-low-resource-20261002-after-node/individual.routes.tsv": "6c756dd03fa2055c753a20dc44edeea32556f2f0a7bc4302aad5faf929160089",
+        ".tmp/visualcross-low-resource-20261002-after-node/selection.txt": "90e7986d462df5a425479b3528916db14a7afed53ca5190ed32a449771b4d7a0",
+        ".tmp/visualcross-low-resource-20261002-after-node/apply.stderr": "54aa53a73578347716822ef8e255876e9b9efc5683e28fac66d7940bad84a69f"
+      }
+    }
+  }
+}

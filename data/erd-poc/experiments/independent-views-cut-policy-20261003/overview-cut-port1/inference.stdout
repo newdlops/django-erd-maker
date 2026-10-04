@@ -1,0 +1,17 @@
+{"round": 0, "attempts": 648, "accepted": 210, "seconds": 0.42485441599274054}
+{"round": 1, "attempts": 1369, "accepted": 415, "seconds": 0.7275789580307901}
+{"round": 2, "attempts": 2146, "accepted": 621, "seconds": 1.0313771659857593}
+{"round": 3, "attempts": 2953, "accepted": 828, "seconds": 1.4104873330215923}
+{"round": 4, "attempts": 3702, "accepted": 1038, "seconds": 1.7118569579906762}
+{"round": 5, "attempts": 4589, "accepted": 1240, "seconds": 2.0154450410045683}
+{"round": 6, "attempts": 5422, "accepted": 1444, "seconds": 2.305533708014991}
+{"round": 7, "attempts": 6298, "accepted": 1646, "seconds": 2.599907958006952}
+{"round": 8, "attempts": 7288, "accepted": 1847, "seconds": 2.913073041010648}
+{"round": 9, "attempts": 8224, "accepted": 2047, "seconds": 3.2151600409997627}
+{"round": 10, "attempts": 9144, "accepted": 2249, "seconds": 3.5161432080203667}
+{"round": 11, "attempts": 10006, "accepted": 2455, "seconds": 3.824199500028044}
+{"round": 12, "attempts": 10961, "accepted": 2655, "seconds": 4.131093624979258}
+{"round": 13, "attempts": 11838, "accepted": 2858, "seconds": 4.4254700830206275}
+{"round": 14, "attempts": 12793, "accepted": 3054, "seconds": 4.731937207980081}
+{"round": 15, "attempts": 13714, "accepted": 3258, "seconds": 5.041917833033949}
+{"checkpoint": "data/erd-poc/checkpoints/leaf-component-policy-v11.npz", "checkpointSha256": "2c9d6f7f012189657e1486d2d60721b1d74aabb58d4405bea4d1dbb1a68538ee", "untrainedControl": false, "sourceDirectory": ".tmp/visualcross-ml-150-750-20261003/overview-cut-port1", "syntheticSeed": null, "policyProposalSource": "conditional mixture neural network", "heuristicSearchCalls": 0, "overviewOnly": true, "allowNeutral": true, "branchMoves": false, "branchMode": null, "checkpointBranchMode": null, "areaExploration": false, "explorationLimit": 0, "initialTemperature": 2.0, "initial": {"ready": true, "eligible": 1727, "visual": 292, "individualVisual": 4453}, "final": {"initialVisual": 292, "visual": 292, "initialIndividualVisual": 4453, "individualVisual": 4446, "hardConditions": 0, "initialHardConditions": 0, "individualHardConditions": 0, "initialIndividualHardConditions": 0, "canonicalStart": false, "rolloutInitialVisual": 292, "rolloutInitialIndividualVisual": 4453, "jointMoves": false, "neighborMoves": false, "movingRayPorts": false, "overviewOnly": true, "allowNeutral": true, "acceptedNeutralActions": 3258, "explorationLimit": 0, "savedActionPrefix": -1, "acceptedExploratoryActions": 0, "swapSlots": false, "pairActions": false, "portActions": true, "residualPorts": true, "globalScale": false, "bboxLimit": 0, "areaExploration": false, "temporaryRegressionBudget": 0, "globalAttachedPorts": false, "overlap": 0, "spacing": 0, "policyActionsEvaluated": 13714, "acceptedActions": 3258, "heuristicSearchCalls": 0, "proposalAuthority": "external-policy", "decoder": "model boundary parameters on original endpoint sides; straight lines"}, "budget": 20000, "seed": 1061, "seconds": 5.152296625019517, "observationsSha256": "9e86e63f6ddb35acdc8d5ad02d204d2288143a26a8ff9b988919fa0c3acc9672", "actionsSha256": "d89e686a9c017e6bc04d9cc931cd6cf70f284c6c7488bc0a4e62b194da85dc97", "portInputHashes": {"individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581", "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00", "individual.positions.tsv": "ff1e7b5e33bf5d08314f2b30398776b72ebded55614b8ac81686a50b7f79bf19", "individual.routes.tsv": "fc3f8b89a03787d44ca14a41cc4c27d44d283b8f82b81aa32db3d7b8ec039690"}}

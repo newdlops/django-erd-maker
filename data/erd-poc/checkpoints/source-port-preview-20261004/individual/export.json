@@ -1,0 +1,32 @@
+{
+  "view": "individual",
+  "sourceFile": ".tmp/visualcross-ml-150-750-20261004/single-owner1/individual-product1/candidate.individual.layout.json",
+  "sourceSha256": "d9c4bdcfa5c2a0f2454be505f873777e5332a637593061f6103a9419d64f702d",
+  "payloadFile": "data/erd-poc/recovered/captain-2026-09-15-payload.json",
+  "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+  "stage": ".tmp/visualcross-ml-150-750-20261004/source-port-patch1/individual-feasible16",
+  "stageReportSha256": "a52911fa7bab915cd87f958ed993c6fa373d6111c5927e7414495235f33b83bc",
+  "checkpoint": ".tmp/visualcross-ml-150-750-20261004/source-port-patch1/individual-feasible16/model-step-064.npz",
+  "checkpointSha256": "7e7e3f0270444cc1d983118fa4c7f9bbf1424dec56b158f2ca23a0a327a94b21",
+  "trainedUpdates": 64,
+  "modelKind": "compact-source-spacing-feasible-original-port-native-reward-learning-v2",
+  "recordedTryWireSha256": "2095d529e866f5e17438c49b38157178cbdda8eb7be57b9906c7bac18a308702",
+  "fullNativeMeasurement": {
+    "accepted": false,
+    "legal": true,
+    "visual": 1963,
+    "measureOnly": true,
+    "individualVisual": 1963,
+    "spacing": 0,
+    "hard": 0,
+    "individualHard": 0,
+    "reason": "legal"
+  },
+  "immutableCheckpointAndDecoderArraysMatched": true,
+  "sourceObservationsMatched": true,
+  "latestNetworkForwardExported": true,
+  "strictBestFallback": false,
+  "newTrainingUpdates": 0,
+  "coordinateSearchOrRepairs": 0,
+  "exporterSha256": "a221b7e1a71226ac80ea70c26557a311085cdf7227c53f07ab052a8334298523"
+}

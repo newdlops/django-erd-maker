@@ -1,0 +1,42 @@
+{
+  "scope": "Captain-trained joint neural batch",
+  "view": "overview",
+  "promoted": false,
+  "source": ".tmp/visualcross-ml-targets-20261003/overview-final-moving1/candidate.layout.json",
+  "sourceSha256": "23c020f04cbc7ce41c244f70e628d8272d7fb85fa03a07c70450a36e9448fc95",
+  "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+  "environmentSha256": "ecb50b141605bedf33e64b31403a9c8531be6a71e3426cc0675ff3309f57f54d",
+  "inputHashes": {
+    "nodes.tsv": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+    "edges.tsv": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+    "positions.tsv": "41611eb1101e6c6e4d324d0b4ec62dc8555286110ccd28df63f8f6e750a8b6a6",
+    "routes.tsv": "8220f04430cf6287612b015ae82a83cf7157af0b2a9bb30072af8f66616d7c89",
+    "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+    "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+    "individual.positions.tsv": "13e85432ff837ccbf261391e587fb3d311509b2e58413f378549ea057ccdb797",
+    "individual.routes.tsv": "adadae7d475e0656fa9807564a59479aee81c7793f4d69637552dcaca0340857",
+    "components.tsv": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+    "groups.tsv": "8382a3cb554b102b38b58173e45815c60dab8fadb392904c100f193c178d2fd9"
+  },
+  "proposalAuthority": "frozen neural network batches",
+  "heuristicSearchCalls": 0,
+  "sourceVisual": 299,
+  "maxStep": 1024.0,
+  "seed": 526,
+  "learningRate": 0.0005,
+  "spacingWeight": 20.0,
+  "lossTemperatureStart": 8.0,
+  "lossAnnealFraction": 0.6,
+  "groupedRouteLoss": true,
+  "temporaryRegressionLimit": 100,
+  "inferenceOnly": false,
+  "lossKind": "boundary-clipped separating-axis margins v4",
+  "implementationHashes": {
+    "run_joint_neural_layout.py": "5270ea94413857674375fe1df6491390a95f89e9fa4eee323d99059790f78b91",
+    "joint_layout_proxy.py": "e6e3c376b127aefe926154e9e9040a07e3d28dd3170c0d2dd30fdcc267840fcc",
+    "joint_grouped_routes.py": "ace8c45b9d612e36514e7f620c4ee036b50c24e273aeb7d57e5a46f539c90387",
+    "ml_joint_batch_environment.cpp": "907055a7319c56b8e6bb5a702641638d2b5004a1e0e48a7c5b89aae7ee699164",
+    "ml_component_environment.cpp": "4f7a54126bdedfda1b9ea1084c30cc6df0bf735f489348c4789be865e483ec67"
+  },
+  "trainingScope": "Captain-specific differentiable training; no unseen-graph evaluation"
+}

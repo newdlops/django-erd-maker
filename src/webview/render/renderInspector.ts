@@ -9,6 +9,7 @@ import {
   INTERACTION_SETTING_DESCRIPTORS,
 } from "../state/interactionSettings";
 import { escapeHtml } from "./escapeHtml";
+import { createRelationshipExplorerTools } from "../state/relationshipExplorer";
 
 export function renderInspector(
   viewModel: DiagramRenderModel,
@@ -60,6 +61,29 @@ export function renderInspector(
 }
 
 function renderCrossingReadouts(viewModel: DiagramRenderModel): string {
+  if (viewModel.leafCardOverview) {
+    return `
+      <p class="erd-summary__meta" data-visual-crossing-readout>
+        Initial visual conflicts: ${escapeHtml(formatMetricNumber(viewModel.visualCrossings!))} · Leaf card connections
+      </p>
+      <p class="erd-summary__meta" data-relationship-overview-readout aria-live="polite">
+        ${escapeHtml(formatMetricNumber(viewModel.edges.length))} lines · ${escapeHtml(formatMetricNumber(viewModel.leafCardOverview.individualEdges.length))} relationships.
+        One line per leaf card and external model; internal relationships remain in model details.
+      </p>
+    `;
+  }
+  if (viewModel.relationshipOverview) {
+    const overview = viewModel.relationshipOverview;
+    return `
+      <p class="erd-summary__meta" data-visual-crossing-readout>
+        Initial visual conflicts: ${escapeHtml(formatMetricNumber(overview.visualCrossings))} · June bundle overview
+      </p>
+      <p class="erd-summary__meta" data-relationship-overview-readout aria-live="polite">
+        ${escapeHtml(formatMetricNumber(viewModel.edges.length))} lines · ${escapeHtml(formatMetricNumber(overview.individualEdges.length))} relationships · ${escapeHtml(formatMetricNumber(overview.groupCount))} bundles.
+        Turn off June bundles to show every relationship.
+      </p>
+    `;
+  }
   const visualReadout = viewModel.visualCrossings === undefined
     ? ""
     : `
@@ -293,7 +317,7 @@ function renderInitialModelPanel(viewModel: DiagramRenderModel): string {
         <header class="erd-panel__header">
           <p class="erd-panel__eyebrow">No Selection</p>
           <h2>${hasModels ? "Select a model" : "No models available"}</h2>
-          <p class="erd-panel__meta">${hasModels ? "Click a node in the diagram to inspect its model details." : "The current diagram has no models."}</p>
+          <p class="erd-panel__meta">${hasModels ? "Find a model above or select a card to explore its connections." : "The current diagram has no models."}</p>
         </header>
       </section>
     `;
@@ -351,6 +375,7 @@ function renderModelPanel(table: InspectorModelRenderModel): string {
           <h2>${escapeHtml(table.modelName)}</h2>
           <p class="erd-panel__meta">${escapeHtml(table.databaseTableName)}</p>
         </header>
+        ${renderModelRelationships(table)}
         <div class="erd-panel__controls">
           ${renderToggleButton(table, "hidden", table.hidden ? "Show Table" : "Hide Table")}
         </div>
@@ -371,6 +396,9 @@ function renderModelPanel(table: InspectorModelRenderModel): string {
         <p class="erd-panel__meta">${escapeHtml(table.databaseTableName)}</p>
         <p class="erd-panel__meta">${table.fieldRows.length} rows · ${table.relationships.length} relationships · ${table.properties.length} properties · ${table.methods.length} methods</p>
       </header>
+      ${renderModelRelationships(table)}
+      <details class="erd-model-details" data-model-details>
+        <summary>Fields, properties &amp; methods</summary>
       <div class="erd-panel__controls">
         ${renderToggleButton(table, "hidden", table.hidden ? "Show Table" : "Hide Table")}
         ${renderToggleButton(table, "showMethods", "Methods")}
@@ -393,10 +421,6 @@ function renderModelPanel(table: InspectorModelRenderModel): string {
         </ul>
       </div>
       <div class="erd-panel__section">
-        <h3>Relationships</h3>
-        ${renderModelRelationships(table)}
-      </div>
-      <div class="erd-panel__section">
         <h3>Properties</h3>
         <p class="erd-panel__hint" data-empty-property-hint ${table.properties.length > 0 ? "hidden" : ""}>No computed properties.</p>
         <ul class="erd-list" data-property-list ${table.properties.length > 0 ? "" : "hidden"}>
@@ -410,68 +434,13 @@ function renderModelPanel(table: InspectorModelRenderModel): string {
         <p class="erd-panel__hint" data-empty-method-hint ${table.methods.length > 0 ? "hidden" : ""}>No user-defined methods.</p>
         ${renderMethodButtons(table)}
       </div>
+      </details>
     </section>
   `;
 }
 
 function renderModelRelationships(table: InspectorModelRenderModel): string {
-  if (table.relationships.length === 0) {
-    return "<p class=\"erd-panel__hint\">No declared database relationships.</p>";
-  }
-
-  return `
-    <ul class="erd-list erd-relationship-list">
-      ${table.relationships.map((relationship) => `
-        <li class="erd-list__item erd-relationship">
-          <span class="erd-relationship__header">
-            <span class="erd-badge erd-badge--relation-${escapeHtml(relationship.kind.replaceAll("_", "-"))}">${escapeHtml(relationshipKindLabel(relationship.kind))}</span>
-            <span class="erd-sidebar__meta">${escapeHtml(relationshipDirectionLabel(relationship.direction))}</span>
-          </span>
-          <button
-            type="button"
-            class="erd-relationship__target"
-            data-focus-related-model
-            data-model-id="${escapeHtml(relationship.otherModelId)}"
-          >${escapeHtml(relationshipDisplayLabel(table.modelId, relationship))}</button>
-        </li>
-      `).join("")}
-    </ul>
-  `;
-}
-
-function relationshipKindLabel(
-  kind: InspectorModelRenderModel["relationships"][number]["kind"],
-): string {
-  switch (kind) {
-    case "foreign_key": return "FK";
-    case "one_to_one": return "O2O";
-    case "many_to_many": return "M2M";
-    case "inheritance": return "IS-A";
-    case "reverse_foreign_key": return "REV FK";
-    case "reverse_one_to_one": return "REV O2O";
-    case "reverse_many_to_many": return "REV M2M";
-  }
-}
-
-function relationshipDirectionLabel(
-  direction: InspectorModelRenderModel["relationships"][number]["direction"],
-): string {
-  return direction === "outgoing" ? "outgoing"
-    : direction === "incoming" ? "incoming"
-      : "self";
-}
-
-function relationshipDisplayLabel(
-  selectedModelId: string,
-  relationship: InspectorModelRenderModel["relationships"][number],
-): string {
-  if (relationship.direction === "incoming") {
-    return `← ${relationship.otherModelId}.${relationship.fieldName}`;
-  }
-  if (relationship.direction === "self") {
-    return `${relationship.fieldName} ↻ ${selectedModelId}`;
-  }
-  return `${relationship.fieldName} → ${relationship.otherModelId}`;
+  return createRelationshipExplorerTools().render(table);
 }
 
 function renderToggleButton(

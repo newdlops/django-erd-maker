@@ -1,0 +1,80 @@
+{
+  "status": "pass",
+  "immutableMainManifestUnchanged": true,
+  "bindings": {
+    "manifest": {
+      "path": "data/erd-poc/experiments/independent-views-calibrated-geometry-fields-20261004/manifest.json",
+      "sha256": "6f06fbb55970a2881c8800b59e2baa051274c7c2087feb4a41c31aa60872763a"
+    },
+    "sealReceipt": {
+      "path": ".tmp/geometry-calibration-archive-seal-receipt.json",
+      "sha256": "d7067d424ac3a8734d5429ba9758fd0d301926056f49246f63256c9f5a90a474"
+    },
+    "restoreReceipt": {
+      "path": ".tmp/geometry-calibration-archive-independent-verification.json",
+      "sha256": "00eabc12296a98859e3f9843378adcf64c71cdbc242b5e0a3a796cd0275f3b89"
+    },
+    "calibrationModel": {
+      "path": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/training1/model.npz",
+      "sha256": "da3b7bf93df788de65956534b7f228cda5f0ade10a762c59a100282e358d1ae0"
+    },
+    "calibrationDataset": {
+      "path": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/training1/dataset.npz",
+      "sha256": "3afc1607c8c9413781bc18c9e10fe0a71076094f9c2a9365bc0260f4fcfd4a9e"
+    },
+    "resourceLedger": {
+      "path": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/resources.json",
+      "sha256": "4164d509d867166d8e2049460bb5652c318d736d2718a9db9e5c030e12b006c5"
+    },
+    "diagnosis": {
+      "path": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/diagnosis.json",
+      "sha256": "97c72f13a8c238e123162039f7aecde4139b94df59ada7a97ac51813cf7c4dc0"
+    },
+    "candidate": {
+      "path": "data/erd-poc/candidates/captain-ml-independent-views.layout.json",
+      "sha256": "4e741de39ca655c7ff042422b9407206427f89e02ecd56b7f4a9f36f6a5cd02e"
+    },
+    "sealGuardLog": {
+      "path": ".tmp/geometry-calibration-archive-seal.guard.log",
+      "sha256": "212fa8fc05a46cdaa06921fbd955378d369705bf742ee4d032de79c647aff8ba"
+    },
+    "restoreGuardLog": {
+      "path": ".tmp/geometry-calibration-archive-restore.guard.log",
+      "sha256": "f79813b279abb0b5208df2026cf37766d5733bfa77247e51c2b028b9246af691"
+    },
+    "calibrationProof": {
+      "path": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/calibration.audit.json",
+      "sha256": "d6c7a1644dd914333086acdbcc10dd04510aeda0bdb05d32c2fd8f6f16a16562"
+    },
+    "walksProof": {
+      "path": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/walks.audit.json",
+      "sha256": "048e100901bafed651294cbdb7e410420c63ce2ec14f985ab05e2462be2742d7"
+    },
+    "fieldsProof": {
+      "path": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/fields.audit.json",
+      "sha256": "10faa39f5adc066428260ab01647b4b4761fa6a45d9ea6e87c140cc584f55ccd"
+    },
+    "tied-fieldsProof": {
+      "path": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/tied-fields.audit.json",
+      "sha256": "6a9e0927d6deb4a4dcef5ebaf4941548726d2773f931afd235c81ef08d2ead9a"
+    },
+    "field-hard-diagnosisProof": {
+      "path": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/field-hard-diagnosis.audit.json",
+      "sha256": "4597693fdac89b52c05e254f5ada804f7296a458035f57801187865b399dc756"
+    }
+  },
+  "restoreScope": {
+    "mappingsRestoredAndLiveSourcesMatched": 343,
+    "distinctStoredObjects": 280,
+    "prerequisiteManifestsMatched": 8
+  },
+  "archiveSampledPeakMiB": {
+    "sealGuardLog": 27.3,
+    "restoreGuardLog": 18.5
+  },
+  "sampledPeaksAreNotHardInstantaneousMemoryBounds": true,
+  "newProductCandidatePromoted": false,
+  "overviewVisual": 285,
+  "individualVisual": 1963,
+  "targetMet": false
+}

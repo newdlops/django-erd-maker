@@ -15,6 +15,51 @@ Usage:
 import numpy as np
 
 
+def iter_crossing_pairs(positions: np.ndarray, edges: np.ndarray):
+    """Yield properly crossing edge-index pairs with constant extra memory.
+
+    This is intentionally scalar. Diagnostic and one-shot canonical research
+    passes should not allocate the O(E^2) pair-index and endpoint arrays used
+    by ``FastCrossEval``. The graph is sparse enough that streaming roughly a
+    million pairs is cheaper than risking workstation-wide memory pressure.
+    """
+    pos = np.asarray(positions, dtype=np.float64)
+    edge_array = np.asarray(edges, dtype=np.int32).reshape((-1, 2))
+
+    def orient(a, b, c):
+        return (
+            (pos[b, 0] - pos[a, 0]) * (pos[c, 1] - pos[a, 1])
+            - (pos[b, 1] - pos[a, 1]) * (pos[c, 0] - pos[a, 0])
+        )
+
+    for left in range(edge_array.shape[0]):
+        source, target = (int(value) for value in edge_array[left])
+        for right in range(left + 1, edge_array.shape[0]):
+            other_source, other_target = (
+                int(value) for value in edge_array[right]
+            )
+            if (
+                source == other_source
+                or source == other_target
+                or target == other_source
+                or target == other_target
+            ):
+                continue
+            first = orient(source, target, other_source)
+            second = orient(source, target, other_target)
+            if first == 0.0 or second == 0.0 or (first < 0.0) == (second < 0.0):
+                continue
+            third = orient(other_source, other_target, source)
+            fourth = orient(other_source, other_target, target)
+            if third == 0.0 or fourth == 0.0 or (third < 0.0) == (fourth < 0.0):
+                continue
+            yield left, right
+
+
+def count_crossings_streaming(positions: np.ndarray, edges: np.ndarray) -> int:
+    return sum(1 for _pair in iter_crossing_pairs(positions, edges))
+
+
 class FastCrossEval:
     """Pre-computes edge pair indices; counts crossings per call."""
 

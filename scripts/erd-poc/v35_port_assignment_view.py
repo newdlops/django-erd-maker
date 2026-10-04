@@ -681,6 +681,27 @@ def build_edges(evaluator: exact.ExactRelationEvaluator, segments: np.ndarray) -
     return out
 
 
+def rendered_edge_seed(data: dict) -> list[dict]:
+    """Accept either this tool's view JSON or a native layout snapshot."""
+    edges = data.get("edges")
+    if isinstance(edges, list):
+        return edges
+    metadata = data.get("engineMetadata")
+    if not isinstance(metadata, dict):
+        return []
+    routes = metadata.get("renderedCarrierRoutes")
+    if not isinstance(routes, list):
+        return []
+    return [
+        {
+            "id": route.get("carrierId"),
+            "points": route.get("points"),
+        }
+        for route in routes
+        if isinstance(route, dict)
+    ]
+
+
 def bounds(rects: list[dict], edges: list[dict]) -> dict:
     xs: list[float] = []
     ys: list[float] = []
@@ -945,9 +966,18 @@ def main() -> None:
     parser.add_argument("--anneal-end-temp", type=float, default=0.05)
     parser.add_argument("--anneal-seed", type=int, default=35)
     parser.add_argument("--edge-rect-margin", type=float, default=0.0)
+    parser.add_argument(
+        "--direct-scene",
+        action="store_true",
+        help="optimize every real node and relationship; ignore legacy leaf bundles",
+    )
     args = parser.parse_args()
 
     layout = json.loads(args.layout.read_text())
+    if args.direct_scene:
+        metadata = layout.get("engineMetadata")
+        if isinstance(metadata, dict):
+            metadata["leafBundles"] = []
     positions = (
         exact.v34.read_positions_tsv(args.positions, layout)
         if args.positions is not None
@@ -964,7 +994,7 @@ def main() -> None:
     opt = PortOptimizer(evaluator, positions, slots=args.slots)
     if args.initial_json is not None:
         seed = json.loads(args.initial_json.read_text())
-        opt.initialize_from_rendered_edges(list(seed.get("edges") or []))
+        opt.initialize_from_rendered_edges(rendered_edge_seed(seed))
     rect_positions = evaluator.rect_positions(positions)
     overlap_flags = exact.v34.overlap_flags_for_pairs(
         rect_positions,

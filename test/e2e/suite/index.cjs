@@ -43,7 +43,19 @@ const scenarioHandlers = {
     assert.ok(edgeKinds(state).includes("foreign_key"));
     assert.ok(edgeKinds(state).includes("many_to_many"));
     assert.ok(edgeKinds(state).includes("reverse_foreign_key"));
-    assert.ok(state.html.includes("data-edge-id"));
+    // The current diagram draws relationships on canvas; static SVG attributes
+    // no longer establish that the browser received and rendered those edges.
+    const snapshot = await runWebviewAction({ type: "snapshot" });
+    for (const relationship of state.payload.graph.structuralEdges) {
+      const rendered = snapshot.edges.find((edge) => edge.edgeId === relationship.id);
+      assert.ok(rendered, `Missing rendered relationship: ${relationship.id}`);
+      assert.equal(rendered.sourceModelId, relationship.sourceModelId);
+      assert.equal(rendered.targetModelId, relationship.targetModelId);
+      assert.ok(rendered.points.trim().split(/\s+/).length >= 2);
+    }
+    await runWebviewAction({ modelId: "blog.Post", type: "clickTable" });
+    const selected = await runWebviewAction({ type: "snapshot" });
+    assert.equal(selected.state.selectedModelId, "blog.Post");
   },
   "E2E-04": async (state) => {
     const postModel = requireModel(state, "blog.Post");

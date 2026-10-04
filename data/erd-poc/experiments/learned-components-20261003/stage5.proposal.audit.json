@@ -1,0 +1,713 @@
+{
+  "sourceFile": ".tmp/visualcross-ml-targets-20261003/round4/candidate.layout.json",
+  "candidateFile": ".tmp/visualcross-ml-targets-20261003/round5/candidate.layout.json",
+  "sourceSha256": "b5d9c8655ba8ffdeb0384ab2b9352cfcbe653080dcf263a556d8e35b0493547d",
+  "candidateSha256": "564b2be9743708ebcf048b5a1db1c73ca405caf199cad77e100593eb5832cfed",
+  "baseline": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 3,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 262,
+    "edgeNodeIntersections": 126,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 391
+  },
+  "metrics": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 259,
+    "edgeNodeIntersections": 126,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 387
+  },
+  "originalIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 2512,
+    "edgeNodeIntersections": 1017,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 3529
+  },
+  "candidateIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 2492,
+    "edgeNodeIntersections": 1000,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 3492
+  },
+  "changedNodes": [
+    {
+      "modelId": "db.Address",
+      "before": {
+        "x": 22578.636268674,
+        "y": 18779.94965093
+      },
+      "after": {
+        "x": 22572.2,
+        "y": 18813.63
+      }
+    },
+    {
+      "modelId": "db.AgendaPurposeChangeItem",
+      "before": {
+        "x": 17928.37,
+        "y": 24497.67
+      },
+      "after": {
+        "x": 17985.29,
+        "y": 24477.88
+      }
+    },
+    {
+      "modelId": "db.CompanyInvestorInterest",
+      "before": {
+        "x": 27481.67,
+        "y": 8440.53
+      },
+      "after": {
+        "x": 27173.87,
+        "y": 8323.52
+      }
+    },
+    {
+      "modelId": "db.CompanyPaymentLink",
+      "before": {
+        "x": 21624.17,
+        "y": 12151.62
+      },
+      "after": {
+        "x": 21655.93,
+        "y": 12191.61
+      }
+    },
+    {
+      "modelId": "db.CompanyProfileAccessLog",
+      "before": {
+        "x": 27481.67,
+        "y": 8556.53
+      },
+      "after": {
+        "x": 27173.87,
+        "y": 8439.52
+      }
+    },
+    {
+      "modelId": "db.DirectorsMeetingNoticeEmail",
+      "before": {
+        "x": 16573.68,
+        "y": 19174.47
+      },
+      "after": {
+        "x": 16524.92,
+        "y": 19119.35
+      }
+    },
+    {
+      "modelId": "db.HrmCertificateIssue",
+      "before": {
+        "x": 9503.220310317,
+        "y": 16272.851081388
+      },
+      "after": {
+        "x": 9593.96,
+        "y": 16263.87
+      }
+    },
+    {
+      "modelId": "db.HrmDeptReorg",
+      "before": {
+        "x": 4729.274064991,
+        "y": 15486.052616534
+      },
+      "after": {
+        "x": 4751.95,
+        "y": 15307.55
+      }
+    },
+    {
+      "modelId": "db.HrmEmpContractCommonVar",
+      "before": {
+        "x": 5037.774064991,
+        "y": 15486.052616534
+      },
+      "after": {
+        "x": 5060.45,
+        "y": 15307.55
+      }
+    },
+    {
+      "modelId": "db.HrmEmpMov",
+      "before": {
+        "x": 4729.274064991,
+        "y": 15602.052616534
+      },
+      "after": {
+        "x": 4751.95,
+        "y": 15423.55
+      }
+    },
+    {
+      "modelId": "db.HrmEmpStatus",
+      "before": {
+        "x": 9509.220310317,
+        "y": 16396.851081388
+      },
+      "after": {
+        "x": 9599.96,
+        "y": 16387.87
+      }
+    },
+    {
+      "modelId": "db.HrmGoogleCalendarIntegration",
+      "before": {
+        "x": 5024.774064991,
+        "y": 15602.052616534
+      },
+      "after": {
+        "x": 5047.45,
+        "y": 15423.55
+      }
+    },
+    {
+      "modelId": "db.HrmPersonalLocation",
+      "before": {
+        "x": 9760.14,
+        "y": 16547.13
+      },
+      "after": {
+        "x": 9812.97,
+        "y": 16771.49
+      }
+    },
+    {
+      "modelId": "db.HrmSigner",
+      "before": {
+        "x": 4729.274064991,
+        "y": 15718.052616534
+      },
+      "after": {
+        "x": 4751.95,
+        "y": 15539.55
+      }
+    },
+    {
+      "modelId": "db.HrmStaffNote",
+      "before": {
+        "x": 5037.774064991,
+        "y": 15718.052616534
+      },
+      "after": {
+        "x": 5060.45,
+        "y": 15539.55
+      }
+    },
+    {
+      "modelId": "db.HrmTag",
+      "before": {
+        "x": 4729.274064991,
+        "y": 15834.052616534
+      },
+      "after": {
+        "x": 4751.95,
+        "y": 15655.55
+      }
+    },
+    {
+      "modelId": "db.IaCertificateOfInvestmentDocument",
+      "before": {
+        "x": 31672.686580161,
+        "y": 18484.611520657
+      },
+      "after": {
+        "x": 31627.75,
+        "y": 18518.43
+      }
+    },
+    {
+      "modelId": "db.IaConsentFormDocument",
+      "before": {
+        "x": 32092.686580161,
+        "y": 18480.611520657
+      },
+      "after": {
+        "x": 32047.75,
+        "y": 18514.43
+      }
+    },
+    {
+      "modelId": "db.IaMeetingShortenPeriodDocument",
+      "before": {
+        "x": 31627.686580161,
+        "y": 18604.611520657
+      },
+      "after": {
+        "x": 31582.75,
+        "y": 18638.43
+      }
+    },
+    {
+      "modelId": "db.IaWrittenResolutionDocument",
+      "before": {
+        "x": 32079.686580161,
+        "y": 18604.611520657
+      },
+      "after": {
+        "x": 32034.75,
+        "y": 18638.43
+      }
+    },
+    {
+      "modelId": "db.ImContactRequestIntention",
+      "before": {
+        "x": 26919.2,
+        "y": 11363.63
+      },
+      "after": {
+        "x": 26983.94,
+        "y": 11303.17
+      }
+    },
+    {
+      "modelId": "db.InauguralConsentDocument",
+      "before": {
+        "x": 13762.910733164,
+        "y": 22490.468692051
+      },
+      "after": {
+        "x": 13719.64,
+        "y": 22441.75
+      }
+    },
+    {
+      "modelId": "db.IndustrialCode",
+      "before": {
+        "x": 17726.13,
+        "y": 14681.19
+      },
+      "after": {
+        "x": 17716.4,
+        "y": 14707.14
+      }
+    },
+    {
+      "modelId": "db.IrBrokerActivity",
+      "before": {
+        "x": 27097.92,
+        "y": 8624.14
+      },
+      "after": {
+        "x": 27594.25,
+        "y": 9076.92
+      }
+    },
+    {
+      "modelId": "db.IrFeedAccessLog",
+      "before": {
+        "x": 28953.96,
+        "y": 9420.56
+      },
+      "after": {
+        "x": 26868.66,
+        "y": 7846.03
+      }
+    },
+    {
+      "modelId": "db.LawtalkSignup",
+      "before": {
+        "x": 18136.35,
+        "y": 14583.42
+      },
+      "after": {
+        "x": 18289.31,
+        "y": 14799.01
+      }
+    },
+    {
+      "modelId": "db.LegalPartnerEmail",
+      "before": {
+        "x": 21662.876664791,
+        "y": 15317.664610786
+      },
+      "after": {
+        "x": 21720.32,
+        "y": 15350.88
+      }
+    },
+    {
+      "modelId": "db.LegalPartnerPaypleSettings",
+      "before": {
+        "x": 22023.376664791,
+        "y": 15317.664610786
+      },
+      "after": {
+        "x": 22080.82,
+        "y": 15350.88
+      }
+    },
+    {
+      "modelId": "db.LegalPartnerRegistrationAssistanceSettings",
+      "before": {
+        "x": 21594.376664791,
+        "y": 15433.664610786
+      },
+      "after": {
+        "x": 21651.82,
+        "y": 15466.88
+      }
+    },
+    {
+      "modelId": "db.LegalPartnerSlackChannels",
+      "before": {
+        "x": 22026.876664791,
+        "y": 15433.664610786
+      },
+      "after": {
+        "x": 22084.32,
+        "y": 15466.88
+      }
+    },
+    {
+      "modelId": "db.LegalPartnerUserRelation",
+      "before": {
+        "x": 21662.876664791,
+        "y": 15549.664610786
+      },
+      "after": {
+        "x": 21720.32,
+        "y": 15582.88
+      }
+    },
+    {
+      "modelId": "db.PayrollSocialInsuranceSetting",
+      "before": {
+        "x": 5021.274064991,
+        "y": 15834.052616534
+      },
+      "after": {
+        "x": 5043.95,
+        "y": 15655.55
+      }
+    },
+    {
+      "modelId": "db.ResignationLetterDocument",
+      "before": {
+        "x": 13759.410733164,
+        "y": 22606.468692051
+      },
+      "after": {
+        "x": 13716.14,
+        "y": 22557.75
+      }
+    },
+    {
+      "modelId": "db.Safe",
+      "before": {
+        "x": 14104.48,
+        "y": 15443.49
+      },
+      "after": {
+        "x": 13849.46,
+        "y": 15568.59
+      }
+    },
+    {
+      "modelId": "db.SalesMetric",
+      "before": {
+        "x": 22028.876664791,
+        "y": 15549.664610786
+      },
+      "after": {
+        "x": 22086.32,
+        "y": 15582.88
+      }
+    },
+    {
+      "modelId": "db.ShareClass",
+      "before": {
+        "x": 16463.89,
+        "y": 18166.18
+      },
+      "after": {
+        "x": 16459.38,
+        "y": 18173.16
+      }
+    },
+    {
+      "modelId": "db.ShareholdersMeetingPowerOfAttorneyIndividualDocument",
+      "before": {
+        "x": 17093.04,
+        "y": 23377.62
+      },
+      "after": {
+        "x": 17080.12,
+        "y": 23408.6
+      }
+    },
+    {
+      "modelId": "db.ShareholdersMeetingShareholderAttendance",
+      "before": {
+        "x": 17512.62,
+        "y": 23157.96
+      },
+      "after": {
+        "x": 17476.87,
+        "y": 23103.23
+      }
+    },
+    {
+      "modelId": "db.ShareholdersMeetingShortenPeriodIndividualDocument",
+      "before": {
+        "x": 17093.04,
+        "y": 23493.62
+      },
+      "after": {
+        "x": 17080.12,
+        "y": 23524.6
+      }
+    },
+    {
+      "modelId": "db.ShareholdersMeetingWrittenDecisionIndividualDocument",
+      "before": {
+        "x": 17093.04,
+        "y": 23609.62
+      },
+      "after": {
+        "x": 17080.12,
+        "y": 23640.6
+      }
+    },
+    {
+      "modelId": "db.TaxPartnerTbkSettings",
+      "before": {
+        "x": 21662.876664791,
+        "y": 15665.664610786
+      },
+      "after": {
+        "x": 21720.32,
+        "y": 15698.88
+      }
+    },
+    {
+      "modelId": "db.IncorporationRequestPromoterCustodian",
+      "before": {
+        "x": 21846.88,
+        "y": 17657.9
+      },
+      "after": {
+        "x": 21863.74,
+        "y": 17743.49
+      }
+    },
+    {
+      "modelId": "db.RsuRsaSealedContractFile",
+      "before": {
+        "x": 16262.46,
+        "y": 14737.05
+      },
+      "after": {
+        "x": 16345.89,
+        "y": 14545.6
+      }
+    },
+    {
+      "modelId": "db.RtccSummaryAnalysisRequestDocument",
+      "before": {
+        "x": 15526.09,
+        "y": 10156.01
+      },
+      "after": {
+        "x": 15531.87,
+        "y": 10189.6
+      }
+    }
+  ],
+  "changedRoutes": [
+    "edge:declared:db.AgendaBonusIssueSharesToIssue:share_class",
+    "edge:declared:db.AgendaBranchChange:address",
+    "edge:declared:db.AgendaHeadOfficeRelocation:address",
+    "edge:declared:db.AgendaPurposeChangeItem:agenda_purpose_change",
+    "edge:declared:db.BranchChangeEvent:address",
+    "edge:declared:db.BranchInstallationEvent:address",
+    "edge:declared:db.CompanyAddressChangeEvent:address",
+    "edge:declared:db.CompanyCreateRequest:address",
+    "edge:declared:db.CompanyInvestorInterest:company",
+    "edge:declared:db.CompanyInvestorInterest:venture_capital",
+    "edge:declared:db.CompanyPaymentLink:company",
+    "edge:declared:db.CompanyProfileAccessLog:company",
+    "edge:declared:db.CompanyProfileAccessLog:venture_capital",
+    "edge:declared:db.CompanyPurposeChangeItem:industrial_code",
+    "edge:declared:db.DirectorsMeetingNoticeEmail:directors_meeting",
+    "edge:declared:db.DirectorsMeetingNoticeEmailRecipient:email",
+    "edge:declared:db.ElectronicCertificateReturnRequest:recipient_address",
+    "edge:declared:db.HrmAttendanceLocation:personal_location",
+    "edge:declared:db.HrmCertificateIssue:connected_status_event",
+    "edge:declared:db.HrmCertificateIssue:emp",
+    "edge:declared:db.HrmDeptReorg:hrm",
+    "edge:declared:db.HrmEmpContractCommonVar:hrm",
+    "edge:declared:db.HrmEmpMov:hrm",
+    "edge:declared:db.HrmEmpStatus:emp",
+    "edge:declared:db.HrmEmpStatus:event",
+    "edge:declared:db.HrmGoogleCalendarIntegration:hrm",
+    "edge:declared:db.HrmPersonalLocation:hrm_emp",
+    "edge:declared:db.HrmPersonalLocation:work_location_config",
+    "edge:declared:db.HrmSigner:hrm",
+    "edge:declared:db.HrmStaffNote:hrm",
+    "edge:declared:db.HrmTag:hrm_set",
+    "edge:declared:db.IaCertificateOfInvestmentDocument:partner",
+    "edge:declared:db.IaConsentFormDocument:consent_form",
+    "edge:declared:db.IaConsentFormDocument:partner",
+    "edge:declared:db.IaMeetingShortenPeriodDocument:meeting",
+    "edge:declared:db.IaMeetingShortenPeriodDocument:partner",
+    "edge:declared:db.IaPartnerDataCollectionItem:address",
+    "edge:declared:db.IaPartnerDataCollectionItemReply:address",
+    "edge:declared:db.IaRule:address",
+    "edge:declared:db.IaWrittenResolutionDocument:meeting",
+    "edge:declared:db.IaWrittenResolutionDocument:partner",
+    "edge:declared:db.ImContactRequestIntention:im_contact_request",
+    "edge:declared:db.InauguralConsentDocument:director_change_agenda",
+    "edge:declared:db.IncorporationRequest:address",
+    "edge:declared:db.IncorporationRequestDirector:address",
+    "edge:declared:db.IncorporationRequestPromoter:address",
+    "edge:declared:db.IncorporationRequestPromoterCustodian:address",
+    "edge:declared:db.IncorporationRequestPromoterCustodian:promoter",
+    "edge:declared:db.IndividualInvestorCompanyInfo:address",
+    "edge:declared:db.IndividualInvestorStakeholder:address",
+    "edge:declared:db.IndividualInvestorUser:address",
+    "edge:declared:db.InternetRegistryOfficeOtpReturnRequest:recipient_address",
+    "edge:declared:db.InvestmentAssociationPartner:address",
+    "edge:declared:db.IrBrokerActivity:investor_relations",
+    "edge:declared:db.IrBrokerActivity:vc_user_relations",
+    "edge:declared:db.IrFeedAccessLog:ir_feeds",
+    "edge:declared:db.IrFeedAccessLog:venture_capital",
+    "edge:declared:db.LawtalkSignup:company",
+    "edge:declared:db.LawtalkSignupAttachment:lawtalk_signup",
+    "edge:declared:db.LegalPartnerEmail:legal_partner",
+    "edge:declared:db.LegalPartnerPaypleSettings:legal_partner",
+    "edge:declared:db.LegalPartnerRegistrationAssistanceSettings:legal_partner",
+    "edge:declared:db.LegalPartnerSlackChannels:legal_partner",
+    "edge:declared:db.LegalPartnerUserRelation:legal_partner",
+    "edge:declared:db.NonUnifiedShareSucPoaDocument:user_address",
+    "edge:declared:db.NotarizationPoaShareholderSigner:shareholder",
+    "edge:declared:db.OptionGrantEvent:share_class",
+    "edge:declared:db.PayrollSocialInsuranceSetting:hrm",
+    "edge:declared:db.Purpose:industrial_code",
+    "edge:declared:db.RegistrationFormCaptableNotarizationRequestor:shareholder",
+    "edge:declared:db.ResignationLetterDocument:director_change_agenda",
+    "edge:declared:db.RsuRsaSealedContractFile:company",
+    "edge:declared:db.RsuRsaSealedContractFile:grant_contract",
+    "edge:declared:db.RtccSummaryAnalysisRequestDocument:document",
+    "edge:declared:db.RtccSummaryAnalysisRequestDocument:request",
+    "edge:declared:db.Safe:company",
+    "edge:declared:db.Safe:holder",
+    "edge:declared:db.SalesMetric:legal_partner",
+    "edge:declared:db.ShareClass:company",
+    "edge:declared:db.ShareholderVote:attended_shareholder",
+    "edge:declared:db.ShareholderVotingRightsPerAgenda:shareholder",
+    "edge:declared:db.ShareholdersMeetingConvocationNoticeRecipient:shareholder",
+    "edge:declared:db.ShareholdersMeetingPowerOfAttorneyIndividualDocument:shareholder",
+    "edge:declared:db.ShareholdersMeetingShareholderAttendance:meeting",
+    "edge:declared:db.ShareholdersMeetingShareholderAttendance:original_shareholder",
+    "edge:declared:db.ShareholdersMeetingShortenPeriodIndividualDocument:shareholder",
+    "edge:declared:db.ShareholdersMeetingWrittenDecisionIndividualDocument:shareholder",
+    "edge:declared:db.Stakeholder:standardized_address",
+    "edge:declared:db.Stock:share_class",
+    "edge:declared:db.StockTransferAgreementItem:share_class",
+    "edge:declared:db.StockTransferPrice:share_class",
+    "edge:declared:db.TaxPartnerTbkSettings:legal_partner",
+    "edge:declared:db.VentureComplex:address",
+    "edge:inheritance:db.CompanyPaymentLink->db.PaymentLink",
+    "edge:inheritance:db.DirectorsMeetingNoticeEmail->db.BulkEmail",
+    "edge:inheritance:db.HrmCertificateIssue->db.HrmApprovable",
+    "edge:inheritance:db.HrmPersonalLocation->db.HrmApprovable",
+    "edge:inheritance:db.IaCertificateOfInvestmentDocument->db.InvestmentAssociationDocument",
+    "edge:inheritance:db.IaConsentFormDocument->db.InvestmentAssociationDocument",
+    "edge:inheritance:db.IaMeetingShortenPeriodDocument->db.InvestmentAssociationDocument",
+    "edge:inheritance:db.IaWrittenResolutionDocument->db.InvestmentAssociationDocument",
+    "edge:inheritance:db.InauguralConsentDocument->db.MeetingDocument",
+    "edge:inheritance:db.PingpongDeliveryAddress->db.Address",
+    "edge:inheritance:db.ResignationLetterDocument->db.MeetingDocument",
+    "edge:inheritance:db.ShareholdersMeetingPowerOfAttorneyIndividualDocument->db.MeetingDocument",
+    "edge:inheritance:db.ShareholdersMeetingShortenPeriodIndividualDocument->db.MeetingDocument",
+    "edge:inheritance:db.ShareholdersMeetingWrittenDecisionIndividualDocument->db.MeetingDocument"
+  ],
+  "sizesPreserved": true,
+  "membershipsPreserved": true,
+  "rigidLeafGeometryPreserved": true,
+  "productRouteParity": true,
+  "nativeProposal": {
+    "initialVisual": 391,
+    "visual": 387,
+    "initialIndividualVisual": 3529,
+    "individualVisual": 3492,
+    "hardConditions": 0,
+    "initialHardConditions": 0,
+    "individualHardConditions": 46,
+    "initialIndividualHardConditions": 46,
+    "canonicalStart": false,
+    "rolloutInitialVisual": 391,
+    "rolloutInitialIndividualVisual": 3529,
+    "overlap": 0,
+    "spacing": 0,
+    "policyActionsEvaluated": 20000,
+    "acceptedActions": 25,
+    "heuristicSearchCalls": 0,
+    "proposalAuthority": "external-policy",
+    "decoder": "rigid component translation with every port attached"
+  },
+  "learnedPolicy": {
+    "checkpoint": ".tmp/visualcross-ml-targets-20261003/component-policy-v5.npz",
+    "checkpointSha256": "5f3147ddf932949e78b51b479b8663ad76ad6de73b41f2a79923f180d7803465",
+    "untrainedControl": false,
+    "sourceDirectory": ".tmp/visualcross-ml-targets-20261003/round5",
+    "syntheticSeed": null,
+    "policyProposalSource": "conditional mixture neural network",
+    "heuristicSearchCalls": 0,
+    "initial": {
+      "ready": true,
+      "eligible": 1035,
+      "visual": 391,
+      "individualVisual": 3529,
+      "canonicalStart": false,
+      "sourceVisual": 391,
+      "sourceIndividualVisual": 3529
+    },
+    "final": {
+      "initialVisual": 391,
+      "visual": 387,
+      "initialIndividualVisual": 3529,
+      "individualVisual": 3492,
+      "hardConditions": 0,
+      "initialHardConditions": 0,
+      "individualHardConditions": 46,
+      "initialIndividualHardConditions": 46,
+      "canonicalStart": false,
+      "rolloutInitialVisual": 391,
+      "rolloutInitialIndividualVisual": 3529,
+      "overlap": 0,
+      "spacing": 0,
+      "policyActionsEvaluated": 20000,
+      "acceptedActions": 25,
+      "heuristicSearchCalls": 0,
+      "proposalAuthority": "external-policy",
+      "decoder": "rigid component translation with every port attached"
+    },
+    "budget": 20000,
+    "seed": 128,
+    "seconds": 13.850412750034593,
+    "observationsSha256": "c055eee359a3aef27f43812d3da0255124e6b77bcee6d9b961c7d89db4f39d07",
+    "actionsSha256": "74f0122fcf1b2d5fb87cd98be6e06c102b448b56c4b8fb8d6ae649067da1c6b4"
+  },
+  "browserVerified": false
+}

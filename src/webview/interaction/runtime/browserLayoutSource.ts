@@ -1,4 +1,5 @@
 import { OGDF_LAYOUT_MODES } from "../../../shared/graph/layoutContract";
+import { getBrowserEdgePathSource } from "./browserEdgePathSource";
 
 export function getBrowserLayoutSource(): string {
   const layoutModesJson = JSON.stringify(OGDF_LAYOUT_MODES);
@@ -281,6 +282,11 @@ export function getBrowserLayoutSource(): string {
         }
 
         function getCurrentPosition(modelId) {
+          if (drag && drag.kind === "leaf-card" && drag.currentPosition && drag.memberPositions[modelId]) {
+            const base = drag.memberPositions[modelId];
+            return { x: base.x + drag.currentPosition.x - drag.startPosition.x,
+              y: base.y + drag.currentPosition.y - drag.startPosition.y };
+          }
           if (
             drag &&
             drag.kind === "table" &&
@@ -699,63 +705,7 @@ export function getBrowserLayoutSource(): string {
           };
         }
 
-        function getStaticEdgePath(entry) {
-          const staticPoints = parseEdgePoints(entry.meta.points);
-          const sourceAtBase = samePosition(entry.sourcePosition, entry.sourceTable.basePosition);
-          const targetAtBase = samePosition(entry.targetPosition, entry.targetTable.basePosition);
-
-          if (staticPoints.length >= 2 && sourceAtBase && targetAtBase) {
-            if (entry.meta.preserveRouteEndpoints) {
-              return normalizePoints(staticPoints);
-            }
-            return attachPathEndpointsToRenderedTables(entry, staticPoints);
-          }
-
-          return [];
-        }
-
-        function getStaticOrLiveEdgePath(entry) {
-          const staticPoints = getStaticEdgePath(entry);
-          if (staticPoints.length >= 2) {
-            return staticPoints;
-          }
-
-          return attachPathEndpointsToRenderedTables(
-            entry,
-            buildStraightPath(
-              entry.sourcePosition,
-              entry.sourceTable,
-              entry.targetPosition,
-              entry.targetTable,
-            ),
-          );
-        }
-
-        function getStaticOrCatalogEdgePaths(edgeEntries) {
-          const routedEdges = [];
-          const catalogEntries = [];
-
-          for (const entry of edgeEntries) {
-            const staticPoints = getStaticEdgePath(entry);
-            if (staticPoints.length >= 2) {
-              routedEdges.push({
-                edgeId: entry.meta.edgeId,
-                meta: entry.meta,
-                points: staticPoints,
-              });
-            } else {
-              catalogEntries.push(entry);
-            }
-          }
-
-          return routedEdges.concat(
-            routeCatalogEdgesWithPorts(catalogEntries).map((routed) => ({
-              edgeId: routed.entry.meta.edgeId,
-              meta: routed.entry.meta,
-              points: routed.points,
-            })),
-          );
-        }
+        ${getBrowserEdgePathSource()}
 
         function parseEdgePoints(value) {
           if (typeof value !== "string" || value.trim().length === 0) {

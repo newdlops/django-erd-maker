@@ -1,0 +1,129 @@
+{
+  "fullLoss": 4927.199175544605,
+  "probes": [
+    {
+      "kind": "phase",
+      "key": "wo",
+      "index": [
+        8,
+        1
+      ],
+      "analytic": -93.24154641343615,
+      "steps": [
+        {
+          "step": 0.0001,
+          "numeric": -95.07981872692584,
+          "absoluteError": 1.8382723134896821
+        },
+        {
+          "step": 1e-05,
+          "numeric": -93.58281041135507,
+          "absoluteError": 0.34126399791891515
+        },
+        {
+          "step": 1e-06,
+          "numeric": -93.36736026696602,
+          "absoluteError": 0.12581385352986274
+        },
+        {
+          "step": 1e-07,
+          "numeric": -93.24154644593797,
+          "absoluteError": 3.2501816349395085e-08
+        },
+        {
+          "step": 1e-08,
+          "numeric": -93.241546347822,
+          "absoluteError": 6.561415943906468e-08
+        },
+        {
+          "step": 1e-09,
+          "numeric": -93.2415485654925,
+          "absoluteError": 2.152056339355113e-06
+        }
+      ]
+    },
+    {
+      "kind": "full",
+      "key": "w1",
+      "index": [
+        3,
+        47
+      ],
+      "analytic": 3894.307211414856,
+      "steps": [
+        {
+          "step": 0.0001,
+          "numeric": 3894.3065318244408,
+          "absoluteError": 0.0006795904150749266
+        },
+        {
+          "step": 1e-05,
+          "numeric": 3894.3074063354284,
+          "absoluteError": 0.00019492057253955863
+        },
+        {
+          "step": 1e-06,
+          "numeric": 3894.307341397507,
+          "absoluteError": 0.0001299826512877189
+        },
+        {
+          "step": 1e-07,
+          "numeric": 3894.278765983472,
+          "absoluteError": 0.028445431383715913
+        },
+        {
+          "step": 1e-08,
+          "numeric": 3894.416931871092,
+          "absoluteError": 0.10972045623611848
+        },
+        {
+          "step": 1e-09,
+          "numeric": 3894.1470847930755,
+          "absoluteError": 0.16012662178036408
+        }
+      ]
+    },
+    {
+      "kind": "full",
+      "key": "wo",
+      "index": [
+        8,
+        1
+      ],
+      "analytic": 293837.8458446364,
+      "steps": [
+        {
+          "step": 0.0001,
+          "numeric": 292357.4248914156,
+          "absoluteError": 1480.4209532208042
+        },
+        {
+          "step": 1e-05,
+          "numeric": 293792.5629562414,
+          "absoluteError": 45.28288839495508
+        },
+        {
+          "step": 1e-06,
+          "numeric": 293834.2828010718,
+          "absoluteError": 3.563043564558029
+        },
+        {
+          "step": 1e-07,
+          "numeric": 293837.8439284861,
+          "absoluteError": 0.0019161502714268863
+        },
+        {
+          "step": 1e-08,
+          "numeric": 293837.73126028245,
+          "absoluteError": 0.11458435392705724
+        },
+        {
+          "step": 1e-09,
+          "numeric": 293837.9848274053,
+          "absoluteError": 0.13898276892723516
+        }
+      ]
+    }
+  ],
+  "implementationSha256": "177546391a0eecd9ebd480b8ace04517c5f28e5c971af974356e5e076fd2c829"
+}

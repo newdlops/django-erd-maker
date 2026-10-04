@@ -1,0 +1,52 @@
+{
+  "checkpoint": ".tmp/visualcross-ml-targets-20261003/component-policy-v11.npz",
+  "checkpointSha256": "2c9d6f7f012189657e1486d2d60721b1d74aabb58d4405bea4d1dbb1a68538ee",
+  "untrainedControl": false,
+  "sourceDirectory": ".tmp/visualcross-ml-targets-20261003/individual13",
+  "syntheticSeed": null,
+  "policyProposalSource": "conditional mixture neural network",
+  "heuristicSearchCalls": 0,
+  "overviewOnly": false,
+  "initial": {
+    "ready": true,
+    "eligible": 1727,
+    "visual": 2182,
+    "individualVisual": 2182
+  },
+  "final": {
+    "initialVisual": 2182,
+    "visual": 2163,
+    "initialIndividualVisual": 2182,
+    "individualVisual": 2163,
+    "hardConditions": 0,
+    "initialHardConditions": 0,
+    "individualHardConditions": 0,
+    "initialIndividualHardConditions": 0,
+    "canonicalStart": false,
+    "rolloutInitialVisual": 2182,
+    "rolloutInitialIndividualVisual": 2182,
+    "jointMoves": false,
+    "overviewOnly": false,
+    "swapSlots": false,
+    "portActions": true,
+    "residualPorts": true,
+    "overlap": 0,
+    "spacing": 0,
+    "policyActionsEvaluated": 20000,
+    "acceptedActions": 18,
+    "heuristicSearchCalls": 0,
+    "proposalAuthority": "external-policy",
+    "decoder": "model boundary parameters on original endpoint sides; straight lines"
+  },
+  "budget": 20000,
+  "seed": 155,
+  "seconds": 4.699441584001761,
+  "observationsSha256": "ca58a899aabaff52b016f5423462cc9d80a1f400fd89c693c5ff826b6af33104",
+  "actionsSha256": "abf52179a6ccc7c5f6e9ca3aa2c2d074c8cd6c771ce3cf3a3befb8f538ad5b3e",
+  "portInputHashes": {
+    "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+    "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+    "individual.positions.tsv": "9b0d3ca0850ba1f8fb6438c0aad78c76099d6c2cfe450c05fa0e4beb226ab29c",
+    "individual.routes.tsv": "176ed36b981f524c85dc9ff40416aabe30f9d1f778f2cf5623044365389bc257"
+  }
+}

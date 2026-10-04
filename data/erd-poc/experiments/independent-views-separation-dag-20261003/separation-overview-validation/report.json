@@ -1,0 +1,84 @@
+{
+  "nativeBinarySha256": "e2a58da4e295d6fd26f9473d1ff371f7cea7ad7e4685b786cefa3838b58d3082",
+  "view": "overview",
+  "fixturesOnly": true,
+  "nativeNoncommittingBatches": [
+    {
+      "accepted": false,
+      "legal": true,
+      "visual": 365,
+      "measureOnly": true,
+      "individualVisual": 4560,
+      "spacing": 0,
+      "hard": 0,
+      "individualHard": 0,
+      "reason": "legal"
+    },
+    {
+      "accepted": false,
+      "legal": true,
+      "visual": 365,
+      "measureOnly": true,
+      "individualVisual": 4561,
+      "spacing": 0,
+      "hard": 0,
+      "individualHard": 0,
+      "reason": "legal"
+    },
+    {
+      "accepted": false,
+      "legal": false,
+      "visual": 0,
+      "measureOnly": true,
+      "individualVisual": 0,
+      "spacing": 0,
+      "hard": 0,
+      "individualHard": 0,
+      "reason": "projection"
+    },
+    {
+      "accepted": false,
+      "legal": true,
+      "visual": 480,
+      "measureOnly": true,
+      "individualVisual": 4870,
+      "spacing": 0,
+      "hard": 0,
+      "individualHard": 0,
+      "reason": "legal"
+    },
+    {
+      "accepted": false,
+      "legal": false,
+      "visual": 0,
+      "measureOnly": true,
+      "individualVisual": 0,
+      "spacing": 0,
+      "hard": 0,
+      "individualHard": 0,
+      "reason": "projection"
+    }
+  ],
+  "continuousEndToEndDerivatives": 12,
+  "maximumAbsoluteError": 5.686067706101028e-05,
+  "finiteDifferenceSteps": [
+    1e-07,
+    1e-08
+  ],
+  "frozenRoundtrip": true,
+  "sourceUnchanged": true,
+  "fullCardsContained": true,
+  "missingGroupedLossRejected": true,
+  "physicalNodes": 1035,
+  "fullNodes": 1244,
+  "canonicalSourceVisual": 365,
+  "originalSourceVisual": 289,
+  "nodeQuantizationDerivative": "straight-through estimator; derivatives checked only on continuous surrogate",
+  "implementationHashes": {
+    "joint_separation_policy.py": "045b9552977486eb1b7e0f5fdb8a04968f97cd6ff706c3e9d917a04d14083b34",
+    "joint_grouped_routes.py": "3b7757e76590aa0e1e935e7f757035f89a6fece56e6a10deb7791e71f1642f6f",
+    "joint_layout_proxy.py": "d21091db3bbde2b659cced3ed9c2161a98a69cbe4659ac4954f36cfb41176428",
+    "joint_active_proxy.py": "4eda3b4534787e03cd5f39f0c9845ae1f015d27f4fdbc36e1d1f6407280f4666",
+    "run_joint_neural_layout.py": "f606cb70ab8e157b17bd2eb364dedfde4e6cbd7c617c32389dc3326532b91b6a"
+  }
+}

@@ -1,0 +1,3406 @@
+{
+  "scope": "frozen graph-branch contexts, branch-trained neural policies, and learned refinement",
+  "overviewTarget": 150,
+  "individualTarget": 750,
+  "overviewVisual": 294,
+  "individualVisual": 1975,
+  "targetMet": false,
+  "promoted": false,
+  "candidateSha256": "9f26fbaca13a74a476f31bffa4cc9f1f30702f1ddabaa8eadd67b375822b9f2a",
+  "previousCandidateSha256": "38952a65b48a05e3cfe12bba4f0f284d8e71672498c3bc5ada73e204cc417598",
+  "policyActions": 151384,
+  "acceptedGroupedActions": 1086,
+  "stages": [
+    {
+      "name": "individual-branch-policy1",
+      "sourceVisual": 1981,
+      "savedVisual": 1981,
+      "actualActions": 20000,
+      "acceptedActions": 751,
+      "branchMoves": true,
+      "outcomes": {
+        "accepted-neutral": 751,
+        "spacing": 7499,
+        "overview-regression": 4472,
+        "overview-hard": 7232,
+        "frame": 46
+      },
+      "groupedOutcomes": {
+        "spacing": 2343,
+        "overview-regression": 995,
+        "overview-hard": 1314,
+        "accepted-neutral": 102,
+        "frame": 26
+      },
+      "improvements": [],
+      "peakMiB": 134.4,
+      "candidateSha256": "4ed1984b3032be6ffb38432271127c783d867a7d2f8c34b8c5a7a3d0dca51ec8",
+      "frozenActionAndGeometryReplay": true
+    },
+    {
+      "name": "overview-branch-policy1",
+      "sourceVisual": 299,
+      "savedVisual": 295,
+      "actualActions": 18998,
+      "acceptedActions": 1105,
+      "branchMoves": true,
+      "outcomes": {
+        "individual-hard": 2124,
+        "spacing": 7684,
+        "overview-regression": 3515,
+        "overview-hard": 3780,
+        "accepted-neutral": 1101,
+        "projection": 706,
+        "frame": 84,
+        "accepted": 4
+      },
+      "groupedOutcomes": {
+        "overview-regression": 1169,
+        "spacing": 4358,
+        "individual-hard": 877,
+        "overview-hard": 1131,
+        "accepted-neutral": 330,
+        "projection": 479,
+        "accepted": 1,
+        "frame": 44
+      },
+      "improvements": [
+        {
+          "root": "db.ShareholdersMeetingShareholderAttendance",
+          "cards": 2,
+          "gain": 1
+        },
+        {
+          "root": "db.AgendaBranchChange",
+          "cards": 1,
+          "gain": 1
+        },
+        {
+          "root": "db.ShareholdersMeetingConvocationNoticeEmailNewIssueAttachment",
+          "cards": 1,
+          "gain": 1
+        },
+        {
+          "root": "db.MeetingDraftRegistrationAssistance",
+          "cards": 1,
+          "gain": 1
+        }
+      ],
+      "peakMiB": 187.5,
+      "candidateSha256": "40086321fde1fbb01f84356553c1695ff66da1ec7e19615be7d065d50ad0f869",
+      "frozenActionAndGeometryReplay": true
+    },
+    {
+      "name": "overview-branch-policy2",
+      "sourceVisual": 295,
+      "savedVisual": 294,
+      "actualActions": 19836,
+      "acceptedActions": 977,
+      "branchMoves": true,
+      "outcomes": {
+        "individual-hard": 2100,
+        "spacing": 8235,
+        "overview-regression": 3845,
+        "overview-hard": 3895,
+        "projection": 654,
+        "accepted-neutral": 976,
+        "frame": 130,
+        "accepted": 1
+      },
+      "groupedOutcomes": {
+        "overview-regression": 1391,
+        "spacing": 4737,
+        "overview-hard": 1197,
+        "individual-hard": 987,
+        "accepted-neutral": 247,
+        "frame": 67,
+        "projection": 430
+      },
+      "improvements": [
+        {
+          "root": "db.OptionGrantee",
+          "cards": 1,
+          "gain": 1
+        }
+      ],
+      "peakMiB": 186.2,
+      "candidateSha256": "b142f51b8b5ff449993b856446a91e4e39fec50f39b7776965bc40231bf412c2",
+      "frozenActionAndGeometryReplay": true
+    },
+    {
+      "name": "individual-branch-trained1",
+      "sourceVisual": 1981,
+      "savedVisual": 1978,
+      "actualActions": 10211,
+      "acceptedActions": 375,
+      "branchMoves": true,
+      "outcomes": {
+        "accepted-neutral": 372,
+        "overview-regression": 1879,
+        "spacing": 3938,
+        "overview-hard": 3981,
+        "frame": 38,
+        "accepted": 3
+      },
+      "groupedOutcomes": {
+        "spacing": 1304,
+        "accepted-neutral": 43,
+        "overview-hard": 845,
+        "overview-regression": 500,
+        "frame": 21
+      },
+      "improvements": [
+        {
+          "root": "db.QrReplyPasswordResetRequest",
+          "cards": 1,
+          "gain": 1
+        },
+        {
+          "root": "db.RtccConsentSummary",
+          "cards": 1,
+          "gain": 1
+        },
+        {
+          "root": "db.AgendaHeadOfficeRelocation",
+          "cards": 1,
+          "gain": 1
+        }
+      ],
+      "peakMiB": 133.2,
+      "candidateSha256": "3bdc7ba78c79c152a21c0821bfd47bb7fbee2a7cffb5cd7954a7b59c72822467",
+      "frozenActionAndGeometryReplay": true
+    },
+    {
+      "name": "overview-branch-trained1",
+      "sourceVisual": 294,
+      "savedVisual": 294,
+      "actualActions": 9225,
+      "acceptedActions": 238,
+      "branchMoves": true,
+      "outcomes": {
+        "spacing": 4146,
+        "accepted-neutral": 238,
+        "overview-regression": 1524,
+        "overview-hard": 2193,
+        "individual-hard": 758,
+        "projection": 326,
+        "frame": 40
+      },
+      "groupedOutcomes": {
+        "overview-regression": 443,
+        "spacing": 2289,
+        "overview-hard": 674,
+        "individual-hard": 276,
+        "accepted-neutral": 46,
+        "projection": 175,
+        "frame": 27
+      },
+      "improvements": [],
+      "peakMiB": 161.3,
+      "candidateSha256": "f86a0b1ecb4d7e7e6c9d166280462a6137499a6746df95d914c43e3ca681ad73",
+      "frozenActionAndGeometryReplay": true
+    },
+    {
+      "name": "individual-branch-port1",
+      "sourceVisual": 1978,
+      "savedVisual": 1977,
+      "actualActions": 20000,
+      "acceptedActions": 3272,
+      "branchMoves": false,
+      "outcomes": {
+        "overview-regression": 4296,
+        "accepted-neutral": 3271,
+        "overview-hard": 11845,
+        "equal": 587,
+        "accepted": 1
+      },
+      "groupedOutcomes": {},
+      "improvements": [],
+      "peakMiB": 132.5,
+      "candidateSha256": "c69dd48525105d106f81a967eec7e8581ea24792ee0ac35c2009f53be09b165d",
+      "frozenActionAndGeometryReplay": true
+    },
+    {
+      "name": "overview-branch-port1",
+      "sourceVisual": 294,
+      "savedVisual": 294,
+      "actualActions": 13756,
+      "acceptedActions": 3348,
+      "branchMoves": false,
+      "outcomes": {
+        "accepted-neutral": 3348,
+        "overview-hard": 4024,
+        "overview-regression": 2038,
+        "individual-hard": 3457,
+        "projection": 3,
+        "equal": 886
+      },
+      "groupedOutcomes": {},
+      "improvements": [],
+      "peakMiB": 159.8,
+      "candidateSha256": "b9648da444db79bb7e76ccc6e55b6ce5a4e8d3b22329390ab5c2817010685a9c",
+      "frozenActionAndGeometryReplay": true
+    },
+    {
+      "name": "overview-branch-policy3",
+      "sourceVisual": 294,
+      "savedVisual": 294,
+      "actualActions": 19358,
+      "acceptedActions": 940,
+      "branchMoves": true,
+      "outcomes": {
+        "spacing": 8454,
+        "projection": 641,
+        "accepted-neutral": 940,
+        "individual-hard": 2017,
+        "overview-hard": 3755,
+        "overview-regression": 3446,
+        "frame": 105
+      },
+      "groupedOutcomes": {
+        "overview-regression": 1290,
+        "spacing": 4851,
+        "overview-hard": 1185,
+        "individual-hard": 853,
+        "accepted-neutral": 247,
+        "projection": 370,
+        "frame": 48
+      },
+      "improvements": [],
+      "peakMiB": 186.4,
+      "candidateSha256": "e94ccb2a4fdf8715ad36226ff94fd57b8f0ec51b4ec42a3bacd15663d1028431",
+      "frozenActionAndGeometryReplay": true
+    },
+    {
+      "name": "individual-branch-trained2",
+      "sourceVisual": 1977,
+      "savedVisual": 1975,
+      "actualActions": 20000,
+      "acceptedActions": 610,
+      "branchMoves": true,
+      "outcomes": {
+        "overview-regression": 3756,
+        "spacing": 7610,
+        "overview-hard": 7940,
+        "accepted-neutral": 608,
+        "frame": 84,
+        "accepted": 2
+      },
+      "groupedOutcomes": {
+        "spacing": 2450,
+        "overview-hard": 1650,
+        "overview-regression": 1038,
+        "accepted-neutral": 70,
+        "frame": 54
+      },
+      "improvements": [
+        {
+          "root": "db.AgendaCashDividends",
+          "cards": 1,
+          "gain": 1
+        },
+        {
+          "root": "db.CoCeoSystemChangeEvent",
+          "cards": 1,
+          "gain": 1
+        }
+      ],
+      "peakMiB": 133.6,
+      "candidateSha256": "22cad565fa6ca1056aef9436884eb07e9d3128720e9a09e0afbc30cc0f1cf2bb",
+      "frozenActionAndGeometryReplay": true
+    }
+  ],
+  "training": {
+    "individual": {
+      "sourceStage": "individual-branch-policy1",
+      "sourceSha256": "b89daa3062ca9aa67432bf0d20b206c7c68fe12eeb3881ac1332f4b60bd39e0e",
+      "branchMap": {
+        "schema": "source-bound-graph-branches-v1",
+        "sourceSha256": "b89daa3062ca9aa67432bf0d20b206c7c68fe12eeb3881ac1332f4b60bd39e0e",
+        "branchMapSha256": "67e9da971634227b2e3be639e6447ed759ab263a18142436310f3e8ac7799cbd",
+        "inputHashes": {
+          "nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+          "edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+          "positions.tsv": "94e4f61b8d2bb063403c630879602d86b972a67fd74b843c3d855306a524b385",
+          "routes.tsv": "ba151b90974496abb4186cdc90a5256e0a69eba2316571cc6ab5d4e2567c2efe",
+          "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+          "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+          "individual.positions.tsv": "94e4f61b8d2bb063403c630879602d86b972a67fd74b843c3d855306a524b385",
+          "individual.routes.tsv": "ba151b90974496abb4186cdc90a5256e0a69eba2316571cc6ab5d4e2567c2efe",
+          "components.tsv": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+          "groups.tsv": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d"
+        },
+        "nodes": 1244,
+        "twoCoreNodes": 650,
+        "multiCardContexts": 139,
+        "maximumContextCards": 75,
+        "positionsProposed": false
+      },
+      "datasets": {
+        "synthetic": {
+          "states": 2197,
+          "actions": 140608,
+          "positive": 8877,
+          "groupedPositive": 1000,
+          "groupedStates": 249,
+          "graphs": 64,
+          "sha256": "8f28b28faf0514a0a63af51547d5241d00e70a6e9ddde8ededf451b33343d019"
+        },
+        "actual": {
+          "states": 11,
+          "actions": 1408,
+          "positive": 0,
+          "groupedPositive": 0,
+          "groupedStates": 10,
+          "graphs": 1,
+          "sha256": "9a123894f02cb976821e991802a79d9142d3344d422c0f43df70f5b8dc834d96"
+        }
+      },
+      "models": {
+        "synthetic": {
+          "path": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/individual-synthetic.npz",
+          "sha256": "fb0dade64e0e4f42c0e03508ec448fb121a31a32376ed0fe4c358d187e0a9a41"
+        }
+      }
+    },
+    "overview": {
+      "sourceStage": "overview-branch-policy2",
+      "sourceSha256": "40086321fde1fbb01f84356553c1695ff66da1ec7e19615be7d065d50ad0f869",
+      "branchMap": {
+        "schema": "source-bound-graph-branches-v1",
+        "sourceSha256": "40086321fde1fbb01f84356553c1695ff66da1ec7e19615be7d065d50ad0f869",
+        "branchMapSha256": "13cb2d94b5c25a511de4ae9d75e9b6db24d400fce976d949ac545a4c99fe21cd",
+        "inputHashes": {
+          "nodes.tsv": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+          "edges.tsv": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+          "positions.tsv": "70a5f173b07ccf0c6d5a2e38ca5cd821269426b9cf52ec993dae289a16f859e7",
+          "routes.tsv": "d84cf2885d8f2e45833dabdd2587adabcebbeaea4d6d69f260d0241e44e6549c",
+          "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+          "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+          "individual.positions.tsv": "6d7f0967701e2c229370c242d736b8c667b3b9d7e7aabc5949f5762251c0e935",
+          "individual.routes.tsv": "517318dc84abc621144adcd453d680e7dbc3b73af91e8512308825184f597cef",
+          "components.tsv": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+          "groups.tsv": "3c9ce46a1abafe83d52102cf6d346b85e0734bf2c56725a3afcd467f72a486bc"
+        },
+        "nodes": 1035,
+        "twoCoreNodes": 332,
+        "multiCardContexts": 122,
+        "maximumContextCards": 27,
+        "positionsProposed": false
+      },
+      "datasets": {
+        "synthetic": {
+          "states": 2186,
+          "actions": 139904,
+          "positive": 7451,
+          "groupedPositive": 892,
+          "groupedStates": 261,
+          "graphs": 64,
+          "sha256": "a568f584bc5d8418aedd779cf24b52ab9f779f752a0899f98524cc89b804791d"
+        },
+        "actual": {
+          "states": 89,
+          "actions": 5696,
+          "positive": 0,
+          "groupedPositive": 0,
+          "groupedStates": 42,
+          "graphs": 1,
+          "sha256": "d7f79731927fd519854b37ebed97572f61eea22af6d2f2aabfb8302cc3bd441d"
+        }
+      },
+      "models": {
+        "synthetic": {
+          "path": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-synthetic.npz",
+          "sha256": "11793ff5b65e5582716d71b813f60cd292f0cd8982fc56e9f940d32169d1e787"
+        }
+      }
+    }
+  },
+  "priorArchive": "data/erd-poc/experiments/independent-views-rigid-branches-20261003/manifest.json",
+  "priorArchiveSha256": "501be2995e0294f5cc1a57f8f2e1ff562fca75d5069a66760f21273a0da85e43",
+  "dependencies": [
+    {
+      "file": "data/erd-poc/experiments/independent-views-node-port-20261003/dependencies/port-environment-v5",
+      "sha256": "a3f651b7b4ae1fe2f4e0f781a0c9b3e9ae1e07c9a073f3fcf12c4d80557bf3ec"
+    },
+    {
+      "file": "data/erd-poc/experiments/independent-views-node-port-20261003/dependencies/leaf-component-policy-v11.npz",
+      "sha256": "2c9d6f7f012189657e1486d2d60721b1d74aabb58d4405bea4d1dbb1a68538ee"
+    },
+    {
+      "file": "data/erd-poc/experiments/independent-views-node-port-20261003/dependencies/leaf-component-policy-v15.npz",
+      "sha256": "0dbb227368f10b06bd2b0d9ab3f2a776b0c7c48384696dbcc39967e8030fc2d7"
+    }
+  ],
+  "proposalAuthority": "trained neural outputs; native geometry only decodes and measures",
+  "resourcePolicy": {
+    "singleNumericJob": true,
+    "mathThreads": 1,
+    "niceIncrement": 10,
+    "rssGuardMiB": 256,
+    "hardCpuPercentageLimit": false,
+    "stagePeakMiB": {
+      "individual-branch-policy1": 134.4,
+      "overview-branch-policy1": 187.5,
+      "overview-branch-policy2": 186.2,
+      "individual-branch-trained1": 133.2,
+      "overview-branch-trained1": 161.3,
+      "individual-branch-port1": 132.5,
+      "overview-branch-port1": 159.8,
+      "overview-branch-policy3": 186.4,
+      "individual-branch-trained2": 133.6
+    },
+    "nativeCompilePeakMiB": {
+      "v23": 241.3,
+      "v24": 221.7
+    },
+    "nativeV23SelfTestPeakMiB": 3.8,
+    "legacyFrozenActionReplayPeakMiB": 57.9,
+    "v24ValidationPeakMiB": 56.6,
+    "trainingPeakMiB": 183.0,
+    "productAuditPeakMiB": 169.5,
+    "nativeGeometryComparisonsPerVersion": 12568,
+    "groupedFixtureAcceptedMovesPerVersion": 440,
+    "legacyFrozenActionsReplayed": 19913,
+    "networkDerivativeChecks": 44,
+    "sourceGraphMapsCrossChecked": true,
+    "nativeAcceptanceUnchanged": true,
+    "trainedModels": 2,
+    "syntheticRewardMeasurements": 280512,
+    "actualRewardMeasurements": 7104,
+    "actualPositiveRewardMeasurements": 0,
+    "actualRewardMeasurementsUsedForTraining": 0,
+    "actualBrowserVerified": false
+  },
+  "actualBrowserVerified": false,
+  "files": [
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/branch-map.json",
+      "stored": "individual-branch-policy1/branch-map.json",
+      "sha256": "20cee2569518537833ad25e52a1cb2d64dd0f7a52c0d6d5c4cc87fe2107b587c",
+      "gzip": false,
+      "bytes": 1284,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/branches.tsv",
+      "stored": "individual-branch-policy1/branches.tsv.gz",
+      "sha256": "67e9da971634227b2e3be639e6447ed759ab263a18142436310f3e8ac7799cbd",
+      "gzip": true,
+      "bytes": 83131,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/candidate.individual.layout.json",
+      "stored": "individual-branch-policy1/candidate.individual.layout.json.gz",
+      "sha256": "4ed1984b3032be6ffb38432271127c783d867a7d2f8c34b8c5a7a3d0dca51ec8",
+      "gzip": true,
+      "bytes": 570495,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/components.tsv",
+      "stored": "individual-branch-policy1/components.tsv.gz",
+      "sha256": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+      "gzip": true,
+      "bytes": 68780,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/edges.tsv",
+      "stored": "individual-branch-policy1/edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/experiment.json",
+      "stored": "individual-branch-policy1/experiment.json",
+      "sha256": "ad2e34c908ec9370dd07bb1a32b1035a319abdc6e1a0e6ff8c951c1ec871e935",
+      "gzip": false,
+      "bytes": 2082,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/groups.tsv",
+      "stored": "individual-branch-policy1/groups.tsv.gz",
+      "sha256": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d",
+      "gzip": true,
+      "bytes": 199382,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/individual.audit.json",
+      "stored": "individual-branch-policy1/individual.audit.json",
+      "sha256": "cf020b86cf970deed30e06c0f4196000588b5fbc1b6db1a32e6552288b743e8f",
+      "gzip": false,
+      "bytes": 1104,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/individual.edges.tsv",
+      "stored": "individual-branch-policy1/individual.edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/individual.nodes.tsv",
+      "stored": "individual-branch-policy1/individual.nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/individual.positions.tsv",
+      "stored": "individual-branch-policy1/individual.positions.tsv.gz",
+      "sha256": "94e4f61b8d2bb063403c630879602d86b972a67fd74b843c3d855306a524b385",
+      "gzip": true,
+      "bytes": 73705,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/individual.routes.tsv",
+      "stored": "individual-branch-policy1/individual.routes.tsv.gz",
+      "sha256": "ba151b90974496abb4186cdc90a5256e0a69eba2316571cc6ab5d4e2567c2efe",
+      "gzip": true,
+      "bytes": 160868,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/learned.tsv",
+      "stored": "individual-branch-policy1/learned.tsv.gz",
+      "sha256": "d85935a264a0ad1184f3fbad9cf49302b7ae033f4aedec979c60081035a0cfe2",
+      "gzip": true,
+      "bytes": 73703,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/learned.tsv.actions.jsonl",
+      "stored": "individual-branch-policy1/learned.tsv.actions.jsonl.gz",
+      "sha256": "ba4d9e223e01912882d659194647ec017e5c517be3812884b4171b10f0ddec71",
+      "gzip": true,
+      "bytes": 6471170,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/learned.tsv.individual",
+      "stored": "individual-branch-policy1/learned.tsv.individual",
+      "sha256": "d85935a264a0ad1184f3fbad9cf49302b7ae033f4aedec979c60081035a0cfe2",
+      "gzip": false,
+      "bytes": 73703,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/learned.tsv.individual.routes.tsv",
+      "stored": "individual-branch-policy1/learned.tsv.individual.routes.tsv.gz",
+      "sha256": "8f9b9867b4596bd94b8f75c84b40a3520894d3925009eeb83040a5d939993adc",
+      "gzip": true,
+      "bytes": 160863,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/learned.tsv.observations.jsonl",
+      "stored": "individual-branch-policy1/learned.tsv.observations.jsonl.gz",
+      "sha256": "fdc888aaf3f54e8766a79d796802842d1cd12a6832bf892855db859b82d3686b",
+      "gzip": true,
+      "bytes": 1485695,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/learned.tsv.policy.json",
+      "stored": "individual-branch-policy1/learned.tsv.policy.json",
+      "sha256": "9a9b01e670b45b97ca01411b6fd84c3b50d4a3e1dafb87a1c4b63479dda9ff3c",
+      "gzip": false,
+      "bytes": 3334,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/learned.tsv.routes.tsv",
+      "stored": "individual-branch-policy1/learned.tsv.routes.tsv.gz",
+      "sha256": "8f9b9867b4596bd94b8f75c84b40a3520894d3925009eeb83040a5d939993adc",
+      "gzip": true,
+      "bytes": 160863,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/learned.tsv.stats.json",
+      "stored": "individual-branch-policy1/learned.tsv.stats.json",
+      "sha256": "290488d8904351340013ba57c81fd56de5dfde789e522d70302a735335168fde",
+      "gzip": false,
+      "bytes": 945,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/nodes.tsv",
+      "stored": "individual-branch-policy1/nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/positions.tsv",
+      "stored": "individual-branch-policy1/positions.tsv.gz",
+      "sha256": "94e4f61b8d2bb063403c630879602d86b972a67fd74b843c3d855306a524b385",
+      "gzip": true,
+      "bytes": 73705,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/routes.tsv",
+      "stored": "individual-branch-policy1/routes.tsv.gz",
+      "sha256": "ba151b90974496abb4186cdc90a5256e0a69eba2316571cc6ab5d4e2567c2efe",
+      "gzip": true,
+      "bytes": 160868,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/workflow.audit.json",
+      "stored": "individual-branch-policy1/workflow.audit.json",
+      "sha256": "fe1330a6ac780509bb666d19335faee90d94a7f2ebf407f45d998909691d5684",
+      "gzip": false,
+      "bytes": 2654,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-policy1/workflow.log",
+      "stored": "individual-branch-policy1/workflow.log",
+      "sha256": "50d85943e83ce361251764d821bec4ea59e2fcfe04ee838fb354f499779878a6",
+      "gzip": false,
+      "bytes": 6188,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/apply.stderr",
+      "stored": "overview-branch-policy1/apply.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/apply.stdout",
+      "stored": "overview-branch-policy1/apply.stdout",
+      "sha256": "d80b6f4e5b1d13694fe54dc6db950f1c161200fbcd482c45a3f310e9c1b1ab6d",
+      "gzip": false,
+      "bytes": 5422,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/branch-map.json",
+      "stored": "overview-branch-policy1/branch-map.json",
+      "sha256": "962f3e268cd567765f5f256089a78f4495fca91c51f5e9a9166d4baac8954e9d",
+      "gzip": false,
+      "bytes": 1284,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/branches.tsv",
+      "stored": "overview-branch-policy1/branches.tsv.gz",
+      "sha256": "13cb2d94b5c25a511de4ae9d75e9b6db24d400fce976d949ac545a4c99fe21cd",
+      "gzip": true,
+      "bytes": 66076,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/candidate.layout.json",
+      "stored": "overview-branch-policy1/candidate.layout.json.gz",
+      "sha256": "40086321fde1fbb01f84356553c1695ff66da1ec7e19615be7d065d50ad0f869",
+      "gzip": true,
+      "bytes": 855786,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/components.stderr",
+      "stored": "overview-branch-policy1/components.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/components.stdout",
+      "stored": "overview-branch-policy1/components.stdout",
+      "sha256": "6a0b1eb846c19e77c1b5348acc4b8c283eac17827754b9b7ab78d7e330ad17fb",
+      "gzip": false,
+      "bytes": 65,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/components.tsv",
+      "stored": "overview-branch-policy1/components.tsv.gz",
+      "sha256": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+      "gzip": true,
+      "bytes": 61887,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/edges.tsv",
+      "stored": "overview-branch-policy1/edges.tsv.gz",
+      "sha256": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+      "gzip": true,
+      "bytes": 113471,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/eligible-singletons.txt",
+      "stored": "overview-branch-policy1/eligible-singletons.txt",
+      "sha256": "8cdf8a314328558962b0e48619875509c879610f8bf56ac1d9dbbe1d5d90f775",
+      "gzip": false,
+      "bytes": 58170,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/export.json",
+      "stored": "overview-branch-policy1/export.json",
+      "sha256": "c49f7463d5ca12debf1196d9b4e8c54739824fe8c362d552f4a9984186a5fd8b",
+      "gzip": false,
+      "bytes": 20897,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/export.stderr",
+      "stored": "overview-branch-policy1/export.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/export.stdout",
+      "stored": "overview-branch-policy1/export.stdout",
+      "sha256": "008b57195a5bb3ac4769245647ceccabe9abcf606786d19656a00f67eaa112a9",
+      "gzip": false,
+      "bytes": 1029,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/groups.tsv",
+      "stored": "overview-branch-policy1/groups.tsv.gz",
+      "sha256": "8382a3cb554b102b38b58173e45815c60dab8fadb392904c100f193c178d2fd9",
+      "gzip": true,
+      "bytes": 160987,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/individual.edges.tsv",
+      "stored": "overview-branch-policy1/individual.edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/individual.nodes.tsv",
+      "stored": "overview-branch-policy1/individual.nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/individual.positions.tsv",
+      "stored": "overview-branch-policy1/individual.positions.tsv.gz",
+      "sha256": "13e85432ff837ccbf261391e587fb3d311509b2e58413f378549ea057ccdb797",
+      "gzip": true,
+      "bytes": 55996,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/individual.routes.tsv",
+      "stored": "overview-branch-policy1/individual.routes.tsv.gz",
+      "sha256": "adadae7d475e0656fa9807564a59479aee81c7793f4d69637552dcaca0340857",
+      "gzip": true,
+      "bytes": 160135,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/inference.stderr",
+      "stored": "overview-branch-policy1/inference.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/inference.stdout",
+      "stored": "overview-branch-policy1/inference.stdout",
+      "sha256": "566fa0bb3404ad48ad98f65206de1372ad5a494d17573e52573aa007a6d3c5fb",
+      "gzip": false,
+      "bytes": 3830,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/learned.tsv",
+      "stored": "overview-branch-policy1/learned.tsv.gz",
+      "sha256": "fc4e819ae815b9f9c2e54b7881b01cfbf0203c07efd0e3e46110d9be8ed0226a",
+      "gzip": true,
+      "bytes": 60178,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/learned.tsv.actions.jsonl",
+      "stored": "overview-branch-policy1/learned.tsv.actions.jsonl.gz",
+      "sha256": "c81981dfcac3de35be160bacb6c6740ba12f57fa434fd151f1c1ba0467a9513e",
+      "gzip": true,
+      "bytes": 6089398,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/learned.tsv.individual",
+      "stored": "overview-branch-policy1/learned.tsv.individual",
+      "sha256": "5b53aaf6605f10206d5a2f1694a7829fc2ea9a9041c57f6cb14aac6bc3bb94dc",
+      "gzip": false,
+      "bytes": 73666,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/learned.tsv.individual.routes.tsv",
+      "stored": "overview-branch-policy1/learned.tsv.individual.routes.tsv.gz",
+      "sha256": "91d01ade6531212e1746a9b0814f55f063c30e096480ffba5488c728e603ba14",
+      "gzip": true,
+      "bytes": 160841,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/learned.tsv.observations.jsonl",
+      "stored": "overview-branch-policy1/learned.tsv.observations.jsonl.gz",
+      "sha256": "0e7e7b6f2b81f58a4821737e6edb2c517fa7cf59c1e1c40de69b226fb1177351",
+      "gzip": true,
+      "bytes": 1739827,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/learned.tsv.policy.json",
+      "stored": "overview-branch-policy1/learned.tsv.policy.json",
+      "sha256": "507c81e89c8bbfaa6d49d0dbd07cab8e8699d6f9fed3a30d18260563685b05df",
+      "gzip": false,
+      "bytes": 3327,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/learned.tsv.routes.tsv",
+      "stored": "overview-branch-policy1/learned.tsv.routes.tsv.gz",
+      "sha256": "5422a5e20e733016c06b481bec18989d468fb385933d089351d1251dd35ff417",
+      "gzip": true,
+      "bytes": 98053,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/learned.tsv.stats.json",
+      "stored": "overview-branch-policy1/learned.tsv.stats.json",
+      "sha256": "055af20fb4a6f9aad0b7f46b0b099dce51a481afe3ff75a4bbfd49ca8d9eef27",
+      "gzip": false,
+      "bytes": 943,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/nodes.tsv",
+      "stored": "overview-branch-policy1/nodes.tsv.gz",
+      "sha256": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+      "gzip": true,
+      "bytes": 34879,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/positions.tsv",
+      "stored": "overview-branch-policy1/positions.tsv.gz",
+      "sha256": "41611eb1101e6c6e4d324d0b4ec62dc8555286110ccd28df63f8f6e750a8b6a6",
+      "gzip": true,
+      "bytes": 45454,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/product.audit.json",
+      "stored": "overview-branch-policy1/product.audit.json",
+      "sha256": "220a9721b02839e209d7e90238e3cfa4a1b923fd9a0e856d81fa58bc64e1616c",
+      "gzip": false,
+      "bytes": 1181,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/product.product-load.log",
+      "stored": "overview-branch-policy1/product.product-load.log",
+      "sha256": "85e69dbd1bc3f357ad49bcead8f2c2d25654f79cd3246c1432969cf69955f4cb",
+      "gzip": false,
+      "bytes": 2314,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/product.scene.json",
+      "stored": "overview-branch-policy1/product.scene.json.gz",
+      "sha256": "ea596a0914217d47765bac30f460ef8ee51de17312d32fe257dea35baf692e5c",
+      "gzip": true,
+      "bytes": 1198385,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/product.stderr",
+      "stored": "overview-branch-policy1/product.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/product.stdout",
+      "stored": "overview-branch-policy1/product.stdout",
+      "sha256": "483646470d3071f82b591b274aaf9f31773915d5c16241772dddec327b11c931",
+      "gzip": false,
+      "bytes": 1052,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/proposal.audit.json",
+      "stored": "overview-branch-policy1/proposal.audit.json.gz",
+      "sha256": "e96cf31b0101e9a1293bdd2516f3b24708322b430056dafd07c17aa84f91f825",
+      "gzip": true,
+      "bytes": 153759,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/replay.stderr",
+      "stored": "overview-branch-policy1/replay.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/replay.stdout",
+      "stored": "overview-branch-policy1/replay.stdout",
+      "sha256": "f595f829d10ee4b6ee9ad783874599fd84a06ea0ff060cc783777c7d83c1428a",
+      "gzip": false,
+      "bytes": 515,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/routes.tsv",
+      "stored": "overview-branch-policy1/routes.tsv.gz",
+      "sha256": "8220f04430cf6287612b015ae82a83cf7157af0b2a9bb30072af8f66616d7c89",
+      "gzip": true,
+      "bytes": 97567,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/selection.txt",
+      "stored": "overview-branch-policy1/selection.txt",
+      "sha256": "3ac14b12e4dc19cd3b81649ded0945a6a3b5131821df7ed50c98497c387e6e0e",
+      "gzip": false,
+      "bytes": 10526,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1/workflow.json",
+      "stored": "overview-branch-policy1/workflow.json",
+      "sha256": "ac147472c83799711980e8e4a057960ae2b6673c4f2d88b3ac8f73d9437b3265",
+      "gzip": false,
+      "bytes": 3025,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/apply.stderr",
+      "stored": "overview-branch-policy2/apply.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/apply.stdout",
+      "stored": "overview-branch-policy2/apply.stdout",
+      "sha256": "4a1b95332fa2eaa46dd048736c6f6f1f305f4850ef5d353f0c02a4d403cbf044",
+      "gzip": false,
+      "bytes": 5419,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/branch-map.json",
+      "stored": "overview-branch-policy2/branch-map.json",
+      "sha256": "54199f4fa5c43f8a8554a3df40355d421333c858a48d6b7ffa0ed6ae0649931b",
+      "gzip": false,
+      "bytes": 1284,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/branches.tsv",
+      "stored": "overview-branch-policy2/branches.tsv.gz",
+      "sha256": "13cb2d94b5c25a511de4ae9d75e9b6db24d400fce976d949ac545a4c99fe21cd",
+      "gzip": true,
+      "bytes": 66076,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/candidate.layout.json",
+      "stored": "overview-branch-policy2/candidate.layout.json.gz",
+      "sha256": "b142f51b8b5ff449993b856446a91e4e39fec50f39b7776965bc40231bf412c2",
+      "gzip": true,
+      "bytes": 855768,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/components.stderr",
+      "stored": "overview-branch-policy2/components.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/components.stdout",
+      "stored": "overview-branch-policy2/components.stdout",
+      "sha256": "6a0b1eb846c19e77c1b5348acc4b8c283eac17827754b9b7ab78d7e330ad17fb",
+      "gzip": false,
+      "bytes": 65,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/components.tsv",
+      "stored": "overview-branch-policy2/components.tsv.gz",
+      "sha256": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+      "gzip": true,
+      "bytes": 61887,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/edges.tsv",
+      "stored": "overview-branch-policy2/edges.tsv.gz",
+      "sha256": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+      "gzip": true,
+      "bytes": 113471,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/eligible-singletons.txt",
+      "stored": "overview-branch-policy2/eligible-singletons.txt",
+      "sha256": "8cdf8a314328558962b0e48619875509c879610f8bf56ac1d9dbbe1d5d90f775",
+      "gzip": false,
+      "bytes": 58170,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/export.json",
+      "stored": "overview-branch-policy2/export.json",
+      "sha256": "64be888cbc42f039ad129b36ae69b9d7ddb578a96f2a45a809d50658b9f3837d",
+      "gzip": false,
+      "bytes": 21434,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/export.stderr",
+      "stored": "overview-branch-policy2/export.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/export.stdout",
+      "stored": "overview-branch-policy2/export.stdout",
+      "sha256": "e3b1fdaf67e4823a9997c59b3c60658dc1f7c70d8e7f8c7073da55613d8e8d3a",
+      "gzip": false,
+      "bytes": 1030,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/groups.tsv",
+      "stored": "overview-branch-policy2/groups.tsv.gz",
+      "sha256": "3c9ce46a1abafe83d52102cf6d346b85e0734bf2c56725a3afcd467f72a486bc",
+      "gzip": true,
+      "bytes": 160987,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/individual.edges.tsv",
+      "stored": "overview-branch-policy2/individual.edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/individual.nodes.tsv",
+      "stored": "overview-branch-policy2/individual.nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/individual.positions.tsv",
+      "stored": "overview-branch-policy2/individual.positions.tsv.gz",
+      "sha256": "6d7f0967701e2c229370c242d736b8c667b3b9d7e7aabc5949f5762251c0e935",
+      "gzip": true,
+      "bytes": 55981,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/individual.routes.tsv",
+      "stored": "overview-branch-policy2/individual.routes.tsv.gz",
+      "sha256": "517318dc84abc621144adcd453d680e7dbc3b73af91e8512308825184f597cef",
+      "gzip": true,
+      "bytes": 160137,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/inference.stderr",
+      "stored": "overview-branch-policy2/inference.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/inference.stdout",
+      "stored": "overview-branch-policy2/inference.stdout",
+      "sha256": "ab1fd447b6ccddc193125f55dc2cf6e28fdb150f00e7f71953b773771943b88a",
+      "gzip": false,
+      "bytes": 3825,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/learned.tsv",
+      "stored": "overview-branch-policy2/learned.tsv.gz",
+      "sha256": "7b24ee1396cd964ddaa409147cbaad84086ef08ea56cd4a2685fc15f67d35005",
+      "gzip": true,
+      "bytes": 60178,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/learned.tsv.actions.jsonl",
+      "stored": "overview-branch-policy2/learned.tsv.actions.jsonl.gz",
+      "sha256": "645627dc85ec2a6fba2e19a7a352f482e737ee5b7fc4edbe51f60d64ac57a894",
+      "gzip": true,
+      "bytes": 6369855,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/learned.tsv.individual",
+      "stored": "overview-branch-policy2/learned.tsv.individual",
+      "sha256": "05b8185eba7ad853e5816a58590b49c7160ec77768dee617d4e2b6e77abc4661",
+      "gzip": false,
+      "bytes": 73665,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/learned.tsv.individual.routes.tsv",
+      "stored": "overview-branch-policy2/learned.tsv.individual.routes.tsv.gz",
+      "sha256": "82c94ae257311f140b467d0b95a084514829f2e58715e86c77b1dc3d5999440f",
+      "gzip": true,
+      "bytes": 160840,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/learned.tsv.observations.jsonl",
+      "stored": "overview-branch-policy2/learned.tsv.observations.jsonl.gz",
+      "sha256": "8c7b679435712f48cea85cf70304543ea72564165bbf07d61b2178534a33cefa",
+      "gzip": true,
+      "bytes": 1733503,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/learned.tsv.policy.json",
+      "stored": "overview-branch-policy2/learned.tsv.policy.json",
+      "sha256": "1411c4ac3a1d8b9fb6a21727fa53f1315c92cc1707bb5bd750acb7c07af624f6",
+      "gzip": false,
+      "bytes": 3325,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/learned.tsv.routes.tsv",
+      "stored": "overview-branch-policy2/learned.tsv.routes.tsv.gz",
+      "sha256": "e69fbd7ba73d958b8bad9569aaea7cfe4640f1d2bf9e2439a0fe006389aeda13",
+      "gzip": true,
+      "bytes": 98053,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/learned.tsv.stats.json",
+      "stored": "overview-branch-policy2/learned.tsv.stats.json",
+      "sha256": "b675d5c57ed23307cd2a82af61e16545028c2b3175139639571005d82308c2e5",
+      "gzip": false,
+      "bytes": 941,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/nodes.tsv",
+      "stored": "overview-branch-policy2/nodes.tsv.gz",
+      "sha256": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+      "gzip": true,
+      "bytes": 34879,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/positions.tsv",
+      "stored": "overview-branch-policy2/positions.tsv.gz",
+      "sha256": "70a5f173b07ccf0c6d5a2e38ca5cd821269426b9cf52ec993dae289a16f859e7",
+      "gzip": true,
+      "bytes": 45447,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/product.audit.json",
+      "stored": "overview-branch-policy2/product.audit.json",
+      "sha256": "98e4b1766e819513f44addff767c8dc77d19b8215616fae2250552dd9e926877",
+      "gzip": false,
+      "bytes": 1181,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/product.product-load.log",
+      "stored": "overview-branch-policy2/product.product-load.log",
+      "sha256": "6cb946cfae8c184cb4d09d6d56da8b9099fd633d771b2d0bc6f1a32f89f4abfc",
+      "gzip": false,
+      "bytes": 2314,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/product.scene.json",
+      "stored": "overview-branch-policy2/product.scene.json.gz",
+      "sha256": "bd82f74d8ee9a2d55c669ff561a4bb9895ad855f78d64950106a7a212f8843a2",
+      "gzip": true,
+      "bytes": 1198376,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/product.stderr",
+      "stored": "overview-branch-policy2/product.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/product.stdout",
+      "stored": "overview-branch-policy2/product.stdout",
+      "sha256": "f5afec12c7ecae557d9ba22ca2c8baba98d40294747794c06a37e1105ec20180",
+      "gzip": false,
+      "bytes": 1052,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/proposal.audit.json",
+      "stored": "overview-branch-policy2/proposal.audit.json.gz",
+      "sha256": "0ba1c5c8aebb9d2950eed6374ccbe6af587bf6b8e4c97ade1ef6da62d4b74699",
+      "gzip": true,
+      "bytes": 140379,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/replay.stderr",
+      "stored": "overview-branch-policy2/replay.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/replay.stdout",
+      "stored": "overview-branch-policy2/replay.stdout",
+      "sha256": "50a5ba8ccdc573db4533bc15b8e358cf5e79f482580ea175ab714ceee5cc49fe",
+      "gzip": false,
+      "bytes": 515,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/routes.tsv",
+      "stored": "overview-branch-policy2/routes.tsv.gz",
+      "sha256": "d84cf2885d8f2e45833dabdd2587adabcebbeaea4d6d69f260d0241e44e6549c",
+      "gzip": true,
+      "bytes": 97551,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/selection.txt",
+      "stored": "overview-branch-policy2/selection.txt",
+      "sha256": "b766024258a887b61ce5a7c1a6112378cf79a719921b509f5c84f84639f7b1ed",
+      "gzip": false,
+      "bytes": 10797,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy2/workflow.json",
+      "stored": "overview-branch-policy2/workflow.json",
+      "sha256": "2321fc76d2c549531164c809beaf4cbd90a72125913b40d94dca200834891551",
+      "gzip": false,
+      "bytes": 3021,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/branch-map.json",
+      "stored": "individual-branch-trained1/branch-map.json",
+      "sha256": "5910244213bfd50aed3ed2b5fd4ed12506f6d1ca76c32b1605022ffa1459f1c7",
+      "gzip": false,
+      "bytes": 1284,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/branches.tsv",
+      "stored": "individual-branch-trained1/branches.tsv.gz",
+      "sha256": "67e9da971634227b2e3be639e6447ed759ab263a18142436310f3e8ac7799cbd",
+      "gzip": true,
+      "bytes": 83131,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/candidate.individual.layout.json",
+      "stored": "individual-branch-trained1/candidate.individual.layout.json.gz",
+      "sha256": "3bdc7ba78c79c152a21c0821bfd47bb7fbee2a7cffb5cd7954a7b59c72822467",
+      "gzip": true,
+      "bytes": 570393,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/components.tsv",
+      "stored": "individual-branch-trained1/components.tsv.gz",
+      "sha256": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+      "gzip": true,
+      "bytes": 68780,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/edges.tsv",
+      "stored": "individual-branch-trained1/edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/experiment.json",
+      "stored": "individual-branch-trained1/experiment.json",
+      "sha256": "c782a781daa0ac0d362ae70f73515ec6a50c51d9e009224671bc7c318c1daaf3",
+      "gzip": false,
+      "bytes": 2085,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/groups.tsv",
+      "stored": "individual-branch-trained1/groups.tsv.gz",
+      "sha256": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d",
+      "gzip": true,
+      "bytes": 199382,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/individual.audit.json",
+      "stored": "individual-branch-trained1/individual.audit.json",
+      "sha256": "fa34d0b41f0bfc17df2ce7df3c1e1b07cf7c02611ee478211b00e8b33c675dce",
+      "gzip": false,
+      "bytes": 1104,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/individual.edges.tsv",
+      "stored": "individual-branch-trained1/individual.edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/individual.nodes.tsv",
+      "stored": "individual-branch-trained1/individual.nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/individual.positions.tsv",
+      "stored": "individual-branch-trained1/individual.positions.tsv.gz",
+      "sha256": "d85935a264a0ad1184f3fbad9cf49302b7ae033f4aedec979c60081035a0cfe2",
+      "gzip": true,
+      "bytes": 73703,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/individual.routes.tsv",
+      "stored": "individual-branch-trained1/individual.routes.tsv.gz",
+      "sha256": "8f9b9867b4596bd94b8f75c84b40a3520894d3925009eeb83040a5d939993adc",
+      "gzip": true,
+      "bytes": 160863,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/learned.tsv",
+      "stored": "individual-branch-trained1/learned.tsv.gz",
+      "sha256": "54478d09ca9e905a94a6846aba81ca07403b44e65a440179ae7caa23c01c9bdd",
+      "gzip": true,
+      "bytes": 73703,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/learned.tsv.actions.jsonl",
+      "stored": "individual-branch-trained1/learned.tsv.actions.jsonl.gz",
+      "sha256": "11062ee3e430a2e47a4f94ff8b84287926362cf7820c219f4c757f5429bbf713",
+      "gzip": true,
+      "bytes": 3301311,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/learned.tsv.individual",
+      "stored": "individual-branch-trained1/learned.tsv.individual",
+      "sha256": "54478d09ca9e905a94a6846aba81ca07403b44e65a440179ae7caa23c01c9bdd",
+      "gzip": false,
+      "bytes": 73703,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/learned.tsv.individual.routes.tsv",
+      "stored": "individual-branch-trained1/learned.tsv.individual.routes.tsv.gz",
+      "sha256": "85888946bc8958b6138fdb76dffeda95cf40567f52d7ba79cf41a01e3f27dea9",
+      "gzip": true,
+      "bytes": 160865,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/learned.tsv.observations.jsonl",
+      "stored": "individual-branch-trained1/learned.tsv.observations.jsonl.gz",
+      "sha256": "41f5856dcb420915d832a66a235b7a3cf39896f5242ba2dd41f692c252ccd198",
+      "gzip": true,
+      "bytes": 742348,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/learned.tsv.policy.json",
+      "stored": "individual-branch-trained1/learned.tsv.policy.json",
+      "sha256": "37d5a0c80aa53615e5747216df41324e888b156ca39259adb16b38812c17d96f",
+      "gzip": false,
+      "bytes": 3366,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/learned.tsv.routes.tsv",
+      "stored": "individual-branch-trained1/learned.tsv.routes.tsv.gz",
+      "sha256": "85888946bc8958b6138fdb76dffeda95cf40567f52d7ba79cf41a01e3f27dea9",
+      "gzip": true,
+      "bytes": 160865,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/learned.tsv.stats.json",
+      "stored": "individual-branch-trained1/learned.tsv.stats.json",
+      "sha256": "19e0433d171b9ebac176de963c420cbd89637f6330401c25d9f4f7522011bba8",
+      "gzip": false,
+      "bytes": 945,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/nodes.tsv",
+      "stored": "individual-branch-trained1/nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/positions.tsv",
+      "stored": "individual-branch-trained1/positions.tsv.gz",
+      "sha256": "d85935a264a0ad1184f3fbad9cf49302b7ae033f4aedec979c60081035a0cfe2",
+      "gzip": true,
+      "bytes": 73703,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/routes.tsv",
+      "stored": "individual-branch-trained1/routes.tsv.gz",
+      "sha256": "8f9b9867b4596bd94b8f75c84b40a3520894d3925009eeb83040a5d939993adc",
+      "gzip": true,
+      "bytes": 160863,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/workflow.audit.json",
+      "stored": "individual-branch-trained1/workflow.audit.json",
+      "sha256": "cb7ca8b6a98d02dc92b28061874a615fe2535cc27bc9dd8abbdd69644bfecb0a",
+      "gzip": false,
+      "bytes": 2657,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1/workflow.log",
+      "stored": "individual-branch-trained1/workflow.log",
+      "sha256": "8993abfe313bf15195d20afb83d05d4221fa354b35f0941e4e99d042155c7410",
+      "gzip": false,
+      "bytes": 6130,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/apply.stderr",
+      "stored": "overview-branch-trained1/apply.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/apply.stdout",
+      "stored": "overview-branch-trained1/apply.stdout",
+      "sha256": "2f53117824c684ae82fbe4b456d89635e9be964da168abd4a2fede05e53013ae",
+      "gzip": false,
+      "bytes": 5446,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/branch-map.json",
+      "stored": "overview-branch-trained1/branch-map.json",
+      "sha256": "830fc44a2a0f2db243efaa9e872f22322e2c85d406684c0d7b3bcfa2dd0f9b1b",
+      "gzip": false,
+      "bytes": 1284,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/branches.tsv",
+      "stored": "overview-branch-trained1/branches.tsv.gz",
+      "sha256": "13cb2d94b5c25a511de4ae9d75e9b6db24d400fce976d949ac545a4c99fe21cd",
+      "gzip": true,
+      "bytes": 66076,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/candidate.layout.json",
+      "stored": "overview-branch-trained1/candidate.layout.json.gz",
+      "sha256": "f86a0b1ecb4d7e7e6c9d166280462a6137499a6746df95d914c43e3ca681ad73",
+      "gzip": true,
+      "bytes": 855779,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/components.stderr",
+      "stored": "overview-branch-trained1/components.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/components.stdout",
+      "stored": "overview-branch-trained1/components.stdout",
+      "sha256": "6a0b1eb846c19e77c1b5348acc4b8c283eac17827754b9b7ab78d7e330ad17fb",
+      "gzip": false,
+      "bytes": 65,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/components.tsv",
+      "stored": "overview-branch-trained1/components.tsv.gz",
+      "sha256": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+      "gzip": true,
+      "bytes": 61887,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/edges.tsv",
+      "stored": "overview-branch-trained1/edges.tsv.gz",
+      "sha256": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+      "gzip": true,
+      "bytes": 113471,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/eligible-singletons.txt",
+      "stored": "overview-branch-trained1/eligible-singletons.txt",
+      "sha256": "8cdf8a314328558962b0e48619875509c879610f8bf56ac1d9dbbe1d5d90f775",
+      "gzip": false,
+      "bytes": 58170,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/export.json",
+      "stored": "overview-branch-trained1/export.json",
+      "sha256": "e4e8163558c84bbe8c5fc9c02ab61baa3ac87e5ac0b408c2c0dfb8ecce56844f",
+      "gzip": false,
+      "bytes": 20790,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/export.stderr",
+      "stored": "overview-branch-trained1/export.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/export.stdout",
+      "stored": "overview-branch-trained1/export.stdout",
+      "sha256": "b904910395b677930435159d4ff5a0f5c7729c3d85ffc485d29cc06c00b09cd2",
+      "gzip": false,
+      "bytes": 1030,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/groups.tsv",
+      "stored": "overview-branch-trained1/groups.tsv.gz",
+      "sha256": "879b83c24efc95800ad2821e851090415804efa84d28ca665e1a8050e5f42328",
+      "gzip": true,
+      "bytes": 160987,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/individual.edges.tsv",
+      "stored": "overview-branch-trained1/individual.edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/individual.nodes.tsv",
+      "stored": "overview-branch-trained1/individual.nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/individual.positions.tsv",
+      "stored": "overview-branch-trained1/individual.positions.tsv.gz",
+      "sha256": "c6af8b9f00cdd35784e2ff2990ff51cb6225d2ac3c966ce4508ddd963b425c34",
+      "gzip": true,
+      "bytes": 55999,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/individual.routes.tsv",
+      "stored": "overview-branch-trained1/individual.routes.tsv.gz",
+      "sha256": "5d7472bb6a8325f988036ad0cf1165ddafad1138af7ffcc877e1417e4e2aba9e",
+      "gzip": true,
+      "bytes": 160119,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/inference.stderr",
+      "stored": "overview-branch-trained1/inference.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/inference.stdout",
+      "stored": "overview-branch-trained1/inference.stdout",
+      "sha256": "6b36ed0ae93fd9f25e4a6e4953b9e850c373d8f87e87629bf4716ebb7ca3c160",
+      "gzip": false,
+      "bytes": 3379,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/learned.tsv",
+      "stored": "overview-branch-trained1/learned.tsv.gz",
+      "sha256": "2bae6225d08be2272a5709765e8d38f636ea08a065f5481aa3cb9a171dbec3e1",
+      "gzip": true,
+      "bytes": 60178,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/learned.tsv.actions.jsonl",
+      "stored": "overview-branch-trained1/learned.tsv.actions.jsonl.gz",
+      "sha256": "7099047bdcb2404c9fa71c468774d1dc7909e42cb3c16861cba516fc5e8398e0",
+      "gzip": true,
+      "bytes": 2972850,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/learned.tsv.individual",
+      "stored": "overview-branch-trained1/learned.tsv.individual",
+      "sha256": "03c46924a7ef32a975e62ab6b9137ccac328a842630dc57c3c644819ebf940f8",
+      "gzip": false,
+      "bytes": 73665,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/learned.tsv.individual.routes.tsv",
+      "stored": "overview-branch-trained1/learned.tsv.individual.routes.tsv.gz",
+      "sha256": "8e631618bd47895e692afb73a1c5f1dffc9b5b2a3d37a0293c03fab740303c67",
+      "gzip": true,
+      "bytes": 160841,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/learned.tsv.observations.jsonl",
+      "stored": "overview-branch-trained1/learned.tsv.observations.jsonl.gz",
+      "sha256": "81910417afdff70d049271ea860a2fbc43ddac673ad4e5c03f46205ef77070b4",
+      "gzip": true,
+      "bytes": 691405,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/learned.tsv.policy.json",
+      "stored": "overview-branch-trained1/learned.tsv.policy.json",
+      "sha256": "f624d3556a70c06f344c872a4fb464bd4593b62aac0f9c18d009e1c112e67116",
+      "gzip": false,
+      "bytes": 3353,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/learned.tsv.routes.tsv",
+      "stored": "overview-branch-trained1/learned.tsv.routes.tsv.gz",
+      "sha256": "4484e7a5aa01f15ed887aaa42f9993d12ee7b058fc38a91c9d1f8a45fabf0963",
+      "gzip": true,
+      "bytes": 98053,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/learned.tsv.stats.json",
+      "stored": "overview-branch-trained1/learned.tsv.stats.json",
+      "sha256": "70a21873a33fc42ac038cc38c8253fef3024eb6d4099c99f87af475e6899e3a2",
+      "gzip": false,
+      "bytes": 940,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/nodes.tsv",
+      "stored": "overview-branch-trained1/nodes.tsv.gz",
+      "sha256": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+      "gzip": true,
+      "bytes": 34879,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/positions.tsv",
+      "stored": "overview-branch-trained1/positions.tsv.gz",
+      "sha256": "18bc43d297e1b297cc47107a988a8c4398b992f1bab612b759dfb48f5986d615",
+      "gzip": true,
+      "bytes": 45457,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/product.audit.json",
+      "stored": "overview-branch-trained1/product.audit.json",
+      "sha256": "e58b76801cf37bb3f0dc28a9f05c5900739a228ab283b5df510e1b425e6c792e",
+      "gzip": false,
+      "bytes": 1182,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/product.product-load.log",
+      "stored": "overview-branch-trained1/product.product-load.log",
+      "sha256": "4d160514c9f70a847b0390dd3b73fecff1bfc16c85141ad2e911c846455124c7",
+      "gzip": false,
+      "bytes": 2315,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/product.scene.json",
+      "stored": "overview-branch-trained1/product.scene.json.gz",
+      "sha256": "4974db81e194806fedfe834b720d6aa6aec3f5a57225d3d3d32e066364b58e19",
+      "gzip": true,
+      "bytes": 1198379,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/product.stderr",
+      "stored": "overview-branch-trained1/product.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/product.stdout",
+      "stored": "overview-branch-trained1/product.stdout",
+      "sha256": "c44984e8e8baa44ea56a82e232abd7b90dcf233d28001fec917a86a60823bf16",
+      "gzip": false,
+      "bytes": 1053,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/proposal.audit.json",
+      "stored": "overview-branch-trained1/proposal.audit.json",
+      "sha256": "582c2bba0121c482775f0d4648606f3672e26dc665e3072980af6b94b6fefe62",
+      "gzip": false,
+      "bytes": 84973,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/replay.stderr",
+      "stored": "overview-branch-trained1/replay.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/replay.stdout",
+      "stored": "overview-branch-trained1/replay.stdout",
+      "sha256": "3f5fb9f7f115922dd9ed2434ffa6ddc0d7006bfd27e91836a9c9641077445fb1",
+      "gzip": false,
+      "bytes": 514,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/routes.tsv",
+      "stored": "overview-branch-trained1/routes.tsv.gz",
+      "sha256": "908922cbba3523051d7f08cd168ac526b2da6f161f01eee2822432f6914da1fe",
+      "gzip": true,
+      "bytes": 97557,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/selection.txt",
+      "stored": "overview-branch-trained1/selection.txt",
+      "sha256": "9cd212544f934ef96107421a03c34a8b1b103b7479884a4e88b86d555ab080d8",
+      "gzip": false,
+      "bytes": 10471,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-trained1/workflow.json",
+      "stored": "overview-branch-trained1/workflow.json",
+      "sha256": "93a353a17da4ca099d577f3ab9784e5e91c045b21a2dba4098904e6190f6f11f",
+      "gzip": false,
+      "bytes": 3051,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/candidate.individual.layout.json",
+      "stored": "individual-branch-port1/candidate.individual.layout.json.gz",
+      "sha256": "c69dd48525105d106f81a967eec7e8581ea24792ee0ac35c2009f53be09b165d",
+      "gzip": true,
+      "bytes": 570358,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/components.tsv",
+      "stored": "individual-branch-port1/components.tsv.gz",
+      "sha256": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+      "gzip": true,
+      "bytes": 68780,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/edges.tsv",
+      "stored": "individual-branch-port1/edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/experiment.json",
+      "stored": "individual-branch-port1/experiment.json",
+      "sha256": "248675b963c562c1f9c64952201e9403f2ffec039018ad2b4f7f6e3022e59c55",
+      "gzip": false,
+      "bytes": 745,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/groups.tsv",
+      "stored": "individual-branch-port1/groups.tsv.gz",
+      "sha256": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d",
+      "gzip": true,
+      "bytes": 199382,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/individual.audit.json",
+      "stored": "individual-branch-port1/individual.audit.json",
+      "sha256": "d72355ffd38c5375d37864d66334a969099e743afd5743939cc7f7152e764793",
+      "gzip": false,
+      "bytes": 1102,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/individual.edges.tsv",
+      "stored": "individual-branch-port1/individual.edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/individual.nodes.tsv",
+      "stored": "individual-branch-port1/individual.nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/individual.positions.tsv",
+      "stored": "individual-branch-port1/individual.positions.tsv.gz",
+      "sha256": "54478d09ca9e905a94a6846aba81ca07403b44e65a440179ae7caa23c01c9bdd",
+      "gzip": true,
+      "bytes": 73703,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/individual.routes.tsv",
+      "stored": "individual-branch-port1/individual.routes.tsv.gz",
+      "sha256": "85888946bc8958b6138fdb76dffeda95cf40567f52d7ba79cf41a01e3f27dea9",
+      "gzip": true,
+      "bytes": 160865,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/learned.tsv",
+      "stored": "individual-branch-port1/learned.tsv.gz",
+      "sha256": "54478d09ca9e905a94a6846aba81ca07403b44e65a440179ae7caa23c01c9bdd",
+      "gzip": true,
+      "bytes": 73703,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/learned.tsv.actions.jsonl",
+      "stored": "individual-branch-port1/learned.tsv.actions.jsonl.gz",
+      "sha256": "ab8f4cb2b5832b5ba743a2c8ca47bae92d3f4d336be8275e3f2879651f083c8d",
+      "gzip": true,
+      "bytes": 6038660,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/learned.tsv.individual",
+      "stored": "individual-branch-port1/learned.tsv.individual",
+      "sha256": "54478d09ca9e905a94a6846aba81ca07403b44e65a440179ae7caa23c01c9bdd",
+      "gzip": false,
+      "bytes": 73703,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/learned.tsv.individual.routes.tsv",
+      "stored": "individual-branch-port1/learned.tsv.individual.routes.tsv.gz",
+      "sha256": "5619fb8e7d399a0a084a6cef862849aebecc4fb98600aec90fa6c64e3e8e0790",
+      "gzip": true,
+      "bytes": 160865,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/learned.tsv.observations.jsonl",
+      "stored": "individual-branch-port1/learned.tsv.observations.jsonl.gz",
+      "sha256": "6ed9d547c97bcd1f34a61a2185df8daf42a899f90bffac91d930a98044da9110",
+      "gzip": true,
+      "bytes": 3013714,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/learned.tsv.policy.json",
+      "stored": "individual-branch-port1/learned.tsv.policy.json",
+      "sha256": "2616b5455a77a6c64bb5dd269826a42aad41fbdaaa3ce0cccb3e728ec83af534",
+      "gzip": false,
+      "bytes": 2474,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/learned.tsv.routes.tsv",
+      "stored": "individual-branch-port1/learned.tsv.routes.tsv.gz",
+      "sha256": "5619fb8e7d399a0a084a6cef862849aebecc4fb98600aec90fa6c64e3e8e0790",
+      "gzip": true,
+      "bytes": 160865,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/learned.tsv.stats.json",
+      "stored": "individual-branch-port1/learned.tsv.stats.json",
+      "sha256": "09356c0b0519c69cc522259d5b91126411010870ef8f4550cd26f47388262d86",
+      "gzip": false,
+      "bytes": 917,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/nodes.tsv",
+      "stored": "individual-branch-port1/nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/positions.tsv",
+      "stored": "individual-branch-port1/positions.tsv.gz",
+      "sha256": "54478d09ca9e905a94a6846aba81ca07403b44e65a440179ae7caa23c01c9bdd",
+      "gzip": true,
+      "bytes": 73703,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/routes.tsv",
+      "stored": "individual-branch-port1/routes.tsv.gz",
+      "sha256": "85888946bc8958b6138fdb76dffeda95cf40567f52d7ba79cf41a01e3f27dea9",
+      "gzip": true,
+      "bytes": 160865,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/workflow.audit.json",
+      "stored": "individual-branch-port1/workflow.audit.json",
+      "sha256": "610284d0112f555a7a59af7badf44a6ae4fc0721719258e93b9387010c465e2d",
+      "gzip": false,
+      "bytes": 1313,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-port1/workflow.log",
+      "stored": "individual-branch-port1/workflow.log",
+      "sha256": "33633ce5256c22cbb39146542220f337445db69b79a93cbd63740ed44c33a540",
+      "gzip": false,
+      "bytes": 5592,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/apply.stderr",
+      "stored": "overview-branch-port1/apply.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/apply.stdout",
+      "stored": "overview-branch-port1/apply.stdout",
+      "sha256": "d169cf3761fcb6eb36d5012b31c1e2ea3a79c6423bb45ed0870c871a84e19e1d",
+      "gzip": false,
+      "bytes": 4609,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/candidate.layout.json",
+      "stored": "overview-branch-port1/candidate.layout.json.gz",
+      "sha256": "b9648da444db79bb7e76ccc6e55b6ce5a4e8d3b22329390ab5c2817010685a9c",
+      "gzip": true,
+      "bytes": 855791,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/components.stderr",
+      "stored": "overview-branch-port1/components.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/components.stdout",
+      "stored": "overview-branch-port1/components.stdout",
+      "sha256": "6a0b1eb846c19e77c1b5348acc4b8c283eac17827754b9b7ab78d7e330ad17fb",
+      "gzip": false,
+      "bytes": 65,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/components.tsv",
+      "stored": "overview-branch-port1/components.tsv.gz",
+      "sha256": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+      "gzip": true,
+      "bytes": 61887,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/edges.tsv",
+      "stored": "overview-branch-port1/edges.tsv.gz",
+      "sha256": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+      "gzip": true,
+      "bytes": 113471,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/eligible-singletons.txt",
+      "stored": "overview-branch-port1/eligible-singletons.txt",
+      "sha256": "8cdf8a314328558962b0e48619875509c879610f8bf56ac1d9dbbe1d5d90f775",
+      "gzip": false,
+      "bytes": 58170,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/export.json",
+      "stored": "overview-branch-port1/export.json",
+      "sha256": "654a2c726413d93179a66be3f467b5422e1dd12c493ce295ac996d983021fe2d",
+      "gzip": false,
+      "bytes": 21129,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/export.stderr",
+      "stored": "overview-branch-port1/export.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/export.stdout",
+      "stored": "overview-branch-port1/export.stdout",
+      "sha256": "3649cfd053b5d5ff9f876445aa3a15e76e2313217e0f7e2f15f8e20850deb98b",
+      "gzip": false,
+      "bytes": 1031,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/groups.tsv",
+      "stored": "overview-branch-port1/groups.tsv.gz",
+      "sha256": "c7bcb267466f9bfa1111ebb3b165c480e63705f765aab182410ace9f9f559dd3",
+      "gzip": true,
+      "bytes": 160987,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/individual.edges.tsv",
+      "stored": "overview-branch-port1/individual.edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/individual.nodes.tsv",
+      "stored": "overview-branch-port1/individual.nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/individual.positions.tsv",
+      "stored": "overview-branch-port1/individual.positions.tsv.gz",
+      "sha256": "14d2b90c6b58371c39209e74928a377e347eb5f555af43dd2283969d4271859a",
+      "gzip": true,
+      "bytes": 55988,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/individual.routes.tsv",
+      "stored": "overview-branch-port1/individual.routes.tsv.gz",
+      "sha256": "d7cdc6cd3ec934b408f70b06517572cdcb3df982af3e53a0441cad3f7fe288a8",
+      "gzip": true,
+      "bytes": 160120,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/inference.stderr",
+      "stored": "overview-branch-port1/inference.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/inference.stdout",
+      "stored": "overview-branch-port1/inference.stdout",
+      "sha256": "b8c90d9ea1df49ef3dbb2d4a2cd5009813eaa7c6c1f255e0b430106a8a23ad42",
+      "gzip": false,
+      "bytes": 3511,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/learned.tsv",
+      "stored": "overview-branch-port1/learned.tsv.gz",
+      "sha256": "2bae6225d08be2272a5709765e8d38f636ea08a065f5481aa3cb9a171dbec3e1",
+      "gzip": true,
+      "bytes": 60178,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/learned.tsv.actions.jsonl",
+      "stored": "overview-branch-port1/learned.tsv.actions.jsonl.gz",
+      "sha256": "f56eb9d1b6fa8f67bf5e0d981d954dc9d01b369176971fc43298377e9fb3c8e8",
+      "gzip": true,
+      "bytes": 4083064,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/learned.tsv.individual",
+      "stored": "overview-branch-port1/learned.tsv.individual",
+      "sha256": "03c46924a7ef32a975e62ab6b9137ccac328a842630dc57c3c644819ebf940f8",
+      "gzip": false,
+      "bytes": 73665,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/learned.tsv.individual.routes.tsv",
+      "stored": "overview-branch-port1/learned.tsv.individual.routes.tsv.gz",
+      "sha256": "a98debec2753c8def55e6dda762a04453536e72a8bb834dd846caeb0e8f342f4",
+      "gzip": true,
+      "bytes": 160841,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/learned.tsv.observations.jsonl",
+      "stored": "overview-branch-port1/learned.tsv.observations.jsonl.gz",
+      "sha256": "6b5e421b02eddcf4a0c1fee507981f8f4b077d9687df0061b48e3b5cdc90d569",
+      "gzip": true,
+      "bytes": 2759124,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/learned.tsv.policy.json",
+      "stored": "overview-branch-port1/learned.tsv.policy.json",
+      "sha256": "67074451aa75fe756528f671c295b646511bde2551d91df553b45fac46e82c66",
+      "gzip": false,
+      "bytes": 2467,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/learned.tsv.routes.tsv",
+      "stored": "overview-branch-port1/learned.tsv.routes.tsv.gz",
+      "sha256": "bddd6fe9d601060d339fadce29dbbad2b46bc7b0f8fb46d79adb813fa61907c6",
+      "gzip": true,
+      "bytes": 98053,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/learned.tsv.stats.json",
+      "stored": "overview-branch-port1/learned.tsv.stats.json",
+      "sha256": "cf1215c0f1e2a1b7f9b9f8fe66efb28f11efe7cd1839742f1f7e911e87551819",
+      "gzip": false,
+      "bytes": 913,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/nodes.tsv",
+      "stored": "overview-branch-port1/nodes.tsv.gz",
+      "sha256": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+      "gzip": true,
+      "bytes": 34879,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/positions.tsv",
+      "stored": "overview-branch-port1/positions.tsv.gz",
+      "sha256": "e743ff49f8e33012e6a49a343170c41ff17d76d7e6ad722206c657da49cf095c",
+      "gzip": true,
+      "bytes": 45450,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/product.audit.json",
+      "stored": "overview-branch-port1/product.audit.json",
+      "sha256": "e0fedd3646c8967f160f7626d1093b704bb1393b5fa4a1ca507d2b30252f195a",
+      "gzip": false,
+      "bytes": 1179,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/product.product-load.log",
+      "stored": "overview-branch-port1/product.product-load.log",
+      "sha256": "c385917d23b53970a2d719e5552fff49872520b41a099a10f3a231ace3cbf1a5",
+      "gzip": false,
+      "bytes": 2312,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/product.scene.json",
+      "stored": "overview-branch-port1/product.scene.json.gz",
+      "sha256": "7324b6c8eb7cd8551f2f78fac7deba0b4b827ad75de2dc3d6924e2806670724d",
+      "gzip": true,
+      "bytes": 1198388,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/product.stderr",
+      "stored": "overview-branch-port1/product.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/product.stdout",
+      "stored": "overview-branch-port1/product.stdout",
+      "sha256": "c3ebbe8da24caf9acc106838ba6c88fdbe798ab4b3c06043175398527a2ff443",
+      "gzip": false,
+      "bytes": 1050,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/proposal.audit.json",
+      "stored": "overview-branch-port1/proposal.audit.json",
+      "sha256": "54e6bb3dbb083cb4243c9385dc37be32de4bdc786235a651474049d741d2b071",
+      "gzip": false,
+      "bytes": 21055,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/replay.stderr",
+      "stored": "overview-branch-port1/replay.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/replay.stdout",
+      "stored": "overview-branch-port1/replay.stdout",
+      "sha256": "1e9335852851a8bfc30120328f8314e0fb08061aacd171fc5152bb9f33c99f7d",
+      "gzip": false,
+      "bytes": 516,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/routes.tsv",
+      "stored": "overview-branch-port1/routes.tsv.gz",
+      "sha256": "79d196d1232ea9e97be8b305fbdb051481e5c223b55feaf14b1ec7b9d2dfef6a",
+      "gzip": true,
+      "bytes": 97568,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/selection.txt",
+      "stored": "overview-branch-port1/selection.txt",
+      "sha256": "08ef1108573a6b005591dbd25680d45b0ed16bd1b6d150fe71ef8e1e1f6a4e97",
+      "gzip": false,
+      "bytes": 10650,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-port1/workflow.json",
+      "stored": "overview-branch-port1/workflow.json",
+      "sha256": "504cb683ed0f4c50b683cd6d65695b7669f4a69af5a69cd45406dd629850f058",
+      "gzip": false,
+      "bytes": 1707,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/apply.stderr",
+      "stored": "overview-branch-policy3/apply.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/apply.stdout",
+      "stored": "overview-branch-policy3/apply.stdout",
+      "sha256": "af56a86f7f3867db71de62ca31c228f3332724d04c21bf426e20d69b3c5841ea",
+      "gzip": false,
+      "bytes": 5417,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/branch-map.json",
+      "stored": "overview-branch-policy3/branch-map.json",
+      "sha256": "25bba83ef062c7c16b4e8706d41813cc7cbaca36655ed3dc1e5d3cd4c6a45b85",
+      "gzip": false,
+      "bytes": 1284,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/branches.tsv",
+      "stored": "overview-branch-policy3/branches.tsv.gz",
+      "sha256": "13cb2d94b5c25a511de4ae9d75e9b6db24d400fce976d949ac545a4c99fe21cd",
+      "gzip": true,
+      "bytes": 66076,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/candidate.layout.json",
+      "stored": "overview-branch-policy3/candidate.layout.json.gz",
+      "sha256": "e94ccb2a4fdf8715ad36226ff94fd57b8f0ec51b4ec42a3bacd15663d1028431",
+      "gzip": true,
+      "bytes": 855740,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/components.stderr",
+      "stored": "overview-branch-policy3/components.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/components.stdout",
+      "stored": "overview-branch-policy3/components.stdout",
+      "sha256": "6a0b1eb846c19e77c1b5348acc4b8c283eac17827754b9b7ab78d7e330ad17fb",
+      "gzip": false,
+      "bytes": 65,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/components.tsv",
+      "stored": "overview-branch-policy3/components.tsv.gz",
+      "sha256": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+      "gzip": true,
+      "bytes": 61887,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/edges.tsv",
+      "stored": "overview-branch-policy3/edges.tsv.gz",
+      "sha256": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+      "gzip": true,
+      "bytes": 113471,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/eligible-singletons.txt",
+      "stored": "overview-branch-policy3/eligible-singletons.txt",
+      "sha256": "8cdf8a314328558962b0e48619875509c879610f8bf56ac1d9dbbe1d5d90f775",
+      "gzip": false,
+      "bytes": 58170,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/export.json",
+      "stored": "overview-branch-policy3/export.json",
+      "sha256": "39d615d139aa6f39462f0cd95a7cf2a008e45676efc74fe1f581e6aa94d925a1",
+      "gzip": false,
+      "bytes": 21126,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/export.stderr",
+      "stored": "overview-branch-policy3/export.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/export.stdout",
+      "stored": "overview-branch-policy3/export.stdout",
+      "sha256": "56808477c4625afadebec98d4152284d42080fea2a813c31358ececd062e86d3",
+      "gzip": false,
+      "bytes": 1028,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/groups.tsv",
+      "stored": "overview-branch-policy3/groups.tsv.gz",
+      "sha256": "1fcfe119a7f097cf382b4f8ecd50f70aad7384025a17c72d52673660e62ef543",
+      "gzip": true,
+      "bytes": 160987,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/individual.edges.tsv",
+      "stored": "overview-branch-policy3/individual.edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/individual.nodes.tsv",
+      "stored": "overview-branch-policy3/individual.nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/individual.positions.tsv",
+      "stored": "overview-branch-policy3/individual.positions.tsv.gz",
+      "sha256": "14d2b90c6b58371c39209e74928a377e347eb5f555af43dd2283969d4271859a",
+      "gzip": true,
+      "bytes": 55988,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/individual.routes.tsv",
+      "stored": "overview-branch-policy3/individual.routes.tsv.gz",
+      "sha256": "40ed5323dd67039c2e11c0367c53591b782b75bf34ead60d937e0ab9fc5f6728",
+      "gzip": true,
+      "bytes": 160123,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/inference.stderr",
+      "stored": "overview-branch-policy3/inference.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/inference.stdout",
+      "stored": "overview-branch-policy3/inference.stdout",
+      "sha256": "831db02880a006ee039c2972b24aa861392bc40ab5514edfb485783551495c27",
+      "gzip": false,
+      "bytes": 3831,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/learned.tsv",
+      "stored": "overview-branch-policy3/learned.tsv.gz",
+      "sha256": "e6dbe7a1e6a681a7d993eb5b974bff4fdbfc1e000843081f4decc91e793c6b17",
+      "gzip": true,
+      "bytes": 60177,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/learned.tsv.actions.jsonl",
+      "stored": "overview-branch-policy3/learned.tsv.actions.jsonl.gz",
+      "sha256": "30d2fb0489e92f4891b3a8715d546178c00eb668b037c6958e785d6bbe71530f",
+      "gzip": true,
+      "bytes": 6212106,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/learned.tsv.individual",
+      "stored": "overview-branch-policy3/learned.tsv.individual",
+      "sha256": "80c2ca3c61c3abaa9f078201cfca4892ec404be88357631fc52a3b837771b90e",
+      "gzip": false,
+      "bytes": 73664,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/learned.tsv.individual.routes.tsv",
+      "stored": "overview-branch-policy3/learned.tsv.individual.routes.tsv.gz",
+      "sha256": "1f3fca333ac1abaf2a149d69108b60cacf6c81c53fd7f47e12441d8fd934effc",
+      "gzip": true,
+      "bytes": 160836,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/learned.tsv.observations.jsonl",
+      "stored": "overview-branch-policy3/learned.tsv.observations.jsonl.gz",
+      "sha256": "c742b7419348e66593479239762a70b915d2350f4c83e4c923be3cda6af5b9b5",
+      "gzip": true,
+      "bytes": 1745930,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/learned.tsv.policy.json",
+      "stored": "overview-branch-policy3/learned.tsv.policy.json",
+      "sha256": "c3b2febe9269ead81d55023548b306ba0dc5c5425688b266b9afed0af5685c63",
+      "gzip": false,
+      "bytes": 3325,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/learned.tsv.routes.tsv",
+      "stored": "overview-branch-policy3/learned.tsv.routes.tsv.gz",
+      "sha256": "0e1687d22ab4a2bb1db6d3a87cff3964a91c5257a207b080b9f684016150d0f3",
+      "gzip": true,
+      "bytes": 98049,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/learned.tsv.stats.json",
+      "stored": "overview-branch-policy3/learned.tsv.stats.json",
+      "sha256": "ec006a5edeef7705c918cbcdbc504e71207e2fd48949fbec433e60358573ccc1",
+      "gzip": false,
+      "bytes": 941,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/nodes.tsv",
+      "stored": "overview-branch-policy3/nodes.tsv.gz",
+      "sha256": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+      "gzip": true,
+      "bytes": 34879,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/positions.tsv",
+      "stored": "overview-branch-policy3/positions.tsv.gz",
+      "sha256": "e743ff49f8e33012e6a49a343170c41ff17d76d7e6ad722206c657da49cf095c",
+      "gzip": true,
+      "bytes": 45450,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/product.audit.json",
+      "stored": "overview-branch-policy3/product.audit.json",
+      "sha256": "c145bf1e3c1767b91ad1c48c97835a6884449a4585762d5495a48cde4f69aded",
+      "gzip": false,
+      "bytes": 1181,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/product.product-load.log",
+      "stored": "overview-branch-policy3/product.product-load.log",
+      "sha256": "f030a77c54628391f36245a2a022fb77ed0ee4cd814f720271150eee1de34aaf",
+      "gzip": false,
+      "bytes": 2314,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/product.scene.json",
+      "stored": "overview-branch-policy3/product.scene.json.gz",
+      "sha256": "770303bc5b0e6b5e5bfc514514f2ed622b86e2e6c9261d21a65455d89e6867d4",
+      "gzip": true,
+      "bytes": 1198371,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/product.stderr",
+      "stored": "overview-branch-policy3/product.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/product.stdout",
+      "stored": "overview-branch-policy3/product.stdout",
+      "sha256": "b440803f893e99cde05b48aed3a6cc65037316280068c3036c233b34aad53d30",
+      "gzip": false,
+      "bytes": 1052,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/proposal.audit.json",
+      "stored": "overview-branch-policy3/proposal.audit.json.gz",
+      "sha256": "34d33bd5c89c96b96a2cf947fa557692dd31b08fb426013aab6852515da51bbd",
+      "gzip": true,
+      "bytes": 135808,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/replay.stderr",
+      "stored": "overview-branch-policy3/replay.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/replay.stdout",
+      "stored": "overview-branch-policy3/replay.stdout",
+      "sha256": "1d6ffa8399d4a0ca844e15dd70dfc31739d009c68836fb1d8ae35c89ba236e25",
+      "gzip": false,
+      "bytes": 515,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/routes.tsv",
+      "stored": "overview-branch-policy3/routes.tsv.gz",
+      "sha256": "c567af53370cba221efa3cfc7ea5a3b1ef93050170e654e22b96242adc2f4e18",
+      "gzip": true,
+      "bytes": 97577,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/selection.txt",
+      "stored": "overview-branch-policy3/selection.txt",
+      "sha256": "6e091f46bde2e2a8ca06680f3338fdb72790a38149005229cfb661de80367768",
+      "gzip": false,
+      "bytes": 10650,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy3/workflow.json",
+      "stored": "overview-branch-policy3/workflow.json",
+      "sha256": "d8ecfa7de4cf8b6b8885f2a7c04648e6272f673321f93677a7ba8939af45a557",
+      "gzip": false,
+      "bytes": 3022,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/branch-map.json",
+      "stored": "individual-branch-trained2/branch-map.json",
+      "sha256": "708bfbcb8a749b5f1bb8a30c900df2d35f0af6afbcd2d71ad432b5e5ab94d6ef",
+      "gzip": false,
+      "bytes": 1284,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/branches.tsv",
+      "stored": "individual-branch-trained2/branches.tsv.gz",
+      "sha256": "67e9da971634227b2e3be639e6447ed759ab263a18142436310f3e8ac7799cbd",
+      "gzip": true,
+      "bytes": 83131,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/candidate.individual.layout.json",
+      "stored": "individual-branch-trained2/candidate.individual.layout.json.gz",
+      "sha256": "22cad565fa6ca1056aef9436884eb07e9d3128720e9a09e0afbc30cc0f1cf2bb",
+      "gzip": true,
+      "bytes": 570431,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/components.tsv",
+      "stored": "individual-branch-trained2/components.tsv.gz",
+      "sha256": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+      "gzip": true,
+      "bytes": 68780,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/edges.tsv",
+      "stored": "individual-branch-trained2/edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/experiment.json",
+      "stored": "individual-branch-trained2/experiment.json",
+      "sha256": "ba4a7b28b175b2e8caa08c75664d7702769d3ffbc35d89b92a0cea695b67b68e",
+      "gzip": false,
+      "bytes": 2083,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/groups.tsv",
+      "stored": "individual-branch-trained2/groups.tsv.gz",
+      "sha256": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d",
+      "gzip": true,
+      "bytes": 199382,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/individual.audit.json",
+      "stored": "individual-branch-trained2/individual.audit.json",
+      "sha256": "bfe7928ea7563594bf45a3bcce524a191bc9c0513c6a5bca100af28a5b5a47f6",
+      "gzip": false,
+      "bytes": 1106,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/individual.edges.tsv",
+      "stored": "individual-branch-trained2/individual.edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/individual.nodes.tsv",
+      "stored": "individual-branch-trained2/individual.nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/individual.positions.tsv",
+      "stored": "individual-branch-trained2/individual.positions.tsv.gz",
+      "sha256": "54478d09ca9e905a94a6846aba81ca07403b44e65a440179ae7caa23c01c9bdd",
+      "gzip": true,
+      "bytes": 73703,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/individual.routes.tsv",
+      "stored": "individual-branch-trained2/individual.routes.tsv.gz",
+      "sha256": "5619fb8e7d399a0a084a6cef862849aebecc4fb98600aec90fa6c64e3e8e0790",
+      "gzip": true,
+      "bytes": 160865,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/learned.tsv",
+      "stored": "individual-branch-trained2/learned.tsv.gz",
+      "sha256": "89f26251454d89528ebeab2107fbf32e3fd6d4ef8f91271d3325637283238043",
+      "gzip": true,
+      "bytes": 73705,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/learned.tsv.actions.jsonl",
+      "stored": "individual-branch-trained2/learned.tsv.actions.jsonl.gz",
+      "sha256": "e98cbc4bbd57c109f8776b0b2d6409151c776e83ecbee1c689d0eff0cce86b4e",
+      "gzip": true,
+      "bytes": 6478062,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/learned.tsv.individual",
+      "stored": "individual-branch-trained2/learned.tsv.individual",
+      "sha256": "89f26251454d89528ebeab2107fbf32e3fd6d4ef8f91271d3325637283238043",
+      "gzip": false,
+      "bytes": 73705,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/learned.tsv.individual.routes.tsv",
+      "stored": "individual-branch-trained2/learned.tsv.individual.routes.tsv.gz",
+      "sha256": "3dcc498ad36dc1e58b64eff8678ade86149888cc19d8c5f5a58a6eba53f4065b",
+      "gzip": true,
+      "bytes": 160867,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/learned.tsv.observations.jsonl",
+      "stored": "individual-branch-trained2/learned.tsv.observations.jsonl.gz",
+      "sha256": "e62ec32c2791bc4af744d0ed31604ff5271dbbe6bcd3b8dd85cbe8c1bc3fa800",
+      "gzip": true,
+      "bytes": 1481951,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/learned.tsv.policy.json",
+      "stored": "individual-branch-trained2/learned.tsv.policy.json",
+      "sha256": "d7d4f3ec984153c5657bf1195692896a2fc6ff84a89ad5c9881e23f23a6be867",
+      "gzip": false,
+      "bytes": 3367,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/learned.tsv.routes.tsv",
+      "stored": "individual-branch-trained2/learned.tsv.routes.tsv.gz",
+      "sha256": "3dcc498ad36dc1e58b64eff8678ade86149888cc19d8c5f5a58a6eba53f4065b",
+      "gzip": true,
+      "bytes": 160867,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/learned.tsv.stats.json",
+      "stored": "individual-branch-trained2/learned.tsv.stats.json",
+      "sha256": "5334d93d89f3551561e1feed328db616346a167dfa649bdc18f72af23957cd42",
+      "gzip": false,
+      "bytes": 945,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/nodes.tsv",
+      "stored": "individual-branch-trained2/nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/positions.tsv",
+      "stored": "individual-branch-trained2/positions.tsv.gz",
+      "sha256": "54478d09ca9e905a94a6846aba81ca07403b44e65a440179ae7caa23c01c9bdd",
+      "gzip": true,
+      "bytes": 73703,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/routes.tsv",
+      "stored": "individual-branch-trained2/routes.tsv.gz",
+      "sha256": "5619fb8e7d399a0a084a6cef862849aebecc4fb98600aec90fa6c64e3e8e0790",
+      "gzip": true,
+      "bytes": 160865,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/workflow.audit.json",
+      "stored": "individual-branch-trained2/workflow.audit.json",
+      "sha256": "8b47843c060c968a797db1a3e7c50aa539dc2d4130034c2120364ab6fb23a900",
+      "gzip": false,
+      "bytes": 2655,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained2/workflow.log",
+      "stored": "individual-branch-trained2/workflow.log",
+      "sha256": "bbb31379eb1262d55dfeec54671fa3857ca302a1429906be3c7f13c892a55449",
+      "gzip": false,
+      "bytes": 6291,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/individual-actual.jsonl",
+      "stored": "branch-policy-training1/individual-actual.jsonl.gz",
+      "sha256": "9a123894f02cb976821e991802a79d9142d3344d422c0f43df70f5b8dc834d96",
+      "gzip": true,
+      "bytes": 56212,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/individual-actual.stderr",
+      "stored": "branch-policy-training1/individual-actual.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/individual-actual.stdout",
+      "stored": "branch-policy-training1/individual-actual.stdout",
+      "sha256": "91d23e676566b665013cba897f9bcc58ae787fdcc2e5d6b4b0fce14bb7aca06f",
+      "gzip": false,
+      "bytes": 231,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/individual-combined.jsonl",
+      "stored": "branch-policy-training1/individual-combined.jsonl.gz",
+      "sha256": "374d499e7b91d0d06f3bd63cf10857c282856b7456b9e824c6a304a97f3b9b8a",
+      "gzip": true,
+      "bytes": 6082640,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/individual-synthetic-training.stderr",
+      "stored": "branch-policy-training1/individual-synthetic-training.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/individual-synthetic-training.stdout",
+      "stored": "branch-policy-training1/individual-synthetic-training.stdout",
+      "sha256": "1c5150b3894bb775798ee3cb58e76839fb11057c4791b9e4ea62c57e633b9c10",
+      "gzip": false,
+      "bytes": 1873,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/individual-synthetic.jsonl",
+      "stored": "branch-policy-training1/individual-synthetic.jsonl.gz",
+      "sha256": "8f28b28faf0514a0a63af51547d5241d00e70a6e9ddde8ededf451b33343d019",
+      "gzip": true,
+      "bytes": 6026428,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/individual-synthetic.npz",
+      "stored": "branch-policy-training1/individual-synthetic.npz",
+      "sha256": "fb0dade64e0e4f42c0e03508ec448fb121a31a32376ed0fe4c358d187e0a9a41",
+      "gzip": false,
+      "bytes": 151283,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/individual-synthetic.stderr",
+      "stored": "branch-policy-training1/individual-synthetic.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/individual-synthetic.stdout",
+      "stored": "branch-policy-training1/individual-synthetic.stdout",
+      "sha256": "8d1df6bf3b68e3c76b0ac801e2fea847352b69938e6f026ea1d26cd3df7be78d",
+      "gzip": false,
+      "bytes": 80,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/individual-synthetic.training.json",
+      "stored": "branch-policy-training1/individual-synthetic.training.json",
+      "sha256": "1ffa15aa80229cf0a72c7ac0c050e4049b9ac83d0e697345e35f242273d9cb73",
+      "gzip": false,
+      "bytes": 4108,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-actual.jsonl",
+      "stored": "branch-policy-training1/overview-actual.jsonl.gz",
+      "sha256": "d7f79731927fd519854b37ebed97572f61eea22af6d2f2aabfb8302cc3bd441d",
+      "gzip": true,
+      "bytes": 265292,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-actual.stderr",
+      "stored": "branch-policy-training1/overview-actual.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-actual.stdout",
+      "stored": "branch-policy-training1/overview-actual.stdout",
+      "sha256": "1f944ba6e474457d6e2d9d301e1354523a1e441343e52be8b1af9d291c388a07",
+      "gzip": false,
+      "bytes": 285,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-combined.jsonl",
+      "stored": "branch-policy-training1/overview-combined.jsonl.gz",
+      "sha256": "7d23c0b3d936f5a6c8900a5a0fd77156ade01db61275bfc99d8206c70793d0d1",
+      "gzip": true,
+      "bytes": 6274655,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-synthetic-training.stderr",
+      "stored": "branch-policy-training1/overview-synthetic-training.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-synthetic-training.stdout",
+      "stored": "branch-policy-training1/overview-synthetic-training.stdout",
+      "sha256": "3ffef6cfb3a1b9ea3df0579890a173d1c30303c9f802f5ea4e2efad867945a30",
+      "gzip": false,
+      "bytes": 1872,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-synthetic.jsonl",
+      "stored": "branch-policy-training1/overview-synthetic.jsonl.gz",
+      "sha256": "a568f584bc5d8418aedd779cf24b52ab9f779f752a0899f98524cc89b804791d",
+      "gzip": true,
+      "bytes": 6009363,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-synthetic.npz",
+      "stored": "branch-policy-training1/overview-synthetic.npz",
+      "sha256": "11793ff5b65e5582716d71b813f60cd292f0cd8982fc56e9f940d32169d1e787",
+      "gzip": false,
+      "bytes": 151260,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-synthetic.stderr",
+      "stored": "branch-policy-training1/overview-synthetic.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-synthetic.stdout",
+      "stored": "branch-policy-training1/overview-synthetic.stdout",
+      "sha256": "fe7d8d8a158fe4f4c9f140d7cfc425945b3ff6736785c598e4fb3fc144b0ac36",
+      "gzip": false,
+      "bytes": 80,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/overview-synthetic.training.json",
+      "stored": "branch-policy-training1/overview-synthetic.training.json",
+      "sha256": "5200ea930c9a729c68f7327d569e2ee37828456360a8c0f2f21fc923b19a2852",
+      "gzip": false,
+      "bytes": 4509,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-training1/report.json",
+      "stored": "branch-policy-training1/report.json",
+      "sha256": "b4c3884133bf68e56a7718dd97c5e9216a05b358c43edbb217097a1fc39f73ae",
+      "gzip": false,
+      "bytes": 9158,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v23-sources/constrained_boundary_sweep.h",
+      "stored": "branch-policy-v23-sources/constrained_boundary_sweep.h",
+      "sha256": "296dab7012fe0e0192e2d526bda778f38595f1b8d446d0e2b124d4576297aa79",
+      "gzip": false,
+      "bytes": 9566,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v23-sources/constrained_dual_node_geometry.h",
+      "stored": "branch-policy-v23-sources/constrained_dual_node_geometry.h",
+      "sha256": "aa984669fd96ddbcd375301d564f9f511cb406549a44619a17ce80cbdbdcf692",
+      "gzip": false,
+      "bytes": 6646,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v23-sources/constrained_scene.h",
+      "stored": "branch-policy-v23-sources/constrained_scene.h",
+      "sha256": "ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6",
+      "gzip": false,
+      "bytes": 9252,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v23-sources/learn_card_policy.py",
+      "stored": "branch-policy-v23-sources/learn_card_policy.py",
+      "sha256": "75e47cbceb4a4a4815b88d2fa66e98b04d0097776acd0a1172f22e73c0938c4b",
+      "gzip": false,
+      "bytes": 40155,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v23-sources/learned_branch_map.py",
+      "stored": "branch-policy-v23-sources/learned_branch_map.py",
+      "sha256": "db098689443fc07976d69d0b5092035e14c00948106d6d496ee7917d27576b42",
+      "gzip": false,
+      "bytes": 2718,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v23-sources/learned_global_replay.py",
+      "stored": "branch-policy-v23-sources/learned_global_replay.py",
+      "sha256": "2b17799b39d18de71af7819b586248a8167f5545cfcba9caf28ecb491debcccd",
+      "gzip": false,
+      "bytes": 10230,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v23-sources/ml_component_environment.cpp",
+      "stored": "branch-policy-v23-sources/ml_component_environment.cpp",
+      "sha256": "f4fc8f9a8ca00183c12efecdafb2e5e4d51d1dd5a90856dcc9a84ff6df4dcbc7",
+      "gzip": false,
+      "bytes": 50122,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v23-sources/run_individual_policy_experiment.py",
+      "stored": "branch-policy-v23-sources/run_individual_policy_experiment.py",
+      "sha256": "b5d9882177e834dc095016fb9e0668f26c88a0c4515b1e510866e6115823b64e",
+      "gzip": false,
+      "bytes": 7308,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v23-sources/run_learned_leaf_layout.py",
+      "stored": "branch-policy-v23-sources/run_learned_leaf_layout.py",
+      "sha256": "eebf6a43f71ca46a428eabc7e4f29a8f98fba308a5f40f669d39d15d0cc7aae3",
+      "gzip": false,
+      "bytes": 9200,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v23-sources/run_memory_bounded.py",
+      "stored": "branch-policy-v23-sources/run_memory_bounded.py",
+      "sha256": "7784ae78aec359887155ff86d37dd503628d490487d2a3e1f9b4e89f3c02a43d",
+      "gzip": false,
+      "bytes": 5742,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v24-sources/constrained_boundary_sweep.h",
+      "stored": "branch-policy-v24-sources/constrained_boundary_sweep.h",
+      "sha256": "296dab7012fe0e0192e2d526bda778f38595f1b8d446d0e2b124d4576297aa79",
+      "gzip": false,
+      "bytes": 9566,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v24-sources/constrained_dual_node_geometry.h",
+      "stored": "branch-policy-v24-sources/constrained_dual_node_geometry.h",
+      "sha256": "aa984669fd96ddbcd375301d564f9f511cb406549a44619a17ce80cbdbdcf692",
+      "gzip": false,
+      "bytes": 6646,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v24-sources/constrained_scene.h",
+      "stored": "branch-policy-v24-sources/constrained_scene.h",
+      "sha256": "ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6",
+      "gzip": false,
+      "bytes": 9252,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v24-sources/learn_card_policy.py",
+      "stored": "branch-policy-v24-sources/learn_card_policy.py",
+      "sha256": "3092b426a25bb43d1a5c6b0ad39eefa4eb4948ee7af44a58a2ee81ac5fa2b5ba",
+      "gzip": false,
+      "bytes": 40733,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v24-sources/learned_branch_map.py",
+      "stored": "branch-policy-v24-sources/learned_branch_map.py",
+      "sha256": "db098689443fc07976d69d0b5092035e14c00948106d6d496ee7917d27576b42",
+      "gzip": false,
+      "bytes": 2718,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v24-sources/learned_global_replay.py",
+      "stored": "branch-policy-v24-sources/learned_global_replay.py",
+      "sha256": "2b17799b39d18de71af7819b586248a8167f5545cfcba9caf28ecb491debcccd",
+      "gzip": false,
+      "bytes": 10230,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v24-sources/ml_component_environment.cpp",
+      "stored": "branch-policy-v24-sources/ml_component_environment.cpp",
+      "sha256": "db9f67600495cd91f7adcb4911263f3f1e4d56079f419f02d9d8c3a3a3314b26",
+      "gzip": false,
+      "bytes": 52141,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v24-sources/run_individual_policy_experiment.py",
+      "stored": "branch-policy-v24-sources/run_individual_policy_experiment.py",
+      "sha256": "b5d9882177e834dc095016fb9e0668f26c88a0c4515b1e510866e6115823b64e",
+      "gzip": false,
+      "bytes": 7308,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v24-sources/run_learned_leaf_layout.py",
+      "stored": "branch-policy-v24-sources/run_learned_leaf_layout.py",
+      "sha256": "eebf6a43f71ca46a428eabc7e4f29a8f98fba308a5f40f669d39d15d0cc7aae3",
+      "gzip": false,
+      "bytes": 9200,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v24-sources/run_memory_bounded.py",
+      "stored": "branch-policy-v24-sources/run_memory_bounded.py",
+      "sha256": "7784ae78aec359887155ff86d37dd503628d490487d2a3e1f9b4e89f3c02a43d",
+      "gzip": false,
+      "bytes": 5742,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/component-environment-v23",
+      "stored": "dependencies/component-environment-v23",
+      "sha256": "352b3e9e2f73e4fbcadb90ebd31728f6ee84cf5a986d1bfc7a1a327251187922",
+      "gzip": false,
+      "bytes": 197624,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v23-validation.json",
+      "stored": "branch-policy-v23-validation.json",
+      "sha256": "f2b28d3b27760753281717c15a1d649d176a243641035d2c04ebc8157211447a",
+      "gzip": false,
+      "bytes": 1509,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/component-environment-v24",
+      "stored": "dependencies/component-environment-v24",
+      "sha256": "0be42b1a7a3b6f932631211e0c10dd38bf788a28f232699b0a98b25007ce063f",
+      "gzip": false,
+      "bytes": 215144,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-v24-validation.json",
+      "stored": "branch-policy-v24-validation.json",
+      "sha256": "d5f47375f93827d29f95a7901bef09dcb1488f7449c30011a613007dadd8dec6",
+      "gzip": false,
+      "bytes": 2244,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/train_branch_policies.py",
+      "stored": "train_branch_policies.py",
+      "sha256": "435176730f212b3f427c7830d77ad19b290dff2bf96283a1e7ef8f0f16a32cb5",
+      "gzip": false,
+      "bytes": 4161,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/validate_branch_training.py",
+      "stored": "validate_branch_training.py",
+      "sha256": "980733436a97746e7af71f8075af2fdc027eaa04a9c917131c0051740c522621",
+      "gzip": false,
+      "bytes": 1892,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/seal_branch_policy_experiments.py",
+      "stored": "seal_branch_policy_experiments.py",
+      "sha256": "a9ddf8ad67d95dd98d46a7599720a5b96266b96c961a6e5d477cf5faff864f99",
+      "gzip": false,
+      "bytes": 10201,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/branch-policy-run-metrics.json",
+      "stored": "branch-policy-run-metrics.json",
+      "sha256": "f1ad34c7fd8a12b747b564fcbec8f60dcb8df4a9f8e7366b54a0b9fe98d01dce",
+      "gzip": false,
+      "bytes": 1209,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-branch-policy1-diagnosis.json",
+      "stored": "overview-branch-policy1-diagnosis.json",
+      "sha256": "d8e459ea92289fbc4e3efebdc813fcb3e2fa96f5e4a077c5f12db6302d8a28c8",
+      "gzip": false,
+      "bytes": 887,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-branch-trained1-diagnosis.json",
+      "stored": "individual-branch-trained1-diagnosis.json",
+      "sha256": "2dc89a0bd1b2d9e3921c733001b16cdd8e1c59a4544bd1ac9cc3ec55d70467e4",
+      "gzip": false,
+      "bytes": 618,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/apply_learned_components.cjs",
+      "stored": "code/apply_learned_components.cjs",
+      "sha256": "0d8a57b495ffebaaff9f716f1806946626e43ebe34f8989638ed42a009e27299",
+      "gzip": false,
+      "bytes": 10332,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/audit_individual_policy_experiment.cjs",
+      "stored": "code/audit_individual_policy_experiment.cjs",
+      "sha256": "e58d4559ea56f758ff25ac335c878475ad82bcca7acdaf385dcabeba2710105f",
+      "gzip": false,
+      "bytes": 4782,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/audit_leaf_card_connections.cjs",
+      "stored": "code/audit_leaf_card_connections.cjs",
+      "sha256": "7870841810547d295a1a7648d26d7e465d71027fbae517b74e7003233df82517",
+      "gzip": false,
+      "bytes": 8538,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/probe_overview_boundary.cjs",
+      "stored": "code/probe_overview_boundary.cjs",
+      "sha256": "350d252f0553e1e2ce19be6ae1fa432869830fd09185578fb5de2f6160db01f0",
+      "gzip": false,
+      "bytes": 14225,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/export_learned_components.cjs",
+      "stored": "code/export_learned_components.cjs",
+      "sha256": "45104df0f5a9329c6c41bfe59083ebbaeb9dd332590246777edc83ed73064dfe",
+      "gzip": false,
+      "bytes": 2349,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/compose_independent_views.cjs",
+      "stored": "code/compose_independent_views.cjs",
+      "sha256": "43823ead3c09a8da7acc14bc82d907220505042db75ffe9985f3ca7f638f32b6",
+      "gzip": false,
+      "bytes": 8950,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/combined-branch-verified/audit.json",
+      "stored": "combined-best/audit.json",
+      "sha256": "3ac293699521c027007a76fe1e2d5e0651032754f0d210ffa4003d0105f2321b",
+      "gzip": false,
+      "bytes": 1168,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/combined-branch-verified/product-load.log",
+      "stored": "combined-best/product-load.log",
+      "sha256": "0fd96329796ebc26e7e523c94599b90ade73913f12d80a86e736d95ac6add52b",
+      "gzip": false,
+      "bytes": 2316,
+      "restoredHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/combined-branch-verified/candidate.layout.json",
+      "stored": "combined-best/candidate.layout.json",
+      "sha256": "9f26fbaca13a74a476f31bffa4cc9f1f30702f1ddabaa8eadd67b375822b9f2a",
+      "gzip": false,
+      "bytes": 2428023,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.layout.json",
+      "stored": "previous-best/captain-ml-independent-views.layout.json",
+      "sha256": "38952a65b48a05e3cfe12bba4f0f284d8e71672498c3bc5ada73e204cc417598",
+      "gzip": false,
+      "bytes": 2428116,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.audit.json",
+      "stored": "previous-best/captain-ml-independent-views.audit.json",
+      "sha256": "b4995ece25abc682204563c94d56827b36b2a1e718fa8776b398067343a854d7",
+      "gzip": false,
+      "bytes": 1139,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.provenance.json",
+      "stored": "previous-best/captain-ml-independent-views.provenance.json",
+      "sha256": "f0295c27f2c396bee470545756ca154aaf44151188f8d1a1e09533e1c536d6b3",
+      "gzip": false,
+      "bytes": 1986,
+      "restoredHashVerified": true
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "view": "overview",
+  "sourceSha256": "23c020f04cbc7ce41c244f70e628d8272d7fb85fa03a07c70450a36e9448fc95",
+  "sourceVisual": 299,
+  "nodeIds": [
+    "db.StockTransferAgreement",
+    "db.Shareholder",
+    "db.OptionGrantee",
+    "db.DirectorsMeetingNoticeEmail",
+    "db.AgendaOptionGrantGrantee",
+    "db.BulkEmail",
+    "db.OptionGrantContract",
+    "db.ShareholdersMeetingConvocationNoticeEmail",
+    "db.MeetingDraft",
+    "db.DirectorsMeeting",
+    "db.NewIssueNoticeEmail",
+    "db.AgendaOptionExerciseClaim"
+  ],
+  "seedEdge": "edge:declared:db.StockTransferAgreement:seller",
+  "selection": "fixed endpoints and most frequent counterpart cards of a measured conflict edge",
+  "coveredSourceConflicts": 149,
+  "positionsProposed": false,
+  "coordinatesAsTargets": false
+}

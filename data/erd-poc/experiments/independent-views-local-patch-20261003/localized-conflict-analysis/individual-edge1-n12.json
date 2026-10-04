@@ -1,0 +1,24 @@
+{
+  "view": "individual",
+  "sourceSha256": "e8c14059fbed1a6fabc28f1b0b5bf3bd3f143367126209507638dcebe2e2b874",
+  "sourceVisual": 1990,
+  "nodeIds": [
+    "db.Stakeholder",
+    "db.Address",
+    "db.FileAttachment",
+    "db.Meeting",
+    "db.StockTransferAgreement",
+    "db.Company",
+    "db.BulkEmail",
+    "db.MeetingDraft",
+    "db.Shareholder",
+    "db.ShareholdersMeeting",
+    "db.DirectorsMeeting",
+    "db.BulkEmailRecipient"
+  ],
+  "seedEdge": "edge:declared:db.Stakeholder:standardized_address",
+  "selection": "fixed endpoints and most frequent counterpart cards of a measured conflict edge",
+  "coveredSourceConflicts": 1466,
+  "positionsProposed": false,
+  "coordinatesAsTargets": false
+}

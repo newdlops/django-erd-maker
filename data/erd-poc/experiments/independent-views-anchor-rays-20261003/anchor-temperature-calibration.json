@@ -1,0 +1,270 @@
+{
+  "views": {
+    "individual": {
+      "sourceSha256": "42adab07b311c16463bd7f5dc0ee68941d6047ac0372415393ad9355c126fe22",
+      "legalBatches": 3,
+      "cases": [
+        {
+          "kind": "source",
+          "nativeVisual": 1964,
+          "scores": [
+            {
+              "temperature": 1.0,
+              "softVisual": 2026.4170302444572,
+              "binaryVisual": 1964,
+              "bias": 62.41703024445724
+            },
+            {
+              "temperature": 0.25,
+              "softVisual": 1983.7993659755984,
+              "binaryVisual": 1964,
+              "bias": 19.799365975598448
+            },
+            {
+              "temperature": 0.05,
+              "softVisual": 1967.0460539494243,
+              "binaryVisual": 1964,
+              "bias": 3.0460539494242767
+            },
+            {
+              "temperature": 0.01,
+              "softVisual": 1964.1071287816726,
+              "binaryVisual": 1964,
+              "bias": 0.10712878167259987
+            }
+          ]
+        },
+        {
+          "kind": "frozen-legal",
+          "checkpoint": ".tmp/visualcross-ml-150-750-20261003/individual-anchor-ray1/joint-policy-0160.npz",
+          "checkpointSha256": "2b2d9df078587dc3d83aa1033c8d4aa0d01aa314d7493272490458d9fac387b8",
+          "nativeVisual": 1973,
+          "scores": [
+            {
+              "temperature": 1.0,
+              "softVisual": 2011.738378267727,
+              "binaryVisual": 1973,
+              "bias": 38.73837826772706
+            },
+            {
+              "temperature": 0.25,
+              "softVisual": 1978.7502909516088,
+              "binaryVisual": 1973,
+              "bias": 5.750290951608804
+            },
+            {
+              "temperature": 0.05,
+              "softVisual": 1973.853805740252,
+              "binaryVisual": 1973,
+              "bias": 0.853805740252028
+            },
+            {
+              "temperature": 0.01,
+              "softVisual": 1973.0610224956938,
+              "binaryVisual": 1973,
+              "bias": 0.06102249569380547
+            }
+          ]
+        },
+        {
+          "kind": "frozen-legal",
+          "checkpoint": ".tmp/visualcross-ml-150-750-20261003/individual-anchor-ray1/joint-policy-0036.npz",
+          "checkpointSha256": "4c40f86f43f57ac1717a34986015d1b8ad27ac1d72d1a82cbf13895d674db288",
+          "nativeVisual": 1975,
+          "scores": [
+            {
+              "temperature": 1.0,
+              "softVisual": 2022.7039491935818,
+              "binaryVisual": 1975,
+              "bias": 47.70394919358182
+            },
+            {
+              "temperature": 0.25,
+              "softVisual": 1983.6065482536526,
+              "binaryVisual": 1975,
+              "bias": 8.60654825365259
+            },
+            {
+              "temperature": 0.05,
+              "softVisual": 1975.2289166719986,
+              "binaryVisual": 1975,
+              "bias": 0.22891667199860422
+            },
+            {
+              "temperature": 0.01,
+              "softVisual": 1975.2630669520338,
+              "binaryVisual": 1975,
+              "bias": 0.26306695203379604
+            }
+          ]
+        },
+        {
+          "kind": "frozen-legal",
+          "checkpoint": ".tmp/visualcross-ml-150-750-20261003/individual-anchor-ray1/joint-policy-0052.npz",
+          "checkpointSha256": "2a3c37d9f749196f408e534e7260115446118b0424e722707c8dfb7032d1dd33",
+          "nativeVisual": 1979,
+          "scores": [
+            {
+              "temperature": 1.0,
+              "softVisual": 2020.6389523183627,
+              "binaryVisual": 1979,
+              "bias": 41.638952318362726
+            },
+            {
+              "temperature": 0.25,
+              "softVisual": 1985.3504774883972,
+              "binaryVisual": 1979,
+              "bias": 6.350477488397246
+            },
+            {
+              "temperature": 0.05,
+              "softVisual": 1979.575179648085,
+              "binaryVisual": 1979,
+              "bias": 0.5751796480849407
+            },
+            {
+              "temperature": 0.01,
+              "softVisual": 1979.2204175375728,
+              "binaryVisual": 1979,
+              "bias": 0.22041753757275728
+            }
+          ]
+        }
+      ]
+    },
+    "overview": {
+      "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52",
+      "legalBatches": 21,
+      "cases": [
+        {
+          "kind": "source",
+          "nativeVisual": 289,
+          "scores": [
+            {
+              "temperature": 1.0,
+              "softVisual": 302.17165942181396,
+              "binaryVisual": 289,
+              "bias": 13.171659421813956
+            },
+            {
+              "temperature": 0.25,
+              "softVisual": 293.1013340327824,
+              "binaryVisual": 289,
+              "bias": 4.101334032782404
+            },
+            {
+              "temperature": 0.05,
+              "softVisual": 289.9570700889363,
+              "binaryVisual": 289,
+              "bias": 0.9570700889362911
+            },
+            {
+              "temperature": 0.01,
+              "softVisual": 289.2981707438795,
+              "binaryVisual": 289,
+              "bias": 0.2981707438794956
+            }
+          ]
+        },
+        {
+          "kind": "frozen-legal",
+          "checkpoint": ".tmp/visualcross-ml-150-750-20261003/overview-anchor-ray1/joint-policy-0008.npz",
+          "checkpointSha256": "b0f26a63341003f2f56e8c99ff054af5be8cbaa9776ea672c40905c1e37ac1bb",
+          "nativeVisual": 289,
+          "scores": [
+            {
+              "temperature": 1.0,
+              "softVisual": 297.30085762817384,
+              "binaryVisual": 289,
+              "bias": 8.300857628173844
+            },
+            {
+              "temperature": 0.25,
+              "softVisual": 289.90602605655613,
+              "binaryVisual": 289,
+              "bias": 0.9060260565561293
+            },
+            {
+              "temperature": 0.05,
+              "softVisual": 289.09404902336723,
+              "binaryVisual": 289,
+              "bias": 0.09404902336723353
+            },
+            {
+              "temperature": 0.01,
+              "softVisual": 289.0000118181664,
+              "binaryVisual": 289,
+              "bias": 1.1818166399280017e-05
+            }
+          ]
+        },
+        {
+          "kind": "frozen-legal",
+          "checkpoint": ".tmp/visualcross-ml-150-750-20261003/overview-anchor-ray1/joint-policy-0016.npz",
+          "checkpointSha256": "84e1b5802bdef61b9965041f1e95ddecbea17b460adeca6d02bbc12f3d8e11a7",
+          "nativeVisual": 289,
+          "scores": [
+            {
+              "temperature": 1.0,
+              "softVisual": 296.06609750132276,
+              "binaryVisual": 289,
+              "bias": 7.0660975013227585
+            },
+            {
+              "temperature": 0.25,
+              "softVisual": 289.44168709588644,
+              "binaryVisual": 289,
+              "bias": 0.4416870958864365
+            },
+            {
+              "temperature": 0.05,
+              "softVisual": 289.0001356093925,
+              "binaryVisual": 289,
+              "bias": 0.00013560939248691284
+            },
+            {
+              "temperature": 0.01,
+              "softVisual": 288.9999999890898,
+              "binaryVisual": 289,
+              "bias": -1.0910184755630326e-08
+            }
+          ]
+        },
+        {
+          "kind": "frozen-legal",
+          "checkpoint": ".tmp/visualcross-ml-150-750-20261003/overview-anchor-ray1/joint-policy-0024.npz",
+          "checkpointSha256": "45d529c31d903bb5656b923d7f26c329eb2c69f5a0f8239834782c65f3d68513",
+          "nativeVisual": 289,
+          "scores": [
+            {
+              "temperature": 1.0,
+              "softVisual": 295.32791957877146,
+              "binaryVisual": 289,
+              "bias": 6.327919578771457
+            },
+            {
+              "temperature": 0.25,
+              "softVisual": 289.5946980916581,
+              "binaryVisual": 289,
+              "bias": 0.5946980916580742
+            },
+            {
+              "temperature": 0.05,
+              "softVisual": 289.0583162652954,
+              "binaryVisual": 289,
+              "bias": 0.0583162652953888
+            },
+            {
+              "temperature": 0.01,
+              "softVisual": 289.00000089704736,
+              "binaryVisual": 289,
+              "bias": 8.970473572844639e-07
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "newCandidateCreated": false,
+  "nativeMeasurementsReused": true
+}

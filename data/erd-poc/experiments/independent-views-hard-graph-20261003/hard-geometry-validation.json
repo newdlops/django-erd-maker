@@ -1,0 +1,102 @@
+{
+  "views": [
+    {
+      "view": "overview",
+      "zeroBaselinePenalty": 0.0,
+      "baseline": {
+        "total": 0.0,
+        "full": {
+          "total": 0.0,
+          "adjacentCrossingPenalty": 0.0,
+          "ownCardPenalty": 0.0,
+          "binaryAdjacentCrossings": 0,
+          "binaryOwnCardHits": 0
+        },
+        "projected": {
+          "total": 0.0,
+          "adjacentCrossingPenalty": 0.0,
+          "ownCardPenalty": 0.0,
+          "binaryAdjacentCrossings": 0,
+          "binaryOwnCardHits": 0
+        }
+      },
+      "active": {
+        "total": 1090908.2541477373,
+        "full": {
+          "total": 632090.2068763123,
+          "adjacentCrossingPenalty": 545222.6688671019,
+          "ownCardPenalty": 86867.53800921042,
+          "binaryAdjacentCrossings": 46,
+          "binaryOwnCardHits": 7
+        },
+        "projected": {
+          "total": 458818.047271425,
+          "adjacentCrossingPenalty": 371950.5092622146,
+          "ownCardPenalty": 86867.53800921042,
+          "binaryAdjacentCrossings": 7,
+          "binaryOwnCardHits": 7
+        }
+      },
+      "gradientComparisons": 20,
+      "gradientsVerified": true,
+      "nativeRejectedBatch": {
+        "accepted": false,
+        "legal": false,
+        "visual": 306,
+        "individualVisual": 4370,
+        "spacing": 0,
+        "hard": 21,
+        "individualHard": 99,
+        "reason": "hard"
+      },
+      "checkpointSha256": "d5e696f2e1de9d44471c5ae4022cd5c4873a355a9e6d9048f142801629880455",
+      "fullAdjacentPairs": 28757,
+      "fullOwnPairs": 3454,
+      "includesProjectedView": true
+    },
+    {
+      "view": "individual",
+      "zeroBaselinePenalty": 0.0,
+      "baseline": {
+        "total": 0.0,
+        "adjacentCrossingPenalty": 0.0,
+        "ownCardPenalty": 0.0,
+        "binaryAdjacentCrossings": 0,
+        "binaryOwnCardHits": 0
+      },
+      "active": {
+        "total": 437341.114787823,
+        "adjacentCrossingPenalty": 437341.114787823,
+        "ownCardPenalty": 0.0,
+        "binaryAdjacentCrossings": 24,
+        "binaryOwnCardHits": 0
+      },
+      "gradientComparisons": 20,
+      "gradientsVerified": true,
+      "nativeRejectedBatch": {
+        "accepted": false,
+        "legal": false,
+        "visual": 2020,
+        "individualVisual": 2020,
+        "spacing": 0,
+        "hard": 48,
+        "individualHard": 48,
+        "reason": "hard"
+      },
+      "checkpointSha256": "59eaa75adad7376ced4b68c917d28b0a76d275f63a1b2cd201c6779be24b9353",
+      "fullAdjacentPairs": 28759,
+      "fullOwnPairs": 3454,
+      "includesProjectedView": false
+    }
+  ],
+  "hardWeight": 1000,
+  "boundaryContactLossImplemented": false,
+  "nativeGeometryRemainsAuthoritative": true,
+  "gradientsAreForContinuousLoss": true,
+  "quantizedTrainingUsesStraightThroughEstimator": true,
+  "implementationHashes": {
+    "joint_layout_proxy.py": "222b41ebae00c8b0516289c2d9fb7526666e79f93dde9943d61ce3e5c003e2be",
+    "joint_grouped_routes.py": "3b7757e76590aa0e1e935e7f757035f89a6fece56e6a10deb7791e71f1642f6f",
+    "joint_hard_geometry.py": "bf17fdce996bf591b7e1ef3f641b974775c393a391dccde2411df89028613639"
+  }
+}

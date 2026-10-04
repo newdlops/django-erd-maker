@@ -1,0 +1,41 @@
+{
+  "scope": "independent individual-view experiment",
+  "promoted": false,
+  "allowNeutral": true,
+  "pairPolicy": false,
+  "branchMoves": true,
+  "branchMode": "cut",
+  "areaExploration": false,
+  "explorationLimit": 0,
+  "initialTemperature": 2.0,
+  "source": ".tmp/visualcross-ml-150-750-20261003/individual-cut-trained2/candidate.individual.layout.json",
+  "sourceSha256": "77ce2f250e1302e20d470f377b8fbb85283783f5687905f480b5e7a9c6b811ae",
+  "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+  "checkpointSha256": "52dfe940a7498f12cbfa016232044ce7df4bd4ade31a57abaef3ede80571aab2",
+  "environmentSha256": "ce208890d9ba6213fe266cbd3cee0b4e7c7277f22e50c9bd01fd6cc225f0a96a",
+  "sourceIndividualVisual": 1966,
+  "steps": [],
+  "branchMap": {
+    "schema": "source-bound-graph-branches-v2",
+    "branchMode": "cut",
+    "sourceSha256": "77ce2f250e1302e20d470f377b8fbb85283783f5687905f480b5e7a9c6b811ae",
+    "branchMapSha256": "ab2181d8ef13d045909f2f54da2a685216c47e735fd36592520b3dc97c410a57",
+    "inputHashes": {
+      "nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "positions.tsv": "03094c4e673c97a5408b140609d1e4767d6770d42890b1b8a7f0f7f1123c2bb3",
+      "routes.tsv": "8358930924aae44c5e337031e2e5cb8c53aacfc551e3ca218b3069620cfddb2c",
+      "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "individual.positions.tsv": "03094c4e673c97a5408b140609d1e4767d6770d42890b1b8a7f0f7f1123c2bb3",
+      "individual.routes.tsv": "8358930924aae44c5e337031e2e5cb8c53aacfc551e3ca218b3069620cfddb2c",
+      "components.tsv": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+      "groups.tsv": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d"
+    },
+    "nodes": 1244,
+    "twoCoreNodes": 650,
+    "multiCardContexts": 230,
+    "maximumContextCards": 93,
+    "positionsProposed": false
+  }
+}

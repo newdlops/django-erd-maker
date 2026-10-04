@@ -1,0 +1,84 @@
+{
+  "scope": "Captain-trained joint neural batch",
+  "view": "individual",
+  "promoted": false,
+  "source": ".tmp/visualcross-ml-targets-20261003/individual43/candidate.individual.layout.json",
+  "sourceSha256": "81f9b2eb511503ba4f9a4cc940507fda95f2542b623449da51a0577ec2b0857d",
+  "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+  "environmentSha256": "ecb50b141605bedf33e64b31403a9c8531be6a71e3426cc0675ff3309f57f54d",
+  "inputHashes": {
+    "nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+    "edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+    "positions.tsv": "81a316bf81828e2ee910b1ef659497b9f783558c99b73b1dddce4c945f663703",
+    "routes.tsv": "a309938abbeb13939e9923c3293569e663a14552b4adec35d06f399ad74171c5",
+    "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+    "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+    "individual.positions.tsv": "81a316bf81828e2ee910b1ef659497b9f783558c99b73b1dddce4c945f663703",
+    "individual.routes.tsv": "a309938abbeb13939e9923c3293569e663a14552b4adec35d06f399ad74171c5",
+    "components.tsv": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+    "groups.tsv": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d"
+  },
+  "proposalAuthority": "frozen neural network batches",
+  "heuristicSearchCalls": 0,
+  "sourceVisual": 1997,
+  "maxStep": 512.0,
+  "seed": 517,
+  "learningRate": 0.0005,
+  "spacingWeight": 20.0,
+  "temporaryRegressionLimit": 100,
+  "inferenceOnly": true,
+  "lossKind": "boundary-clipped sigmoid crossing and card-hit margins v3",
+  "implementationHashes": {
+    "run_joint_neural_layout.py": "c8c60639492edf9503c70faadce295e59a83e046de1c9a53ecc891dc3e2493d3",
+    "joint_layout_proxy.py": "86b1284682717466172ce2597b7f81538dd2f1393110d170f28f777b65e8a420",
+    "ml_joint_batch_environment.cpp": "907055a7319c56b8e6bb5a702641638d2b5004a1e0e48a7c5b89aae7ee699164",
+    "ml_component_environment.cpp": "4f7a54126bdedfda1b9ea1084c30cc6df0bf735f489348c4789be865e483ec67"
+  },
+  "trainingScope": "Captain-specific differentiable training; no unseen-graph evaluation",
+  "observationsSha256": "964e22786cb122afc7a096dd3764f3f790ec72032f6601915809cd4cc2db63a5",
+  "initialCheckpoint": ".tmp/visualcross-ml-150-750-20261003/individual-joint4/joint-policy-0236.npz",
+  "initialCheckpointSha256": "0d9bf7ccdb3474a45f8842d92ce6bc349f20eb5824c25bee382b3cf150b3fa79",
+  "priorTrainingUpdates": 492,
+  "parameterCount": 6306,
+  "proxyCandidatePairs": {
+    "cross_pairs": 49781,
+    "hit_pairs": 47578,
+    "near_pairs": 7656
+  },
+  "candidate": ".tmp/visualcross-ml-150-750-20261003/individual-joint-stage1/candidate.individual.layout.json",
+  "candidateSha256": "50ffe26c82c8e2a70a336243dd764af691f90ef5698357ff3f09bd5a013f981e",
+  "visualCrossings": 2021,
+  "improvesSource": false,
+  "frozenNetworkBatchesReplayed": 1,
+  "frozenWinningGeometryReplayed": true,
+  "unchangedSourceVerified": false,
+  "bestCheckpoint": ".tmp/visualcross-ml-150-750-20261003/individual-joint-stage1/joint-policy-0001.npz",
+  "bestCheckpointSha256": "c58d9efb3b06eb9f34155b0419a226f370e7381d4705667d79beb495ff618d5d",
+  "iterations": 0,
+  "allChecksPassed": true,
+  "seconds": 3.168702957977075,
+  "browserVerified": false,
+  "history": [
+    {
+      "iteration": 1,
+      "preUpdateProxy": {
+        "softCrossingCount": 1532.0951783873297,
+        "softCardHitCount": 518.9507562059661,
+        "spacingPenalty": 0.0030132622424787394,
+        "movementPenalty": 0.0006637346322508112,
+        "total": 2051.0496115901706
+      },
+      "geometry": {
+        "accepted": true,
+        "legal": true,
+        "visual": 2021,
+        "individualVisual": 2021,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      }
+    }
+  ],
+  "individualVisual": 2021
+}

@@ -53,7 +53,7 @@ test("optimized refresh locks duplicate controls and always has an error settlem
   assert.match(browserSource, /msg\.type === "diagram\.refresh\.settled"/);
   assert.match(panelSource, /type: "diagram\.refresh\.settled"/);
   assert.match(panelSource, /Diagram refresh failed and UI state was released/);
-  assert.match(commandSource, /Optimizing Django ERD \([^`]+s budget\)/);
+  assert.match(commandSource, /Optimizing Django ERD \(no time limit\)/);
 });
 
 test("every renderer path is straight-only and bend-producing controls are absent", async () => {
@@ -128,7 +128,7 @@ test("every renderer path is straight-only and bend-producing controls are absen
     nativeRuntime,
     /DJERD_SEMANTIC_CARRIER_TARGET_SHORT_CIRCUIT/,
   );
-  assert.match(nativeRuntime, /&& !semanticCarrierTargetSatisfied/);
+  assert.match(nativeRuntime, /&& !initialLayoutTargetsSatisfied/);
   for (const key of [
     "DJERD_CANONICAL_ROUTE_REPAIR",
     "DJERD_EDGE_DETOUR",

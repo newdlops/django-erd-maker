@@ -124,17 +124,16 @@ struct VisibilityRoute {
   std::size_t targetPortIndex = 0;
 };
 
-// Single leaf-bundle entry: a parent (= cluster root) plus the matrix-
-// laid-out leaves attached to it, with a shared anchor port used by
-// renderer for collapsing all leaf→parent edges into one visual line.
+// Single node-family entry: a parent (= cluster root) plus the real model
+// nodes laid out together. Direct rendering uses this as selection metadata;
+// it does not replace cards or collapse their individual relationship lines.
 struct LeafBundleRecord {
   std::string parentModelId;
   std::vector<std::string> leafModelIds;
-  // For bus bundles: ALL cluster roots whose members the bundle members
-  // connect to (the multi-root signature). Includes parentModelId. The
-  // webview consolidates edges from each shared root to bundle members
-  // into a single carrier polyline via the bundle anchor. For classic
-  // leaf bundles (single parent), this is just [parentModelId].
+  // For bus node bundles: the common semantic root intersection shared by
+  // every member. Members may retain additional/different root relations as
+  // independent edges. Includes parentModelId. For a classic leaf bundle
+  // this is just [parentModelId].
   std::vector<std::string> sharedRootModelIds;
   double anchorX = 0.0;
   double anchorY = 0.0;

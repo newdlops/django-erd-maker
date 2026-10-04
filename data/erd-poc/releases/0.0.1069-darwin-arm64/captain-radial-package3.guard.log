@@ -1,0 +1,94 @@
+Staged django-erd-maker 0.0.1069 for vsce
+memory guard: peak=75.4 MiB limit=128 MiB
+Warning: disabling flag --expose_wasm due to conflicting flags
+ INFO  Files included in the VSIX:
+candidate.vsix
+├─ [Content_Types].xml 
+├─ extension.vsixmanifest 
+└─ extension/
+   ├─ LICENSE.txt [34.32 KB]
+   ├─ NOTICE.md [1.57 KB]
+   ├─ PRIVACY.md [2.72 KB]
+   ├─ README.ko.md [4.48 KB]
+   ├─ SECURITY.md [1.57 KB]
+   ├─ SUPPORT.md [1.8 KB]
+   ├─ THIRD_PARTY_NOTICES.md [6.03 KB]
+   ├─ changelog.md [2.25 KB]
+   ├─ package.json [1.96 KB]
+   ├─ readme.md [4.88 KB]
+   ├─ bin/
+   │  ├─ analyzer/ (1 file) [4.37 MB]
+   │  └─ ogdf/ (4 files) [13.48 MB]
+   ├─ licenses/
+   │  ├─ rust/ (107 files) [548.27 KB]
+   │  └─ rust-toolchain/ (14 files) [14.1 MB]
+   ├─ media/
+   │  ├─ icon.png [891.43 KB]
+   │  └─ ml-preview/ (4 files) [1.53 MB]
+   ├─ out/
+   │  ├─ extension/ (28 files) [653.26 KB]
+   │  ├─ shared/ (13 files) [69.2 KB]
+   │  └─ webview/ (28 files) [576.85 KB]
+   ├─ scripts/
+   │  └─ vscode-uninstall.mjs [1.71 KB]
+   └─ sources/
+      ├─ manifest.json [46.71 KB]
+      ├─ ogdf-foxglove-202510.tar.gz [4.18 MB]
+      ├─ project-source.tar.gz [2.42 MB]
+      └─ rust-dependencies.tar.gz [8.35 MB]
+
+=> Run vsce ls --tree to see all included files.
+
+
+<--- Last few GCs --->
+
+[86984:0x81000c000]     1617 ms: Scavenge 34.0 (37.8) -> 33.1 (37.8) MB, pooled: 2 MB, 0.21 / 0.00 ms  (average mu = 0.946, current mu = 0.881) allocation failure; 
+[86984:0x81000c000]     1722 ms: Mark-Compact 49.8 (53.7) -> 37.8 (43.4) MB, pooled: 2 MB, 7.04 / 0.00 ms  (average mu = 0.953, current mu = 0.958) allocation failure; scavenge might not succeed
+
+
+<--- JS stacktrace --->
+
+FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+ 1: 0x102f92434 node::OOMErrorHandler(char const*, v8::OOMDetails const&) [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+ 2: 0x10316d558 v8::internal::V8::FatalProcessOutOfMemory(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+ 3: 0x10337c518 v8::internal::Heap::stack() [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+ 4: 0x10337a8b8 v8::internal::Heap::CollectGarbage(v8::internal::AllocationSpace, v8::internal::GarbageCollectionReason, v8::GCCallbackFlags) [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+ 5: 0x10336eeac v8::internal::HeapAllocator::AllocateRawWithLightRetrySlowPath(int, v8::internal::AllocationType, v8::internal::AllocationOrigin, v8::internal::AllocationAlignment) [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+ 6: 0x10336f6e4 v8::internal::HeapAllocator::AllocateRawWithRetryOrFailSlowPath(int, v8::internal::AllocationType, v8::internal::AllocationOrigin, v8::internal::AllocationAlignment) [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+ 7: 0x1033529d0 v8::internal::Factory::NewFillerObject(int, v8::internal::AllocationAlignment, v8::internal::AllocationType, v8::internal::AllocationOrigin) [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+ 8: 0x10376ee30 v8::internal::Runtime_AllocateInYoungGeneration(int, unsigned long*, v8::internal::Isolate*) [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+ 9: 0x103c31df4 Builtins_CEntry_Return1_ArgvOnStack_NoBuiltinExit [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+10: 0x103cae15c Builtins_RegExpPrototypeExec [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+11: 0x103b9cef0 Builtins_InterpreterEntryTrampoline [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+12: 0x103b9db3c Builtins_InterpreterPushArgsThenFastConstructFunction [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+13: 0x103d14050 Builtins_ConstructHandler [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+14: 0x103b9cef0 Builtins_InterpreterEntryTrampoline [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+15: 0x103b9db3c Builtins_InterpreterPushArgsThenFastConstructFunction [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+16: 0x103d14050 Builtins_ConstructHandler [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+17: 0x103b9cef0 Builtins_InterpreterEntryTrampoline [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+18: 0x103b9cef0 Builtins_InterpreterEntryTrampoline [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+19: 0x103bd9410 Builtins_AsyncFunctionAwaitResolveClosure [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+20: 0x103ca4f78 Builtins_PromiseFulfillReactionJob [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+21: 0x103bc96f4 Builtins_RunMicrotasks [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+22: 0x103b9aaf4 Builtins_JSRunMicrotasksEntry [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+23: 0x1032d42c4 v8::internal::(anonymous namespace)::Invoke(v8::internal::Isolate*, v8::internal::(anonymous namespace)::InvokeParams const&) [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+24: 0x1032d4b6c v8::internal::(anonymous namespace)::InvokeWithTryCatch(v8::internal::Isolate*, v8::internal::(anonymous namespace)::InvokeParams const&) [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+25: 0x1032d4ca4 v8::internal::Execution::TryRunMicrotasks(v8::internal::Isolate*, v8::internal::MicrotaskQueue*) [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+26: 0x103301f24 v8::internal::MicrotaskQueue::RunMicrotasks(v8::internal::Isolate*) [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+27: 0x1033026a8 v8::internal::MicrotaskQueue::PerformCheckpoint(v8::Isolate*) [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+28: 0x102e919c4 node::InternalCallbackScope::Close() [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+29: 0x102e91484 node::InternalCallbackScope::~InternalCallbackScope() [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+30: 0x102f965cc node::fs::FileHandle::CloseReq::Resolve() [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+31: 0x102fb0db8 node::fs::FileHandle::ClosePromise()::$_0::__invoke(uv_fs_s*) [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+32: 0x102f8a15c node::MakeLibuvRequestCallback<uv_fs_s, void (*)(uv_fs_s*)>::Wrapper(uv_fs_s*) [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+33: 0x103b74b90 uv__work_done [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+34: 0x103b788c0 uv__async_io [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+35: 0x103b8cc58 uv__io_poll [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+36: 0x103b78e28 uv_run [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+37: 0x102e924e0 node::SpinEventLoopInternal(node::Environment*) [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+38: 0x102fdc60c node::NodeMainInstance::Run() [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+39: 0x102f4d5f4 node::Start(int, char**) [/Users/lky/.nvm/versions/node/v22.22.2/bin/node]
+40: 0x18aa1bda4 start [/usr/lib/dyld]
+memory guard: peak=123.9 MiB limit=128 MiB

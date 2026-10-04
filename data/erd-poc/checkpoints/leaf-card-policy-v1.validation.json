@@ -1,0 +1,44 @@
+{
+  "heldOutSyntheticGraphs": [
+    {
+      "seed": 28182,
+      "control": 76,
+      "initial": 91,
+      "learned": 71
+    },
+    {
+      "seed": 28183,
+      "control": 152,
+      "initial": 178,
+      "learned": 148
+    },
+    {
+      "seed": 28184,
+      "control": 77,
+      "initial": 94,
+      "learned": 83
+    },
+    {
+      "seed": 28185,
+      "control": 160,
+      "initial": 196,
+      "learned": 150
+    }
+  ],
+  "equalProposalsPerCase": 512,
+  "initialTotal": 559,
+  "untrainedTotal": 465,
+  "learnedTotal": 452,
+  "captainEqualBudget": {
+    "proposals": 12000,
+    "baseline": 418,
+    "untrained": 418,
+    "learned": 417,
+    "baselineIndividual": 4591,
+    "untrainedIndividual": 4590,
+    "learnedIndividual": 4585
+  },
+  "modelSha256": "1e47c740fc9fba00535ef6a02bb143902f5273e00261d2fa0c3b071996d0b147",
+  "productAudit": "data/erd-poc/candidates/captain-leaf-card-connections-ml-417.audit.json",
+  "provenance": "data/erd-poc/candidates/captain-leaf-card-connections-ml-417.provenance.json"
+}

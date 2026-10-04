@@ -1,0 +1,138 @@
+{
+  "baseManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+  "baseManifestSha256": "b17325cd48e8e977b6e7c58211491b84cd52dc2eedce1345de58c47a92575ffb",
+  "baseArchiveIndependentRestoreStatus": "pass",
+  "supplementScope": "post-promotion state, scoped metadata, documentation and receipts; base archive immutable",
+  "finalVerification": {
+    "status": "pass",
+    "candidateSha256": "4e741de39ca655c7ff042422b9407206427f89e02ecd56b7f4a9f36f6a5cd02e",
+    "archiveManifestSha256": "b17325cd48e8e977b6e7c58211491b84cd52dc2eedce1345de58c47a92575ffb",
+    "promotedBytesIdenticalToProductAuditedCandidate": true,
+    "overviewVisual": 285,
+    "individualVisual": 1963,
+    "individualViewExactlyPreservedAsJsonData": true,
+    "overviewChangedModels": [
+      "db.ShareholdersMeetingDirectorAttendance"
+    ],
+    "all1244SizesPreserved": true,
+    "all1727RelationshipIdsPreserved": true,
+    "overviewGeometryExactlyMatchesVerifiedModelOutput": true,
+    "newTrainingUpdates": 23488,
+    "selectedAdaptationUpdates": 734,
+    "newTrainingCountersAndViewSpecificCriticLineageVerified": true,
+    "neuralProposals": 4349,
+    "completedStages": 6,
+    "resourceLimitMiB": 128,
+    "resourceLimitRaised": false,
+    "productAuditPeakMiB": 111.6,
+    "browserVerified": false,
+    "targetMet": false,
+    "verifierSha256": "4608f0cda6dd37da9999c151b1fb45ba673db9d6e0023f75e6d2e0ed59fb22c2"
+  },
+  "files": [
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.layout.json",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/captain-ml-independent-views.layout.json",
+      "sha256": "4e741de39ca655c7ff042422b9407206427f89e02ecd56b7f4a9f36f6a5cd02e",
+      "bytes": 2428226
+    },
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.audit.json",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/captain-ml-independent-views.audit.json",
+      "sha256": "82529202dbd61798334e2c0b451c75eaa9f418c2c19b371724c76ff58dfd277e",
+      "bytes": 1652
+    },
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.provenance.json",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/captain-ml-independent-views.provenance.json",
+      "sha256": "bca34270005e19dc7c2c06aa8d95742fe7603c0bc8cc027e8017e0489e51d29f",
+      "bytes": 25770
+    },
+    {
+      "source": "context.md",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/context.md",
+      "sha256": "b864ab994750cc300806164642e93901699c02880c25ae29c1e1192816dfc865",
+      "bytes": 333885
+    },
+    {
+      "source": "data/erd-poc/candidates/README.md",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/README.md",
+      "sha256": "9b800f9b3f47e889c1ab088755668c3e5d200bcc00dc5186e6b754c6711f9732",
+      "bytes": 14751
+    },
+    {
+      "source": ".tmp/global-owner-learning-final-state-verification.json",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/global-owner-learning-final-state-verification.json",
+      "sha256": "343ffb126d06238ef8433522d8abfb219855a594e191b6ba33955f396f78fecd",
+      "bytes": 1003
+    },
+    {
+      "source": ".tmp/global-owner-learning-archive-seal-receipt.json",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/global-owner-learning-archive-seal-receipt.json",
+      "sha256": "634cade31bf0740da0311a448a6c53bd0367a1c6538ddc5643a1e5d074e7b58e",
+      "bytes": 415
+    },
+    {
+      "source": ".tmp/global-owner-learning-archive-independent-verification.json",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/global-owner-learning-archive-independent-verification.json",
+      "sha256": "e87bdb6f5c3291b58d677b66e17bc520399d94c5373064f7135d27607beb1e1a",
+      "bytes": 392
+    },
+    {
+      "source": ".tmp/global-owner-learning-promotion-receipt.json",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/global-owner-learning-promotion-receipt.json",
+      "sha256": "571ab57d8bfb2b51fded3a41a8bf4b86be1bc2dc39e1e4b2569d1efc4fd16706",
+      "bytes": 582
+    },
+    {
+      "source": ".tmp/global-owner-learning-archive-seal.guard.log",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/global-owner-learning-archive-seal.guard.log",
+      "sha256": "704c47ccee229ce745c402e4e7e002752e1abe27fbe9a48b8af8523db6aa302d",
+      "bytes": 441
+    },
+    {
+      "source": ".tmp/global-owner-learning-archive-verification.guard.log",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/global-owner-learning-archive-verification.guard.log",
+      "sha256": "39b9b14e03eeabba201d7bdaf3fd190299bac0cd5f286014786a37a9084d3f7e",
+      "bytes": 414
+    },
+    {
+      "source": ".tmp/global-owner-learning-promotion.guard.log",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/global-owner-learning-promotion.guard.log",
+      "sha256": "8c7b4821993e9222805ddb0caebf1a2753e9e8e81d1b9a026934a2edf6dd9bcf",
+      "bytes": 587
+    },
+    {
+      "source": ".tmp/trained-owner-browser-bootstrap.audit.json",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/trained-owner-browser-bootstrap.audit.json",
+      "sha256": "8abb1400817fff0010572bed7cfdbc89864cf4ae4807af4b754df79d7a245940",
+      "bytes": 500
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/finalize_global_owner_learning.py",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/finalize_global_owner_learning.py",
+      "sha256": "4608f0cda6dd37da9999c151b1fb45ba673db9d6e0023f75e6d2e0ed59fb22c2",
+      "bytes": 9292
+    },
+    {
+      "source": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/provenance-before-scope-reconciliation.json",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/provenance-before-scope-reconciliation.json",
+      "sha256": "773a19eaae22df93ac5dba759ff0df34b16804d0c47d2cfb9ecf78eeb2bc3bc7",
+      "bytes": 25353
+    },
+    {
+      "source": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/metadata-reconciliation.json",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/metadata-reconciliation.json",
+      "sha256": "a6ada6fdfbf0accc1894e82fea7bf760329cc3a12155e4e68fcd1099efb8873a",
+      "bytes": 940
+    },
+    {
+      "source": ".tmp/global-owner-learning-final-state.guard.log",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/global-owner-learning-final-state.guard.log",
+      "sha256": "1c77032f70e88e6623d4739db878d0df4560007fdcb1dfa2c969dccfdd82c6f2",
+      "bytes": 990
+    }
+  ],
+  "allSupplementBytesCopyHashVerified": true,
+  "precedingSupplementRecordSha256": "2eb3601fa3e9ad8f0ad686d1845ee5610c187a36c62e9f77c0581023242131e2"
+}

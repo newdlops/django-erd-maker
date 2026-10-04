@@ -1,0 +1,133 @@
+{
+  "sourceSha256": "c4947e7679db367cd68f636387d601963ab917bd92f103d07d36d7d3f8649b51",
+  "positionsProposed": false,
+  "newNativeMeasurements": 0,
+  "views": {
+    "individual": {
+      "checkpoint": ".tmp/visualcross-ml-150-750-20261003/individual-relaxed-free1/joint-policy-0154.npz",
+      "checkpointSha256": "7909bd93c517c699e61ace5f65e11efd71e47030b1d99f18053cd40e1fd33a2c",
+      "nativeHardOutputResult": {
+        "accepted": false,
+        "legal": true,
+        "visual": 1964,
+        "measureOnly": false,
+        "individualVisual": 1964,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      },
+      "checks": [
+        {
+          "temperature": 0.1,
+          "maximumNodePositionGap": 177.15924879160787,
+          "differentPhysicalCards": 43,
+          "slotTemperature": 0.1,
+          "sinkhornPasses": 8,
+          "maximumColumnMassError": 0.06026645379223117,
+          "sourceCorrectionMaximumAbs": 0.0,
+          "trainingCoordinatesAreRelaxed": true,
+          "hardSortingGradientUsed": false
+        },
+        {
+          "temperature": 0.05,
+          "maximumNodePositionGap": 177.26352930721254,
+          "differentPhysicalCards": 11,
+          "slotTemperature": 0.05,
+          "sinkhornPasses": 8,
+          "maximumColumnMassError": 0.058823529411877185,
+          "sourceCorrectionMaximumAbs": 0.0,
+          "trainingCoordinatesAreRelaxed": true,
+          "hardSortingGradientUsed": false
+        }
+      ]
+    },
+    "overview": {
+      "checkpoint": ".tmp/visualcross-ml-150-750-20261003/overview-relaxed-free1/joint-policy-0256.npz",
+      "checkpointSha256": "b1622df1d7955668133589d226c712e9b886fbf3487705a6ab16098318d456da",
+      "nativeHardOutputResult": {
+        "accepted": false,
+        "legal": true,
+        "visual": 289,
+        "measureOnly": false,
+        "individualVisual": 4447,
+        "spacing": 0,
+        "hard": 0,
+        "individualHard": 0,
+        "reason": "legal"
+      },
+      "checks": [
+        {
+          "temperature": 0.1,
+          "maximumNodePositionGap": 450.69888258795055,
+          "differentPhysicalCards": 79,
+          "slotTemperature": 0.1,
+          "sinkhornPasses": 8,
+          "maximumColumnMassError": 0.07955858635993995,
+          "sourceCorrectionMaximumAbs": 0.0,
+          "trainingCoordinatesAreRelaxed": true,
+          "hardSortingGradientUsed": false
+        },
+        {
+          "temperature": 0.05,
+          "maximumNodePositionGap": 450.69941176470616,
+          "differentPhysicalCards": 20,
+          "slotTemperature": 0.05,
+          "sinkhornPasses": 8,
+          "maximumColumnMassError": 0.07999531168683127,
+          "sourceCorrectionMaximumAbs": 0.0,
+          "trainingCoordinatesAreRelaxed": true,
+          "hardSortingGradientUsed": false
+        }
+      ]
+    }
+  },
+  "fixture": [
+    {
+      "temperature": 0.1,
+      "argmaxSlots": [
+        0,
+        1,
+        3,
+        3,
+        4,
+        5,
+        6
+      ],
+      "hardSlots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "maxColumnMassError": 0.6334091322818021,
+      "maximumHardAssignmentError": 0.9999999999999998
+    },
+    {
+      "temperature": 0.05,
+      "argmaxSlots": [
+        0,
+        1,
+        3,
+        4,
+        4,
+        4,
+        6
+      ],
+      "hardSlots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "maxColumnMassError": 1.9999984395961015,
+      "maximumHardAssignmentError": 1.0
+    }
+  ]
+}

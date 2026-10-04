@@ -1,0 +1,182 @@
+{
+  "sourceFile": ".tmp/visualcross-ml-targets-20261003/round7fixed2/candidate.layout.json",
+  "candidateFile": ".tmp/visualcross-ml-targets-20261003/overview-only1/candidate.layout.json",
+  "sourceSha256": "907cf119e674b265dbbbaf47c0308f8a86a0dfef92715973fb221db4aec045fc",
+  "candidateSha256": "b3c54a4d6b0a7eb05ed1fc9b87724f1a00f861075dedc7a37190709bba94b14f",
+  "baseline": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 260,
+    "edgeNodeIntersections": 124,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 386
+  },
+  "metrics": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 257,
+    "edgeNodeIntersections": 123,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 382
+  },
+  "originalIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 2464,
+    "edgeNodeIntersections": 989,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 3453
+  },
+  "candidateIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 2580,
+    "edgeNodeIntersections": 987,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 3567
+  },
+  "changedNodes": [
+    {
+      "modelId": "db.HelpTemplate",
+      "before": {
+        "x": 9925.88,
+        "y": 8967.13
+      },
+      "after": {
+        "x": 11389.99,
+        "y": 9080.21
+      }
+    },
+    {
+      "modelId": "db.MeetingDraftAgendaDirectorCompensationItem",
+      "before": {
+        "x": 13548.66,
+        "y": 19480.52
+      },
+      "after": {
+        "x": 14383.44,
+        "y": 19681.95
+      }
+    },
+    {
+      "modelId": "db.NewIssueStockAllocationRecordDateNoticeDocument",
+      "before": {
+        "x": 19934.08,
+        "y": 23807.92
+      },
+      "after": {
+        "x": 18168.82,
+        "y": 24901.96
+      }
+    },
+    {
+      "modelId": "db.RegistrationAssistance",
+      "before": {
+        "x": 20737.75,
+        "y": 16807.56
+      },
+      "after": {
+        "x": 21058.92,
+        "y": 16626.79
+      }
+    }
+  ],
+  "changedRoutes": [
+    "edge:declared:db.HelpTemplate:partners_to_share",
+    "edge:declared:db.MeetingDraftAgendaDirectorCompensationItem:director_compensation",
+    "edge:declared:db.MeetingDraftAgendaDirectorCompensationItem:stakeholder",
+    "edge:declared:db.NewIssueStockAllocationRecordDateNoticeDocument:bonus_issue_agenda",
+    "edge:declared:db.PayrollSettlementAutoCreation:payroll_question_help_template",
+    "edge:declared:db.RegistrationAssistance:legal_partner",
+    "edge:declared:db.RegistrationAssistance:meeting",
+    "edge:declared:db.RegistrationAssistanceReceipt:registration_assistance",
+    "edge:inheritance:db.NewIssueStockAllocationRecordDateNoticeDocument->db.MeetingDocument"
+  ],
+  "sizesPreserved": true,
+  "membershipsPreserved": true,
+  "rigidLeafGeometryPreserved": true,
+  "productRouteParity": true,
+  "nativeProposal": {
+    "initialVisual": 386,
+    "visual": 382,
+    "initialIndividualVisual": 3453,
+    "individualVisual": 3567,
+    "hardConditions": 0,
+    "initialHardConditions": 0,
+    "individualHardConditions": 46,
+    "initialIndividualHardConditions": 46,
+    "canonicalStart": false,
+    "rolloutInitialVisual": 386,
+    "rolloutInitialIndividualVisual": 3453,
+    "jointMoves": true,
+    "overviewOnly": true,
+    "overlap": 0,
+    "spacing": 0,
+    "policyActionsEvaluated": 16000,
+    "acceptedActions": 4,
+    "heuristicSearchCalls": 0,
+    "proposalAuthority": "external-policy",
+    "decoder": "rigid component translation with every port attached"
+  },
+  "learnedPolicy": {
+    "checkpoint": ".tmp/visualcross-ml-targets-20261003/component-policy-v7.npz",
+    "checkpointSha256": "fe1624651ea1a05aac93662637f090f5e56cd6c5be6b83db113834f3461700eb",
+    "untrainedControl": false,
+    "sourceDirectory": ".tmp/visualcross-ml-targets-20261003/overview-only1",
+    "syntheticSeed": null,
+    "policyProposalSource": "conditional mixture neural network",
+    "heuristicSearchCalls": 0,
+    "overviewOnly": true,
+    "initial": {
+      "ready": true,
+      "eligible": 1035,
+      "visual": 386,
+      "individualVisual": 3453,
+      "canonicalStart": false,
+      "sourceVisual": 386,
+      "sourceIndividualVisual": 3453
+    },
+    "final": {
+      "initialVisual": 386,
+      "visual": 382,
+      "initialIndividualVisual": 3453,
+      "individualVisual": 3567,
+      "hardConditions": 0,
+      "initialHardConditions": 0,
+      "individualHardConditions": 46,
+      "initialIndividualHardConditions": 46,
+      "canonicalStart": false,
+      "rolloutInitialVisual": 386,
+      "rolloutInitialIndividualVisual": 3453,
+      "jointMoves": true,
+      "overviewOnly": true,
+      "overlap": 0,
+      "spacing": 0,
+      "policyActionsEvaluated": 16000,
+      "acceptedActions": 4,
+      "heuristicSearchCalls": 0,
+      "proposalAuthority": "external-policy",
+      "decoder": "rigid component translation with every port attached"
+    },
+    "budget": 16000,
+    "seed": 142,
+    "seconds": 15.077428332995623,
+    "observationsSha256": "c22ac4ca42f6351f9cc7bf4960f9a8125d7d328c9734833c22e2f7614eb3e2c3",
+    "actionsSha256": "65d80057501ab2568647d6d6171e480e85c63040f196bc937dd4b6ea7288a3fa"
+  },
+  "browserVerified": false,
+  "experimental": true,
+  "dominatesSource": false
+}

@@ -29,6 +29,7 @@ import argparse
 import json
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -61,19 +62,26 @@ def y_scale_positions_tsv(layout: dict, scale: float, out_path: Path):
 
 def run_binary(
     binary: Path, nodes_tsv: Path, edges_tsv: Path,
-    positions_tsv: Path | None,
+    positions_tsv: Path | None, mode: str, timeout_seconds: int,
+    rigid_positions: bool, show_native_log: bool, cluster_graph: bool,
+    edge_routing: str,
 ) -> dict:
     cmd = [
         str(binary), "layout",
-        "--mode", "hierarchical_barycenter",
+        "--mode", mode,
         "--nodes-file", str(nodes_tsv),
         "--edges-file", str(edges_tsv),
-        "--edge-routing", "straight",
-        "--cluster-graph", "1",
+        "--edge-routing", edge_routing,
+        "--cluster-graph", "1" if cluster_graph else "0",
     ]
     if positions_tsv:
         cmd += ["--positions-tsv", str(positions_tsv)]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+        if rigid_positions:
+            cmd += ["--rigid-positions", "1"]
+    result = subprocess.run(
+        cmd, capture_output=True, text=True, timeout=timeout_seconds)
+    if show_native_log and result.stderr:
+        print(result.stderr, end="", file=sys.stderr)
     if result.returncode != 0:
         raise RuntimeError(
             f"binary failed (exit {result.returncode}): "
@@ -85,7 +93,9 @@ def run_binary(
 def metric_summary(layout: dict, label: str) -> str:
     md = layout.get("engineMetadata", {})
     return (
-        f"{label:32s} cross={md.get('edgeCrossings'):>5}  "
+        f"{label:32s} visual={md.get('visualCrossings')!s:>5}  "
+        f"cross={md.get('edgeCrossings')!s:>5}  "
+        f"edgeNode={md.get('edgeNodeIntersections')!s:>5}  "
         f"bbox={md.get('boundingBoxArea', 0) / 1e9:>6.2f}B  "
         f"overlaps={md.get('nodeOverlaps')}"
     )
@@ -99,8 +109,35 @@ def main():
                    help="optimized layout JSON")
     p.add_argument("--y-scale", type=float, default=0.62,
                    help="Y-axis compression factor (0.62 = 38%% squeeze)")
+    p.add_argument("--mode", default="hierarchical_barycenter",
+                   help="native layout mode (use fmmm to mirror the product path)")
+    p.add_argument(
+        "--edge-routing",
+        choices=("straight", "straight_smart", "orthogonal"),
+        default="straight",
+        help="route extraction mode; orthogonal is diagnostic when auditing bends",
+    )
+    p.add_argument("--timeout", type=int, default=600,
+                   help="maximum seconds for each native layout pass")
+    p.add_argument("--baseline-json", type=Path, default=None,
+                   help="reuse an existing baseline instead of recomputing it")
+    p.add_argument("--positions-tsv", type=Path, default=None,
+                   help="optional positions to audit as the baseline")
+    p.add_argument("--rigid-positions", action="store_true",
+                   help="audit supplied positions without broad post-layout movement")
+    p.add_argument("--show-native-log", action="store_true",
+                   help="forward the native layout stderr diagnostics")
+    p.add_argument(
+        "--cluster-graph",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="run the product cluster_graph pipeline (disable to audit the "
+             "requested native mode directly)",
+    )
     p.add_argument("--baseline-out", type=Path, default=None,
                    help="optional path to also write the unoptimized baseline")
+    p.add_argument("--baseline-only", action="store_true",
+                   help="write the baseline and skip Y scaling/rerouting")
     p.add_argument("--keep-tmp", action="store_true")
     args = p.parse_args()
 
@@ -108,18 +145,34 @@ def main():
     work = Path(tempfile.mkdtemp(prefix="erd-opt-"))
     try:
         # Step 1: baseline cluster_graph layout.
-        print("[1/2] cluster_graph baseline")
-        baseline = run_binary(binary, args.nodes_tsv, args.edges_tsv, None)
+        if args.baseline_json:
+            print(f"[1/2] reusing baseline {args.baseline_json}")
+            baseline = json.loads(args.baseline_json.read_text())
+        else:
+            print("[1/2] cluster_graph baseline")
+            baseline = run_binary(
+                binary, args.nodes_tsv, args.edges_tsv, args.positions_tsv,
+                args.mode, args.timeout, args.rigid_positions,
+                args.show_native_log, args.cluster_graph, args.edge_routing)
         if args.baseline_out:
             args.baseline_out.parent.mkdir(parents=True, exist_ok=True)
             args.baseline_out.write_text(json.dumps(baseline))
         print("      " + metric_summary(baseline, "baseline"))
 
+        if args.baseline_only:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(baseline))
+            print(f"\nWrote {args.output}")
+            return
+
         # Step 2: Y-scale node centers + C++ rerouter on those positions.
         print(f"[2/2] Y-scale={args.y_scale} + reroute")
         seed = work / "y-scaled.tsv"
         y_scale_positions_tsv(baseline, args.y_scale, seed)
-        optimized = run_binary(binary, args.nodes_tsv, args.edges_tsv, seed)
+        optimized = run_binary(
+            binary, args.nodes_tsv, args.edges_tsv, seed, args.mode,
+            args.timeout, args.rigid_positions, args.show_native_log,
+            args.cluster_graph, args.edge_routing)
 
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(optimized))

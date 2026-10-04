@@ -1,0 +1,185 @@
+{
+  "positionsProposed": false,
+  "anchorsConsideredPerView": 32,
+  "allPairsExhaustive": false,
+  "views": {
+    "individual": {
+      "sourceSha256": "42adab07b311c16463bd7f5dc0ee68941d6047ac0372415393ad9355c126fe22",
+      "dominantBlockNodes": 581,
+      "testedPairs": 496,
+      "separatingPairs": 37,
+      "distinctMultiCardContexts": 30,
+      "newBeyondSingleCutContexts": 24,
+      "mainBlockNodesCoveredByNewContexts": 95,
+      "largestNewContexts": [
+        {
+          "mainBlockNodes": 45,
+          "internalEdges": 91,
+          "boundaryEdges": 33,
+          "singleCutContextAlreadyExists": false,
+          "separatorPairs": [
+            [
+              "db.Company",
+              "db.VentureCapital"
+            ]
+          ],
+          "nodes": 84
+        },
+        {
+          "mainBlockNodes": 6,
+          "internalEdges": 6,
+          "boundaryEdges": 6,
+          "singleCutContextAlreadyExists": false,
+          "separatorPairs": [
+            [
+              "db.InvestmentAssociation",
+              "db.InvestmentAssociationPartner"
+            ]
+          ],
+          "nodes": 6
+        },
+        {
+          "mainBlockNodes": 5,
+          "internalEdges": 10,
+          "boundaryEdges": 5,
+          "singleCutContextAlreadyExists": false,
+          "separatorPairs": [
+            [
+              "db.MeetingDocument",
+              "db.AgendaNewIssue"
+            ]
+          ],
+          "nodes": 11
+        },
+        {
+          "mainBlockNodes": 5,
+          "internalEdges": 6,
+          "boundaryEdges": 5,
+          "singleCutContextAlreadyExists": false,
+          "separatorPairs": [
+            [
+              "db.VentureCapital",
+              "db.InvestorRelations"
+            ]
+          ],
+          "nodes": 7
+        },
+        {
+          "mainBlockNodes": 4,
+          "internalEdges": 5,
+          "boundaryEdges": 3,
+          "singleCutContextAlreadyExists": false,
+          "separatorPairs": [
+            [
+              "db.Company",
+              "db.RsuRsa"
+            ]
+          ],
+          "nodes": 6
+        },
+        {
+          "mainBlockNodes": 3,
+          "internalEdges": 6,
+          "boundaryEdges": 3,
+          "singleCutContextAlreadyExists": false,
+          "separatorPairs": [
+            [
+              "db.VentureCapital",
+              "db.InvestorMatching"
+            ]
+          ],
+          "nodes": 7
+        }
+      ]
+    },
+    "overview": {
+      "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52",
+      "dominantBlockNodes": 206,
+      "testedPairs": 496,
+      "separatingPairs": 25,
+      "distinctMultiCardContexts": 18,
+      "newBeyondSingleCutContexts": 13,
+      "mainBlockNodesCoveredByNewContexts": 43,
+      "largestNewContexts": [
+        {
+          "mainBlockNodes": 8,
+          "internalEdges": 11,
+          "boundaryEdges": 5,
+          "singleCutContextAlreadyExists": false,
+          "separatorPairs": [
+            [
+              "db.FileAttachment",
+              "db.YetsEmployee"
+            ]
+          ],
+          "nodes": 12
+        },
+        {
+          "mainBlockNodes": 7,
+          "internalEdges": 11,
+          "boundaryEdges": 2,
+          "singleCutContextAlreadyExists": false,
+          "separatorPairs": [
+            [
+              "db.Employee",
+              "db.BulkEmail"
+            ]
+          ],
+          "nodes": 11
+        },
+        {
+          "mainBlockNodes": 4,
+          "internalEdges": 4,
+          "boundaryEdges": 2,
+          "singleCutContextAlreadyExists": false,
+          "separatorPairs": [
+            [
+              "db.BulkEmail",
+              "db.FileAttachment"
+            ]
+          ],
+          "nodes": 5
+        },
+        {
+          "mainBlockNodes": 4,
+          "internalEdges": 3,
+          "boundaryEdges": 3,
+          "singleCutContextAlreadyExists": false,
+          "separatorPairs": [
+            [
+              "db.ShareholdersMeeting",
+              "db.ShareholdersMeetingShareholderAttendance"
+            ]
+          ],
+          "nodes": 4
+        },
+        {
+          "mainBlockNodes": 3,
+          "internalEdges": 4,
+          "boundaryEdges": 2,
+          "singleCutContextAlreadyExists": false,
+          "separatorPairs": [
+            [
+              "db.BulkEmail",
+              "db.CompanyManagingEntity"
+            ]
+          ],
+          "nodes": 5
+        },
+        {
+          "mainBlockNodes": 3,
+          "internalEdges": 3,
+          "boundaryEdges": 2,
+          "singleCutContextAlreadyExists": false,
+          "separatorPairs": [
+            [
+              "db.Shareholder",
+              "db.Stakeholder"
+            ]
+          ],
+          "nodes": 4
+        }
+      ]
+    }
+  }
+}

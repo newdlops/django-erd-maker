@@ -1,0 +1,269 @@
+{
+  "sourceFile": "data/erd-poc/candidates/captain-leaf-card-connections-438.layout.json",
+  "candidateFile": "data/erd-poc/candidates/captain-leaf-card-connections-432.layout.json",
+  "sourceSha256": "00219e5cb5205462215c80f25ffbbecb7f14ebe0a3dbda48e8e96db3e4af8b43",
+  "candidateSha256": "70539fbba584d8ec9651c6c96de59718d7a5a226ed0bace9ab233879c4c47b66",
+  "baseline": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 290,
+    "edgeNodeIntersections": 146,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 438
+  },
+  "metrics": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 289,
+    "edgeNodeIntersections": 141,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 432
+  },
+  "originalIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 3426,
+    "edgeNodeIntersections": 1274,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 4700
+  },
+  "candidateIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 3423,
+    "edgeNodeIntersections": 1269,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 4692
+  },
+  "bboxB": 1.14915248448,
+  "changedRoutes": [
+    "edge:declared:db.HrmWorkIndividualApprovalTemplateRelation:work",
+    "edge:declared:db.OptionExerciseManagementCommonSetting:management",
+    "edge:declared:db.RsuExerciseClaimCandidate:rsu_exercise_management",
+    "edge:declared:db.StockTransferAgreementManagement:related_tax_advices",
+    "edge:inheritance:db.InstitutionStakeholder->db.Stakeholder",
+    "edge:inheritance:db.InvestmentAssociationOrganizationPartner->db.InvestmentAssociationPartner",
+    "edge:inheritance:db.OptionExerciseManagementEmail->db.BulkEmail",
+    "edge:inheritance:db.ShareholdersMeetingConvocationNoticeWrittenRecipient->db.ShareholdersMeetingConvocationNoticeRecipient"
+  ],
+  "rejectedRoutes": [
+    {
+      "edgeId": "edge:inheritance:db.OptionExerciseClaimAttachment->db.FileAttachment",
+      "overviewDelta": 0,
+      "individualDelta": 1
+    },
+    {
+      "edgeId": "edge:declared:db.StockTransferAgreementManagementStakeholderSeat:stock_transfer_agreement_management",
+      "overviewDelta": -1,
+      "individualDelta": 12
+    },
+    {
+      "edgeId": "edge:declared:db.BaseModusignDocumentUsageHistory:modusign_document",
+      "overviewDelta": 0,
+      "individualDelta": 1
+    },
+    {
+      "edgeId": "edge:declared:db.OptionGrantContract:_deprecated_template",
+      "overviewDelta": -1,
+      "individualDelta": 4
+    },
+    {
+      "edgeId": "edge:declared:db.OptionGrantContract:template_revision",
+      "overviewDelta": -1,
+      "individualDelta": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.BranchInstallationEvent->db.Event",
+      "overviewDelta": 0,
+      "individualDelta": 2
+    },
+    {
+      "edgeId": "edge:declared:db.ShareholdersMeetingAgenda:agenda_branch_change",
+      "overviewDelta": 0,
+      "individualDelta": 2
+    },
+    {
+      "edgeId": "edge:inheritance:db.HrmDocument->db.HrmApprovable",
+      "overviewDelta": -1,
+      "individualDelta": 3
+    },
+    {
+      "edgeId": "edge:declared:db.PayrollDocumentSealStampSetting:_deprecated_ceo",
+      "overviewDelta": 0,
+      "individualDelta": 1
+    },
+    {
+      "edgeId": "edge:declared:db.CompanyUpdateRequest:change_detection",
+      "overviewDelta": -1,
+      "individualDelta": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.OtherDocumentArchiveAttachment->db.FileAttachment",
+      "overviewDelta": 0,
+      "individualDelta": 3
+    }
+  ],
+  "proposedMetrics": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 295,
+    "edgeNodeIntersections": 129,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 426
+  },
+  "proposedIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 3465,
+    "edgeNodeIntersections": 1257,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 4722
+  },
+  "nodesAndSizesPreserved": true,
+  "membershipsPreserved": true,
+  "productRouteParity": true,
+  "nativeProposal": {
+    "initialVisual": 438,
+    "initialHardConditions": 0,
+    "visual": 426,
+    "cross": 295,
+    "hit": 131,
+    "hardConditions": 0,
+    "overlap": 0,
+    "spacing": 0,
+    "queries": 8408,
+    "changes": 19,
+    "intervals": 147358,
+    "selectedEdges": 238,
+    "rounds": 2,
+    "timedOut": false,
+    "seconds": 10.6831
+  },
+  "resourcePolicy": {
+    "threads": 1,
+    "rssLimitMiB": 256,
+    "maxSearchSeconds": 20,
+    "maxSelectedRoutes": 256,
+    "requestedHostCpuBudgetPercent": 20,
+    "hostLogicalCpuCount": 15,
+    "largestReportedRssMiB": 177.6,
+    "serialized": true,
+    "searchNiceIncrement": 10,
+    "jointProbes": true,
+    "nativePeakReportedRssMiB": 3.1,
+    "totalNativeSearchSeconds": 18.511299
+  },
+  "browserVerified": false,
+  "acceptedGeometry": {
+    "initialVisual": 432,
+    "initialHardConditions": 0,
+    "visual": 432,
+    "cross": 289,
+    "hit": 143,
+    "hardConditions": 0,
+    "overlap": 0,
+    "spacing": 0,
+    "queries": 0,
+    "changes": 0,
+    "intervals": 0,
+    "selectedEdges": 238,
+    "rounds": 0,
+    "timedOut": false,
+    "seconds": 0.0694565
+  },
+  "date": "2026-10-02",
+  "productAuditFile": "data/erd-poc/candidates/captain-leaf-card-connections-432.audit.json",
+  "nativeBinarySha256": "22db910be072dfd6385ead41214dddda13de6b78d0fb43fca4e80cd4183811ee",
+  "installedAsDefault": false,
+  "freshSourceAnalysisVerified": false,
+  "sourceCodeSha256": {
+    "scripts/erd-poc/probe_overview_boundary.cjs": "59183abd1e8e65fc2c21d5c867c4f46c508ec753fabce673a6f20b383a4a76e4",
+    "scripts/erd-poc/probe_boundary_sweep.cpp": "9ddd871deb2b7d445be30f5243e261fcf5f4907e8b8d85dada28219adada0b4a",
+    "scripts/erd-poc/constrained_boundary_sweep.h": "5dc43defe7f4348d58ead6028259e12b88dcdd25740c87d5127809f51a1eef30",
+    "scripts/erd-poc/constrained_scene.h": "ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6",
+    "scripts/erd-poc/run_memory_bounded.py": "90dc1dcdf63a5ac940b7b32f4997a60b4d5f5e8d1545d905bfcfc49febe79dba",
+    "out/webview/state/createDiagramRenderModel.js": "6c39e4590a22b5ba306f9ff3f195fb4f3edf997966a05c6edf693b95edc71b69"
+  },
+  "followupProbes": {
+    "overviewGroups": {
+      "eligibleGroups": 13,
+      "selectedGroups": 1,
+      "native": {
+        "initialVisual": 432,
+        "initialHardConditions": 0,
+        "visual": 432,
+        "cross": 289,
+        "hit": 143,
+        "hardConditions": 0,
+        "overlap": 0,
+        "spacing": 0,
+        "queries": 18,
+        "changes": 0,
+        "intervals": 116,
+        "selectedEdges": 1,
+        "rounds": 1,
+        "timedOut": false,
+        "seconds": 0.111339
+      },
+      "accepted": false,
+      "reason": "no visual improvement",
+      "maxSearchSeconds": 5,
+      "largestReportedRssMiB": 138.6
+    },
+    "singletonsFrom432": {
+      "selectedRoutes": 232,
+      "native": {
+        "initialVisual": 432,
+        "initialHardConditions": 0,
+        "visual": 426,
+        "cross": 295,
+        "hit": 131,
+        "hardConditions": 0,
+        "overlap": 0,
+        "spacing": 0,
+        "queries": 8312,
+        "changes": 11,
+        "intervals": 146066,
+        "selectedEdges": 232,
+        "rounds": 2,
+        "timedOut": false,
+        "seconds": 7.71686
+      },
+      "accepted": false,
+      "reason": "no strict overview improvement after filtering individual-view regressions",
+      "largestReportedRssMiB": 139.6
+    }
+  },
+  "followupNativeInputSha256": {
+    ".tmp/visualcross-low-resource-20261002-groups/nodes.tsv": "a340275b5f6408477df0873a179ec909a3a8e5cdbb4b94e506bb915a6d86880f",
+    ".tmp/visualcross-low-resource-20261002-groups/positions.tsv": "39344a5985cb233e1f46b0afdf3537c9026a44b7ad641c556a6b4a87331807fa",
+    ".tmp/visualcross-low-resource-20261002-groups/edges.tsv": "b07fca5eb6d55b581860d1d049c1cdcf6542d971aec2937956e75d2f21d196fa",
+    ".tmp/visualcross-low-resource-20261002-groups/routes.tsv": "2942f464c1baf22ff8990d56646aa311d65d7fbe2c642e9b6517d9f64914c266",
+    ".tmp/visualcross-low-resource-20261002-groups/selection.txt": "28b22bb5026d4ac3ac8d7b99b72aa51542a04ae4b3f0e1a58f9c830dfa81fbb8",
+    ".tmp/visualcross-low-resource-20261002-groups/proposal.tsv.stats.json": "592f24d6d7e8943d8e6345bbb3b284392b03571fcf87d09e11db8ff16c7ff543",
+    ".tmp/visualcross-low-resource-20261002-repeat/nodes.tsv": "a340275b5f6408477df0873a179ec909a3a8e5cdbb4b94e506bb915a6d86880f",
+    ".tmp/visualcross-low-resource-20261002-repeat/positions.tsv": "39344a5985cb233e1f46b0afdf3537c9026a44b7ad641c556a6b4a87331807fa",
+    ".tmp/visualcross-low-resource-20261002-repeat/edges.tsv": "b07fca5eb6d55b581860d1d049c1cdcf6542d971aec2937956e75d2f21d196fa",
+    ".tmp/visualcross-low-resource-20261002-repeat/routes.tsv": "2942f464c1baf22ff8990d56646aa311d65d7fbe2c642e9b6517d9f64914c266",
+    ".tmp/visualcross-low-resource-20261002-repeat/selection.txt": "c8b39be58324de8b907ec550f09d9226dd4e4d5f05a8d5927681dd5029f4576e",
+    ".tmp/visualcross-low-resource-20261002-repeat/proposal.tsv.stats.json": "049d72d7c474a45ac73252d67b4953a91633014cf789fc648256a6be52d55b77"
+  }
+}

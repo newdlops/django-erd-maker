@@ -1,0 +1,702 @@
+{
+  "description": "June 5 leaf/hub grouping policy; leaf memberships from the preserved July 10 snapshot, not a recovered exact June run.",
+  "policyCommit": "aef540a2",
+  "source": "erd-layout-final.json",
+  "sourceSha256": "4df77dc8d623b0e1027b5a1e56801a636ace74897167988840ae5214a98d1cb6",
+  "hubThreshold": 14,
+  "leafBundles": [
+    {
+      "parentModelId": "db.Company",
+      "leafModelIds": [
+        "db.ArticlesOfIncorporationAnalyzationRequest",
+        "db.CompanyPromotionWinLog",
+        "db.CompanyTanTableView",
+        "db.IrSubscription",
+        "db.MnaBuyer",
+        "db.Notification",
+        "db.RegistrationCaseReport"
+      ],
+      "sharedRootModelIds": [
+        "db.Company"
+      ]
+    },
+    {
+      "parentModelId": "db.QuestionThreadMessage",
+      "leafModelIds": [
+        "db.QuestionThreadMessageAccessLog",
+        "db.QuestionThreadMessageCategory",
+        "db.QuestionThreadMessageProfile",
+        "db.QuestionThreadMessageReminder",
+        "db.QuestionThreadMessageReview",
+        "db.QuestionThreadMessageReviewRequest"
+      ],
+      "sharedRootModelIds": [
+        "db.QuestionThreadMessage"
+      ]
+    },
+    {
+      "parentModelId": "db.MembershipContent",
+      "leafModelIds": [
+        "db.MembershipContentAccessLog",
+        "db.Playbook",
+        "db.Post",
+        "db.Template",
+        "db.Webinar"
+      ],
+      "sharedRootModelIds": [
+        "db.MembershipContent"
+      ]
+    },
+    {
+      "parentModelId": "db.LegalPartner",
+      "leafModelIds": [
+        "db.LegalPartnerEmail",
+        "db.LegalPartnerPaypleSettings",
+        "db.LegalPartnerRegistrationAssistanceSettings",
+        "db.LegalPartnerSlackChannels",
+        "db.LegalPartnerUserRelation",
+        "db.SalesMetric",
+        "db.TaxPartnerTbkSettings"
+      ],
+      "sharedRootModelIds": [
+        "db.LegalPartner"
+      ]
+    },
+    {
+      "parentModelId": "db.InvestorRelations",
+      "leafModelIds": [
+        "db.IrAiSummary",
+        "db.IrNote",
+        "db.IrSearchMetadata",
+        "db.IrTeamMember",
+        "db.IrTranscript"
+      ],
+      "sharedRootModelIds": [
+        "db.InvestorRelations"
+      ]
+    },
+    {
+      "parentModelId": "db.Hrm",
+      "leafModelIds": [
+        "db.HrmDeptReorg",
+        "db.HrmEmpContractCommonVar",
+        "db.HrmEmpMov",
+        "db.HrmGoogleCalendarIntegration",
+        "db.HrmSigner",
+        "db.HrmStaffNote",
+        "db.HrmTag",
+        "db.PayrollSocialInsuranceSetting"
+      ],
+      "sharedRootModelIds": [
+        "db.Hrm"
+      ]
+    },
+    {
+      "parentModelId": "db.HrmLeaveBase",
+      "leafModelIds": [
+        "db.HrmCompensatoryLeave",
+        "db.HrmCustomLeave",
+        "db.HrmFamilyCareLeave",
+        "db.HrmInfertilityTreatmentLeave",
+        "db.HrmLeaveCommonConfig",
+        "db.HrmLeaveIndividualApprovalTemplateRelation",
+        "db.HrmMaternityLeave",
+        "db.HrmMenstrualLeave",
+        "db.HrmMiscarriageLeave",
+        "db.HrmPaternityLeave",
+        "db.HrmReserveTrainingLeave"
+      ],
+      "sharedRootModelIds": [
+        "db.HrmLeaveBase"
+      ]
+    },
+    {
+      "parentModelId": "db.MeetingDocument",
+      "leafModelIds": [
+        "db.AppointedDirectorCertificateOfSealDocument",
+        "db.AppointedDirectorResidentRegistrationDocument",
+        "db.ArticlesOfIncorporationAfterChangeDocument",
+        "db.ArticlesOfIncorporationBeforeChangeDocument",
+        "db.ArticlesOfIncorporationDocument",
+        "db.AuditReportDocument",
+        "db.CaptableAfterNewIssueDocument",
+        "db.CaptableAtRecordDateDocument",
+        "db.CaptableBeforeNewIssueDocument",
+        "db.CeoConfirmationDocument",
+        "db.CeoTypeChangedCeoResidentRegistrationDocument",
+        "db.CertificateOfCorporateSealDocument",
+        "db.CertificateOfSealNotarizationPoaDocument",
+        "db.CorporateRegistrationDocument",
+        "db.DirectorDecisionDocument",
+        "db.DirectorResidentRegistrationWithAddressChangeHistoryDocument",
+        "db.DirectorsMeetingMinutesDocument",
+        "db.DirectorsMeetingNoticeDocument",
+        "db.DirectorsMeetingSkipNoticeDocument",
+        "db.ElectronicCertificateApplicationFormDocument",
+        "db.ElectronicCertificateCaseReportDocument",
+        "db.FeeReceiptDocument",
+        "db.FinancialStatementsDocument",
+        "db.MeetingDocumentCache",
+        "db.MeetingDocumentManualModification",
+        "db.NewCeoCertificateOfSealDocument",
+        "db.NewCeoResidentRegistrationDocument",
+        "db.NotarizationPoaDocument",
+        "db.ProofOfEmploymentDocument",
+        "db.RegistrationFormAllInOneDocument",
+        "db.RegistrationFormAoiChangeDocument",
+        "db.RegistrationFormBranchChangeDocument",
+        "db.RegistrationFormCeoAddressChangeDocument",
+        "db.RegistrationFormDirectorChangeDocument",
+        "db.RegistrationFormNewIssueDocument",
+        "db.RegistrationFormNewOptionsRuleDocument",
+        "db.RegistrationPoaDocument",
+        "db.ResignedDirectorCertificateOfSealDocument",
+        "db.SalesReportDocument",
+        "db.SealedOptionGrantContractDocument",
+        "db.SealedOptionGrantShareholdersMeetingResolutionDocument",
+        "db.ShareholdersCertificateOfSealDocument",
+        "db.ShareholdersMeetingAuditReportDocument",
+        "db.ShareholdersMeetingMinutesDocument",
+        "db.ShareholdersMeetingNoticeDocument",
+        "db.ShareholdersMeetingPowerOfAttorneyDocument",
+        "db.ShareholdersMeetingShortenPeriodDocument",
+        "db.ShareholdersMeetingSkipNoticeDocument",
+        "db.ShareholdersMeetingWrittenDecisionDocument",
+        "db.ShareholdersWrittenResolutionDocument",
+        "db.TaxReceiptDocument",
+        "db.WrittenStatementDocument"
+      ],
+      "sharedRootModelIds": [
+        "db.MeetingDocument"
+      ]
+    },
+    {
+      "parentModelId": "db.Event",
+      "leafModelIds": [
+        "db.CapitalChangeEvent",
+        "db.CoCeoSystemChangeEvent",
+        "db.EmployeeOptionExerciseEvent",
+        "db.OptionAdjustment",
+        "db.OptionWithdrawEvent",
+        "db.PhantomStockCancelEvent",
+        "db.PhantomStockExerciseEvent",
+        "db.PhantomStockGrantEvent",
+        "db.RsuAdjustEvent",
+        "db.RsuCancelEvent",
+        "db.RsuGrantEvent",
+        "db.RsuPerformanceAchievementEvent"
+      ],
+      "sharedRootModelIds": [
+        "db.Event"
+      ]
+    },
+    {
+      "parentModelId": "db.Company",
+      "leafModelIds": [
+        "db.AgendaTemplate",
+        "db.BusinessRegistrationCertificate",
+        "db.CompanyAppointedTransferAgentChange",
+        "db.CompanyAuthorizedSharesChange",
+        "db.CompanyBenefit",
+        "db.CompanyCreateAssignmentReadiness",
+        "db.CompanyGuideState",
+        "db.CompanyInvestmentContractInfo",
+        "db.CompanyInvitation",
+        "db.CompanyIrSetting",
+        "db.CompanyManagementAssignment",
+        "db.CompanyMnaSetting",
+        "db.CompanyNameChange",
+        "db.CompanyOptionRule",
+        "db.CompanyOverview",
+        "db.CompanyOwnerAddRequest",
+        "db.CompanyPolicyFile",
+        "db.CompanyRegistrationAssignment",
+        "db.CompanyRegistrationAssignmentLog",
+        "db.CompanyStockTransferRestrictedChange",
+        "db.CompanyStockValue",
+        "db.CompanyTag",
+        "db.CompanyTodo",
+        "db.EditableCompanyOwnerAuditLog",
+        "db.ExternalStockInfo",
+        "db.HrmConciergeRequest",
+        "db.IrCompanyCreate",
+        "db.ModusignCompanyUserConnection",
+        "db.ModusignExceededSignings",
+        "db.OptionContractTemplatePermission",
+        "db.OptionExerciseManagementTaxationDefaultSetting",
+        "db.OptionTaxCalculatorSetting",
+        "db.PortalMenuVisibilitySetting",
+        "db.PortalSetting",
+        "db.RebootProductContactRequest",
+        "db.RegistrationCaseReportUpdateLog",
+        "db.StockTransferAgreementSurvey",
+        "db.TalingCoupon",
+        "db.ValuationHistory"
+      ],
+      "sharedRootModelIds": [
+        "db.Company"
+      ]
+    },
+    {
+      "parentModelId": "db.Address",
+      "leafModelIds": [
+        "db.IaPartnerDataCollectionItem",
+        "db.IaPartnerDataCollectionItemReply"
+      ],
+      "sharedRootModelIds": [
+        "db.IaPartnerDataCollection",
+        "db.Address"
+      ]
+    },
+    {
+      "parentModelId": "db.Address",
+      "leafModelIds": [
+        "db.IncorporationRequestDirector",
+        "db.IncorporationRequestPromoter"
+      ],
+      "sharedRootModelIds": [
+        "db.IncorporationRequest",
+        "db.Address"
+      ]
+    },
+    {
+      "parentModelId": "db.Address",
+      "leafModelIds": [
+        "db.IndividualInvestorCompanyInfo",
+        "db.IndividualInvestorStakeholder"
+      ],
+      "sharedRootModelIds": [
+        "db.IndividualInvestorCompany",
+        "db.Address"
+      ]
+    },
+    {
+      "parentModelId": "db.Event",
+      "leafModelIds": [
+        "db.BranchChangeEvent",
+        "db.CompanyAddressChangeEvent"
+      ],
+      "sharedRootModelIds": [
+        "db.Address",
+        "db.Event"
+      ]
+    },
+    {
+      "parentModelId": "db.ShareholdersMeetingConvocationNoticeRecipient",
+      "leafModelIds": [
+        "db.BulkEmailRecipient",
+        "db.ShareholdersMeetingConvocationNoticeEmailRecipient"
+      ],
+      "sharedRootModelIds": [
+        "db.ShareholdersMeetingConvocationNoticeRecipient",
+        "db.EmailActivityRecipient"
+      ]
+    },
+    {
+      "parentModelId": "db.Company",
+      "leafModelIds": [
+        "db.EmployeeGroup",
+        "db.EmployeeNumber"
+      ],
+      "sharedRootModelIds": [
+        "db.Employee",
+        "db.Company"
+      ]
+    },
+    {
+      "parentModelId": "db.SealCardReturnStatusHistory",
+      "leafModelIds": [
+        "db.ExpressDelivery1",
+        "db.RegisteredMail"
+      ],
+      "sharedRootModelIds": [
+        "db.SealCardReturnStatusHistory",
+        "db.OrderStatusHistory"
+      ]
+    },
+    {
+      "parentModelId": "db.MeetingDocument",
+      "leafModelIds": [
+        "db.RegistrationFormHeadOfficeInsideRelocationDocument",
+        "db.RegistrationFormHeadOfficeOutsideRelocationDocument"
+      ],
+      "sharedRootModelIds": [
+        "db.MeetingDocument",
+        "db.AgendaHeadOfficeRelocation"
+      ]
+    },
+    {
+      "parentModelId": "db.SecondaryDeal",
+      "leafModelIds": [
+        "db.BigNumberValueWithVisibility",
+        "db.FileValueWithVisibility",
+        "db.TextValueWithVisibility"
+      ],
+      "sharedRootModelIds": [
+        "db.ValueWithVisibility",
+        "db.SecondaryDeal"
+      ]
+    },
+    {
+      "parentModelId": "db.Hrm",
+      "leafModelIds": [
+        "db.HrmEmpJobLevel",
+        "db.HrmEmpJobPosition",
+        "db.HrmEmpJobRole",
+        "db.HrmEmpJobTitle"
+      ],
+      "sharedRootModelIds": [
+        "db.HrmEmpJob",
+        "db.Hrm"
+      ]
+    },
+    {
+      "parentModelId": "db.HrmEmp",
+      "leafModelIds": [
+        "db.HrmCertificateIssue",
+        "db.HrmEmpStatus"
+      ],
+      "sharedRootModelIds": [
+        "db.HrmEmp",
+        "db.HrmEmpStatusEventBase"
+      ]
+    },
+    {
+      "parentModelId": "db.MeetingDocument",
+      "leafModelIds": [
+        "db.BalanceCertificateDocument",
+        "db.FinancialStatementsForNewIssueFromConversionDocument",
+        "db.LedgerByCustomerDocument",
+        "db.NewIssueSkipNoticeDocument",
+        "db.NewIssueStockAllocationDocument"
+      ],
+      "sharedRootModelIds": [
+        "db.MeetingDocument",
+        "db.AgendaNewIssue"
+      ]
+    },
+    {
+      "parentModelId": "db.MeetingDocument",
+      "leafModelIds": [
+        "db.DebtConfirmationAndOffsetContractDocument",
+        "db.NewIssueStockAcceptanceDocument",
+        "db.NewIssueStockSubscriptionDocument",
+        "db.NewIssueStockUnissuedConfirmationDocument"
+      ],
+      "sharedRootModelIds": [
+        "db.AgendaNewIssueItem",
+        "db.MeetingDocument"
+      ]
+    },
+    {
+      "parentModelId": "db.InvestmentAssociation",
+      "leafModelIds": [
+        "db.IaOwner",
+        "db.InvestmentAssociationShare"
+      ],
+      "sharedRootModelIds": [
+        "db.InvestmentAssociationPartner",
+        "db.InvestmentAssociation"
+      ]
+    },
+    {
+      "parentModelId": "db.FileAttachment",
+      "leafModelIds": [
+        "db.IaConfirmationRequest",
+        "db.IaSealStamp"
+      ],
+      "sharedRootModelIds": [
+        "db.InvestmentAssociation",
+        "db.FileAttachment"
+      ]
+    },
+    {
+      "parentModelId": "db.InvestmentAssociationPartner",
+      "leafModelIds": [
+        "db.IaCertificateOfInvestmentDocument",
+        "db.IaConsentFormDocument",
+        "db.IaMeetingShortenPeriodDocument",
+        "db.IaWrittenResolutionDocument"
+      ],
+      "sharedRootModelIds": [
+        "db.InvestmentAssociationPartner",
+        "db.InvestmentAssociationDocument"
+      ]
+    },
+    {
+      "parentModelId": "db.InvestmentAssociationPartner",
+      "leafModelIds": [
+        "db.InvestmentAssociationIndividualPartner",
+        "db.InvestmentAssociationPartnerManager"
+      ],
+      "sharedRootModelIds": [
+        "db.InvestmentAssociationPartner",
+        "db.IaUserInvitationInvitee"
+      ]
+    },
+    {
+      "parentModelId": "db.Company",
+      "leafModelIds": [
+        "db.ImBrokerAssignment",
+        "db.ImWatching"
+      ],
+      "sharedRootModelIds": [
+        "db.InvestorMatching",
+        "db.VentureCapital",
+        "db.Company"
+      ]
+    },
+    {
+      "parentModelId": "db.VentureCapital",
+      "leafModelIds": [
+        "db.ImAccessLog",
+        "db.ImContactRequest",
+        "db.ImInvestorMemo"
+      ],
+      "sharedRootModelIds": [
+        "db.InvestorMatching",
+        "db.VentureCapital"
+      ]
+    },
+    {
+      "parentModelId": "db.FileAttachment",
+      "leafModelIds": [
+        "db.AgendaBonusIssue",
+        "db.AgendaFinancialStatements"
+      ],
+      "sharedRootModelIds": [
+        "db.FileAttachment",
+        "db.ShareholdersMeetingAgenda",
+        "db.MeetingDraft",
+        "db.DirectorsMeetingAgenda"
+      ]
+    },
+    {
+      "parentModelId": "db.ShareholdersMeetingAgenda",
+      "leafModelIds": [
+        "db.ShareholderVote",
+        "db.ShareholderVotingRightsPerAgenda"
+      ],
+      "sharedRootModelIds": [
+        "db.ShareholdersMeetingAgenda",
+        "db.ShareholdersMeetingShareholderAttendance"
+      ]
+    },
+    {
+      "parentModelId": "db.MeetingDraft",
+      "leafModelIds": [
+        "db.AgendaCompanyNameChange",
+        "db.AgendaDirectorCompensationRule",
+        "db.AgendaHeadOfficeRelocationAoiChange",
+        "db.AgendaNewOptionsRule",
+        "db.AgendaNewOrChangeRsuRule",
+        "db.AgendaPurposeChange"
+      ],
+      "sharedRootModelIds": [
+        "db.ShareholdersMeetingAgenda",
+        "db.MeetingDraft"
+      ]
+    },
+    {
+      "parentModelId": "db.MeetingDraft",
+      "leafModelIds": [
+        "db.AgendaCoCeoSystemChange",
+        "db.AgendaCustom",
+        "db.AgendaRsuGrant",
+        "db.AgendaSubsidiaryEstablishment"
+      ],
+      "sharedRootModelIds": [
+        "db.ShareholdersMeetingAgenda",
+        "db.MeetingDraft",
+        "db.DirectorsMeetingAgenda"
+      ]
+    },
+    {
+      "parentModelId": "db.LegalPartner",
+      "leafModelIds": [
+        "db.IncorporationBenefitRequest",
+        "db.IncorporationRequestAssistance"
+      ],
+      "sharedRootModelIds": [
+        "db.IncorporationRequest",
+        "db.LegalPartner"
+      ]
+    },
+    {
+      "parentModelId": "db.IndividualInvestorCompany",
+      "leafModelIds": [
+        "db.IndividualInvestorCompanyShareStock",
+        "db.NonUnifiedShareManagement"
+      ],
+      "sharedRootModelIds": [
+        "db.NonUnifiedShareManagementHistory",
+        "db.IndividualInvestorCompany"
+      ]
+    },
+    {
+      "parentModelId": "db.MeetingDocument",
+      "leafModelIds": [
+        "db.IrosOtpIssueMeetingDocument",
+        "db.SealStampCardContinuedUseApplicationFormDocument",
+        "db.SealStampDeclarationDocument"
+      ],
+      "sharedRootModelIds": [
+        "db.Stakeholder",
+        "db.MeetingDocument"
+      ]
+    },
+    {
+      "parentModelId": "db.Company",
+      "leafModelIds": [
+        "db.CompanyParValueChange",
+        "db.CompanyRsuRule"
+      ],
+      "sharedRootModelIds": [
+        "db.ArticlesOfIncorporation",
+        "db.Company"
+      ]
+    },
+    {
+      "parentModelId": "db.Company",
+      "leafModelIds": [
+        "db.SubscriptionContract",
+        "db.SubscriptionPackage",
+        "db.SubscriptionPenaltyPayment",
+        "db.SubscriptionPolicy",
+        "db.SubscriptionPromotion"
+      ],
+      "sharedRootModelIds": [
+        "db.Subscription",
+        "db.Company"
+      ]
+    },
+    {
+      "parentModelId": "db.Company",
+      "leafModelIds": [
+        "db.VideoCollectionFeedback",
+        "db.VideoCollectionPermission"
+      ],
+      "sharedRootModelIds": [
+        "db.VideoCollection",
+        "db.Company"
+      ]
+    },
+    {
+      "parentModelId": "db.Company",
+      "leafModelIds": [
+        "db.CompanyInvestorInterest",
+        "db.CompanyProfileAccessLog"
+      ],
+      "sharedRootModelIds": [
+        "db.VentureCapital",
+        "db.Company"
+      ]
+    },
+    {
+      "parentModelId": "db.Rsu",
+      "leafModelIds": [
+        "db.RsuVesting",
+        "db.RsuVestingTraceable"
+      ],
+      "sharedRootModelIds": [
+        "db.Rsu",
+        "db.RsuVestingItem"
+      ]
+    },
+    {
+      "parentModelId": "db.PhantomStock",
+      "leafModelIds": [
+        "db.PhantomStockVesting",
+        "db.PhantomStockVestingTraceable"
+      ],
+      "sharedRootModelIds": [
+        "db.PhantomStockVestingItem",
+        "db.PhantomStock"
+      ]
+    },
+    {
+      "parentModelId": "db.Company",
+      "leafModelIds": [
+        "db.CaptableRequest",
+        "db.InvestmentContractDocument",
+        "db.StockUnissuedConfirmationRequest",
+        "db.VentureBusinessCertification"
+      ],
+      "sharedRootModelIds": [
+        "db.FileAttachment",
+        "db.Company"
+      ]
+    },
+    {
+      "parentModelId": "db.MeetingDraft",
+      "leafModelIds": [
+        "db.AgendaCeoAddressChange",
+        "db.AgendaOptionExercise"
+      ],
+      "sharedRootModelIds": [
+        "db.RegistrationAgenda",
+        "db.MeetingDraft"
+      ]
+    },
+    {
+      "parentModelId": "db.MeetingDocument",
+      "leafModelIds": [
+        "db.ShareholdersMeetingPowerOfAttorneyIndividualDocument",
+        "db.ShareholdersMeetingShortenPeriodIndividualDocument",
+        "db.ShareholdersMeetingWrittenDecisionIndividualDocument"
+      ],
+      "sharedRootModelIds": [
+        "db.MeetingDocument",
+        "db.ShareholdersMeetingShareholderAttendance"
+      ]
+    },
+    {
+      "parentModelId": "db.MeetingDocument",
+      "leafModelIds": [
+        "db.InauguralConsentDocument",
+        "db.ResignationLetterDocument"
+      ],
+      "sharedRootModelIds": [
+        "db.MeetingDocument",
+        "db.AgendaDirectorChange"
+      ]
+    },
+    {
+      "parentModelId": "db.Event",
+      "leafModelIds": [
+        "db.CeoAddressChangeEvent",
+        "db.DirectorAppointmentEvent",
+        "db.DirectorCompensationDecisionEvent",
+        "db.DirectorCompensationLimitEvent",
+        "db.DirectorTermEndEvent"
+      ],
+      "sharedRootModelIds": [
+        "db.Event",
+        "db.Director"
+      ]
+    },
+    {
+      "parentModelId": "db.VentureCapital",
+      "leafModelIds": [
+        "db.InvestorRelationsSurvey",
+        "db.IrAlert",
+        "db.IrCommittedInvestmentAmount"
+      ],
+      "sharedRootModelIds": [
+        "db.InvestorRelations",
+        "db.VentureCapital"
+      ]
+    },
+    {
+      "parentModelId": "db.DirectorsMeetingAgenda",
+      "leafModelIds": [
+        "db.DirectorVote",
+        "db.DirectorVotingRightsPerAgenda"
+      ],
+      "sharedRootModelIds": [
+        "db.DirectorsMeetingDirectorAttendance",
+        "db.DirectorsMeetingAgenda"
+      ]
+    }
+  ]
+}

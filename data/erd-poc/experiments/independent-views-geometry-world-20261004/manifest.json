@@ -1,0 +1,2881 @@
+{
+  "scope": "Learned pair event models, complete optimizer replay, fixed model rankings and all attempted full Native measurements; current product preserved",
+  "candidateSource": "data/erd-poc/candidates/captain-ml-independent-views.layout.json",
+  "candidateSha256": "4e741de39ca655c7ff042422b9407206427f89e02ecd56b7f4a9f36f6a5cd02e",
+  "overviewVisual": 285,
+  "individualVisual": 1963,
+  "targetOverview": 150,
+  "targetIndividual": 750,
+  "targetMet": false,
+  "promotedNewCandidate": false,
+  "newTrainingUpdates": 29920,
+  "learnedModelParameters": 1538,
+  "modelRankings": 8040,
+  "actualNeuralMoves": 736,
+  "strictImprovements": 0,
+  "verification": {
+    "training": {
+      "status": "pass",
+      "scope": "All teacher rows/folds, normalizers, initialization, 29920 optimizer updates, selected weights and validation metrics",
+      "modelSha256": "efec2a7e722662715799ecfcc75f162d32952485d8e024ef41e8fb0037f04a3c",
+      "datasetSha256": "16a7253d57a49fef0a945a5151e7267a4ec2a78fe41c8012e66e5b9e714f0779",
+      "sourceBindingSha256": "c5e3001d3a14304ada656ffd7d5bdfd69ac7f56abecf77fe2a2e6623dc2ed20c",
+      "nativeSourceBaselineControls": [
+        {
+          "view": "overview",
+          "nativeBaseline": {
+            "accepted": false,
+            "legal": true,
+            "visual": 285,
+            "measureOnly": true,
+            "individualVisual": 4445,
+            "spacing": 0,
+            "hard": 0,
+            "individualHard": 0,
+            "reason": "legal"
+          },
+          "pythonTeacherAggregate": 285,
+          "edgeCrossings": 188,
+          "cardHits": 97,
+          "sourceInputs": {
+            "nodes.tsv": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+            "edges.tsv": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+            "positions.tsv": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+            "routes.tsv": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+            "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+            "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+            "individual.positions.tsv": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+            "individual.routes.tsv": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+            "components.tsv": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+            "groups.tsv": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc"
+          },
+          "pairLabelsComparedToVectorTeacher": true,
+          "individualNativePairLabelsExported": false
+        },
+        {
+          "view": "individual",
+          "nativeBaseline": {
+            "accepted": false,
+            "legal": true,
+            "visual": 1963,
+            "measureOnly": true,
+            "individualVisual": 1963,
+            "spacing": 0,
+            "hard": 0,
+            "individualHard": 0,
+            "reason": "legal"
+          },
+          "pythonTeacherAggregate": 1963,
+          "edgeCrossings": 1483,
+          "cardHits": 480,
+          "sourceInputs": {
+            "nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+            "edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+            "positions.tsv": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+            "routes.tsv": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+            "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+            "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+            "individual.positions.tsv": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+            "individual.routes.tsv": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+            "components.tsv": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+            "groups.tsv": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d"
+          },
+          "pairLabelsComparedToVectorTeacher": true,
+          "individualNativePairLabelsExported": false
+        }
+      ],
+      "nativeReadOnlyFullMeasurements": 2,
+      "trainingNativeSearchCalls": 0,
+      "tasks": {
+        "cross": {
+          "rowsRebuilt": 58933,
+          "updatesReplayed": 19600,
+          "selectedUpdates": 10780,
+          "allSavedParameterArraysExactlyMatched": true,
+          "normalizationRebuiltFromTrainingOnly": true,
+          "initialAndSelectedValidationMetricsMatched": true
+        },
+        "hit": {
+          "rowsRebuilt": 41303,
+          "updatesReplayed": 10320,
+          "selectedUpdates": 9030,
+          "allSavedParameterArraysExactlyMatched": true,
+          "normalizationRebuiltFromTrainingOnly": true,
+          "initialAndSelectedValidationMetricsMatched": true
+        }
+      },
+      "teacherPairLabelsIndependentlyExportedByNative": false,
+      "sourceHoldoutIsUnseenCaptainScene": false,
+      "goalTargetMet": false,
+      "verificationCodeSha256": "fa7eaa3bc6f65e5bfcee43a13e691519d206115b07e4e035c5c54b8222f5b922"
+    },
+    "policies": {
+      "status": "pass",
+      "scope": "Every recorded NN ranking, every attempted action, complete source features, decoded geometry and saved-source outputs",
+      "totals": {
+        "rankings": 8040,
+        "actions": 736,
+        "fullMeasurements": 743,
+        "slowDecoderControls": 736
+      },
+      "stages": [
+        {
+          "stage": "individual-trained1",
+          "modelRankingsReplayed": 256,
+          "attemptedActionsFullMeasured": 64,
+          "legalActions": 56,
+          "maxAbsolutePredictedDeltaErrorOnLegalActions": 0.9192489562805399,
+          "slowDecoderEqualityControls": 64,
+          "savedCandidateMatchesModelChosenBest": true,
+          "sourceFeatureArrayExactlyMatchesFullNative": true,
+          "strictImprovement": false
+        },
+        {
+          "stage": "overview-trained1",
+          "modelRankingsReplayed": 256,
+          "attemptedActionsFullMeasured": 64,
+          "legalActions": 60,
+          "maxAbsolutePredictedDeltaErrorOnLegalActions": 0.9210887310711864,
+          "slowDecoderEqualityControls": 64,
+          "savedCandidateMatchesModelChosenBest": true,
+          "sourceFeatureArrayExactlyMatchesFullNative": true,
+          "strictImprovement": false
+        },
+        {
+          "stage": "individual-swap-trained1",
+          "modelRankingsReplayed": 405,
+          "attemptedActionsFullMeasured": 128,
+          "legalActions": 62,
+          "maxAbsolutePredictedDeltaErrorOnLegalActions": 16.81125734569619,
+          "slowDecoderEqualityControls": 128,
+          "savedCandidateMatchesModelChosenBest": true,
+          "sourceFeatureArrayExactlyMatchesFullNative": true,
+          "strictImprovement": false
+        },
+        {
+          "stage": "overview-swap-trained1",
+          "modelRankingsReplayed": 96,
+          "attemptedActionsFullMeasured": 96,
+          "legalActions": 35,
+          "maxAbsolutePredictedDeltaErrorOnLegalActions": 59.274274931797294,
+          "slowDecoderEqualityControls": 96,
+          "savedCandidateMatchesModelChosenBest": true,
+          "sourceFeatureArrayExactlyMatchesFullNative": true,
+          "strictImprovement": false
+        },
+        {
+          "stage": "individual-local-trained1",
+          "modelRankingsReplayed": 533,
+          "attemptedActionsFullMeasured": 128,
+          "legalActions": 51,
+          "maxAbsolutePredictedDeltaErrorOnLegalActions": 2.3791534497111506,
+          "slowDecoderEqualityControls": 128,
+          "savedCandidateMatchesModelChosenBest": true,
+          "sourceFeatureArrayExactlyMatchesFullNative": true,
+          "strictImprovement": false
+        },
+        {
+          "stage": "individual-ports-trained1",
+          "modelRankingsReplayed": 3060,
+          "attemptedActionsFullMeasured": 128,
+          "legalActions": 126,
+          "maxAbsolutePredictedDeltaErrorOnLegalActions": 1.244133703869823,
+          "slowDecoderEqualityControls": 128,
+          "savedCandidateMatchesModelChosenBest": true,
+          "sourceFeatureArrayExactlyMatchesFullNative": true,
+          "strictImprovement": false
+        },
+        {
+          "stage": "overview-ports-trained1",
+          "modelRankingsReplayed": 3434,
+          "attemptedActionsFullMeasured": 128,
+          "legalActions": 103,
+          "maxAbsolutePredictedDeltaErrorOnLegalActions": 1.2321266850738197,
+          "slowDecoderEqualityControls": 128,
+          "savedCandidateMatchesModelChosenBest": true,
+          "sourceFeatureArrayExactlyMatchesFullNative": true,
+          "strictImprovement": false
+        }
+      ],
+      "newNativeTryCallsDuringVerification": 0,
+      "globalGeometryMinimumEstablished": false,
+      "worldPredictsFutureMetricsPerfectly": false,
+      "canonicalCandidateUnchanged": true,
+      "candidateSha256": "4e741de39ca655c7ff042422b9407206427f89e02ecd56b7f4a9f36f6a5cd02e",
+      "overviewVisual": 285,
+      "individualVisual": 1963,
+      "targetOverview": 150,
+      "targetIndividual": 750,
+      "targetMet": false,
+      "actualBrowserChecked": false,
+      "verificationCodeSha256": "77b41c7d39aa24fc8c06b643d7ecec9e637363fab42b47acedb5934067f0abe5"
+    }
+  },
+  "training": {
+    "schema": "geometric-pair-event-world-v1",
+    "kind": "two-small-neural-geometric-event-classifiers",
+    "seed": 103109,
+    "featureInputDtype": "float32",
+    "parameterAndInnerDtype": "float64",
+    "hidden": 24,
+    "newTrainingUpdatesExecuted": 29920,
+    "tasks": {
+      "cross": {
+        "rows": 58933,
+        "trainingRows": 47100,
+        "validationRows": 11833,
+        "updatesExecuted": 19600,
+        "selectedCheckpointUpdates": 10780,
+        "seconds": 2.433830499998294,
+        "initial": {
+          "source": {
+            "rows": 3033,
+            "positives": 323,
+            "bce": 0.6884037671091312,
+            "precision": 0.13818181818181818,
+            "recall": 0.47058823529411764,
+            "falsePositive": 948,
+            "falseNegative": 171
+          },
+          "synthetic": {
+            "rows": 8800,
+            "positives": 3642,
+            "bce": 0.6902821722582189,
+            "precision": 0.4622741764080765,
+            "recall": 0.47775947281713343,
+            "falsePositive": 2024,
+            "falseNegative": 1902
+          }
+        },
+        "final": {
+          "source": {
+            "rows": 3033,
+            "positives": 323,
+            "bce": 0.0001059220657559731,
+            "precision": 1.0,
+            "recall": 1.0,
+            "falsePositive": 0,
+            "falseNegative": 0
+          },
+          "synthetic": {
+            "rows": 8800,
+            "positives": 3642,
+            "bce": 0.0007435811476104714,
+            "precision": 0.9997253501785224,
+            "recall": 0.99945085118067,
+            "falsePositive": 1,
+            "falseNegative": 2
+          }
+        },
+        "trace": [
+          {
+            "epoch": 1,
+            "updates": 245,
+            "validationBce": 0.003877709915562355
+          },
+          {
+            "epoch": 2,
+            "updates": 490,
+            "validationBce": 0.0020600302064060364
+          },
+          {
+            "epoch": 3,
+            "updates": 735,
+            "validationBce": 0.0016436229721974041
+          },
+          {
+            "epoch": 4,
+            "updates": 980,
+            "validationBce": 0.0013698101932050504
+          },
+          {
+            "epoch": 5,
+            "updates": 1225,
+            "validationBce": 0.0013085518101283783
+          },
+          {
+            "epoch": 6,
+            "updates": 1470,
+            "validationBce": 0.0013988662944126404
+          },
+          {
+            "epoch": 7,
+            "updates": 1715,
+            "validationBce": 0.0011961132569150768
+          },
+          {
+            "epoch": 8,
+            "updates": 1960,
+            "validationBce": 0.001332596127396058
+          },
+          {
+            "epoch": 9,
+            "updates": 2205,
+            "validationBce": 0.0012650085549136556
+          },
+          {
+            "epoch": 10,
+            "updates": 2450,
+            "validationBce": 0.0012634081998388433
+          },
+          {
+            "epoch": 11,
+            "updates": 2695,
+            "validationBce": 0.001371142434571074
+          },
+          {
+            "epoch": 12,
+            "updates": 2940,
+            "validationBce": 0.0010401548823578432
+          },
+          {
+            "epoch": 13,
+            "updates": 3185,
+            "validationBce": 0.001230526055170614
+          },
+          {
+            "epoch": 14,
+            "updates": 3430,
+            "validationBce": 0.0011584494915122133
+          },
+          {
+            "epoch": 15,
+            "updates": 3675,
+            "validationBce": 0.0010888298837948645
+          },
+          {
+            "epoch": 16,
+            "updates": 3920,
+            "validationBce": 0.0013126387335720324
+          },
+          {
+            "epoch": 17,
+            "updates": 4165,
+            "validationBce": 0.0016499117124760736
+          },
+          {
+            "epoch": 18,
+            "updates": 4410,
+            "validationBce": 0.001169910247205525
+          },
+          {
+            "epoch": 19,
+            "updates": 4655,
+            "validationBce": 0.0011535733758563757
+          },
+          {
+            "epoch": 20,
+            "updates": 4900,
+            "validationBce": 0.001192235939768272
+          },
+          {
+            "epoch": 21,
+            "updates": 5145,
+            "validationBce": 0.0010196536585267912
+          },
+          {
+            "epoch": 22,
+            "updates": 5390,
+            "validationBce": 0.001076463062826864
+          },
+          {
+            "epoch": 23,
+            "updates": 5635,
+            "validationBce": 0.0013727569955375733
+          },
+          {
+            "epoch": 24,
+            "updates": 5880,
+            "validationBce": 0.0011616830403528614
+          },
+          {
+            "epoch": 25,
+            "updates": 6125,
+            "validationBce": 0.0010242169458568385
+          },
+          {
+            "epoch": 26,
+            "updates": 6370,
+            "validationBce": 0.001104291619618111
+          },
+          {
+            "epoch": 27,
+            "updates": 6615,
+            "validationBce": 0.0009995504068651302
+          },
+          {
+            "epoch": 28,
+            "updates": 6860,
+            "validationBce": 0.0008941152977421301
+          },
+          {
+            "epoch": 29,
+            "updates": 7105,
+            "validationBce": 0.0010219745649626426
+          },
+          {
+            "epoch": 30,
+            "updates": 7350,
+            "validationBce": 0.0010508540959745618
+          },
+          {
+            "epoch": 31,
+            "updates": 7595,
+            "validationBce": 0.0011136355909241325
+          },
+          {
+            "epoch": 32,
+            "updates": 7840,
+            "validationBce": 0.0008876268165353214
+          },
+          {
+            "epoch": 33,
+            "updates": 8085,
+            "validationBce": 0.00102486076283485
+          },
+          {
+            "epoch": 34,
+            "updates": 8330,
+            "validationBce": 0.0008864719796279135
+          },
+          {
+            "epoch": 35,
+            "updates": 8575,
+            "validationBce": 0.0013173554996962792
+          },
+          {
+            "epoch": 36,
+            "updates": 8820,
+            "validationBce": 0.0009621447684421692
+          },
+          {
+            "epoch": 37,
+            "updates": 9065,
+            "validationBce": 0.0009475732292685738
+          },
+          {
+            "epoch": 38,
+            "updates": 9310,
+            "validationBce": 0.0008946988228899684
+          },
+          {
+            "epoch": 39,
+            "updates": 9555,
+            "validationBce": 0.0007962292907557776
+          },
+          {
+            "epoch": 40,
+            "updates": 9800,
+            "validationBce": 0.0009207859192037158
+          },
+          {
+            "epoch": 41,
+            "updates": 10045,
+            "validationBce": 0.0007127912153103211
+          },
+          {
+            "epoch": 42,
+            "updates": 10290,
+            "validationBce": 0.0010944091868218524
+          },
+          {
+            "epoch": 43,
+            "updates": 10535,
+            "validationBce": 0.0011196013496153792
+          },
+          {
+            "epoch": 44,
+            "updates": 10780,
+            "validationBce": 0.0005801382341257513
+          },
+          {
+            "epoch": 45,
+            "updates": 11025,
+            "validationBce": 0.0007686765530011278
+          },
+          {
+            "epoch": 46,
+            "updates": 11270,
+            "validationBce": 0.0014154979980894136
+          },
+          {
+            "epoch": 47,
+            "updates": 11515,
+            "validationBce": 0.0012640756063460245
+          },
+          {
+            "epoch": 48,
+            "updates": 11760,
+            "validationBce": 0.0011216346894428232
+          },
+          {
+            "epoch": 49,
+            "updates": 12005,
+            "validationBce": 0.0011001261560544056
+          },
+          {
+            "epoch": 50,
+            "updates": 12250,
+            "validationBce": 0.0010563146196117168
+          },
+          {
+            "epoch": 51,
+            "updates": 12495,
+            "validationBce": 0.0010441306271778829
+          },
+          {
+            "epoch": 52,
+            "updates": 12740,
+            "validationBce": 0.0010158819478096172
+          },
+          {
+            "epoch": 53,
+            "updates": 12985,
+            "validationBce": 0.0010108901003840843
+          },
+          {
+            "epoch": 54,
+            "updates": 13230,
+            "validationBce": 0.0009874421189317048
+          },
+          {
+            "epoch": 55,
+            "updates": 13475,
+            "validationBce": 0.0009547247736013314
+          },
+          {
+            "epoch": 56,
+            "updates": 13720,
+            "validationBce": 0.0009378335770987557
+          },
+          {
+            "epoch": 57,
+            "updates": 13965,
+            "validationBce": 0.000922008170944411
+          },
+          {
+            "epoch": 58,
+            "updates": 14210,
+            "validationBce": 0.0009096324212136471
+          },
+          {
+            "epoch": 59,
+            "updates": 14455,
+            "validationBce": 0.0009126843858440383
+          },
+          {
+            "epoch": 60,
+            "updates": 14700,
+            "validationBce": 0.0008920388367922379
+          },
+          {
+            "epoch": 61,
+            "updates": 14945,
+            "validationBce": 0.0008833264106977525
+          },
+          {
+            "epoch": 62,
+            "updates": 15190,
+            "validationBce": 0.0008553233475059328
+          },
+          {
+            "epoch": 63,
+            "updates": 15435,
+            "validationBce": 0.0008521304183382917
+          },
+          {
+            "epoch": 64,
+            "updates": 15680,
+            "validationBce": 0.0008375252401384984
+          },
+          {
+            "epoch": 65,
+            "updates": 15925,
+            "validationBce": 0.0008349842892474662
+          },
+          {
+            "epoch": 66,
+            "updates": 16170,
+            "validationBce": 0.0008232332683350911
+          },
+          {
+            "epoch": 67,
+            "updates": 16415,
+            "validationBce": 0.0008330139662741166
+          },
+          {
+            "epoch": 68,
+            "updates": 16660,
+            "validationBce": 0.0007972505211517845
+          },
+          {
+            "epoch": 69,
+            "updates": 16905,
+            "validationBce": 0.0008131716379184912
+          },
+          {
+            "epoch": 70,
+            "updates": 17150,
+            "validationBce": 0.0008239418077624214
+          },
+          {
+            "epoch": 71,
+            "updates": 17395,
+            "validationBce": 0.000834950006485335
+          },
+          {
+            "epoch": 72,
+            "updates": 17640,
+            "validationBce": 0.0008442950119788112
+          },
+          {
+            "epoch": 73,
+            "updates": 17885,
+            "validationBce": 0.0008321804539115614
+          },
+          {
+            "epoch": 74,
+            "updates": 18130,
+            "validationBce": 0.0008441851520554419
+          },
+          {
+            "epoch": 75,
+            "updates": 18375,
+            "validationBce": 0.0008500062582673461
+          },
+          {
+            "epoch": 76,
+            "updates": 18620,
+            "validationBce": 0.0008417567291187958
+          },
+          {
+            "epoch": 77,
+            "updates": 18865,
+            "validationBce": 0.0008530525308755451
+          },
+          {
+            "epoch": 78,
+            "updates": 19110,
+            "validationBce": 0.0008464797917492374
+          },
+          {
+            "epoch": 79,
+            "updates": 19355,
+            "validationBce": 0.0007916373679158761
+          },
+          {
+            "epoch": 80,
+            "updates": 19600,
+            "validationBce": 0.0008005694505479836
+          }
+        ],
+        "changedParameterGroups": [
+          "w1",
+          "b1",
+          "w2",
+          "b2",
+          "wo",
+          "bo"
+        ]
+      },
+      "hit": {
+        "rows": 41303,
+        "trainingRows": 33005,
+        "validationRows": 8298,
+        "updatesExecuted": 10320,
+        "selectedCheckpointUpdates": 9030,
+        "seconds": 1.2473229999886826,
+        "initial": {
+          "source": {
+            "rows": 2332,
+            "positives": 98,
+            "bce": 0.6994585945095083,
+            "precision": 0.04449307075127644,
+            "recall": 0.6224489795918368,
+            "falsePositive": 1310,
+            "falseNegative": 37
+          },
+          "synthetic": {
+            "rows": 5966,
+            "positives": 4400,
+            "bce": 0.6961926432732887,
+            "precision": 0.7105263157894737,
+            "recall": 0.43568181818181817,
+            "falsePositive": 781,
+            "falseNegative": 2483
+          }
+        },
+        "final": {
+          "source": {
+            "rows": 2332,
+            "positives": 98,
+            "bce": 0.0027762956423003395,
+            "precision": 1.0,
+            "recall": 1.0,
+            "falsePositive": 0,
+            "falseNegative": 0
+          },
+          "synthetic": {
+            "rows": 5966,
+            "positives": 4400,
+            "bce": 0.005480496950589508,
+            "precision": 0.9988633780404638,
+            "recall": 0.9986363636363637,
+            "falsePositive": 5,
+            "falseNegative": 6
+          }
+        },
+        "trace": [
+          {
+            "epoch": 1,
+            "updates": 129,
+            "validationBce": 0.20410065105080766
+          },
+          {
+            "epoch": 2,
+            "updates": 258,
+            "validationBce": 0.08188181585591997
+          },
+          {
+            "epoch": 3,
+            "updates": 387,
+            "validationBce": 0.04898914177025361
+          },
+          {
+            "epoch": 4,
+            "updates": 516,
+            "validationBce": 0.03682916525059804
+          },
+          {
+            "epoch": 5,
+            "updates": 645,
+            "validationBce": 0.03212857396893874
+          },
+          {
+            "epoch": 6,
+            "updates": 774,
+            "validationBce": 0.027952594595664917
+          },
+          {
+            "epoch": 7,
+            "updates": 903,
+            "validationBce": 0.02391519727656638
+          },
+          {
+            "epoch": 8,
+            "updates": 1032,
+            "validationBce": 0.024415645562694054
+          },
+          {
+            "epoch": 9,
+            "updates": 1161,
+            "validationBce": 0.020622509242306644
+          },
+          {
+            "epoch": 10,
+            "updates": 1290,
+            "validationBce": 0.01915690303144136
+          },
+          {
+            "epoch": 11,
+            "updates": 1419,
+            "validationBce": 0.02043079122358485
+          },
+          {
+            "epoch": 12,
+            "updates": 1548,
+            "validationBce": 0.018021460673351315
+          },
+          {
+            "epoch": 13,
+            "updates": 1677,
+            "validationBce": 0.017552954764456098
+          },
+          {
+            "epoch": 14,
+            "updates": 1806,
+            "validationBce": 0.016052878220336273
+          },
+          {
+            "epoch": 15,
+            "updates": 1935,
+            "validationBce": 0.017878203215010227
+          },
+          {
+            "epoch": 16,
+            "updates": 2064,
+            "validationBce": 0.014890606658755292
+          },
+          {
+            "epoch": 17,
+            "updates": 2193,
+            "validationBce": 0.013236297499486429
+          },
+          {
+            "epoch": 18,
+            "updates": 2322,
+            "validationBce": 0.015440250603944015
+          },
+          {
+            "epoch": 19,
+            "updates": 2451,
+            "validationBce": 0.012700129501589656
+          },
+          {
+            "epoch": 20,
+            "updates": 2580,
+            "validationBce": 0.011205507205732834
+          },
+          {
+            "epoch": 21,
+            "updates": 2709,
+            "validationBce": 0.014336302497805698
+          },
+          {
+            "epoch": 22,
+            "updates": 2838,
+            "validationBce": 0.010743796147695956
+          },
+          {
+            "epoch": 23,
+            "updates": 2967,
+            "validationBce": 0.010937802378997852
+          },
+          {
+            "epoch": 24,
+            "updates": 3096,
+            "validationBce": 0.00981116855519611
+          },
+          {
+            "epoch": 25,
+            "updates": 3225,
+            "validationBce": 0.010089615424835293
+          },
+          {
+            "epoch": 26,
+            "updates": 3354,
+            "validationBce": 0.013568437642541632
+          },
+          {
+            "epoch": 27,
+            "updates": 3483,
+            "validationBce": 0.008775140268723133
+          },
+          {
+            "epoch": 28,
+            "updates": 3612,
+            "validationBce": 0.016167781693093117
+          },
+          {
+            "epoch": 29,
+            "updates": 3741,
+            "validationBce": 0.008881856004383865
+          },
+          {
+            "epoch": 30,
+            "updates": 3870,
+            "validationBce": 0.009126986133112813
+          },
+          {
+            "epoch": 31,
+            "updates": 3999,
+            "validationBce": 0.007664474599813327
+          },
+          {
+            "epoch": 32,
+            "updates": 4128,
+            "validationBce": 0.00827819720661726
+          },
+          {
+            "epoch": 33,
+            "updates": 4257,
+            "validationBce": 0.014989132447458519
+          },
+          {
+            "epoch": 34,
+            "updates": 4386,
+            "validationBce": 0.009482080434610586
+          },
+          {
+            "epoch": 35,
+            "updates": 4515,
+            "validationBce": 0.00814416207480315
+          },
+          {
+            "epoch": 36,
+            "updates": 4644,
+            "validationBce": 0.011035952912010037
+          },
+          {
+            "epoch": 37,
+            "updates": 4773,
+            "validationBce": 0.008721727377130239
+          },
+          {
+            "epoch": 38,
+            "updates": 4902,
+            "validationBce": 0.007057679393172651
+          },
+          {
+            "epoch": 39,
+            "updates": 5031,
+            "validationBce": 0.00678464002514933
+          },
+          {
+            "epoch": 40,
+            "updates": 5160,
+            "validationBce": 0.008954394387411056
+          },
+          {
+            "epoch": 41,
+            "updates": 5289,
+            "validationBce": 0.00649194652770209
+          },
+          {
+            "epoch": 42,
+            "updates": 5418,
+            "validationBce": 0.0064446675480243285
+          },
+          {
+            "epoch": 43,
+            "updates": 5547,
+            "validationBce": 0.005597110549244743
+          },
+          {
+            "epoch": 44,
+            "updates": 5676,
+            "validationBce": 0.006348692895567843
+          },
+          {
+            "epoch": 45,
+            "updates": 5805,
+            "validationBce": 0.006701908344515331
+          },
+          {
+            "epoch": 46,
+            "updates": 5934,
+            "validationBce": 0.009491448918667511
+          },
+          {
+            "epoch": 47,
+            "updates": 6063,
+            "validationBce": 0.006967064592554542
+          },
+          {
+            "epoch": 48,
+            "updates": 6192,
+            "validationBce": 0.005481450139229031
+          },
+          {
+            "epoch": 49,
+            "updates": 6321,
+            "validationBce": 0.0061641380246393405
+          },
+          {
+            "epoch": 50,
+            "updates": 6450,
+            "validationBce": 0.0054558474319545075
+          },
+          {
+            "epoch": 51,
+            "updates": 6579,
+            "validationBce": 0.006103251146675762
+          },
+          {
+            "epoch": 52,
+            "updates": 6708,
+            "validationBce": 0.006789633923996006
+          },
+          {
+            "epoch": 53,
+            "updates": 6837,
+            "validationBce": 0.00811963135474139
+          },
+          {
+            "epoch": 54,
+            "updates": 6966,
+            "validationBce": 0.0049297219462646775
+          },
+          {
+            "epoch": 55,
+            "updates": 7095,
+            "validationBce": 0.0062954331578872775
+          },
+          {
+            "epoch": 56,
+            "updates": 7224,
+            "validationBce": 0.005956724352877247
+          },
+          {
+            "epoch": 57,
+            "updates": 7353,
+            "validationBce": 0.005458725131533577
+          },
+          {
+            "epoch": 58,
+            "updates": 7482,
+            "validationBce": 0.007128109947105605
+          },
+          {
+            "epoch": 59,
+            "updates": 7611,
+            "validationBce": 0.012780097542913715
+          },
+          {
+            "epoch": 60,
+            "updates": 7740,
+            "validationBce": 0.0065451055352374575
+          },
+          {
+            "epoch": 61,
+            "updates": 7869,
+            "validationBce": 0.00545146871511373
+          },
+          {
+            "epoch": 62,
+            "updates": 7998,
+            "validationBce": 0.004894960839286333
+          },
+          {
+            "epoch": 63,
+            "updates": 8127,
+            "validationBce": 0.006897855466072294
+          },
+          {
+            "epoch": 64,
+            "updates": 8256,
+            "validationBce": 0.006588361578815888
+          },
+          {
+            "epoch": 65,
+            "updates": 8385,
+            "validationBce": 0.0065428411490420935
+          },
+          {
+            "epoch": 66,
+            "updates": 8514,
+            "validationBce": 0.0060353637661645166
+          },
+          {
+            "epoch": 67,
+            "updates": 8643,
+            "validationBce": 0.005277193107941605
+          },
+          {
+            "epoch": 68,
+            "updates": 8772,
+            "validationBce": 0.006207958034824745
+          },
+          {
+            "epoch": 69,
+            "updates": 8901,
+            "validationBce": 0.004997337266583407
+          },
+          {
+            "epoch": 70,
+            "updates": 9030,
+            "validationBce": 0.004720531000850975
+          },
+          {
+            "epoch": 71,
+            "updates": 9159,
+            "validationBce": 0.006393293706492254
+          },
+          {
+            "epoch": 72,
+            "updates": 9288,
+            "validationBce": 0.005184772588740396
+          },
+          {
+            "epoch": 73,
+            "updates": 9417,
+            "validationBce": 0.005360904333306896
+          },
+          {
+            "epoch": 74,
+            "updates": 9546,
+            "validationBce": 0.005346028874128767
+          },
+          {
+            "epoch": 75,
+            "updates": 9675,
+            "validationBce": 0.006128884340639403
+          },
+          {
+            "epoch": 76,
+            "updates": 9804,
+            "validationBce": 0.007151061754296029
+          },
+          {
+            "epoch": 77,
+            "updates": 9933,
+            "validationBce": 0.004902954315524772
+          },
+          {
+            "epoch": 78,
+            "updates": 10062,
+            "validationBce": 0.005368300568105128
+          },
+          {
+            "epoch": 79,
+            "updates": 10191,
+            "validationBce": 0.006552552921917025
+          },
+          {
+            "epoch": 80,
+            "updates": 10320,
+            "validationBce": 0.006559516477601723
+          }
+        ],
+        "changedParameterGroups": [
+          "w1",
+          "b1",
+          "w2",
+          "b2",
+          "wo",
+          "bo"
+        ]
+      }
+    },
+    "trainingOnlyExactPredicates": true,
+    "trainingSearchCalls": 0,
+    "candidateCoordinatesEmittedByTeacher": 0,
+    "sourcePairHoldout": "Deterministic within-source pair holdout; not an unseen Captain scene",
+    "syntheticHoldoutGraphs": [
+      104,
+      109,
+      114,
+      119
+    ],
+    "sourceBinding": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/source-binding.json",
+    "sourceBindingSha256": "c5e3001d3a14304ada656ffd7d5bdfd69ac7f56abecf77fe2a2e6623dc2ed20c",
+    "nativeEnvironmentSha256": "b5c355b2675d225114279549051ef201d84d6e56dbe8658810cc9705004f5514",
+    "nativeBaselineControls": [
+      {
+        "view": "overview",
+        "nativeBaseline": {
+          "accepted": false,
+          "legal": true,
+          "visual": 285,
+          "measureOnly": true,
+          "individualVisual": 4445,
+          "spacing": 0,
+          "hard": 0,
+          "individualHard": 0,
+          "reason": "legal"
+        },
+        "pythonTeacherAggregate": 285,
+        "edgeCrossings": 188,
+        "cardHits": 97,
+        "sourceInputs": {
+          "nodes.tsv": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+          "edges.tsv": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+          "positions.tsv": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+          "routes.tsv": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+          "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+          "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+          "individual.positions.tsv": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+          "individual.routes.tsv": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+          "components.tsv": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+          "groups.tsv": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc"
+        },
+        "pairLabelsComparedToVectorTeacher": true,
+        "individualNativePairLabelsExported": false
+      },
+      {
+        "view": "individual",
+        "nativeBaseline": {
+          "accepted": false,
+          "legal": true,
+          "visual": 1963,
+          "measureOnly": true,
+          "individualVisual": 1963,
+          "spacing": 0,
+          "hard": 0,
+          "individualHard": 0,
+          "reason": "legal"
+        },
+        "pythonTeacherAggregate": 1963,
+        "edgeCrossings": 1483,
+        "cardHits": 480,
+        "sourceInputs": {
+          "nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+          "edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+          "positions.tsv": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+          "routes.tsv": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+          "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+          "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+          "individual.positions.tsv": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+          "individual.routes.tsv": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+          "components.tsv": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+          "groups.tsv": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d"
+        },
+        "pairLabelsComparedToVectorTeacher": true,
+        "individualNativePairLabelsExported": false
+      }
+    ],
+    "datasetSha256": "16a7253d57a49fef0a945a5151e7267a4ec2a78fe41c8012e66e5b9e714f0779",
+    "parameters": 1538,
+    "codeSha256": {
+      "train_geometry_world.py": "021b22019d6c8482bd79c384d12af990245dd895c5ffeee1820205af77c3679f",
+      "geometry_world_model.py": "64f6bf8d09c46a89cdfee0284c7ce4df4390e069760b91b6779b862de68833b1",
+      "single_owner_cached_observer_v2.py": "cb0d81952f2b0245906d10cb61cdc51135c634ffe766dee88a095d20ec3a1db1",
+      "learn_pair_policy.py": "b7e04b52ab78592075979de28baaa4eb61432cecb32b8f9b40f5182468b85d2e"
+    },
+    "wallSeconds": 7.387444792024326
+  },
+  "diagnosis": {
+    "previousGoalTurnClassification": "progress: exact CLI error and successful outside-sandbox connectivity checks clarified recovery; numerical work could resume",
+    "thisGoalTurnClassification": "progress: new learned event model, complete learning replay and verified outcomes change the next training/action direction; product metric did not improve",
+    "overviewVisual": 285,
+    "individualVisual": 1963,
+    "targetOverview": 150,
+    "targetIndividual": 750,
+    "targetMet": false,
+    "canonicalCandidateUnchanged": true,
+    "candidateSha256": "4e741de39ca655c7ff042422b9407206427f89e02ecd56b7f4a9f36f6a5cd02e",
+    "trainedWorldSha256": "efec2a7e722662715799ecfcc75f162d32952485d8e024ef41e8fb0037f04a3c",
+    "learnedParameters": 1538,
+    "newTrainingUpdates": 29920,
+    "selectedHeadUpdates": {
+      "cross": 10780,
+      "hit": 9030
+    },
+    "newInferenceStages": 7,
+    "modelScoresReplayed": 8040,
+    "actualNeuralMovesTried": 736,
+    "strictImprovements": 0,
+    "fullNativePolicyVerificationMeasurements": 743,
+    "fullNativeTrainingVerificationSourceControls": 2,
+    "fullNativeOriginalSuccessfulTrainingSourceControls": 2,
+    "failedTrainingSourceControlsNotIncludedInCompletedRunTotals": true,
+    "completeOriginalDecoderComparedWithFastPortDecoderForAttemptedPortMoves": 256,
+    "otherAttemptedMovesAlreadyUseOriginalDecoder": 480,
+    "maxAbsolutePredictedDeltaErrorOnLegalEvaluatedMove": 59.274274931797294,
+    "withinSourcePairClassificationHoldoutDoesNotProveUnseenScenePerformance": true,
+    "nativeTeacherExportsEveryIndividualPairLabel": false,
+    "sourceAndSyntheticExactGeometryOnlyUsedForTrainingLabels": true,
+    "exactFuturePredicatesUsedForInferenceRanking": false,
+    "nativeCoordinateSearchCalls": 0,
+    "coordinateRepairs": 0,
+    "matchedUntrainedCaptainInferenceControlExecuted": false,
+    "learningCausedCaptainGainEstablished": false,
+    "globalGeometryMinimumEstablished": false,
+    "productCodeChanged": false,
+    "nativeBuilds": 0,
+    "actualRenderedBrowserChecked": false,
+    "nextAction": "Learn/calibrate from the fully measured candidate outcomes and broaden to coordinated multi-card actions; preserve protected holdouts and the unchanged 128 MiB guard",
+    "doNotRepeat": "Closed schedules, original optimizer execution, whole reward scans or the first unchunked failed preparation"
+  },
+  "resources": {
+    "limitMiB": 128,
+    "mathThreads": 1,
+    "niceAdjustment": 10,
+    "numericalJobsSerialized": true,
+    "sampledProcessGroupRssGuard": true,
+    "hardCpuPercentageQuota": false,
+    "limitRaised": false,
+    "completedJobReceiptsFromTerminalToolOutput": [
+      {
+        "job": "training2",
+        "exitCode": 0,
+        "sampledPeakMiB": 74.7
+      },
+      {
+        "job": "individual-trained1",
+        "exitCode": 0,
+        "sampledPeakMiB": 111.8
+      },
+      {
+        "job": "overview-trained1",
+        "exitCode": 0,
+        "sampledPeakMiB": 63.4
+      },
+      {
+        "job": "individual-swap-trained1",
+        "exitCode": 0,
+        "sampledPeakMiB": 61.5
+      },
+      {
+        "job": "overview-swap-trained1",
+        "exitCode": 0,
+        "sampledPeakMiB": 54.9
+      },
+      {
+        "job": "individual-local-trained1",
+        "exitCode": 0,
+        "sampledPeakMiB": 61.8
+      },
+      {
+        "job": "individual-ports-trained1",
+        "exitCode": 0,
+        "sampledPeakMiB": 60.1
+      },
+      {
+        "job": "overview-ports-trained1",
+        "exitCode": 0,
+        "sampledPeakMiB": 58.5
+      },
+      {
+        "job": "training-verification",
+        "exitCode": 0,
+        "sampledPeakMiB": 81.1
+      }
+    ],
+    "completedJobWithArchivedGuardLog": {
+      "job": "policy-verification",
+      "log": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/policy-verification.guard.log",
+      "exitCode": 0,
+      "sampledPeakMiB": 109.8
+    },
+    "failedJob": {
+      "job": "training1",
+      "exitCode": 137,
+      "sampledPeakMiB": 209.9,
+      "guardKilledWholeProcessGroup": true,
+      "checkpointProduced": false,
+      "broadPhaseChunkingFixedBeforeRetry": true
+    },
+    "allListedJobsTerminal": true
+  },
+  "nativeCoordinateSearchOrRepairs": 0,
+  "browserVerified": false,
+  "prerequisiteManifests": [
+    {
+      "path": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "sha256": "b17325cd48e8e977b6e7c58211491b84cd52dc2eedce1345de58c47a92575ffb"
+    },
+    {
+      "path": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/manifest.json",
+      "sha256": "6b31d46cd53ab370048e36ba43ed04bdc423e3507adddd42423dca0426a565a7"
+    },
+    {
+      "path": "data/erd-poc/experiments/independent-views-positive-cycles-20261003/manifest.json",
+      "sha256": "33777419b749246e9e4dc481b912d66924dd8bb003b082b73fe46c40a9103e2c"
+    },
+    {
+      "path": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "sha256": "77a3510ea02545f30045f0e1b038617aae7218087495e95e815fd6be8173a80c"
+    },
+    {
+      "path": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "sha256": "8c24abd16db00344e05fcce1441a00b2c1b002db723185c3f36e93c4b3d52f15"
+    },
+    {
+      "path": "data/erd-poc/experiments/independent-views-single-owner-learning-20261004/manifest.json",
+      "sha256": "6b9b97a2aafd690eed135ce561091e0b98b29758ee70ba73fbeb397a1a956298"
+    },
+    {
+      "path": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/manifest.json",
+      "sha256": "5a24ded20b6c2feec46b7d11f2911d9673052dece55c59762e8162e487e32f16"
+    }
+  ],
+  "files": [
+    {
+      "source": ".tmp/prepare_geometry_world.py",
+      "archive": "tools/prepare_geometry_world.py.gz",
+      "bytes": 1457,
+      "sha256": "c53e45fea694550905cbc46a3d2681e90d384bc1a522810bbe4709b42f2ca5f2",
+      "compressedBytes": 765
+    },
+    {
+      "source": ".tmp/prepare_geometry_world_sources.py",
+      "archive": "tools/prepare_geometry_world_sources.py.gz",
+      "bytes": 4311,
+      "sha256": "c481e5dbf836b70020fe39e4e43020edb1653d81f6070f6a799b04caee97688f",
+      "compressedBytes": 1607
+    },
+    {
+      "source": ".tmp/seal_geometry_world.py",
+      "archive": "tools/seal_geometry_world.py.gz",
+      "bytes": 7726,
+      "sha256": "c5d0c8a15d98d2294ca6206b9b1b5d32fc8a977b04471bdaf3374a444f8b7860",
+      "compressedBytes": 3084
+    },
+    {
+      "source": ".tmp/verify_geometry_world_archive.py",
+      "archive": "tools/verify_geometry_world_archive.py.gz",
+      "bytes": 2099,
+      "sha256": "a9d0e38761bd52bd6d29ce7e84f3b067a7de869dbdb4832361d298b33c0505da",
+      "compressedBytes": 971
+    },
+    {
+      "source": ".tmp/verify_geometry_world_policies.py",
+      "archive": "tools/verify_geometry_world_policies.py.gz",
+      "bytes": 10760,
+      "sha256": "77b41c7d39aa24fc8c06b643d7ecec9e637363fab42b47acedb5934067f0abe5",
+      "compressedBytes": 3981
+    },
+    {
+      "source": ".tmp/verify_geometry_world_training.py",
+      "archive": "tools/verify_geometry_world_training.py.gz",
+      "bytes": 5034,
+      "sha256": "fa7eaa3bc6f65e5bfcee43a13e691519d206115b07e4e035c5c54b8222f5b922",
+      "compressedBytes": 2170
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/diagnosis.json",
+      "archive": "run/diagnosis.json.gz",
+      "bytes": 2274,
+      "sha256": "81544a80fb2895b2d68a253494f0a6cf7f4f6924b925488a6745fe5d9111c653",
+      "compressedBytes": 1209
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-local-trained1/actions.jsonl",
+      "archive": "run/individual-local-trained1/actions.jsonl.gz",
+      "bytes": 66550,
+      "sha256": "490a27e5448f93e6b36b103887ac63da5257c4d89c7a5729c74ef8124ccada8f",
+      "compressedBytes": 16025
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-local-trained1/learned.tsv.stats.json",
+      "archive": "run/individual-local-trained1/learned.tsv.stats.json.gz",
+      "bytes": 968,
+      "sha256": "2e0cedf06eda64598b3e4c51aaf60e118e7a7fe64c4e4c9e0b48fceec85910b4",
+      "compressedBytes": 453
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-local-trained1/observations.npz",
+      "archive": "run/individual-local-trained1/observations.npz.gz",
+      "bytes": 281284,
+      "sha256": "7711688b2df36e04f8805b6036645e2ab84f6c711c3802758aba7fd780466c2b",
+      "compressedBytes": 281224
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-local-trained1/ranking.jsonl",
+      "archive": "run/individual-local-trained1/ranking.jsonl.gz",
+      "bytes": 176881,
+      "sha256": "1cd84b2945b2b67404fef68e9e21e2d8cdeb27a3faf2bf331aac26139c153417",
+      "compressedBytes": 56213
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-local-trained1/report.json",
+      "archive": "run/individual-local-trained1/report.json.gz",
+      "bytes": 33700,
+      "sha256": "c9b1856b553edaf7e34a05851d389dfceb43a4dbb16aad8cd321ff5b678ad8ab",
+      "compressedBytes": 8193
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-ports-trained1/actions.jsonl",
+      "archive": "run/individual-ports-trained1/actions.jsonl.gz",
+      "bytes": 70966,
+      "sha256": "3f5e5f77ebdcaf43d626572214f631c24880518b7de22007d0edbe0790ba3f62",
+      "compressedBytes": 14716
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-ports-trained1/learned.tsv.stats.json",
+      "archive": "run/individual-local-trained1/learned.tsv.stats.json.gz",
+      "bytes": 968,
+      "sha256": "2e0cedf06eda64598b3e4c51aaf60e118e7a7fe64c4e4c9e0b48fceec85910b4",
+      "compressedBytes": 453
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-ports-trained1/observations.npz",
+      "archive": "run/individual-ports-trained1/observations.npz.gz",
+      "bytes": 300349,
+      "sha256": "7e8ea632ca6f890730e63315c53d4730f2dea7c464c3abbd9d3ee7f2dc22ecc4",
+      "compressedBytes": 297946
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-ports-trained1/ranking.jsonl",
+      "archive": "run/individual-ports-trained1/ranking.jsonl.gz",
+      "bytes": 1103960,
+      "sha256": "8a8e929b5cace356ff7c6fad72cd5c20aeff682a768c3c01b20d01b3c02be22b",
+      "compressedBytes": 287723
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-ports-trained1/report.json",
+      "archive": "run/individual-ports-trained1/report.json.gz",
+      "bytes": 34671,
+      "sha256": "eed0942a711583815044f076ad963859fd397a13bf815b5dcf174bcbf75a11c5",
+      "compressedBytes": 8265
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-swap-trained1/actions.jsonl",
+      "archive": "run/individual-swap-trained1/actions.jsonl.gz",
+      "bytes": 66307,
+      "sha256": "f0c1be4b54bc76905f70c37377ee3be122e59661fad15817570e369e5c7dfe79",
+      "compressedBytes": 16512
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-swap-trained1/learned.tsv.stats.json",
+      "archive": "run/individual-local-trained1/learned.tsv.stats.json.gz",
+      "bytes": 968,
+      "sha256": "2e0cedf06eda64598b3e4c51aaf60e118e7a7fe64c4e4c9e0b48fceec85910b4",
+      "compressedBytes": 453
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-swap-trained1/observations.npz",
+      "archive": "run/individual-swap-trained1/observations.npz.gz",
+      "bytes": 276240,
+      "sha256": "12c3227b4dc9977b8db49ab86cbe86506b0efaba8a0fb5c19688c4086604e594",
+      "compressedBytes": 276176
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-swap-trained1/ranking.jsonl",
+      "archive": "run/individual-swap-trained1/ranking.jsonl.gz",
+      "bytes": 134318,
+      "sha256": "c664802a6a2d13ec8295ed8b64f61a1842077312fb213e76baf28a72bb8f81be",
+      "compressedBytes": 42828
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-swap-trained1/report.json",
+      "archive": "run/individual-swap-trained1/report.json.gz",
+      "bytes": 33191,
+      "sha256": "7c7c324876517f925c5e2e1533c376ec094c4e493eb312214028fa82b8715bda",
+      "compressedBytes": 7941
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-trained1/actions.jsonl",
+      "archive": "run/individual-trained1/actions.jsonl.gz",
+      "bytes": 41553,
+      "sha256": "77a6880d4e739f2fe98e7f402961d627867399c23d71268c403a2adb39ade9df",
+      "compressedBytes": 10785
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-trained1/learned.tsv.stats.json",
+      "archive": "run/individual-trained1/learned.tsv.stats.json.gz",
+      "bytes": 967,
+      "sha256": "676336a85b4ab2815357ada3a4cca710f4ba3423768c91779929c8e7743d5130",
+      "compressedBytes": 451
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-trained1/observations.npz",
+      "archive": "run/individual-trained1/observations.npz.gz",
+      "bytes": 1874373,
+      "sha256": "7ea8bcd495204b879ea2d99a2adeb6f0e43936c9f816e4567db0438d7a544919",
+      "compressedBytes": 1809036
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-trained1/ranking.jsonl",
+      "archive": "run/individual-trained1/ranking.jsonl.gz",
+      "bytes": 116365,
+      "sha256": "c0748984b381d76acd89396ef0897d5cc55963f477ceecfacf8c819a5e620b6f",
+      "compressedBytes": 38825
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-trained1/report.json",
+      "archive": "run/individual-trained1/report.json.gz",
+      "bytes": 126651,
+      "sha256": "af09554ac4584f8b24124b1bfa2777a046438e3e1a53cb5b343eb75785033446",
+      "compressedBytes": 57173
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-ports-trained1/actions.jsonl",
+      "archive": "run/overview-ports-trained1/actions.jsonl.gz",
+      "bytes": 71282,
+      "sha256": "da2327fb85308df7d3a454c81f9acd5708a8c138a9d3eab4d29dca238c64213f",
+      "compressedBytes": 15128
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-ports-trained1/learned.tsv.stats.json",
+      "archive": "run/overview-ports-trained1/learned.tsv.stats.json.gz",
+      "bytes": 964,
+      "sha256": "7ceee4e45e6f089e19b1878defd93bbc3bbbf8ddfba198f3901d562498578e2d",
+      "compressedBytes": 459
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-ports-trained1/observations.npz",
+      "archive": "run/overview-ports-trained1/observations.npz.gz",
+      "bytes": 267020,
+      "sha256": "60d66d217f0d0fa4e7a141876541e9e7ad39bd6e1b73d9eb8908e72d0c38c7e1",
+      "compressedBytes": 263206
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-ports-trained1/ranking.jsonl",
+      "archive": "run/overview-ports-trained1/ranking.jsonl.gz",
+      "bytes": 1146917,
+      "sha256": "1c3eb986da5b826491c19e8d85310e24fccc1115177896fbf3baec7a939a5392",
+      "compressedBytes": 262023
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-ports-trained1/report.json",
+      "archive": "run/overview-ports-trained1/report.json.gz",
+      "bytes": 34661,
+      "sha256": "ef1a401ff2a2568437c46c73d920f069d6e5fb6b428a1bbd866164bbf4b40fc8",
+      "compressedBytes": 8266
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/export.json",
+      "archive": "run/overview-source285/export.json.gz",
+      "bytes": 21026,
+      "sha256": "7a21d1ac9eaaae1e04dab92f2cc0417f2a0fb927323650f0019214b5ad497648",
+      "compressedBytes": 3503
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-swap-trained1/actions.jsonl",
+      "archive": "run/overview-swap-trained1/actions.jsonl.gz",
+      "bytes": 49515,
+      "sha256": "bd43c0ffd1b59850315a46a4df35cbb4efa1e428b0d8f5b286135c1122d21ed0",
+      "compressedBytes": 12755
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-swap-trained1/learned.tsv.stats.json",
+      "archive": "run/overview-swap-trained1/learned.tsv.stats.json.gz",
+      "bytes": 963,
+      "sha256": "8d94598c01985b2b63beb1deb47b9764bb9b2854f77d608a88dd544579daa16a",
+      "compressedBytes": 459
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-swap-trained1/observations.npz",
+      "archive": "run/overview-swap-trained1/observations.npz.gz",
+      "bytes": 238468,
+      "sha256": "9ff2044cc00387b9513d300b1f2557ee76b018f4e043ae9652d40cde4e160411",
+      "compressedBytes": 238360
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-swap-trained1/ranking.jsonl",
+      "archive": "run/overview-swap-trained1/ranking.jsonl.gz",
+      "bytes": 31661,
+      "sha256": "a1dd63b021f13520b90135f8ce449a05a0dd40460cdb729293b1297b3e140ae3",
+      "compressedBytes": 10312
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-swap-trained1/report.json",
+      "archive": "run/overview-swap-trained1/report.json.gz",
+      "bytes": 33200,
+      "sha256": "8a5c6cafe64a183a95e6ca9515691baf1b597177c1ca0546363be47bc0841867",
+      "compressedBytes": 7968
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-trained1/actions.jsonl",
+      "archive": "run/overview-trained1/actions.jsonl.gz",
+      "bytes": 41637,
+      "sha256": "ef6ae1c96c3d4efd3d25584f978191888e17f2c07f34574e4575b77aeaa05de1",
+      "compressedBytes": 10835
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-trained1/learned.tsv.stats.json",
+      "archive": "run/overview-trained1/learned.tsv.stats.json.gz",
+      "bytes": 963,
+      "sha256": "c50ae8f6da3bac79bd5ea27be1bde5fb7cf6a2a1cc161491e4ebed114dfb3949",
+      "compressedBytes": 459
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-trained1/observations.npz",
+      "archive": "run/overview-trained1/observations.npz.gz",
+      "bytes": 1753224,
+      "sha256": "f2270dc2bc3e5292ab9c65e5fe8a9bde3b0d8da82f2bce611aea6fb3942722bb",
+      "compressedBytes": 1698916
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-trained1/ranking.jsonl",
+      "archive": "run/overview-trained1/ranking.jsonl.gz",
+      "bytes": 116770,
+      "sha256": "5032fa878cc1ea9d5658cf7aee8d11a2728f955d116062a07dd98eecf5e9aeb6",
+      "compressedBytes": 38885
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-trained1/report.json",
+      "archive": "run/overview-trained1/report.json.gz",
+      "bytes": 126642,
+      "sha256": "f5f6c53798c2210d4bb99e36e2f09919c6af7028a294c0a7d053788f8d1a02bc",
+      "compressedBytes": 57249
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/policy-verification.guard.log",
+      "archive": "run/policy-verification.guard.log.gz",
+      "bytes": 2616,
+      "sha256": "0308ae80baea1bfbe6263d94468cf153ed53bd3206dc64775087e81fb3b63d2b",
+      "compressedBytes": 576
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/resources.json",
+      "archive": "run/resources.json.gz",
+      "bytes": 1417,
+      "sha256": "418f7f45b845649858eaaec9d96f79f36887f3c6a54b7edf330e04ed1255d9fc",
+      "compressedBytes": 558
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/source-binding.json",
+      "archive": "run/source-binding.json.gz",
+      "bytes": 2784,
+      "sha256": "c5e3001d3a14304ada656ffd7d5bdfd69ac7f56abecf77fe2a2e6623dc2ed20c",
+      "compressedBytes": 1139
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/training1.failure.json",
+      "archive": "run/training1.failure.json.gz",
+      "bytes": 373,
+      "sha256": "e9e6934c857d41fc32ef2afe82a3171502220d21614d0ecff41502d5f71412c2",
+      "compressedBytes": 268
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/training2/dataset.npz",
+      "archive": "run/training2/dataset.npz.gz",
+      "bytes": 1560004,
+      "sha256": "16a7253d57a49fef0a945a5151e7267a4ec2a78fe41c8012e66e5b9e714f0779",
+      "compressedBytes": 1559914
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/training2/model.npz",
+      "archive": "run/training2/model.npz.gz",
+      "bytes": 36320,
+      "sha256": "efec2a7e722662715799ecfcc75f162d32952485d8e024ef41e8fb0037f04a3c",
+      "compressedBytes": 32645
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/training2/report.json",
+      "archive": "run/training2/report.json.gz",
+      "bytes": 26416,
+      "sha256": "68490a110d6ea50b2b34bfa8cf839dff7d049630eddbcf738c7a44186d9fc57f",
+      "compressedBytes": 6228
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/overview-ports-trained1/learned.tsv.stats.json",
+      "archive": "run/verification/overview-ports-trained1/learned.tsv.stats.json.gz",
+      "bytes": 962,
+      "sha256": "0f619427bb6a2b8a098a6ef6ada9d0376f34b8809307ad1d24724209595af6a2",
+      "compressedBytes": 457
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/overview-swap-trained1/learned.tsv.stats.json",
+      "archive": "run/verification/overview-ports-trained1/learned.tsv.stats.json.gz",
+      "bytes": 962,
+      "sha256": "0f619427bb6a2b8a098a6ef6ada9d0376f34b8809307ad1d24724209595af6a2",
+      "compressedBytes": 457
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/overview-trained1/learned.tsv.stats.json",
+      "archive": "run/verification/overview-ports-trained1/learned.tsv.stats.json.gz",
+      "bytes": 962,
+      "sha256": "0f619427bb6a2b8a098a6ef6ada9d0376f34b8809307ad1d24724209595af6a2",
+      "compressedBytes": 457
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/policies.audit.json",
+      "archive": "run/verification/policies.audit.json.gz",
+      "bytes": 3738,
+      "sha256": "24237ea52eca7b5db14b51fe6948f325d9899efaeb9f4ea3182f05679cf6caf1",
+      "compressedBytes": 964
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/training.audit.json",
+      "archive": "run/verification/training.audit.json.gz",
+      "bytes": 4280,
+      "sha256": "e4b355e07746046f51e2517557b221f01ec40e39adb8552c3d00e97294d131b9",
+      "compressedBytes": 1633
+    },
+    {
+      "source": "context.md",
+      "archive": "dependencies/014cc6a2ec0820018fd6ecd2fa41cb57fb253ea31756ae73a78efb3d9465125e/context.md.gz",
+      "bytes": 337516,
+      "sha256": "014cc6a2ec0820018fd6ecd2fa41cb57fb253ea31756ae73a78efb3d9465125e",
+      "compressedBytes": 137111
+    },
+    {
+      "source": "data/erd-poc/candidates/README.md",
+      "archive": "dependencies/63f7a718b5db85b41524a7d62fc757b25045c3de0244268c05de5b199b7b3faf/README.md.gz",
+      "bytes": 15605,
+      "sha256": "63f7a718b5db85b41524a7d62fc757b25045c3de0244268c05de5b199b7b3faf",
+      "compressedBytes": 5815
+    },
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.audit.json",
+      "archive": "dependencies/82529202dbd61798334e2c0b451c75eaa9f418c2c19b371724c76ff58dfd277e/captain-ml-independent-views.audit.json.gz",
+      "bytes": 1652,
+      "sha256": "82529202dbd61798334e2c0b451c75eaa9f418c2c19b371724c76ff58dfd277e",
+      "compressedBytes": 831
+    },
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.provenance.json",
+      "archive": "dependencies/bca34270005e19dc7c2c06aa8d95742fe7603c0bc8cc027e8017e0489e51d29f/captain-ml-independent-views.provenance.json.gz",
+      "bytes": 25770,
+      "sha256": "bca34270005e19dc7c2c06aa8d95742fe7603c0bc8cc027e8017e0489e51d29f",
+      "compressedBytes": 6762
+    },
+    {
+      "source": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/promotion/artifact-record.json",
+      "archive": "dependencies/7c5c166a01832fcbbb2a9d15db6a1fff20582f2d21664d62f48d9b504ff54ab5/artifact-record.json.gz",
+      "bytes": 7413,
+      "sha256": "7c5c166a01832fcbbb2a9d15db6a1fff20582f2d21664d62f48d9b504ff54ab5",
+      "compressedBytes": 2066
+    },
+    {
+      "source": "scripts/erd-poc/geometry_world_model.py",
+      "archive": "code/geometry_world_model.py.gz",
+      "bytes": 6080,
+      "sha256": "64f6bf8d09c46a89cdfee0284c7ce4df4390e069760b91b6779b862de68833b1",
+      "compressedBytes": 2212
+    },
+    {
+      "source": "scripts/erd-poc/geometry_world_multi_owner.py",
+      "archive": "code/geometry_world_multi_owner.py.gz",
+      "bytes": 2666,
+      "sha256": "c3a1e007b5c3ad1b487be709ddd33d081dce3ee1a33d6b500bbf114fc83f7dec",
+      "compressedBytes": 959
+    },
+    {
+      "source": "scripts/erd-poc/geometry_world_port_model.py",
+      "archive": "code/geometry_world_port_model.py.gz",
+      "bytes": 5286,
+      "sha256": "3c7062ceb416c2533673303c79c750ff131c1fd62bc6f6c87e12fe3a90b78f0a",
+      "compressedBytes": 1982
+    },
+    {
+      "source": "scripts/erd-poc/run_geometry_world_local_swap_policy.py",
+      "archive": "code/run_geometry_world_local_swap_policy.py.gz",
+      "bytes": 2905,
+      "sha256": "fd2676d31a69f8848179902716e6b28bf1ee8f4d28596c7bb4e50153890e78e2",
+      "compressedBytes": 1306
+    },
+    {
+      "source": "scripts/erd-poc/run_geometry_world_policy.py",
+      "archive": "code/run_geometry_world_policy.py.gz",
+      "bytes": 9399,
+      "sha256": "96457f57527f6e26ab9bf78d7677e4cddc7ef7bdf0132c13e317f89039ad6e79",
+      "compressedBytes": 3546
+    },
+    {
+      "source": "scripts/erd-poc/run_geometry_world_port_policy.py",
+      "archive": "code/run_geometry_world_port_policy.py.gz",
+      "bytes": 10088,
+      "sha256": "cc2be2a62d827ffa0e74df1d52076bc0e3f6527039f3ac99e571f1417f8548a5",
+      "compressedBytes": 3773
+    },
+    {
+      "source": "scripts/erd-poc/run_geometry_world_swap_policy.py",
+      "archive": "code/run_geometry_world_swap_policy.py.gz",
+      "bytes": 7839,
+      "sha256": "52627120ce5c72f63d792e1a56bbac6462cfaee666eebc71be32124a52337bdc",
+      "compressedBytes": 3016
+    },
+    {
+      "source": "scripts/erd-poc/train_geometry_world.py",
+      "archive": "code/train_geometry_world.py.gz",
+      "bytes": 13567,
+      "sha256": "021b22019d6c8482bd79c384d12af990245dd895c5ffeee1820205af77c3679f",
+      "compressedBytes": 4898
+    }
+  ],
+  "referencedFiles": [
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs.json",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/dependencies/c97cfad46427c27df2287cccce1f7731ab296c17551344e3176728bee49f6a04/build-inputs.json.gz",
+      "bytes": 607,
+      "sha256": "c97cfad46427c27df2287cccce1f7731ab296c17551344e3176728bee49f6a04",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/constrained_boundary_sweep.h",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/dependencies/296dab7012fe0e0192e2d526bda778f38595f1b8d446d0e2b124d4576297aa79/constrained_boundary_sweep.h.gz",
+      "bytes": 9566,
+      "sha256": "296dab7012fe0e0192e2d526bda778f38595f1b8d446d0e2b124d4576297aa79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/constrained_dual_node_geometry.h",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/dependencies/aa984669fd96ddbcd375301d564f9f511cb406549a44619a17ce80cbdbdcf692/constrained_dual_node_geometry.h.gz",
+      "bytes": 6646,
+      "sha256": "aa984669fd96ddbcd375301d564f9f511cb406549a44619a17ce80cbdbdcf692",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/constrained_scene.h",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/dependencies/ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6/constrained_scene.h.gz",
+      "bytes": 9252,
+      "sha256": "ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/learned_pair_contexts.h",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/dependencies/70231fb76081d97c6fe749bbf590a87fb7d57de30eec299a9c3cdb57def8017f/learned_pair_contexts.h.gz",
+      "bytes": 3627,
+      "sha256": "70231fb76081d97c6fe749bbf590a87fb7d57de30eec299a9c3cdb57def8017f",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/ml_component_environment.cpp",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/dependencies/930e1170deae7e393b09034be95b636c5afc13d7e67d3f275688dbda9a6d9443/ml_component_environment.cpp.gz",
+      "bytes": 66996,
+      "sha256": "930e1170deae7e393b09034be95b636c5afc13d7e67d3f275688dbda9a6d9443",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/ml_joint_batch_environment.cpp",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/dependencies/0bf63bb9502dfbfcea70f09a4db09a30885f35a022324f54da85f75f01bd1301/ml_joint_batch_environment.cpp.gz",
+      "bytes": 15178,
+      "sha256": "0bf63bb9502dfbfcea70f09a4db09a30885f35a022324f54da85f75f01bd1301",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/environment",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/run/environment.gz",
+      "bytes": 749496,
+      "sha256": "b5c355b2675d225114279549051ef201d84d6e56dbe8658810cc9705004f5514",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-local-trained1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-local-trained1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-local-trained1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-local-trained1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-ports-trained1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-ports-trained1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-ports-trained1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-ports-trained1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/components.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/individual-slot-cached1/components.tsv.gz",
+      "bytes": 68780,
+      "sha256": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/edges.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/individual.edges.tsv.gz",
+      "bytes": 182412,
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/groups.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/individual-slot-cached1/groups.tsv.gz",
+      "bytes": 199382,
+      "sha256": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/individual.edges.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/individual.edges.tsv.gz",
+      "bytes": 182412,
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/individual.nodes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/individual.nodes.tsv.gz",
+      "bytes": 43187,
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/individual.positions.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/nodes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/individual.nodes.tsv.gz",
+      "bytes": 43187,
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/positions.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-swap-trained1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-swap-trained1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-swap-trained1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-swap-trained1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-trained1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-trained1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-trained1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-trained1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-ports-trained1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.gz",
+      "bytes": 60175,
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-ports-trained1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.gz",
+      "bytes": 73662,
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-ports-trained1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160831,
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-ports-trained1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.routes.tsv.gz",
+      "bytes": 98042,
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/components.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/components.tsv.gz",
+      "bytes": 61887,
+      "sha256": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/edges.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/edges.tsv.gz",
+      "bytes": 113471,
+      "sha256": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/groups.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/groups.tsv.gz",
+      "bytes": 160987,
+      "sha256": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/individual.edges.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/individual.edges.tsv.gz",
+      "bytes": 182412,
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/individual.nodes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/individual.nodes.tsv.gz",
+      "bytes": 43187,
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/individual.positions.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.gz",
+      "bytes": 73662,
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160831,
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/nodes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/nodes.tsv.gz",
+      "bytes": 34879,
+      "sha256": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/positions.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.gz",
+      "bytes": 60175,
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.routes.tsv.gz",
+      "bytes": 98042,
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-swap-trained1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.gz",
+      "bytes": 60175,
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-swap-trained1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.gz",
+      "bytes": 73662,
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-swap-trained1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160831,
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-swap-trained1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.routes.tsv.gz",
+      "bytes": 98042,
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-trained1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.gz",
+      "bytes": 60175,
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-trained1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.gz",
+      "bytes": 73662,
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-trained1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160831,
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-trained1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.routes.tsv.gz",
+      "bytes": 98042,
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-local-trained1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-local-trained1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-local-trained1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-local-trained1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-local-trained1/learned.tsv.stats.json",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-learning-20261004/run/verification/single-owner-learning1-individual-frozen-current1-full.tsv.stats.json.gz",
+      "bytes": 966,
+      "sha256": "f3bc2c017d215f2aab88436a2a4eabaadf36ff889681cbcad0c126fb95d0b2af",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-ports-trained1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-ports-trained1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-ports-trained1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-ports-trained1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-ports-trained1/learned.tsv.stats.json",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-learning-20261004/run/verification/single-owner-learning1-individual-frozen-current1-full.tsv.stats.json.gz",
+      "bytes": 966,
+      "sha256": "f3bc2c017d215f2aab88436a2a4eabaadf36ff889681cbcad0c126fb95d0b2af",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-swap-trained1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-swap-trained1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-swap-trained1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-swap-trained1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-swap-trained1/learned.tsv.stats.json",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-learning-20261004/run/verification/single-owner-learning1-individual-frozen-current1-full.tsv.stats.json.gz",
+      "bytes": 966,
+      "sha256": "f3bc2c017d215f2aab88436a2a4eabaadf36ff889681cbcad0c126fb95d0b2af",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-trained1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-trained1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-trained1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-trained1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/individual-trained1/learned.tsv.stats.json",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-learning-20261004/run/verification/single-owner-learning1-individual-frozen-current1-full.tsv.stats.json.gz",
+      "bytes": 966,
+      "sha256": "f3bc2c017d215f2aab88436a2a4eabaadf36ff889681cbcad0c126fb95d0b2af",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/overview-ports-trained1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.gz",
+      "bytes": 60175,
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/overview-ports-trained1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.gz",
+      "bytes": 73662,
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/overview-ports-trained1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160831,
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/overview-ports-trained1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.routes.tsv.gz",
+      "bytes": 98042,
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/overview-swap-trained1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.gz",
+      "bytes": 60175,
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/overview-swap-trained1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.gz",
+      "bytes": 73662,
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/overview-swap-trained1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160831,
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/overview-swap-trained1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.routes.tsv.gz",
+      "bytes": 98042,
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/overview-trained1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.gz",
+      "bytes": 60175,
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/overview-trained1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.gz",
+      "bytes": 73662,
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/overview-trained1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160831,
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/overview-trained1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.routes.tsv.gz",
+      "bytes": 98042,
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/single-owner-global-walk1/training1/model.npz",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/training1/model.npz.gz",
+      "bytes": 281269,
+      "sha256": "7831d4b8679769a22e4eab8a344f846e892e5ebd52b89b68afafb8ef92c777f9",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.layout.json",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/combined-best1/candidate.layout.json.gz",
+      "bytes": 2428226,
+      "sha256": "4e741de39ca655c7ff042422b9407206427f89e02ecd56b7f4a9f36f6a5cd02e",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "data/erd-poc/recovered/captain-2026-09-15-payload.json",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/dependencies/ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce/captain-2026-09-15-payload.json.gz",
+      "bytes": 3230070,
+      "sha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/directed_cycle_model.py",
+      "archive": "data/erd-poc/experiments/independent-views-directed-cycles-20261003/code/directed_cycle_model.py.gz",
+      "bytes": 3563,
+      "sha256": "d4dd35882eb0a32590f1593e4aa4aa2941e34cf898594da93b8b92e2d9682eec",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/float32_input_owner_model.py",
+      "archive": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/code/float32_input_owner_model.py.gz",
+      "bytes": 727,
+      "sha256": "4299e9ba9fa613baecc80ef9dd8cc007f31259c22a95ff0fd381a5782e578bcd",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/fractional_cycle_model.py",
+      "archive": "data/erd-poc/experiments/independent-views-fraction-conditioned-cycles-20261003/code/fractional_cycle_model.py.gz",
+      "bytes": 2504,
+      "sha256": "63348306af5f82eec6105a01370557b95811b0d06878490a0d306afb3cbb7f9b",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/full_context_pair_model.py",
+      "archive": "data/erd-poc/experiments/independent-views-full-context-pairs-20261003/code/full_context_pair_model.py.gz",
+      "bytes": 10153,
+      "sha256": "c898871704ed29f77498c05527a1345259eacc3cf66405fc5788f3952b281a7d",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/global_mixed_owner_support.py",
+      "archive": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/code/global_mixed_owner_support.py.gz",
+      "bytes": 2579,
+      "sha256": "c75c4bd14a001de322ab63a3032df86f3c996b562c1862fc5da50e8eaffdd0bd",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/global_single_owner_support.py",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/code/global_single_owner_support.py.gz",
+      "bytes": 1683,
+      "sha256": "f4f1df0e72adb1864b9e17fa9c60b47e298d73f7165182a78128d814f5764225",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/joint_anchor_ray_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/source-joint_anchor_ray_policy.py",
+      "bytes": 5379,
+      "sha256": "f292ed184dc7c4e24ec19b78f86f10bdff1ee4fc2fe2407f904347684b500877",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/joint_grouped_routes.py",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/source-joint_grouped_routes.py",
+      "bytes": 8165,
+      "sha256": "3b7757e76590aa0e1e935e7f757035f89a6fece56e6a10deb7791e71f1642f6f",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/joint_layout_proxy.py",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/source-joint_layout_proxy.py",
+      "bytes": 21160,
+      "sha256": "d21091db3bbde2b659cced3ed9c2161a98a69cbe4659ac4954f36cfb41176428",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/joint_neural_ports.py",
+      "archive": "data/erd-poc/experiments/independent-views-relaxed-slots-20261003/overview-sorted-relaxed1/source-joint_neural_ports.py",
+      "bytes": 18181,
+      "sha256": "cde68a0ca3419df89ab6e3b369f564467edec5fea53892ff17367e1e0ee94807",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/joint_relaxed_slot_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-relaxed-slots-20261003/overview-sorted-relaxed1/source-joint_relaxed_slot_policy.py",
+      "bytes": 5996,
+      "sha256": "cd5f7b274b28a103c31868c9eff48991969887664db93f775be5c750167d616c",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/joint_separation_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/source-joint_separation_policy.py",
+      "bytes": 8883,
+      "sha256": "045b9552977486eb1b7e0f5fdb8a04968f97cd6ff706c3e9d917a04d14083b34",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/joint_slot_anchor_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/source-joint_slot_anchor_policy.py",
+      "bytes": 1142,
+      "sha256": "58d2e290ff6d18dce7e8bc46734ae2f21b89d7e901b0da2978ff8e9ad63b863b",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/joint_slot_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/source-joint_slot_policy.py",
+      "bytes": 4506,
+      "sha256": "f3d1e5e3fb9732eba5a8867f315625295e1bb4ee9afdc065938808ce2f5b317e",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/learn_card_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/code/learn_card_policy.py.gz",
+      "bytes": 43351,
+      "sha256": "2447e4aae172b46d8c4f07fb7b774aebc1444adaafff5d87fe077ee0a885ba37",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/learn_pair_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/code/learn_pair_policy.py.gz",
+      "bytes": 14619,
+      "sha256": "b7e04b52ab78592075979de28baaa4eb61432cecb32b8f9b40f5182468b85d2e",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/learned_bounded_replay.py",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/code/learned_bounded_replay.py.gz",
+      "bytes": 4793,
+      "sha256": "dfe26868cf25d6d3c8039d5e481142d8a64b45a775c15f061da31760dcf932ae",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/learned_global_replay.py",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/code/learned_global_replay.py.gz",
+      "bytes": 11116,
+      "sha256": "38bccbe20b4fb7cf4c548b8648f79f977b05d61e1391150b679c6d527d2d6f92",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/learned_pair_contexts.py",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/code/learned_pair_contexts.py.gz",
+      "bytes": 4518,
+      "sha256": "3d0361196361e07cdd20b1e6d55072bf58f906de50f3acf5e9a2b657d98ab607",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/local_positive_cycle_support.py",
+      "archive": "data/erd-poc/experiments/independent-views-positive-cycles-20261003/code/local_positive_cycle_support.py.gz",
+      "bytes": 2188,
+      "sha256": "818f296f5a8df886bcdeaad9d749ab5d5c218568cf23c58fa2aa2a12293c0747",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-positive-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/mixed_size_owner_cycles.py",
+      "archive": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/code/mixed_size_owner_cycles.py.gz",
+      "bytes": 2794,
+      "sha256": "4f3da1e4844226a08dca546c6f568b0d2fb8af6c100f172cbb1e031a4eb3ecab",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/owner_amplitude_cycle_model.py",
+      "archive": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/code/owner_amplitude_cycle_model.py.gz",
+      "bytes": 4456,
+      "sha256": "8fa07844f3bac2ce4620010658f2b90a8a8d46c3c10851627a236853383b70ce",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_anchor_pair_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/code/run_anchor_pair_policy.py.gz",
+      "bytes": 11655,
+      "sha256": "db189d196ed68a8dbcdc4c39f8a8dd4873096d1aef6c568e47511eb7eeeb63a2",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_anchor_pair_walk.py",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/code/run_anchor_pair_walk.py.gz",
+      "bytes": 13558,
+      "sha256": "e73fa26e35e1d1bbdfe5f48c2e5f092e71889cf034d42a2f1aa63d52c2e142c8",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_directed_cycle_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-directed-cycles-20261003/code/run_directed_cycle_policy.py.gz",
+      "bytes": 12680,
+      "sha256": "d1800249cee16f8a42aa0900e7311058816348033275f804069c0c5a44dc9c39",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_fraction_conditioned_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-fraction-conditioned-cycles-20261003/code/run_fraction_conditioned_policy.py.gz",
+      "bytes": 11351,
+      "sha256": "5cef3e0fa9933833f3b77e3c64cea05161441da90e05f3121aa2306894d20f51",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_fractional_cycle_transfer.py",
+      "archive": "data/erd-poc/experiments/independent-views-directed-cycles-20261003/code/run_fractional_cycle_transfer.py.gz",
+      "bytes": 7092,
+      "sha256": "5245523bdda92e192edb72ae0cb11998af24c50513527367462ffc7bb3035cef",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_global_mixed_owner_cycles.py",
+      "archive": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/code/run_global_mixed_owner_cycles.py.gz",
+      "bytes": 13584,
+      "sha256": "62246453d64a30560134635cfea119c3df1297b902a126a4a94fb50c81723d08",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_memory_bounded.py",
+      "archive": "data/erd-poc/experiments/independent-views-separation-dag-20261003/current-code/run_memory_bounded.py",
+      "bytes": 5742,
+      "sha256": "7784ae78aec359887155ff86d37dd503628d490487d2a3e1f9b4e89f3c02a43d",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_neural_cycle_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-directed-cycles-20261003/code/run_neural_cycle_policy.py.gz",
+      "bytes": 11170,
+      "sha256": "7ed8a0ec5ea60ff317dfae87a673f7b2e89e3249856d5c03c0f0ac3472d4cf1c",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_signed_cycle_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/code/run_signed_cycle_policy.py.gz",
+      "bytes": 12479,
+      "sha256": "827b6e0f985438399da14b7e3f891aeae2899cab6069ccaaff0bc208f3504ae4",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_single_owner_cycle_policy_v4.py",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/code/run_single_owner_cycle_policy_v4.py.gz",
+      "bytes": 9099,
+      "sha256": "6da0b28003551b90d308da603f042040aad6498f23fe5db71c16c69d8603cb76",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/signed_cycle_model.py",
+      "archive": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/code/signed_cycle_model.py.gz",
+      "bytes": 2827,
+      "sha256": "481926f9b6467ea2aedef32176d2a43f417a72e774f94f79a88685dfaf4ca65b",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/signed_trained_critic.py",
+      "archive": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/code/signed_trained_critic.py.gz",
+      "bytes": 1097,
+      "sha256": "02c789157ae15e004e8fc3e73a38eb474f87650647aed8305f23d1a4769fe090",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/single_owner_cached_observer_v2.py",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/code/single_owner_cached_observer_v2.py.gz",
+      "bytes": 11419,
+      "sha256": "cb0d81952f2b0245906d10cb61cdc51135c634ffe766dee88a095d20ec3a1db1",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/single_owner_cycle_model.py",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/code/single_owner_cycle_model.py.gz",
+      "bytes": 5414,
+      "sha256": "b2edd5ee18af0032a47c145de541016629d077526cb445b0bcaebc26988471e8",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/train_anchor_pair_outcomes.py",
+      "archive": "data/erd-poc/experiments/independent-views-full-context-pairs-20261003/code/train_anchor_pair_outcomes.py.gz",
+      "bytes": 7618,
+      "sha256": "8531625e603af3b7a066dd48d8bbc9d950febf652d2c66b2361dc5f53fc6aefc",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    }
+  ],
+  "newPhysicalCompressedFiles": 64,
+  "newPhysicalCompressedBytes": 7651714,
+  "allStoredAndReferencedMappingsRestoreHashVerified": true,
+  "sourcesUnchangedAtSeal": true
+}

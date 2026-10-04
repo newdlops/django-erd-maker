@@ -1,0 +1,57 @@
+{
+  "finalActualViewGradientChecks": 104,
+  "finalActualViewValidation": "shared-native-gap-validation.json",
+  "finalActualViewPeakMiB": 108.2,
+  "zeroOutputEndpointsPreservedPerView": 3454,
+  "sharedSourceGroupsPreserved": [
+    17,
+    16
+  ],
+  "genericLoaderDetectsSharedEndpointNetwork": true,
+  "frozenRoundtripExact": true,
+  "activeLossFixture": {
+    "gradientComparisons": 96,
+    "fullPopulationParity": true,
+    "tinyChunkAccumulationChecked": true,
+    "depthWeight": 0.5,
+    "spacingPadding": 0.0,
+    "peakMiB": 41.0,
+    "passed": true
+  },
+  "continuousOutwardFixture": {
+    "peerBoundaryCases": 6,
+    "peerGradientChecks": 4,
+    "cornerCutDetectedWithoutOwnCardHit": true,
+    "peakMiB": 26.1,
+    "passed": true
+  },
+  "resourcePolicy": {
+    "singleNumericJob": true,
+    "mathThreads": 1,
+    "niceIncrement": 10,
+    "rssGuardMiB": 256,
+    "maxObservedStagePeakMiB": 234.9,
+    "hardCpuPercentageLimit": false
+  },
+  "intermediateActualViewReports": {
+    "continuous-outward-validation.json": 75.1,
+    "active-neural-validation.json": 112.4,
+    "active-depth-neural-validation.json": 109.3,
+    "shared-endpoint-neural-validation.json": 107.0
+  },
+  "nativeAcceptanceUnchanged": true,
+  "actualBrowserVerified": false,
+  "stagePeakMiB": {
+    "individual-outward-joint1": 234.9,
+    "individual-wide-port1": 150.7,
+    "individual-wide-port2": 163.7,
+    "individual-active-port1": 152.6,
+    "individual-active-depth1": 142.0,
+    "overview-active-depth1": 174.2,
+    "individual-shared-depth1": 154.7,
+    "overview-shared-depth1": 175.8,
+    "individual-native-gap1": 137.9,
+    "overview-native-gap1": 178.9
+  },
+  "measurementsSource": "completed command output and saved stage audits"
+}

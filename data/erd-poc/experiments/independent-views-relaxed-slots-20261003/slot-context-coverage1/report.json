@@ -1,0 +1,44 @@
+{
+  "scope": "arbitrary same-size slot permutations with pooled source interior-anchor endpoint phases",
+  "positionsProposed": false,
+  "globalTargetImpossibleProved": false,
+  "independentPortOrOtherNodePoliciesCovered": false,
+  "views": {
+    "individual": {
+      "sourceSha256": "42adab07b311c16463bd7f5dc0ee68941d6047ac0372415393ad9355c126fe22",
+      "sourceVisual": 1964,
+      "target": 750,
+      "physicalCardsMovable": 1197,
+      "fullCardsMovable": 1197,
+      "potentiallyChangingPhysicalRoutes": 1699,
+      "fixedPhysicalCards": 47,
+      "indirectlyAffectedFullRoutesFromPooling": 6,
+      "fixedCrossings": 3,
+      "fixedCardHits": 3,
+      "fixedVisualConflicts": 6,
+      "targetUnreachableWithThisActionSpaceAlone": false,
+      "maximumRemovableSourceConflicts": 1958,
+      "witnessFile": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/slot-context-coverage1/individual-fixed-conflicts.json",
+      "witnessSha256": "90b66951af931caf6998cd9db83c8fffefc40612c65d6e1c0035155372a3937e",
+      "initialCountMatchesNative": true
+    },
+    "overview": {
+      "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52",
+      "sourceVisual": 289,
+      "target": 150,
+      "physicalCardsMovable": 949,
+      "fullCardsMovable": 963,
+      "potentiallyChangingPhysicalRoutes": 1012,
+      "fixedPhysicalCards": 86,
+      "indirectlyAffectedFullRoutesFromPooling": 16,
+      "fixedCrossings": 2,
+      "fixedCardHits": 2,
+      "fixedVisualConflicts": 4,
+      "targetUnreachableWithThisActionSpaceAlone": false,
+      "maximumRemovableSourceConflicts": 285,
+      "witnessFile": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/slot-context-coverage1/overview-fixed-conflicts.json",
+      "witnessSha256": "3d1b1aaaf0ab112d3abff91ca78ef0f293fe5498766517f91eda1c5bab2c0b8c",
+      "initialCountMatchesNative": true
+    }
+  }
+}

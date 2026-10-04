@@ -1,0 +1,81 @@
+{
+  "source": ".tmp/visualcross-ml-150-750-20261003/overview-cut-trained2/candidate.layout.json",
+  "sourceSha256": "c9323f427bd2960b34700347bf9617968d0904108ca6a80e23eff1b1d2337243",
+  "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+  "checkpoint": ".tmp/visualcross-ml-150-750-20261003/bounded-policy-training1/overview.npz",
+  "checkpointSha256": "39a135d12be3e7c76d6005b87df65226464307232782920448db1ad68c417992",
+  "nativeBinarySha256": "ce208890d9ba6213fe266cbd3cee0b4e7c7277f22e50c9bd01fd6cc225f0a96a",
+  "candidateSha256": "2034e7f1a19e145767d72cb4565a5646a1eae36b62b90f1a1d1ca08e016cda05",
+  "visualCrossings": 290,
+  "individualVisualCrossings": 4522,
+  "proposalAuthority": "frozen learned policy",
+  "heuristicSearchCalls": 0,
+  "frozenActionReplay": true,
+  "productFileLoadVerified": true,
+  "browserVerified": false,
+  "experimental": true,
+  "allowAreaGrowth": false,
+  "allowNeutral": true,
+  "pairPolicy": false,
+  "branchMoves": true,
+  "branchMap": {
+    "schema": "source-bound-graph-branches-v2",
+    "branchMode": "cut",
+    "sourceSha256": "c9323f427bd2960b34700347bf9617968d0904108ca6a80e23eff1b1d2337243",
+    "branchMapSha256": "af927853c3f295ce13b8cb8d9f265e9b2718418242c89a9fd4af009f727cfff0",
+    "inputHashes": {
+      "nodes.tsv": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+      "edges.tsv": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+      "positions.tsv": "3d551043522193e4200495b26fb6650291aaa42999be0117aa1bfbe0098db061",
+      "routes.tsv": "742777bdb9b4871e4e5680f9c90fbc3d6dd7f070588427c0548ea0f6b2b3be5b",
+      "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "individual.positions.tsv": "fdee84a28a11e2e64814a237d17d73295ae9338c5dca15cb3d2494c45f886554",
+      "individual.routes.tsv": "7aa84deb0b099d7294b5528928de1bebb4ca710f862d4b89147e75f477bc7aed",
+      "components.tsv": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+      "groups.tsv": "a681e60accf0d7324f461135be3fb0d8a78f017a60beb4e7a4ff34dcd2c27c56"
+    },
+    "nodes": 1035,
+    "twoCoreNodes": 332,
+    "multiCardContexts": 303,
+    "maximumContextCards": 81,
+    "positionsProposed": false
+  },
+  "branchMode": "cut",
+  "areaExploration": false,
+  "explorationLimit": 0,
+  "initialTemperature": 2.0,
+  "seconds": 30.63904320797883,
+  "stages": [
+    {
+      "stage": "export",
+      "exitCode": 0,
+      "seconds": 0.9364476659684442
+    },
+    {
+      "stage": "components",
+      "exitCode": 0,
+      "seconds": 0.6360015000100248
+    },
+    {
+      "stage": "inference",
+      "exitCode": 0,
+      "seconds": 20.260815209010616
+    },
+    {
+      "stage": "replay",
+      "exitCode": 0,
+      "seconds": 4.745773583999835
+    },
+    {
+      "stage": "apply",
+      "exitCode": 0,
+      "seconds": 1.528809542011004
+    },
+    {
+      "stage": "product",
+      "exitCode": 0,
+      "seconds": 2.457780750002712
+    }
+  ]
+}

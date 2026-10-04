@@ -1,0 +1,654 @@
+{
+  "sourceSha256": "42adab07b311c16463bd7f5dc0ee68941d6047ac0372415393ad9355c126fe22",
+  "positionsProposed": false,
+  "anchors": [
+    "db.Company",
+    "db.FileAttachment",
+    "db.VentureCapital",
+    "db.Stakeholder",
+    "db.HrmEmp",
+    "db.MeetingDocument",
+    "db.MeetingDraft",
+    "db.ShareholdersMeetingAgenda",
+    "db.Address",
+    "db.InvestmentAssociation",
+    "db.Employee",
+    "db.Meeting",
+    "db.InvestorRelations",
+    "db.Hrm",
+    "db.InvestmentAssociationPartner",
+    "db.LegalPartner",
+    "db.DirectorsMeetingAgenda",
+    "db.Event",
+    "db.Purchase",
+    "db.BulkEmail",
+    "db.ModusignDocument",
+    "db.AgendaNewIssue",
+    "db.CompanyQuestionThread",
+    "db.InvestorMatching",
+    "db.Director",
+    "db.IncorporationRequest",
+    "db.InvestmentAssociationDocument",
+    "db.RsuRsa",
+    "db.ShareholdersMeetingShareholderAttendance",
+    "db.AgendaBonusIssue",
+    "db.BulkEmailRecipient",
+    "db.HrmApprovable"
+  ],
+  "contexts": [
+    {
+      "nodeIds": [
+        "db.BeforeunloadPdfEvent",
+        "db.CompanyEndorsement",
+        "db.CompanyEndorsementFeed",
+        "db.CompanyFeed",
+        "db.CompanyFeedAccessLog",
+        "db.CompanyFeedRating",
+        "db.CompanyIrClosingFeed",
+        "db.CompanyIrNewCommitFeed",
+        "db.CompanyIrOpenFeed",
+        "db.CompanyNews",
+        "db.CompanyNewsFeed",
+        "db.CompanyNewsLink",
+        "db.DocumentLoadedPdfEvent",
+        "db.Feed",
+        "db.ImAcVcBroker",
+        "db.ImAccessLog",
+        "db.ImAttachment",
+        "db.ImAttachmentDownloadLog",
+        "db.ImAttachmentPdfEvent",
+        "db.ImBroker",
+        "db.ImBrokerAssignment",
+        "db.ImBrokerAssignmentInvitedUser",
+        "db.ImConsultingRequest",
+        "db.ImContactRequest",
+        "db.ImContactRequestIntention",
+        "db.ImDay",
+        "db.ImDayParticipation",
+        "db.ImDayParticipationAttachment",
+        "db.ImDaySurvey",
+        "db.ImDisclosing",
+        "db.ImIndividualGpBroker",
+        "db.ImInvestorBroker",
+        "db.ImInvestorMemo",
+        "db.ImIrPartnerBroker",
+        "db.ImIrPartnerBrokerOwnerRelation",
+        "db.ImNote",
+        "db.ImPitchingDay",
+        "db.ImPitchingDayParticipation",
+        "db.ImTag",
+        "db.ImWatching",
+        "db.ImZuzuBroker",
+        "db.InvestorMatching",
+        "db.InvestorRelations",
+        "db.InvestorRelationsSurvey",
+        "db.IrAiAnalysis",
+        "db.IrAiAnalysisLike",
+        "db.IrAiSummary",
+        "db.IrAlert",
+        "db.IrAlertInvestorRelations",
+        "db.IrApproval",
+        "db.IrApprovalNotificationDismiss",
+        "db.IrBrokerActivity",
+        "db.IrClosing",
+        "db.IrClosingComplete",
+        "db.IrClosingExpired",
+        "db.IrClosingIncomplete",
+        "db.IrCommittedInvestmentAmount",
+        "db.IrConsultingRequest",
+        "db.IrFeed",
+        "db.IrFeedAccessLog",
+        "db.IrFeedRating",
+        "db.IrFundRaising",
+        "db.IrFundRaisingMemo",
+        "db.IrFundRaisingStageLog",
+        "db.IrInsightClub",
+        "db.IrInsightClubParticipation",
+        "db.IrInsightClubParticipationAttendee",
+        "db.IrInsightClubSurvey",
+        "db.IrNote",
+        "db.IrSearchMetadata",
+        "db.IrTeamMember",
+        "db.IrTranscript",
+        "db.Mna",
+        "db.MnaConsultingRequest",
+        "db.PageNumberUpdatedPdfEvent",
+        "db.PdfEvent",
+        "db.PitchingDayHall",
+        "db.PitchingDayHallAccessLog",
+        "db.PitchingDayHallAssignedIrs",
+        "db.VcIrRecommendationRequest",
+        "db.VcIrRecommendationRequestResult",
+        "db.VcSearchLog",
+        "db.VcUserRole",
+        "db.VentureCapitalUserRelation"
+      ],
+      "mainBlockNodes": 45,
+      "internalEdges": 91,
+      "boundaryEdges": 33,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Company",
+          "db.VentureCapital"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.IaOwner",
+        "db.IaUserInvitation",
+        "db.IaUserInvitationInvitee",
+        "db.InvestmentAssociationIndividualPartner",
+        "db.InvestmentAssociationIndividualPartnerLegalRepresentative",
+        "db.InvestmentAssociationPartnerManager"
+      ],
+      "mainBlockNodes": 6,
+      "internalEdges": 6,
+      "boundaryEdges": 6,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.InvestmentAssociation",
+          "db.InvestmentAssociationPartner"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.AgendaNewIssueItem",
+        "db.AgendaNewIssueItemFromConversion",
+        "db.AgendaNewIssueItemFromPayment",
+        "db.AgendaNewIssueItemInstitutionMember",
+        "db.AgendaNewIssueItemInstitutionMemberCeo",
+        "db.AgendaNewIssueItemShareClass",
+        "db.AgendaNewIssueItemShareholder",
+        "db.DebtConfirmationAndOffsetContractDocument",
+        "db.NewIssueStockAcceptanceDocument",
+        "db.NewIssueStockSubscriptionDocument",
+        "db.NewIssueStockUnissuedConfirmationDocument"
+      ],
+      "mainBlockNodes": 5,
+      "internalEdges": 10,
+      "boundaryEdges": 5,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.MeetingDocument",
+          "db.AgendaNewIssue"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.IrInsightClub",
+        "db.IrInsightClubParticipation",
+        "db.IrInsightClubParticipationAttendee",
+        "db.IrInsightClubSurvey",
+        "db.PitchingDayHall",
+        "db.PitchingDayHallAccessLog",
+        "db.PitchingDayHallAssignedIrs"
+      ],
+      "mainBlockNodes": 5,
+      "internalEdges": 6,
+      "boundaryEdges": 5,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.VentureCapital",
+          "db.InvestorRelations"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.PerformanceRsuVestingItem",
+        "db.PeriodRsuVestingItem",
+        "db.RsuPerformanceCondition",
+        "db.RsuVesting",
+        "db.RsuVestingItem",
+        "db.RsuVestingTraceable"
+      ],
+      "mainBlockNodes": 4,
+      "internalEdges": 5,
+      "boundaryEdges": 3,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Company",
+          "db.RsuRsa"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.BeforeunloadPdfEvent",
+        "db.DocumentLoadedPdfEvent",
+        "db.ImAttachment",
+        "db.ImAttachmentDownloadLog",
+        "db.ImAttachmentPdfEvent",
+        "db.PageNumberUpdatedPdfEvent",
+        "db.PdfEvent"
+      ],
+      "mainBlockNodes": 3,
+      "internalEdges": 6,
+      "boundaryEdges": 3,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.VentureCapital",
+          "db.InvestorMatching"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.CompanyDepartment",
+        "db.CompanyDepartmentCode",
+        "db.EmployeeDepartmentCodeRelation",
+        "db.OrganizationChart"
+      ],
+      "mainBlockNodes": 3,
+      "internalEdges": 3,
+      "boundaryEdges": 3,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Company",
+          "db.Employee"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.IaGpAppointmentEvent",
+        "db.IaGpTerminationEvent",
+        "db.InvestmentAssociationEvent"
+      ],
+      "mainBlockNodes": 3,
+      "internalEdges": 3,
+      "boundaryEdges": 3,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.InvestmentAssociation",
+          "db.InvestmentAssociationPartner"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.IaPartnerDataCollection",
+        "db.IaPartnerDataCollectionItem",
+        "db.IaPartnerDataCollectionItemReply"
+      ],
+      "mainBlockNodes": 3,
+      "internalEdges": 3,
+      "boundaryEdges": 3,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Address",
+          "db.InvestmentAssociation"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.HrmEmpWorkAssignment",
+        "db.HrmFixedWork",
+        "db.HrmFixedWorkSchedule",
+        "db.HrmStaggeredWork",
+        "db.HrmStaggeredWorkSchedule",
+        "db.HrmWorkAutoClockOutConfig",
+        "db.HrmWorkBase",
+        "db.HrmWorkIndividualApprovalTemplateRelation",
+        "db.HrmWorkOvertime",
+        "db.HrmSelectiveWork",
+        "db.HrmSelectiveWorkPlanConfig",
+        "db.HrmSelectiveWorkSchedule",
+        "db.HrmSelectiveWorkSettlementConfig"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 12,
+      "boundaryEdges": 3,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.HrmEmp",
+          "db.Hrm"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.PeriodPhantomStockVestingItem",
+        "db.PhantomStock",
+        "db.PhantomStockGrantContract",
+        "db.PhantomStockGrantee",
+        "db.PhantomStockVesting",
+        "db.PhantomStockVestingItem",
+        "db.PhantomStockVestingTraceable"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 7,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Company",
+          "db.Stakeholder"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.CashIncentive",
+        "db.CashIncentiveCategory",
+        "db.CashIncentiveItem"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 2,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Company",
+          "db.Employee"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.DocumentParseResult",
+        "db.OtherDocumentArchive",
+        "db.OtherDocumentArchiveAttachment"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 2,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Company",
+          "db.FileAttachment"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.IncorporationRequestPromoter",
+        "db.IncorporationRequestPromoterInstitutionCeo",
+        "db.IncorporationRequestPromoterCustodian"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 2,
+      "boundaryEdges": 3,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Address",
+          "db.IncorporationRequest"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.DirectorAppointmentEvent",
+        "db.DirectorTermEndEvent"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 1,
+      "boundaryEdges": 4,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Event",
+          "db.Director"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.IaSealStamp",
+        "db.IaSealStampImage"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 1,
+      "boundaryEdges": 3,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.FileAttachment",
+          "db.InvestmentAssociation"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.InvestmentContractHolder",
+        "db.Safe"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 1,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Company",
+          "db.Stakeholder"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.IrAlert",
+        "db.IrAlertInvestorRelations"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 1,
+      "boundaryEdges": 3,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.VentureCapital",
+          "db.InvestorRelations"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.LawtalkSignup",
+        "db.LawtalkSignupAttachment"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 1,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Company",
+          "db.FileAttachment"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.MeetingDocumentGeneration",
+        "db.MeetingDocumentGenerationItem"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 1,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.MeetingDocument",
+          "db.Meeting"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.MeetingDraftAgendaDirectorCompensation",
+        "db.MeetingDraftAgendaDirectorCompensationItem"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 1,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Stakeholder",
+          "db.MeetingDraft"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.RsuTag",
+        "db.RsuTagCategory"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 1,
+      "boundaryEdges": 3,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Company",
+          "db.RsuRsa"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.VcIrRecommendationRequest",
+        "db.VcIrRecommendationRequestResult"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 1,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.VentureCapital",
+          "db.InvestorRelations"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.HrmSelectiveWorkPlan",
+        "db.HrmSelectiveWorkPlanItem"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 1,
+      "boundaryEdges": 3,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.HrmEmp",
+          "db.HrmApprovable"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.ImConsultingRequest",
+        "db.IrConsultingRequest",
+        "db.MnaConsultingRequest"
+      ],
+      "mainBlockNodes": 1,
+      "internalEdges": 2,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": true,
+      "separatorPairs": [
+        [
+          "db.Company",
+          "db.InvestorMatching"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.IrFundRaising",
+        "db.IrFundRaisingMemo",
+        "db.IrFundRaisingStageLog"
+      ],
+      "mainBlockNodes": 1,
+      "internalEdges": 2,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": true,
+      "separatorPairs": [
+        [
+          "db.VentureCapital",
+          "db.InvestorRelations"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.AgendaPurposeChange",
+        "db.AgendaPurposeChangeItem"
+      ],
+      "mainBlockNodes": 1,
+      "internalEdges": 1,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": true,
+      "separatorPairs": [
+        [
+          "db.MeetingDraft",
+          "db.ShareholdersMeetingAgenda"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.HrmEmpUserInvitation",
+        "db.HrmEmpUserInvitationInvitee"
+      ],
+      "mainBlockNodes": 1,
+      "internalEdges": 1,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": true,
+      "separatorPairs": [
+        [
+          "db.HrmEmp",
+          "db.Hrm"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.ImContactRequest",
+        "db.ImContactRequestIntention"
+      ],
+      "mainBlockNodes": 1,
+      "internalEdges": 1,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": true,
+      "separatorPairs": [
+        [
+          "db.VentureCapital",
+          "db.InvestorMatching"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.VentureBusinessCertification",
+        "db.VentureBusinessCertificationExpirationNotificationLog"
+      ],
+      "mainBlockNodes": 1,
+      "internalEdges": 1,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": true,
+      "separatorPairs": [
+        [
+          "db.Company",
+          "db.FileAttachment"
+        ]
+      ]
+    }
+  ]
+}

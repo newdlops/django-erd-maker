@@ -1,0 +1,34 @@
+{
+  "cliVersion": "0.160.0",
+  "scope": "current thread recent retry warnings",
+  "events": 38,
+  "counts": {
+    "compaction: stream disconnected before completion: Transport error: network error: error decoding response body": 4,
+    "generation: stream disconnected before completion: Transport error: network error: error decoding response body": 29,
+    "generation: stream disconnected before completion: IO error: Connection reset by peer (os error 54)": 5
+  },
+  "latestEvents": [
+    {
+      "time": "2026-10-03T02:32:28+09:00",
+      "phase": "compaction",
+      "error": "stream disconnected before completion: Transport error: network error: error decoding response body"
+    },
+    {
+      "time": "2026-10-03T02:32:07+09:00",
+      "phase": "compaction",
+      "error": "stream disconnected before completion: Transport error: network error: error decoding response body"
+    },
+    {
+      "time": "2026-10-03T02:26:36+09:00",
+      "phase": "compaction",
+      "error": "stream disconnected before completion: Transport error: network error: error decoding response body"
+    },
+    {
+      "time": "2026-10-03T02:26:16+09:00",
+      "phase": "compaction",
+      "error": "stream disconnected before completion: Transport error: network error: error decoding response body"
+    }
+  ],
+  "proxyEnvironmentVariablesPresent": [],
+  "rootCauseConfirmed": false
+}

@@ -1,0 +1,39 @@
+{
+  "singleNumericJob": true,
+  "mathThreads": 1,
+  "niceIncrement": 10,
+  "rssGuardMiB": 256,
+  "hardCpuPercentageLimit": false,
+  "stagePeakMiB": {
+    "individual-branch-policy1": 134.4,
+    "overview-branch-policy1": 187.5,
+    "overview-branch-policy2": 186.2,
+    "individual-branch-trained1": 133.2,
+    "overview-branch-trained1": 161.3,
+    "individual-branch-port1": 132.5,
+    "overview-branch-port1": 159.8,
+    "overview-branch-policy3": 186.4,
+    "individual-branch-trained2": 133.6
+  },
+  "nativeCompilePeakMiB": {
+    "v23": 241.3,
+    "v24": 221.7
+  },
+  "nativeV23SelfTestPeakMiB": 3.8,
+  "legacyFrozenActionReplayPeakMiB": 57.9,
+  "v24ValidationPeakMiB": 56.6,
+  "trainingPeakMiB": 183.0,
+  "productAuditPeakMiB": 169.5,
+  "nativeGeometryComparisonsPerVersion": 12568,
+  "groupedFixtureAcceptedMovesPerVersion": 440,
+  "legacyFrozenActionsReplayed": 19913,
+  "networkDerivativeChecks": 44,
+  "sourceGraphMapsCrossChecked": true,
+  "nativeAcceptanceUnchanged": true,
+  "trainedModels": 2,
+  "syntheticRewardMeasurements": 280512,
+  "actualRewardMeasurements": 7104,
+  "actualPositiveRewardMeasurements": 0,
+  "actualRewardMeasurementsUsedForTraining": 0,
+  "actualBrowserVerified": false
+}

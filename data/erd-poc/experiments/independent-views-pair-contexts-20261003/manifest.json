@@ -1,0 +1,1678 @@
+{
+  "scope": "source-bound two-vertex separator action contexts and fixed conflict witnesses",
+  "overviewTarget": 150,
+  "individualTarget": 750,
+  "overviewVisual": 289,
+  "individualVisual": 1964,
+  "targetMet": false,
+  "promotedCandidateChanged": false,
+  "retainedCandidateSha256": "da2317d3d9fe72181587f543843bfdde3cc7030ca328e93c4f627ae21ec356e7",
+  "newNetworkTrainingUpdates": 0,
+  "additionalPolicyActions": 3760,
+  "stages": [
+    {
+      "view": "individual",
+      "actions": 1907,
+      "acceptedNeutralActions": 173,
+      "outcomes": {
+        "overview-regression": 953,
+        "accepted-neutral": 173,
+        "overview-hard": 781
+      },
+      "sourceVisual": 1964,
+      "savedVisual": 1964,
+      "candidateSha256": "0614eb443b1d8917f224eb2027a3af2cb7cf245922a392fe2c2ccdcdf4878d70",
+      "promoted": false,
+      "peakMiB": 132.9
+    },
+    {
+      "view": "overview",
+      "actions": 1853,
+      "acceptedNeutralActions": 167,
+      "outcomes": {
+        "accepted-neutral": 167,
+        "overview-regression": 882,
+        "individual-hard": 674,
+        "overview-hard": 130
+      },
+      "sourceVisual": 289,
+      "savedVisual": 289,
+      "candidateSha256": "cf20c93a3d55fb8fe1e59e0aa54db4c9a4735c1b208de4cfec75c79263b71b21",
+      "promoted": false,
+      "peakMiB": 191.0
+    }
+  ],
+  "proposalAuthority": "existing frozen neural policies transferred from cut contexts; native geometry only decodes and measures",
+  "contextIndexSchema": "independent-context-index-v1",
+  "validation": {
+    "nativeBinarySha256": "bc60819f4d526b92efc036567851e95110f1ed0be88706d416f531ab9fc8c986",
+    "implementationHashes": {
+      "ml_component_environment.cpp": "930e1170deae7e393b09034be95b636c5afc13d7e67d3f275688dbda9a6d9443",
+      "learned_pair_contexts.h": "70231fb76081d97c6fe749bbf590a87fb7d57de30eec299a9c3cdb57def8017f",
+      "learned_pair_contexts.py": "3d0361196361e07cdd20b1e6d55072bf58f906de50f3acf5e9a2b657d98ab607",
+      "constrained_dual_node_geometry.h": "aa984669fd96ddbcd375301d564f9f511cb406549a44619a17ce80cbdbdcf692",
+      "constrained_scene.h": "ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6",
+      "constrained_boundary_sweep.h": "296dab7012fe0e0192e2d526bda778f38595f1b8d446d0e2b124d4576297aa79",
+      "learned_branch_map.py": "0bee3bb1881f41ae7562bba545b181de194936c86853e60bde15d92bbc3c367f",
+      "learned_global_replay.py": "38bccbe20b4fb7cf4c548b8648f79f977b05d61e1391150b679c6d527d2d6f92",
+      "learned_bounded_replay.py": "dfe26868cf25d6d3c8039d5e481142d8a64b45a775c15f061da31760dcf932ae",
+      "learn_card_policy.py": "2447e4aae172b46d8c4f07fb7b774aebc1444adaafff5d87fe077ee0a885ba37",
+      "run_individual_policy_experiment.py": "566496292ee2786366f6c257c41a5acf30ab66d824032aa6feaaafbeb91a755e",
+      "run_learned_leaf_layout.py": "19328e05c989719856572d4cc53907e0e1eb9578de37c6054c1fce82a17ae080",
+      "run_memory_bounded.py": "7784ae78aec359887155ff86d37dd503628d490487d2a3e1f9b4e89f3c02a43d"
+    },
+    "compilerFlags": [
+      "-std=c++17",
+      "-O0",
+      "-ffp-contract=off"
+    ],
+    "views": {
+      "individual": {
+        "sourceSha256": "42adab07b311c16463bd7f5dc0ee68941d6047ac0372415393ad9355c126fe22",
+        "visual": 1964,
+        "branchMap": {
+          "schema": "source-bound-pair-contexts-v1",
+          "branchMode": "pair-cut",
+          "sourceSha256": "42adab07b311c16463bd7f5dc0ee68941d6047ac0372415393ad9355c126fe22",
+          "branchMapSha256": "dfd420a66bb364772cd873bb11d6d58c57fb7e0db4c19e43c3412f5a8c865e6c",
+          "inputHashes": {
+            "nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+            "edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+            "positions.tsv": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+            "routes.tsv": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+            "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+            "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+            "individual.positions.tsv": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+            "individual.routes.tsv": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+            "components.tsv": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+            "groups.tsv": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d"
+          },
+          "nodes": 1244,
+          "twoCoreNodes": 650,
+          "multiCardContexts": 30,
+          "maximumContextCards": 84,
+          "positionsProposed": false,
+          "contextIndexSchema": "independent-context-index-v1",
+          "contexts": 30,
+          "anchorLimit": 32,
+          "allPairsExhaustive": false
+        },
+        "boxesCompared": 30,
+        "observedContexts": 20,
+        "sourceGeometryPreserved": true,
+        "priorAnalysisMembershipMatches": true,
+        "wrongContextMapRejected": true
+      },
+      "overview": {
+        "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52",
+        "visual": 289,
+        "branchMap": {
+          "schema": "source-bound-pair-contexts-v1",
+          "branchMode": "pair-cut",
+          "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52",
+          "branchMapSha256": "54a34d09a0c71b0b62613a739afe19ed120001669be6e0f71da9dad22493a580",
+          "inputHashes": {
+            "nodes.tsv": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+            "edges.tsv": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+            "positions.tsv": "f22cbc759742ae9a2b5cc6f64f6cf02a25878fafde965f88e83161d6dce086be",
+            "routes.tsv": "107653e30b4d861d758ae1efca6a7444894939c9d6826039daa9e3c47d4f0063",
+            "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+            "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+            "individual.positions.tsv": "9a8f92a1e756d42a8177eca8947cd9700c0cc5e53e6a81b6d1eae37200742e72",
+            "individual.routes.tsv": "d3db0db863e5ce0042f53cd287a86aa67e9a31e55b5fc6e6acd884fadeb2d7d7",
+            "components.tsv": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+            "groups.tsv": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc"
+          },
+          "nodes": 1035,
+          "twoCoreNodes": 332,
+          "multiCardContexts": 18,
+          "maximumContextCards": 81,
+          "positionsProposed": false,
+          "contextIndexSchema": "independent-context-index-v1",
+          "contexts": 18,
+          "anchorLimit": 32,
+          "allPairsExhaustive": false
+        },
+        "boxesCompared": 18,
+        "observedContexts": 15,
+        "sourceGeometryPreserved": true,
+        "priorAnalysisMembershipMatches": true,
+        "wrongContextMapRejected": true
+      }
+    },
+    "pythonFixtures": {
+      "pairContextFixture": "pass",
+      "contexts": 5,
+      "outsideAttachmentsIncluded": true,
+      "longChainWithoutRecursion": true
+    },
+    "nativeTests": [
+      {
+        "selfTest": "pass",
+        "globalDeltaComparisons": 6424,
+        "acceptedSwaps": 126,
+        "acceptedNeighborMoves": 54,
+        "acceptedMovingRayMoves": 257,
+        "acceptedNeutralMoves": 126,
+        "translationInvariance": true
+      },
+      {
+        "explorationSelfTest": "pass",
+        "globalDeltaComparisons": 3072,
+        "acceptedUphillMoves": 367,
+        "restoredCheckpoints": 12,
+        "improvedCheckpoints": 70
+      },
+      {
+        "branchSelfTest": "pass",
+        "globalDeltaComparisons": 3072,
+        "acceptedMoves": 1598,
+        "acceptedGroupedMoves": 316,
+        "cutModeComparisons": 1536,
+        "acceptedCutGroupedMoves": 98,
+        "measurementsPreserveState": true
+      },
+      {
+        "boundedSelfTest": "pass",
+        "globalDeltaComparisons": 1152,
+        "acceptedMoves": 445,
+        "acceptedGroupedMoves": 71,
+        "measurementsPreserveState": true
+      },
+      {
+        "pairContextSelfTest": "pass",
+        "topologyFixtureContexts": 5,
+        "globalDeltaComparisons": 704,
+        "acceptedGroupedMoves": 228,
+        "boundedComparisons": 320,
+        "measurementsPreserveState": true
+      }
+    ],
+    "legacyReplay": {
+      "frozenCheckpointActionReplay": "pass",
+      "actions": 20000,
+      "untrainedControl": false,
+      "savedActionPrefix": -1,
+      "exploratoryAdmissionReplay": false,
+      "swapTargetAndFinalPositionReplay": false,
+      "portParametersAndFinalRoutesReplay": false,
+      "globalPositionsAndCanonicalRoutesReplay": false,
+      "neighborPairPositionsAndRoutesReplay": false,
+      "movingRayPositionsAndRoutesReplay": true,
+      "branchPositionsAndRoutesReplay": true,
+      "boundedLatentAndTranslationReplay": false,
+      "componentRayPositionsAndRoutesReplay": false,
+      "attachedComponentPositionsAndRoutesReplay": false
+    },
+    "unchangedCompletedChecksReusedFrom": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/failure.json",
+    "unchangedCompletedChecksReportSha256": "d523057dcf95924168cbe6f2be6277fdea7d30bbb1ebb4cb2e97df4060023f41",
+    "allChecksPassed": true
+  },
+  "coverageEvidence": {
+    "scope": "frozen pair-cut contexts with moving-ray or bounded-moving-ray translation only",
+    "positionsProposed": false,
+    "globalTargetImpossibleProved": false,
+    "independentPortOrOtherNodePoliciesCovered": false,
+    "views": {
+      "individual": {
+        "sourceSha256": "42adab07b311c16463bd7f5dc0ee68941d6047ac0372415393ad9355c126fe22",
+        "sourceVisual": 1964,
+        "target": 750,
+        "physicalCardsMovable": 168,
+        "fullCardsMovable": 168,
+        "potentiallyChangingPhysicalRoutes": 252,
+        "fixedCrossings": 1357,
+        "fixedCardHits": 436,
+        "fixedVisualConflicts": 1793,
+        "targetUnreachableWithThisActionSpaceAlone": true,
+        "maximumRemovableSourceConflicts": 171,
+        "witnessFile": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-coverage1/individual-fixed-conflicts.json",
+        "witnessSha256": "b1624dd469d49f8540b6160e030c6846e724c7c235c6405a0ef2ed109c53a46c",
+        "initialCountMatchesNative": true
+      },
+      "overview": {
+        "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52",
+        "sourceVisual": 289,
+        "target": 150,
+        "physicalCardsMovable": 165,
+        "fullCardsMovable": 181,
+        "potentiallyChangingPhysicalRoutes": 217,
+        "fixedCrossings": 142,
+        "fixedCardHits": 71,
+        "fixedVisualConflicts": 213,
+        "targetUnreachableWithThisActionSpaceAlone": true,
+        "maximumRemovableSourceConflicts": 76,
+        "witnessFile": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-coverage1/overview-fixed-conflicts.json",
+        "witnessSha256": "149ce56244513d1a35885b7f7b0eec9b6a2f0e5fe1a84497269e634578083b21",
+        "initialCountMatchesNative": true
+      }
+    }
+  },
+  "rolloutWitnessVerification": {
+    "views": {
+      "individual": {
+        "witnessSha256": "b1624dd469d49f8540b6160e030c6846e724c7c235c6405a0ef2ed109c53a46c",
+        "fixedPhysicalRoutesChecked": 520,
+        "fixedHitCardsChecked": 224,
+        "fixedConflictSupportCards": 416,
+        "learnedActions": 1907,
+        "witnessGeometryUnchanged": true,
+        "sourceSha256": "42adab07b311c16463bd7f5dc0ee68941d6047ac0372415393ad9355c126fe22"
+      },
+      "overview": {
+        "witnessSha256": "149ce56244513d1a35885b7f7b0eec9b6a2f0e5fe1a84497269e634578083b21",
+        "fixedPhysicalRoutesChecked": 136,
+        "fixedHitCardsChecked": 53,
+        "fixedConflictSupportCards": 154,
+        "learnedActions": 1853,
+        "witnessGeometryUnchanged": true,
+        "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52"
+      }
+    },
+    "positionsProposed": false
+  },
+  "resourcePolicy": {
+    "serialized": true,
+    "mathThreads": 1,
+    "nice": 10,
+    "processGroupRssGuardMiB": 256,
+    "hardCpuPercentageQuota": false,
+    "compileOptimization": "-O0",
+    "compilePeakMiB": 217.8,
+    "validationAttemptPeaksMiB": [
+      77.6,
+      63.2
+    ],
+    "coveragePeakMiB": 36.8,
+    "failedCompile": {
+      "optimization": "-O1",
+      "exitCode": 137,
+      "rssAtGuardStopMiB": 263.7,
+      "guardLimitIncreased": false,
+      "unchangedRetryPerformed": false
+    }
+  },
+  "failedValidation": "pair-context-validation1/failure.json",
+  "failedValidationCause": "fixture input directory lacked nodes.tsv; native checks and legacy replay had passed and were reused by source/binary hash",
+  "nextResearch": "Expand learned node/endpoint proposals to the fixed-conflict support outside these contexts; pair-context-only retraining cannot meet either target.",
+  "globalTargetImpossibleProved": false,
+  "dependencies": [
+    {
+      "file": "data/erd-poc/experiments/independent-views-bounded-policy-20261003/bounded-policy-training1/individual.npz",
+      "sha256": "52dfe940a7498f12cbfa016232044ce7df4bd4ade31a57abaef3ede80571aab2",
+      "archiveManifest": "data/erd-poc/experiments/independent-views-bounded-policy-20261003/manifest.json",
+      "archiveManifestSha256": "b30a88360738baf1701fd29e59ef7449b6653a9496e2ecb9779b8937883ae154"
+    },
+    {
+      "file": "data/erd-poc/experiments/independent-views-bounded-policy-20261003/bounded-policy-training1/overview.npz",
+      "sha256": "39a135d12be3e7c76d6005b87df65226464307232782920448db1ad68c417992",
+      "archiveManifest": "data/erd-poc/experiments/independent-views-bounded-policy-20261003/manifest.json",
+      "archiveManifestSha256": "b30a88360738baf1701fd29e59ef7449b6653a9496e2ecb9779b8937883ae154"
+    }
+  ],
+  "priorArchive": "data/erd-poc/experiments/independent-views-anchor-rays-20261003/manifest.json",
+  "priorArchiveSha256": "93edf0bd5700c25d909004bc578c2a237787364708636fd5b68fe4c531fb13e1",
+  "actualBrowserVerified": false,
+  "files": [
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/failure.json",
+      "stored": "pair-context-validation1/failure.json",
+      "sha256": "d523057dcf95924168cbe6f2be6277fdea7d30bbb1ebb4cb2e97df4060023f41",
+      "gzip": false,
+      "bytes": 4237,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/legacy-cut-replay.stderr",
+      "stored": "pair-context-validation1/legacy-cut-replay.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/legacy-cut-replay.stdout",
+      "stored": "pair-context-validation1/legacy-cut-replay.stdout",
+      "sha256": "6f964d8b99060a40fe34c8b93241ca1c81a678d70ec4bf878b80745b0514c8db",
+      "gzip": false,
+      "bytes": 559,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/native.stderr",
+      "stored": "pair-context-validation1/native.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/native.stdout",
+      "stored": "pair-context-validation1/native.stdout",
+      "sha256": "899d5c51e8095b17b5932dce1b471b7a2344073fb3db0d21337ac959fba1b027",
+      "gzip": false,
+      "bytes": 820,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/sources/constrained_boundary_sweep.h",
+      "stored": "pair-context-validation1/sources/constrained_boundary_sweep.h",
+      "sha256": "296dab7012fe0e0192e2d526bda778f38595f1b8d446d0e2b124d4576297aa79",
+      "gzip": false,
+      "bytes": 9566,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/sources/constrained_dual_node_geometry.h",
+      "stored": "pair-context-validation1/sources/constrained_dual_node_geometry.h",
+      "sha256": "aa984669fd96ddbcd375301d564f9f511cb406549a44619a17ce80cbdbdcf692",
+      "gzip": false,
+      "bytes": 6646,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/sources/constrained_scene.h",
+      "stored": "pair-context-validation1/sources/constrained_scene.h",
+      "sha256": "ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6",
+      "gzip": false,
+      "bytes": 9252,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/sources/learn_card_policy.py",
+      "stored": "pair-context-validation1/sources/learn_card_policy.py",
+      "sha256": "2447e4aae172b46d8c4f07fb7b774aebc1444adaafff5d87fe077ee0a885ba37",
+      "gzip": false,
+      "bytes": 43351,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/sources/learned_bounded_replay.py",
+      "stored": "pair-context-validation1/sources/learned_bounded_replay.py",
+      "sha256": "dfe26868cf25d6d3c8039d5e481142d8a64b45a775c15f061da31760dcf932ae",
+      "gzip": false,
+      "bytes": 4793,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/sources/learned_branch_map.py",
+      "stored": "pair-context-validation1/sources/learned_branch_map.py",
+      "sha256": "0bee3bb1881f41ae7562bba545b181de194936c86853e60bde15d92bbc3c367f",
+      "gzip": false,
+      "bytes": 5044,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/sources/learned_global_replay.py",
+      "stored": "pair-context-validation1/sources/learned_global_replay.py",
+      "sha256": "38bccbe20b4fb7cf4c548b8648f79f977b05d61e1391150b679c6d527d2d6f92",
+      "gzip": false,
+      "bytes": 11116,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/sources/learned_pair_contexts.h",
+      "stored": "pair-context-validation1/sources/learned_pair_contexts.h",
+      "sha256": "70231fb76081d97c6fe749bbf590a87fb7d57de30eec299a9c3cdb57def8017f",
+      "gzip": false,
+      "bytes": 3627,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/sources/learned_pair_contexts.py",
+      "stored": "pair-context-validation1/sources/learned_pair_contexts.py",
+      "sha256": "3d0361196361e07cdd20b1e6d55072bf58f906de50f3acf5e9a2b657d98ab607",
+      "gzip": false,
+      "bytes": 4518,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/sources/ml_component_environment.cpp",
+      "stored": "pair-context-validation1/sources/ml_component_environment.cpp",
+      "sha256": "930e1170deae7e393b09034be95b636c5afc13d7e67d3f275688dbda9a6d9443",
+      "gzip": false,
+      "bytes": 66996,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/sources/run_individual_policy_experiment.py",
+      "stored": "pair-context-validation1/sources/run_individual_policy_experiment.py",
+      "sha256": "566496292ee2786366f6c257c41a5acf30ab66d824032aa6feaaafbeb91a755e",
+      "gzip": false,
+      "bytes": 7636,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/sources/run_learned_leaf_layout.py",
+      "stored": "pair-context-validation1/sources/run_learned_leaf_layout.py",
+      "sha256": "19328e05c989719856572d4cc53907e0e1eb9578de37c6054c1fce82a17ae080",
+      "gzip": false,
+      "bytes": 9512,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/sources/run_memory_bounded.py",
+      "stored": "pair-context-validation1/sources/run_memory_bounded.py",
+      "sha256": "7784ae78aec359887155ff86d37dd503628d490487d2a3e1f9b4e89f3c02a43d",
+      "gzip": false,
+      "bytes": 5742,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation1/sources/validate_pair_contexts.py",
+      "stored": "pair-context-validation1/sources/validate_pair_contexts.py",
+      "sha256": "ac362e6d73c310aac261e201343ef1eca4ff7527941bf3c92765db4d0d1b321a",
+      "gzip": false,
+      "bytes": 6357,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual/branch-map.json",
+      "stored": "pair-context-validation2/individual/branch-map.json",
+      "sha256": "45f75e857d3c04153098e8fe756578f99a5da60368cc06ab788332a5e50fad84",
+      "gzip": false,
+      "bytes": 1436,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual/branches.tsv",
+      "stored": "pair-context-validation2/individual/branches.tsv.gz",
+      "sha256": "dfd420a66bb364772cd873bb11d6d58c57fb7e0db4c19e43c3412f5a8c865e6c",
+      "gzip": true,
+      "bytes": 5066,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual/components.tsv",
+      "stored": "pair-context-validation2/individual/components.tsv.gz",
+      "sha256": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+      "gzip": true,
+      "bytes": 68780,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual/edges.tsv",
+      "stored": "pair-context-validation2/individual/edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual/groups.tsv",
+      "stored": "pair-context-validation2/individual/groups.tsv.gz",
+      "sha256": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d",
+      "gzip": true,
+      "bytes": 199382,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual/individual.edges.tsv",
+      "stored": "pair-context-validation2/individual/individual.edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual/individual.nodes.tsv",
+      "stored": "pair-context-validation2/individual/individual.nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual/individual.positions.tsv",
+      "stored": "pair-context-validation2/individual/individual.positions.tsv.gz",
+      "sha256": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+      "gzip": true,
+      "bytes": 73707,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual/individual.routes.tsv",
+      "stored": "pair-context-validation2/individual/individual.routes.tsv.gz",
+      "sha256": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+      "gzip": true,
+      "bytes": 160868,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual/nodes.tsv",
+      "stored": "pair-context-validation2/individual/nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual/positions.tsv",
+      "stored": "pair-context-validation2/individual/positions.tsv.gz",
+      "sha256": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+      "gzip": true,
+      "bytes": 73707,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual/routes.tsv",
+      "stored": "pair-context-validation2/individual/routes.tsv.gz",
+      "sha256": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+      "gzip": true,
+      "bytes": 160868,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual/zero.tsv",
+      "stored": "pair-context-validation2/individual/zero.tsv.gz",
+      "sha256": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+      "gzip": true,
+      "bytes": 73707,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual/zero.tsv.individual",
+      "stored": "pair-context-validation2/individual/zero.tsv.individual",
+      "sha256": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+      "gzip": false,
+      "bytes": 73707,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual/zero.tsv.individual.routes.tsv",
+      "stored": "pair-context-validation2/individual/zero.tsv.individual.routes.tsv.gz",
+      "sha256": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+      "gzip": true,
+      "bytes": 160868,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual/zero.tsv.routes.tsv",
+      "stored": "pair-context-validation2/individual/zero.tsv.routes.tsv.gz",
+      "sha256": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+      "gzip": true,
+      "bytes": 160868,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual/zero.tsv.stats.json",
+      "stored": "pair-context-validation2/individual/zero.tsv.stats.json",
+      "sha256": "434c982a05dc33470144f42b4bedac7bbd14abb3e56313542ecbc091622fc765",
+      "gzip": false,
+      "bytes": 999,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual-corrupt/branches.tsv",
+      "stored": "pair-context-validation2/individual-corrupt/branches.tsv.gz",
+      "sha256": "6a5d78433e22568ce10828b1e1e8e7e10d6919d821fd48973bf3445eef06c492",
+      "gzip": true,
+      "bytes": 5066,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual-corrupt/components.tsv",
+      "stored": "pair-context-validation2/individual-corrupt/components.tsv.gz",
+      "sha256": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+      "gzip": true,
+      "bytes": 68780,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual-corrupt/edges.tsv",
+      "stored": "pair-context-validation2/individual-corrupt/edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual-corrupt/groups.tsv",
+      "stored": "pair-context-validation2/individual-corrupt/groups.tsv.gz",
+      "sha256": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d",
+      "gzip": true,
+      "bytes": 199382,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual-corrupt/individual.edges.tsv",
+      "stored": "pair-context-validation2/individual-corrupt/individual.edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual-corrupt/individual.nodes.tsv",
+      "stored": "pair-context-validation2/individual-corrupt/individual.nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual-corrupt/individual.positions.tsv",
+      "stored": "pair-context-validation2/individual-corrupt/individual.positions.tsv.gz",
+      "sha256": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+      "gzip": true,
+      "bytes": 73707,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual-corrupt/individual.routes.tsv",
+      "stored": "pair-context-validation2/individual-corrupt/individual.routes.tsv.gz",
+      "sha256": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+      "gzip": true,
+      "bytes": 160868,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual-corrupt/nodes.tsv",
+      "stored": "pair-context-validation2/individual-corrupt/nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual-corrupt/positions.tsv",
+      "stored": "pair-context-validation2/individual-corrupt/positions.tsv.gz",
+      "sha256": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+      "gzip": true,
+      "bytes": 73707,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual-corrupt/rejection.stderr",
+      "stored": "pair-context-validation2/individual-corrupt/rejection.stderr",
+      "sha256": "b337ece4620e5ae6f66e8ac8a2792cc3af6cea839b41b509500a7db0cadb47f9",
+      "gzip": false,
+      "bytes": 37,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/individual-corrupt/routes.tsv",
+      "stored": "pair-context-validation2/individual-corrupt/routes.tsv.gz",
+      "sha256": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+      "gzip": true,
+      "bytes": 160868,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview/branch-map.json",
+      "stored": "pair-context-validation2/overview/branch-map.json",
+      "sha256": "d97c02743565283e0cd2d7ac1b2cccb5d5844001daed3cf636aa1e5e93be7d00",
+      "gzip": false,
+      "bytes": 1436,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview/branches.tsv",
+      "stored": "pair-context-validation2/overview/branches.tsv.gz",
+      "sha256": "54a34d09a0c71b0b62613a739afe19ed120001669be6e0f71da9dad22493a580",
+      "gzip": true,
+      "bytes": 4613,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview/components.tsv",
+      "stored": "pair-context-validation2/overview/components.tsv.gz",
+      "sha256": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+      "gzip": true,
+      "bytes": 61887,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview/edges.tsv",
+      "stored": "pair-context-validation2/overview/edges.tsv.gz",
+      "sha256": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+      "gzip": true,
+      "bytes": 113471,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview/groups.tsv",
+      "stored": "pair-context-validation2/overview/groups.tsv.gz",
+      "sha256": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc",
+      "gzip": true,
+      "bytes": 160987,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview/individual.edges.tsv",
+      "stored": "pair-context-validation2/overview/individual.edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview/individual.nodes.tsv",
+      "stored": "pair-context-validation2/overview/individual.nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview/individual.positions.tsv",
+      "stored": "pair-context-validation2/overview/individual.positions.tsv.gz",
+      "sha256": "9a8f92a1e756d42a8177eca8947cd9700c0cc5e53e6a81b6d1eae37200742e72",
+      "gzip": true,
+      "bytes": 55981,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview/individual.routes.tsv",
+      "stored": "pair-context-validation2/overview/individual.routes.tsv.gz",
+      "sha256": "d3db0db863e5ce0042f53cd287a86aa67e9a31e55b5fc6e6acd884fadeb2d7d7",
+      "gzip": true,
+      "bytes": 160158,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview/nodes.tsv",
+      "stored": "pair-context-validation2/overview/nodes.tsv.gz",
+      "sha256": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+      "gzip": true,
+      "bytes": 34879,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview/positions.tsv",
+      "stored": "pair-context-validation2/overview/positions.tsv.gz",
+      "sha256": "f22cbc759742ae9a2b5cc6f64f6cf02a25878fafde965f88e83161d6dce086be",
+      "gzip": true,
+      "bytes": 45439,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview/routes.tsv",
+      "stored": "pair-context-validation2/overview/routes.tsv.gz",
+      "sha256": "107653e30b4d861d758ae1efca6a7444894939c9d6826039daa9e3c47d4f0063",
+      "gzip": true,
+      "bytes": 97586,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview/zero.tsv",
+      "stored": "pair-context-validation2/overview/zero.tsv.gz",
+      "sha256": "ee097292d8553d695fa8867eab8be9741131f28288588e4340fc103be802e5d6",
+      "gzip": true,
+      "bytes": 60175,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview/zero.tsv.individual",
+      "stored": "pair-context-validation2/overview/zero.tsv.individual",
+      "sha256": "bf0484d0c034c2aa2dfa8d341263750bc7a6923e20e90e18ddb309994c23e7f2",
+      "gzip": false,
+      "bytes": 73662,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview/zero.tsv.individual.routes.tsv",
+      "stored": "pair-context-validation2/overview/zero.tsv.individual.routes.tsv.gz",
+      "sha256": "dd4b962cab5d0b2e7389a09bb1286ca7ff76b30ecf74399aeb8e2bee369cdbcf",
+      "gzip": true,
+      "bytes": 160831,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview/zero.tsv.routes.tsv",
+      "stored": "pair-context-validation2/overview/zero.tsv.routes.tsv.gz",
+      "sha256": "cb6d17a73f96259285cef08dba715d6a2d4c94dbfdcc0a74de93a8d6cd60295a",
+      "gzip": true,
+      "bytes": 98042,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview/zero.tsv.stats.json",
+      "stored": "pair-context-validation2/overview/zero.tsv.stats.json",
+      "sha256": "92b9e0e9527bf806e754a974247264292078f880673d600fe59393ce32614ca7",
+      "gzip": false,
+      "bytes": 995,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview-corrupt/branches.tsv",
+      "stored": "pair-context-validation2/overview-corrupt/branches.tsv.gz",
+      "sha256": "eadb19fe64e447c9d342721ad4fbbb7bba373d7672b7d9f2a7a422d8a6d041fb",
+      "gzip": true,
+      "bytes": 4613,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview-corrupt/components.tsv",
+      "stored": "pair-context-validation2/overview-corrupt/components.tsv.gz",
+      "sha256": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+      "gzip": true,
+      "bytes": 61887,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview-corrupt/edges.tsv",
+      "stored": "pair-context-validation2/overview-corrupt/edges.tsv.gz",
+      "sha256": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+      "gzip": true,
+      "bytes": 113471,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview-corrupt/groups.tsv",
+      "stored": "pair-context-validation2/overview-corrupt/groups.tsv.gz",
+      "sha256": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc",
+      "gzip": true,
+      "bytes": 160987,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview-corrupt/individual.edges.tsv",
+      "stored": "pair-context-validation2/overview-corrupt/individual.edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview-corrupt/individual.nodes.tsv",
+      "stored": "pair-context-validation2/overview-corrupt/individual.nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview-corrupt/individual.positions.tsv",
+      "stored": "pair-context-validation2/overview-corrupt/individual.positions.tsv.gz",
+      "sha256": "9a8f92a1e756d42a8177eca8947cd9700c0cc5e53e6a81b6d1eae37200742e72",
+      "gzip": true,
+      "bytes": 55981,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview-corrupt/individual.routes.tsv",
+      "stored": "pair-context-validation2/overview-corrupt/individual.routes.tsv.gz",
+      "sha256": "d3db0db863e5ce0042f53cd287a86aa67e9a31e55b5fc6e6acd884fadeb2d7d7",
+      "gzip": true,
+      "bytes": 160158,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview-corrupt/nodes.tsv",
+      "stored": "pair-context-validation2/overview-corrupt/nodes.tsv.gz",
+      "sha256": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+      "gzip": true,
+      "bytes": 34879,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview-corrupt/positions.tsv",
+      "stored": "pair-context-validation2/overview-corrupt/positions.tsv.gz",
+      "sha256": "f22cbc759742ae9a2b5cc6f64f6cf02a25878fafde965f88e83161d6dce086be",
+      "gzip": true,
+      "bytes": 45439,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview-corrupt/rejection.stderr",
+      "stored": "pair-context-validation2/overview-corrupt/rejection.stderr",
+      "sha256": "b337ece4620e5ae6f66e8ac8a2792cc3af6cea839b41b509500a7db0cadb47f9",
+      "gzip": false,
+      "bytes": 37,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/overview-corrupt/routes.tsv",
+      "stored": "pair-context-validation2/overview-corrupt/routes.tsv.gz",
+      "sha256": "107653e30b4d861d758ae1efca6a7444894939c9d6826039daa9e3c47d4f0063",
+      "gzip": true,
+      "bytes": 97586,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/report.json",
+      "stored": "pair-context-validation2/report.json",
+      "sha256": "24cc9ffc3128c4c7175a054d2054710b2504f7312c0b9dcc668ad1c679b8f541",
+      "gzip": false,
+      "bytes": 7616,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/sources/constrained_boundary_sweep.h",
+      "stored": "pair-context-validation2/sources/constrained_boundary_sweep.h",
+      "sha256": "296dab7012fe0e0192e2d526bda778f38595f1b8d446d0e2b124d4576297aa79",
+      "gzip": false,
+      "bytes": 9566,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/sources/constrained_dual_node_geometry.h",
+      "stored": "pair-context-validation2/sources/constrained_dual_node_geometry.h",
+      "sha256": "aa984669fd96ddbcd375301d564f9f511cb406549a44619a17ce80cbdbdcf692",
+      "gzip": false,
+      "bytes": 6646,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/sources/constrained_scene.h",
+      "stored": "pair-context-validation2/sources/constrained_scene.h",
+      "sha256": "ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6",
+      "gzip": false,
+      "bytes": 9252,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/sources/learn_card_policy.py",
+      "stored": "pair-context-validation2/sources/learn_card_policy.py",
+      "sha256": "2447e4aae172b46d8c4f07fb7b774aebc1444adaafff5d87fe077ee0a885ba37",
+      "gzip": false,
+      "bytes": 43351,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/sources/learned_bounded_replay.py",
+      "stored": "pair-context-validation2/sources/learned_bounded_replay.py",
+      "sha256": "dfe26868cf25d6d3c8039d5e481142d8a64b45a775c15f061da31760dcf932ae",
+      "gzip": false,
+      "bytes": 4793,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/sources/learned_branch_map.py",
+      "stored": "pair-context-validation2/sources/learned_branch_map.py",
+      "sha256": "0bee3bb1881f41ae7562bba545b181de194936c86853e60bde15d92bbc3c367f",
+      "gzip": false,
+      "bytes": 5044,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/sources/learned_global_replay.py",
+      "stored": "pair-context-validation2/sources/learned_global_replay.py",
+      "sha256": "38bccbe20b4fb7cf4c548b8648f79f977b05d61e1391150b679c6d527d2d6f92",
+      "gzip": false,
+      "bytes": 11116,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/sources/learned_pair_contexts.h",
+      "stored": "pair-context-validation2/sources/learned_pair_contexts.h",
+      "sha256": "70231fb76081d97c6fe749bbf590a87fb7d57de30eec299a9c3cdb57def8017f",
+      "gzip": false,
+      "bytes": 3627,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/sources/learned_pair_contexts.py",
+      "stored": "pair-context-validation2/sources/learned_pair_contexts.py",
+      "sha256": "3d0361196361e07cdd20b1e6d55072bf58f906de50f3acf5e9a2b657d98ab607",
+      "gzip": false,
+      "bytes": 4518,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/sources/ml_component_environment.cpp",
+      "stored": "pair-context-validation2/sources/ml_component_environment.cpp",
+      "sha256": "930e1170deae7e393b09034be95b636c5afc13d7e67d3f275688dbda9a6d9443",
+      "gzip": false,
+      "bytes": 66996,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/sources/run_individual_policy_experiment.py",
+      "stored": "pair-context-validation2/sources/run_individual_policy_experiment.py",
+      "sha256": "566496292ee2786366f6c257c41a5acf30ab66d824032aa6feaaafbeb91a755e",
+      "gzip": false,
+      "bytes": 7636,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/sources/run_learned_leaf_layout.py",
+      "stored": "pair-context-validation2/sources/run_learned_leaf_layout.py",
+      "sha256": "19328e05c989719856572d4cc53907e0e1eb9578de37c6054c1fce82a17ae080",
+      "gzip": false,
+      "bytes": 9512,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/sources/run_memory_bounded.py",
+      "stored": "pair-context-validation2/sources/run_memory_bounded.py",
+      "sha256": "7784ae78aec359887155ff86d37dd503628d490487d2a3e1f9b4e89f3c02a43d",
+      "gzip": false,
+      "bytes": 5742,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-validation2/sources/validate_pair_contexts.py",
+      "stored": "pair-context-validation2/sources/validate_pair_contexts.py",
+      "sha256": "112ad29dea908be915df1dbf7e8ebc5cdc9b1051aa7ff8624ab3bba6684d19fb",
+      "gzip": false,
+      "bytes": 6368,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/branch-map.json",
+      "stored": "individual-pair-context1/branch-map.json",
+      "sha256": "45f75e857d3c04153098e8fe756578f99a5da60368cc06ab788332a5e50fad84",
+      "gzip": false,
+      "bytes": 1436,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/branches.tsv",
+      "stored": "individual-pair-context1/branches.tsv.gz",
+      "sha256": "dfd420a66bb364772cd873bb11d6d58c57fb7e0db4c19e43c3412f5a8c865e6c",
+      "gzip": true,
+      "bytes": 5066,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/candidate.individual.layout.json",
+      "stored": "individual-pair-context1/candidate.individual.layout.json.gz",
+      "sha256": "0614eb443b1d8917f224eb2027a3af2cb7cf245922a392fe2c2ccdcdf4878d70",
+      "gzip": true,
+      "bytes": 570567,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/components.tsv",
+      "stored": "individual-pair-context1/components.tsv.gz",
+      "sha256": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+      "gzip": true,
+      "bytes": 68780,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/edges.tsv",
+      "stored": "individual-pair-context1/edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/experiment.json",
+      "stored": "individual-pair-context1/experiment.json",
+      "sha256": "88086a5a5376eb2b4612c44d5fbb339a63e1f3b33902cd0697a5b2422b23b22c",
+      "gzip": false,
+      "bytes": 2277,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/groups.tsv",
+      "stored": "individual-pair-context1/groups.tsv.gz",
+      "sha256": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d",
+      "gzip": true,
+      "bytes": 199382,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/individual.audit.json",
+      "stored": "individual-pair-context1/individual.audit.json",
+      "sha256": "470f24667c5b1d6971637876f4d529408b56ac4d856bf1602430771048965243",
+      "gzip": false,
+      "bytes": 1108,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/individual.edges.tsv",
+      "stored": "individual-pair-context1/individual.edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/individual.nodes.tsv",
+      "stored": "individual-pair-context1/individual.nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/individual.positions.tsv",
+      "stored": "individual-pair-context1/individual.positions.tsv.gz",
+      "sha256": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+      "gzip": true,
+      "bytes": 73707,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/individual.routes.tsv",
+      "stored": "individual-pair-context1/individual.routes.tsv.gz",
+      "sha256": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+      "gzip": true,
+      "bytes": 160868,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/learned.tsv",
+      "stored": "individual-pair-context1/learned.tsv.gz",
+      "sha256": "dda1683e063a536d64b1065e71a95c9246d13855cfb1fbda4e7dce607296ae79",
+      "gzip": true,
+      "bytes": 73707,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/learned.tsv.actions.jsonl",
+      "stored": "individual-pair-context1/learned.tsv.actions.jsonl.gz",
+      "sha256": "7f28bf7c9a6feddbf111255b5f3ea99c2c5754bdb91fa57cadde7bc757b137bc",
+      "gzip": true,
+      "bytes": 782415,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/learned.tsv.individual",
+      "stored": "individual-pair-context1/learned.tsv.individual",
+      "sha256": "dda1683e063a536d64b1065e71a95c9246d13855cfb1fbda4e7dce607296ae79",
+      "gzip": false,
+      "bytes": 73707,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/learned.tsv.individual.routes.tsv",
+      "stored": "individual-pair-context1/learned.tsv.individual.routes.tsv.gz",
+      "sha256": "22860a79ab9a321c9957dc89bd734c9e8e3ab042d3b3c6888660b8e468a1f9a3",
+      "gzip": true,
+      "bytes": 160868,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/learned.tsv.observations.jsonl",
+      "stored": "individual-pair-context1/learned.tsv.observations.jsonl.gz",
+      "sha256": "9deb7210b9dcf9db87335836121329941d0ed27f0e88c59304c66ae780a2b8fc",
+      "gzip": true,
+      "bytes": 225145,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/learned.tsv.policy.json",
+      "stored": "individual-pair-context1/learned.tsv.policy.json",
+      "sha256": "fbaefcbd56f7a2e634123876b0cff3cd5d37db234e39ef3f1ac2b74ae17c8447",
+      "gzip": false,
+      "bytes": 3486,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/learned.tsv.routes.tsv",
+      "stored": "individual-pair-context1/learned.tsv.routes.tsv.gz",
+      "sha256": "22860a79ab9a321c9957dc89bd734c9e8e3ab042d3b3c6888660b8e468a1f9a3",
+      "gzip": true,
+      "bytes": 160868,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/learned.tsv.stats.json",
+      "stored": "individual-pair-context1/learned.tsv.stats.json",
+      "sha256": "227a760876bc09222f3f3db0530e6bd3ebe8963b41c94190d960ed381baae55b",
+      "gzip": false,
+      "bytes": 1005,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/nodes.tsv",
+      "stored": "individual-pair-context1/nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/positions.tsv",
+      "stored": "individual-pair-context1/positions.tsv.gz",
+      "sha256": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+      "gzip": true,
+      "bytes": 73707,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/routes.tsv",
+      "stored": "individual-pair-context1/routes.tsv.gz",
+      "sha256": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+      "gzip": true,
+      "bytes": 160868,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/workflow.audit.json",
+      "stored": "individual-pair-context1/workflow.audit.json",
+      "sha256": "4621cebdd33ec1c20697c03603cf21dbed8fedf269ec961212dabcce8948092a",
+      "gzip": false,
+      "bytes": 2847,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/individual-pair-context1/workflow.log",
+      "stored": "individual-pair-context1/workflow.log",
+      "sha256": "8e999fb35bd04e480d417e59a92a09d668a4381dec208cf620f62db91abc7150",
+      "gzip": false,
+      "bytes": 7223,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/apply.stderr",
+      "stored": "overview-pair-context1/apply.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/apply.stdout",
+      "stored": "overview-pair-context1/apply.stdout",
+      "sha256": "89fd3def79edbffad81b2951fdd7d46338e102ced1fc8a320b7a941dd87236b3",
+      "gzip": false,
+      "bytes": 5609,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/branch-map.json",
+      "stored": "overview-pair-context1/branch-map.json",
+      "sha256": "d97c02743565283e0cd2d7ac1b2cccb5d5844001daed3cf636aa1e5e93be7d00",
+      "gzip": false,
+      "bytes": 1436,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/branches.tsv",
+      "stored": "overview-pair-context1/branches.tsv.gz",
+      "sha256": "54a34d09a0c71b0b62613a739afe19ed120001669be6e0f71da9dad22493a580",
+      "gzip": true,
+      "bytes": 4613,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/candidate.layout.json",
+      "stored": "overview-pair-context1/candidate.layout.json.gz",
+      "sha256": "cf20c93a3d55fb8fe1e59e0aa54db4c9a4735c1b208de4cfec75c79263b71b21",
+      "gzip": true,
+      "bytes": 855799,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/components.stderr",
+      "stored": "overview-pair-context1/components.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/components.stdout",
+      "stored": "overview-pair-context1/components.stdout",
+      "sha256": "6a0b1eb846c19e77c1b5348acc4b8c283eac17827754b9b7ab78d7e330ad17fb",
+      "gzip": false,
+      "bytes": 65,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/components.tsv",
+      "stored": "overview-pair-context1/components.tsv.gz",
+      "sha256": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+      "gzip": true,
+      "bytes": 61887,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/edges.tsv",
+      "stored": "overview-pair-context1/edges.tsv.gz",
+      "sha256": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+      "gzip": true,
+      "bytes": 113471,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/eligible-singletons.txt",
+      "stored": "overview-pair-context1/eligible-singletons.txt",
+      "sha256": "8cdf8a314328558962b0e48619875509c879610f8bf56ac1d9dbbe1d5d90f775",
+      "gzip": false,
+      "bytes": 58170,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/export.json",
+      "stored": "overview-pair-context1/export.json",
+      "sha256": "106dd2ba8ac89be15a2cc0573b01a7adc221da2f553a359714218ea4d2b2aee5",
+      "gzip": false,
+      "bytes": 21008,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/export.stderr",
+      "stored": "overview-pair-context1/export.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/export.stdout",
+      "stored": "overview-pair-context1/export.stdout",
+      "sha256": "421a88c165be0f96051b9635941dad9c0ab700a5fd55391649fe6553232c2c20",
+      "gzip": false,
+      "bytes": 1032,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/groups.tsv",
+      "stored": "overview-pair-context1/groups.tsv.gz",
+      "sha256": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc",
+      "gzip": true,
+      "bytes": 160987,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/individual.edges.tsv",
+      "stored": "overview-pair-context1/individual.edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "gzip": true,
+      "bytes": 182412,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/individual.nodes.tsv",
+      "stored": "overview-pair-context1/individual.nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "gzip": true,
+      "bytes": 43187,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/individual.positions.tsv",
+      "stored": "overview-pair-context1/individual.positions.tsv.gz",
+      "sha256": "9a8f92a1e756d42a8177eca8947cd9700c0cc5e53e6a81b6d1eae37200742e72",
+      "gzip": true,
+      "bytes": 55981,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/individual.routes.tsv",
+      "stored": "overview-pair-context1/individual.routes.tsv.gz",
+      "sha256": "d3db0db863e5ce0042f53cd287a86aa67e9a31e55b5fc6e6acd884fadeb2d7d7",
+      "gzip": true,
+      "bytes": 160158,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/inference.stderr",
+      "stored": "overview-pair-context1/inference.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/inference.stdout",
+      "stored": "overview-pair-context1/inference.stdout",
+      "sha256": "385851308c4f0fa64fd6ae8325108f321475f6ab9c4e50b41171c4eb19251308",
+      "gzip": false,
+      "bytes": 4420,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/learned.tsv",
+      "stored": "overview-pair-context1/learned.tsv.gz",
+      "sha256": "e6ab9196a9dedfe3b893f6603510ff4e9cdb5d6a5a4d3c3ee95213ab1cf589e6",
+      "gzip": true,
+      "bytes": 60175,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/learned.tsv.actions.jsonl",
+      "stored": "overview-pair-context1/learned.tsv.actions.jsonl.gz",
+      "sha256": "2ac98ca0fdb00314eeac22221f62db00cc4430a95ee2980f6069c5b15ade5cef",
+      "gzip": true,
+      "bytes": 760616,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/learned.tsv.individual",
+      "stored": "overview-pair-context1/learned.tsv.individual",
+      "sha256": "8989296797fcdf29cfe1e0df078b0e9c192ba69183ef4875f0ea89bacbe00d7a",
+      "gzip": false,
+      "bytes": 73662,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/learned.tsv.individual.routes.tsv",
+      "stored": "overview-pair-context1/learned.tsv.individual.routes.tsv.gz",
+      "sha256": "9947df314d267257abe5013b85f03ae399976f30bf45dd03484e53dcd87f9cf9",
+      "gzip": true,
+      "bytes": 160830,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/learned.tsv.observations.jsonl",
+      "stored": "overview-pair-context1/learned.tsv.observations.jsonl.gz",
+      "sha256": "2c2aac15f64c417fdb6f05767f4776815b6a6b3054db950a3282380dc4aa19eb",
+      "gzip": true,
+      "bytes": 206683,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/learned.tsv.policy.json",
+      "stored": "overview-pair-context1/learned.tsv.policy.json",
+      "sha256": "d51fdb4659b930116a985b65e6fde239561aee42e3ddd365921bb1f461332f1b",
+      "gzip": false,
+      "bytes": 3475,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/learned.tsv.routes.tsv",
+      "stored": "overview-pair-context1/learned.tsv.routes.tsv.gz",
+      "sha256": "01fd9ee57b8aae9a3c9a88a80016c03ed733d3c2d9c8c1ae407b8bd9ea503bf5",
+      "gzip": true,
+      "bytes": 98041,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/learned.tsv.stats.json",
+      "stored": "overview-pair-context1/learned.tsv.stats.json",
+      "sha256": "1850a7da5d3780dda4db4defbe3afcac8d31c732841acb9e2bb26c8ca631aab2",
+      "gzip": false,
+      "bytes": 1001,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/nodes.tsv",
+      "stored": "overview-pair-context1/nodes.tsv.gz",
+      "sha256": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+      "gzip": true,
+      "bytes": 34879,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/positions.tsv",
+      "stored": "overview-pair-context1/positions.tsv.gz",
+      "sha256": "f22cbc759742ae9a2b5cc6f64f6cf02a25878fafde965f88e83161d6dce086be",
+      "gzip": true,
+      "bytes": 45439,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/product.audit.json",
+      "stored": "overview-pair-context1/product.audit.json",
+      "sha256": "16bd9b98d452b19c41c3175c0ec75e74da8eb8bc7874c224f5357fe516b185bb",
+      "gzip": false,
+      "bytes": 1180,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/product.product-load.log",
+      "stored": "overview-pair-context1/product.product-load.log",
+      "sha256": "23e96a62432d1f7a747530e60e9cccf36a317fa08f0761ab120ffd5732c77dc1",
+      "gzip": false,
+      "bytes": 2313,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/product.scene.json",
+      "stored": "overview-pair-context1/product.scene.json.gz",
+      "sha256": "81b31ec98dc82612672139f3173b1b7f1b60823dc83ecb190dc8fca6b88c23b0",
+      "gzip": true,
+      "bytes": 1198374,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/product.stderr",
+      "stored": "overview-pair-context1/product.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/product.stdout",
+      "stored": "overview-pair-context1/product.stdout",
+      "sha256": "db94b0f7a0da1ca7fe4978dc2dd815e1f52685c9e0ae8a0e16d22112157e3583",
+      "gzip": false,
+      "bytes": 1051,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/proposal.audit.json",
+      "stored": "overview-pair-context1/proposal.audit.json",
+      "sha256": "b66d310e48bfe44a0e0c74271a319085f2794379225d4ee1407b2131cdbf6341",
+      "gzip": false,
+      "bytes": 31637,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/replay.stderr",
+      "stored": "overview-pair-context1/replay.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false,
+      "bytes": 0,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/replay.stdout",
+      "stored": "overview-pair-context1/replay.stdout",
+      "sha256": "78e58a05dd69613c4301b1c320dbf55040d9ca8e1d00adc3129629d4a74db7d1",
+      "gzip": false,
+      "bytes": 557,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/routes.tsv",
+      "stored": "overview-pair-context1/routes.tsv.gz",
+      "sha256": "107653e30b4d861d758ae1efca6a7444894939c9d6826039daa9e3c47d4f0063",
+      "gzip": true,
+      "bytes": 97586,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/selection.txt",
+      "stored": "overview-pair-context1/selection.txt",
+      "sha256": "64099f7c111b8199d15f6f87073bf5136231269700977ff892e00c8f6c50e3a0",
+      "gzip": false,
+      "bytes": 10582,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-pair-context1/workflow.json",
+      "stored": "overview-pair-context1/workflow.json",
+      "sha256": "21d4bb2ca60f90a4530301d3d17ce2d3bc69a496fe04cb31cd060925969eb2ac",
+      "gzip": false,
+      "bytes": 3236,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-coverage1/individual-fixed-conflicts.json",
+      "stored": "pair-context-coverage1/individual-fixed-conflicts.json.gz",
+      "sha256": "b1624dd469d49f8540b6160e030c6846e724c7c235c6405a0ef2ed109c53a46c",
+      "gzip": true,
+      "bytes": 241273,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-coverage1/overview-fixed-conflicts.json",
+      "stored": "pair-context-coverage1/overview-fixed-conflicts.json",
+      "sha256": "149ce56244513d1a35885b7f7b0eec9b6a2f0e5fe1a84497269e634578083b21",
+      "gzip": false,
+      "bytes": 29654,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-coverage1/report.json",
+      "stored": "pair-context-coverage1/report.json",
+      "sha256": "2f7511385a5048458103f7a038f2cb786608a240b350a2fe0697affd611f9b8c",
+      "gzip": false,
+      "bytes": 1750,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/pair-context-coverage1/rollout-witness-verification.json",
+      "stored": "pair-context-coverage1/rollout-witness-verification.json",
+      "sha256": "5610b414f9f40c626286ac421675d76fdb3f18cbaa8c00dc1449126f847b3ab4",
+      "gzip": false,
+      "bytes": 833,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/validate_pair_contexts.py",
+      "stored": "validate_pair_contexts.py",
+      "sha256": "112ad29dea908be915df1dbf7e8ebc5cdc9b1051aa7ff8624ab3bba6684d19fb",
+      "gzip": false,
+      "bytes": 6368,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/analyze_pair_context_coverage.py",
+      "stored": "analyze_pair_context_coverage.py",
+      "sha256": "abc2448263afcd9749e063f0bd16f3059da9de05c785a1b2fe400b881128866a",
+      "gzip": false,
+      "bytes": 5358,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/verify_pair_conflict_witnesses.py",
+      "stored": "verify_pair_conflict_witnesses.py",
+      "sha256": "5bc3f885fa8d05b2b6046a0395c942556effe1b5137c6287f480813b2d52baff",
+      "gzip": false,
+      "bytes": 2470,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/seal_pair_context_experiments.py",
+      "stored": "seal_pair_context_experiments.py",
+      "sha256": "2850f16faf3f75b2f84132dacb873e7cdc3a282579f5567a29314505c1d75906",
+      "gzip": false,
+      "bytes": 10653,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/component-environment-v27-o0",
+      "stored": "dependencies/component-environment-v27-o0",
+      "sha256": "bc60819f4d526b92efc036567851e95110f1ed0be88706d416f531ab9fc8c986",
+      "gzip": false,
+      "bytes": 1019472,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.layout.json",
+      "stored": "retained-best/captain-ml-independent-views.layout.json",
+      "sha256": "da2317d3d9fe72181587f543843bfdde3cc7030ca328e93c4f627ae21ec356e7",
+      "gzip": false,
+      "bytes": 2428210,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.audit.json",
+      "stored": "retained-best/captain-ml-independent-views.audit.json",
+      "sha256": "4ddc25bed00f97a4edd6185ce66fc6d68f890aabf688eea2e5b11628888ef3bc",
+      "gzip": false,
+      "bytes": 1147,
+      "restoredHashVerified": true
+    },
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.provenance.json",
+      "stored": "retained-best/captain-ml-independent-views.provenance.json",
+      "sha256": "ccc3150629a4714d2fbc6a7ec06f6f68dbb3ca418da95e0b7fed0f14bbd47c51",
+      "gzip": false,
+      "bytes": 3635,
+      "restoredHashVerified": true
+    }
+  ]
+}

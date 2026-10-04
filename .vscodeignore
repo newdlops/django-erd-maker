@@ -1,0 +1,28 @@
+# The release is an allowlist. Workspace exports, research data, model fixtures,
+# credentials, development caches, and unrelated binaries must never ship.
+**/*
+!package.json
+!README.md
+!README.ko.md
+!CHANGELOG.md
+!LICENSE
+!NOTICE.md
+!THIRD_PARTY_NOTICES.md
+!PRIVACY.md
+!SECURITY.md
+!SUPPORT.md
+!media/icon.png
+!media/ml-preview/layout.json
+!media/ml-preview/manifest.json
+!media/ml-preview/overview.npz
+!media/ml-preview/individual.npz
+!scripts/vscode-uninstall.mjs
+!out/extension/**/*.js
+!out/shared/**/*.js
+!out/webview/**/*.js
+!bin/analyzer/darwin-arm64/django-erd-maker-analyzer
+!bin/ogdf/darwin-arm64/django-erd-ogdf-layout
+!bin/ogdf/licenses/**
+!licenses/**
+!sources/*.tar.gz
+!sources/manifest.json

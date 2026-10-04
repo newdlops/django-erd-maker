@@ -1,0 +1,55 @@
+{
+  "views": [
+    {
+      "input": ".tmp/visualcross-ml-150-750-20261003/individual-outward-joint1",
+      "activePairLoss": true,
+      "crossingDepthWeight": 0.5,
+      "sharedSourceEndpoints": true,
+      "rayConditionedPorts": false,
+      "patchNodesSha256": "eca1b26f27f8490b4a7d4b73f3b6acaee9644f2112c2a3524719da9cbe3f7ec1",
+      "inactiveOutputsAndGradientsExactlyZero": true,
+      "activeNodeOutputs": 24,
+      "activeEndpointOutputs": 748,
+      "spacingPadding": 0.0,
+      "sharedGroupsPreserved": 17,
+      "zeroOutputEndpointsPreserved": 3454,
+      "routeGradientChecks": 24,
+      "networkWeightGradientChecks": 28,
+      "baselineVisual": 1990,
+      "baselineHardPenalty": 0.0,
+      "frozenRoundtripExact": true,
+      "parameterCount": 8804,
+      "allChecksPassed": true
+    },
+    {
+      "input": ".tmp/visualcross-ml-150-750-20261003/overview-ray-conditioned1",
+      "activePairLoss": true,
+      "crossingDepthWeight": 0.5,
+      "sharedSourceEndpoints": true,
+      "rayConditionedPorts": false,
+      "patchNodesSha256": "797a174e056e4764480633342a5b1b481c98e4c7536008bdb0e975af853def49",
+      "inactiveOutputsAndGradientsExactlyZero": true,
+      "activeNodeOutputs": 19,
+      "activeEndpointOutputs": 267,
+      "spacingPadding": 0.0,
+      "sharedGroupsPreserved": 16,
+      "zeroOutputEndpointsPreserved": 3454,
+      "routeGradientChecks": 24,
+      "networkWeightGradientChecks": 28,
+      "baselineVisual": 299,
+      "baselineHardPenalty": 0.0,
+      "frozenRoundtripExact": true,
+      "parameterCount": 8804,
+      "allChecksPassed": true
+    }
+  ],
+  "continuousGradientChecks": true,
+  "nativeValidationStillRequired": true,
+  "implementationHashes": {
+    "validate_joint_neural_ports.py": "4fc42527a3b20fea093db4e18c9e6864660229d09a55f40c7e49b1da3a15dfc9",
+    "joint_neural_ports.py": "e8ef7617d71b3957fdefe258ed971028c21bfa6278dd5e72d48dfca056284e9b",
+    "joint_layout_proxy.py": "d21091db3bbde2b659cced3ed9c2161a98a69cbe4659ac4954f36cfb41176428",
+    "joint_hard_geometry.py": "ab4ef586709c39fc9f68829bc1596dbaa2c47c36b07a929d3001d3f4157e172b",
+    "joint_active_proxy.py": "4eda3b4534787e03cd5f39f0c9845ae1f015d27f4fdbc36e1d1f6407280f4666"
+  }
+}

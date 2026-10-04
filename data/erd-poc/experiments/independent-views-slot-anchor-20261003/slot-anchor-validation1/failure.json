@@ -1,0 +1,40 @@
+{
+  "partial": {
+    "nativeBinarySha256": "e2a58da4e295d6fd26f9473d1ff371f7cea7ad7e4685b786cefa3838b58d3082",
+    "implementationHashes": {
+      "joint_slot_anchor_policy.py": "58d2e290ff6d18dce7e8bc46734ae2f21b89d7e901b0da2978ff8e9ad63b863b",
+      "joint_anchor_ray_policy.py": "f292ed184dc7c4e24ec19b78f86f10bdff1ee4fc2fe2407f904347684b500877",
+      "joint_slot_policy.py": "f3d1e5e3fb9732eba5a8867f315625295e1bb4ee9afdc065938808ce2f5b317e",
+      "joint_separation_policy.py": "045b9552977486eb1b7e0f5fdb8a04968f97cd6ff706c3e9d917a04d14083b34",
+      "joint_neural_ports.py": "ea50adb9fbb27850ac93c53d16a6c00f456658cf45153c79588010f411ead02c",
+      "joint_layout_proxy.py": "d21091db3bbde2b659cced3ed9c2161a98a69cbe4659ac4954f36cfb41176428",
+      "joint_grouped_routes.py": "3b7757e76590aa0e1e935e7f757035f89a6fece56e6a10deb7791e71f1642f6f",
+      "joint_reward_training.py": "2303116881b6651c4f9c2c5a68cbc7700a82b55155fbf6a68f2296e19af4b116",
+      "run_joint_neural_layout.py": "6a77faf35ef7befb77a2d870c3d56a2282cd2e492deacc4f77be6165b36b0617"
+    },
+    "views": {},
+    "nativeHardValidityGuaranteedByDecoder": false,
+    "sortingGradientUsed": false,
+    "fixturesOnly": true,
+    "sourceGeometryPreserved": true,
+    "legacyAnchorActionReplays": [
+      {
+        "checkpointSha256": "65fec4422053220908ae0dae0df0dfd374e45fc03210838e8d1de828b6e409c6",
+        "actionSha256": "3678c241e5c9bdded7bbefae21b48e4e482e564e7f7db5c43184c689b51a2506"
+      },
+      {
+        "checkpointSha256": "aa3ebc1b799e84db4e5df1507c8a6db9173d063d656bcf3ec869a6adda0181d9",
+        "actionSha256": "0fab302276f2fe558fe92865c5176c93ecf4b4291d8f3a41df249c630891032f"
+      },
+      {
+        "checkpointSha256": "09293d967316652ec7c855393cf59d5c46f968cd2e2601cf7628f1ff2ccbe599",
+        "actionSha256": "535abe6fbc3aec91a937b5ee6c284b55bef6bdd1adba71959d93a735d6d66ac5"
+      },
+      {
+        "checkpointSha256": "686f736fca24d86dfa3e277d491b559111944039fb51734446d74016698a29bf",
+        "actionSha256": "420fcb41378ff21a88fc2859dcd36fe5a71feb496fd6069df632b2176b44c30f"
+      }
+    ]
+  },
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/validate_slot_anchor_policy.py\", line 63, in <module>\n    np.testing.assert_array_equal(full[provider.full_edges] + provider.current_offsets, provider.original_ports)\n  File \"/Users/lky/project/django-erd-maker/.venv-ml/lib/python3.11/site-packages/numpy/testing/_private/utils.py\", line 1121, in assert_array_equal\n    assert_array_compare(operator.__eq__, actual, desired, err_msg=err_msg,\n  File \"/Users/lky/project/django-erd-maker/.venv-ml/lib/python3.11/site-packages/numpy/testing/_private/utils.py\", line 983, in assert_array_compare\n    raise AssertionError(msg)\nAssertionError: \nArrays are not equal\n\nMismatched elements: 3 / 6908 (0.0434%)\nMismatch at indices:\n [369, 1, 0]: -53.21000000000001 (ACTUAL), -53.21 (DESIRED)\n [458, 0, 0]: 26.729999999999997 (ACTUAL), 26.73 (DESIRED)\n [1078, 0, 0]: 11.409999999999997 (ACTUAL), 11.41 (DESIRED)\nMax absolute difference among violations: 7.10542736e-15\nMax relative difference among violations: 3.11368421e-16\n ACTUAL: array([[[18190.68, 20110.29],\n        [20465.18, 18734.7 ]],\n...\n DESIRED: array([[[18190.68, 20110.29],\n        [20465.18, 18734.7 ]],\n...\n"
+}

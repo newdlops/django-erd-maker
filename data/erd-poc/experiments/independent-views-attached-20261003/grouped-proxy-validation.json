@@ -1,0 +1,40 @@
+{
+  "gradientComparisons": 56,
+  "gradientsVerified": true,
+  "activeRepresentationPenaltyVerified": 314.0807622383711,
+  "proxyBinaryVisual": 364,
+  "nativeCanonicalVisual": 364,
+  "canonicalCountsEqual": true,
+  "nativeResult": {
+    "accepted": false,
+    "legal": true,
+    "visual": 364,
+    "individualVisual": 4439,
+    "spacing": 0,
+    "hard": 0,
+    "individualHard": 0,
+    "reason": "legal"
+  },
+  "proxy": {
+    "softCrossingCount": 222.81241422283026,
+    "softCardHitCount": 143.0685481505149,
+    "spacingPenalty": 1.6958437499982608,
+    "movementPenalty": 0.0,
+    "representationPenalty": 0.0,
+    "total": 367.57680612334343,
+    "binaryCrossings": 221,
+    "binaryCardHits": 143
+  },
+  "proposalSource": "zero-head neural diagnostic control",
+  "savedGeometry": false,
+  "promoted": false,
+  "candidatePairs": {
+    "cross_pairs": 41310,
+    "hit_pairs": 53941,
+    "near_pairs": 16588
+  },
+  "sourceHashes": {
+    "joint_grouped_routes.py": "1e3d4e974533ccab21efacf00e68e185f4b04006171e24057b5526a0214127d6",
+    "joint_layout_proxy.py": "85a3cd799c6e8a120164aded699e689dfd59f6e4f4c44f54fb39b58a1cd0f259"
+  }
+}

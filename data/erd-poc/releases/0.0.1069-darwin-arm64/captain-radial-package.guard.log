@@ -1,0 +1,41 @@
+Staged django-erd-maker 0.0.1069 for vsce
+memory guard: peak=74.9 MiB limit=128 MiB
+ INFO  Files included in the VSIX:
+candidate.vsix
+├─ [Content_Types].xml 
+├─ extension.vsixmanifest 
+└─ extension/
+   ├─ LICENSE.txt [34.32 KB]
+   ├─ NOTICE.md [1.57 KB]
+   ├─ PRIVACY.md [2.72 KB]
+   ├─ README.ko.md [4.48 KB]
+   ├─ SECURITY.md [1.57 KB]
+   ├─ SUPPORT.md [1.8 KB]
+   ├─ THIRD_PARTY_NOTICES.md [6.03 KB]
+   ├─ changelog.md [2.25 KB]
+   ├─ package.json [1.96 KB]
+   ├─ readme.md [4.88 KB]
+   ├─ bin/
+   │  ├─ analyzer/ (1 file) [4.37 MB]
+   │  └─ ogdf/ (4 files) [13.48 MB]
+   ├─ licenses/
+   │  ├─ rust/ (107 files) [548.27 KB]
+   │  └─ rust-toolchain/ (14 files) [14.1 MB]
+   ├─ media/
+   │  ├─ icon.png [891.43 KB]
+   │  └─ ml-preview/ (4 files) [1.53 MB]
+   ├─ out/
+   │  ├─ extension/ (28 files) [653.26 KB]
+   │  ├─ shared/ (13 files) [69.2 KB]
+   │  └─ webview/ (28 files) [576.85 KB]
+   ├─ scripts/
+   │  └─ vscode-uninstall.mjs [1.71 KB]
+   └─ sources/
+      ├─ manifest.json [46.71 KB]
+      ├─ ogdf-foxglove-202510.tar.gz [4.18 MB]
+      ├─ project-source.tar.gz [2.42 MB]
+      └─ rust-dependencies.tar.gz [8.35 MB]
+
+=> Run vsce ls --tree to see all included files.
+
+memory limit exceeded: rss=128.8 MiB limit=128 MiB; process group killed

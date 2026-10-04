@@ -1,0 +1,1183 @@
+{
+  "sourceFile": ".tmp/visualcross-ml-150-750-20261003/overview-bounded-trained2/candidate.layout.json",
+  "candidateFile": ".tmp/visualcross-ml-150-750-20261003/overview-pair-context1/candidate.layout.json",
+  "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52",
+  "candidateSha256": "cf20c93a3d55fb8fe1e59e0aa54db4c9a4735c1b208de4cfec75c79263b71b21",
+  "baseline": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 5,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 191,
+    "edgeNodeIntersections": 93,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 289
+  },
+  "metrics": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 5,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 191,
+    "edgeNodeIntersections": 93,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 289
+  },
+  "originalIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 3091,
+    "edgeNodeIntersections": 1356,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 4447
+  },
+  "candidateIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 3096,
+    "edgeNodeIntersections": 1363,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 4459
+  },
+  "changedNodes": [
+    {
+      "modelId": "db.AgendaCeoAddressChange",
+      "before": {
+        "x": 12976.86,
+        "y": 22329.88
+      },
+      "after": {
+        "x": 13008.21,
+        "y": 22315.79
+      }
+    },
+    {
+      "modelId": "db.AgendaChangeOfAoiClassStock",
+      "before": {
+        "x": 18884.51,
+        "y": 20446.38
+      },
+      "after": {
+        "x": 18885.44,
+        "y": 20451.41
+      }
+    },
+    {
+      "modelId": "db.AgendaChangeOfAoiCustom",
+      "before": {
+        "x": 19377.69,
+        "y": 20422.02
+      },
+      "after": {
+        "x": 19378.62,
+        "y": 20427.05
+      }
+    },
+    {
+      "modelId": "db.AgendaChangeOfAoiDirectorCompensationRule",
+      "before": {
+        "x": 19470.42,
+        "y": 20933.63
+      },
+      "after": {
+        "x": 19471.35,
+        "y": 20938.66
+      }
+    },
+    {
+      "modelId": "db.AgendaChangeOfAoiNumberOfDirectors",
+      "before": {
+        "x": 19420.67,
+        "y": 20758.68
+      },
+      "after": {
+        "x": 19421.6,
+        "y": 20763.71
+      }
+    },
+    {
+      "modelId": "db.AgendaChangeOfAoiThirdPartyAllocation",
+      "before": {
+        "x": 18849.1,
+        "y": 21160.04
+      },
+      "after": {
+        "x": 18850.03,
+        "y": 21165.07
+      }
+    },
+    {
+      "modelId": "db.AgendaChangeOfArticlesOfIncorporation",
+      "before": {
+        "x": 18437.39,
+        "y": 20536.64
+      },
+      "after": {
+        "x": 18438.32,
+        "y": 20541.67
+      }
+    },
+    {
+      "modelId": "db.AgendaDirectorChange",
+      "before": {
+        "x": 14378.1,
+        "y": 22441.07
+      },
+      "after": {
+        "x": 14409.45,
+        "y": 22426.98
+      }
+    },
+    {
+      "modelId": "db.AgendaDirectorCompensation",
+      "before": {
+        "x": 16165.44,
+        "y": 21574.55
+      },
+      "after": {
+        "x": 16172.23,
+        "y": 21556.5
+      }
+    },
+    {
+      "modelId": "db.AgendaDirectorCompensationItem",
+      "before": {
+        "x": 15681.59,
+        "y": 21832.34
+      },
+      "after": {
+        "x": 15688.38,
+        "y": 21814.29
+      }
+    },
+    {
+      "modelId": "db.AgendaOptionCancelGrantee",
+      "before": {
+        "x": 14976.88,
+        "y": 21062.42
+      },
+      "after": {
+        "x": 14933.23,
+        "y": 21139
+      }
+    },
+    {
+      "modelId": "db.AgendaOptionCancelOption",
+      "before": {
+        "x": 15104.55,
+        "y": 21193.13
+      },
+      "after": {
+        "x": 15060.9,
+        "y": 21269.71
+      }
+    },
+    {
+      "modelId": "db.AgendaOptionExercise",
+      "before": {
+        "x": 12976.86,
+        "y": 22453.88
+      },
+      "after": {
+        "x": 13008.21,
+        "y": 22439.79
+      }
+    },
+    {
+      "modelId": "db.AvailableModusignRequest",
+      "before": {
+        "x": 21149.48,
+        "y": 20639.25
+      },
+      "after": {
+        "x": 21101.52,
+        "y": 20684.53
+      }
+    },
+    {
+      "modelId": "db.BulkEmailTemplate",
+      "before": {
+        "x": 19044.32,
+        "y": 14266.21
+      },
+      "after": {
+        "x": 19044.78,
+        "y": 14265.73
+      }
+    },
+    {
+      "modelId": "db.BulkEmailTemplateRevision",
+      "before": {
+        "x": 17789.89,
+        "y": 15647.59
+      },
+      "after": {
+        "x": 17790.35,
+        "y": 15647.11
+      }
+    },
+    {
+      "modelId": "db.CmeBulkEmailTemplate",
+      "before": {
+        "x": 19495.19,
+        "y": 14378.34
+      },
+      "after": {
+        "x": 19495.65,
+        "y": 14377.86
+      }
+    },
+    {
+      "modelId": "db.CompanyBulkEmailTemplate",
+      "before": {
+        "x": 18641.8,
+        "y": 14142.61
+      },
+      "after": {
+        "x": 18642.26,
+        "y": 14142.13
+      }
+    },
+    {
+      "modelId": "db.EmployeeOption",
+      "before": {
+        "x": 11964.83,
+        "y": 11178.48
+      },
+      "after": {
+        "x": 11968.98,
+        "y": 11204.41
+      }
+    },
+    {
+      "modelId": "db.EmployeeOptionExerciseCandidate",
+      "before": {
+        "x": 12490.81,
+        "y": 11595.19
+      },
+      "after": {
+        "x": 12494.96,
+        "y": 11621.12
+      }
+    },
+    {
+      "modelId": "db.EmployeeOptionExerciseCandidateFile",
+      "before": {
+        "x": 12461.76,
+        "y": 11245.35
+      },
+      "after": {
+        "x": 12465.91,
+        "y": 11271.28
+      }
+    },
+    {
+      "modelId": "db.EmployeeOptionExerciseClaim",
+      "before": {
+        "x": 13983.62,
+        "y": 11480.3
+      },
+      "after": {
+        "x": 13987.77,
+        "y": 11506.23
+      }
+    },
+    {
+      "modelId": "db.EmployeeOptionExerciseClaimOption",
+      "before": {
+        "x": 13055.96,
+        "y": 11169.57
+      },
+      "after": {
+        "x": 13060.11,
+        "y": 11195.5
+      }
+    },
+    {
+      "modelId": "db.EmployeeOptionExerciseManagement",
+      "before": {
+        "x": 14450.59,
+        "y": 11624.37
+      },
+      "after": {
+        "x": 14454.74,
+        "y": 11650.3
+      }
+    },
+    {
+      "modelId": "db.EmployeeOptionExerciseManagementEmail",
+      "before": {
+        "x": 14292.66,
+        "y": 14100.81
+      },
+      "after": {
+        "x": 14296.81,
+        "y": 14126.74
+      }
+    },
+    {
+      "modelId": "db.EmployeeOptionGrantee",
+      "before": {
+        "x": 11077.06,
+        "y": 12457.53
+      },
+      "after": {
+        "x": 11081.21,
+        "y": 12483.46
+      }
+    },
+    {
+      "modelId": "db.EmployeeOptionVesting",
+      "before": {
+        "x": 11092.4,
+        "y": 11470.42
+      },
+      "after": {
+        "x": 11096.55,
+        "y": 11496.35
+      }
+    },
+    {
+      "modelId": "db.EmployeeOptionVestingItem",
+      "before": {
+        "x": 11014.45,
+        "y": 11737.41
+      },
+      "after": {
+        "x": 11018.6,
+        "y": 11763.34
+      }
+    },
+    {
+      "modelId": "db.EmployeeOptionVestingTraceable",
+      "before": {
+        "x": 11940.03,
+        "y": 11636.93
+      },
+      "after": {
+        "x": 11944.18,
+        "y": 11662.86
+      }
+    },
+    {
+      "modelId": "db.IaExpertPartnerBulkEmailTemplate",
+      "before": {
+        "x": 19754.39,
+        "y": 14680.7
+      },
+      "after": {
+        "x": 19754.85,
+        "y": 14680.22
+      }
+    },
+    {
+      "modelId": "db.IaRule",
+      "before": {
+        "x": 24416.32,
+        "y": 18751.94
+      },
+      "after": {
+        "x": 24359.8,
+        "y": 18745.46
+      }
+    },
+    {
+      "modelId": "db.IaRuleCompensation",
+      "before": {
+        "x": 26387.69,
+        "y": 19248.19
+      },
+      "after": {
+        "x": 26331.17,
+        "y": 19241.71
+      }
+    },
+    {
+      "modelId": "db.IaRuleDocument",
+      "before": {
+        "x": 25342.58,
+        "y": 18846.16
+      },
+      "after": {
+        "x": 25286.06,
+        "y": 18839.68
+      }
+    },
+    {
+      "modelId": "db.IaRuleInvestment",
+      "before": {
+        "x": 26560.64,
+        "y": 18476.36
+      },
+      "after": {
+        "x": 26504.12,
+        "y": 18469.88
+      }
+    },
+    {
+      "modelId": "db.IaRuleMeeting",
+      "before": {
+        "x": 25177.18,
+        "y": 19435.98
+      },
+      "after": {
+        "x": 25120.66,
+        "y": 19429.5
+      }
+    },
+    {
+      "modelId": "db.IaRulePartner",
+      "before": {
+        "x": 25897.72,
+        "y": 19280.07
+      },
+      "after": {
+        "x": 25841.2,
+        "y": 19273.59
+      }
+    },
+    {
+      "modelId": "db.InauguralConsentDocument",
+      "before": {
+        "x": 13583.55,
+        "y": 22767.28
+      },
+      "after": {
+        "x": 13614.9,
+        "y": 22753.19
+      }
+    },
+    {
+      "modelId": "db.ModusignAccount",
+      "before": {
+        "x": 21676.91,
+        "y": 20440.23
+      },
+      "after": {
+        "x": 21628.95,
+        "y": 20485.51
+      }
+    },
+    {
+      "modelId": "db.ModusignApiLog",
+      "before": {
+        "x": 21651.36,
+        "y": 19979.1
+      },
+      "after": {
+        "x": 21603.4,
+        "y": 20024.38
+      }
+    },
+    {
+      "modelId": "db.ModusignAuthentication",
+      "before": {
+        "x": 21330.73,
+        "y": 20034.14
+      },
+      "after": {
+        "x": 21282.77,
+        "y": 20079.42
+      }
+    },
+    {
+      "modelId": "db.ModusignDocumentModusignAccountRelation",
+      "before": {
+        "x": 21885.87,
+        "y": 20268.02
+      },
+      "after": {
+        "x": 21837.91,
+        "y": 20313.3
+      }
+    },
+    {
+      "modelId": "db.NonUnifiedShareCreateRequest",
+      "before": {
+        "x": 29371.77,
+        "y": 29977.24
+      },
+      "after": {
+        "x": 29392.63,
+        "y": 30037.03
+      }
+    },
+    {
+      "modelId": "db.NonUnifiedShareEtcFile",
+      "before": {
+        "x": 29160.1,
+        "y": 29035.29
+      },
+      "after": {
+        "x": 29180.96,
+        "y": 29095.08
+      }
+    },
+    {
+      "modelId": "db.NonUnifiedShareManagementHistory",
+      "before": {
+        "x": 28606.29,
+        "y": 28908.79
+      },
+      "after": {
+        "x": 28627.15,
+        "y": 28968.58
+      }
+    },
+    {
+      "modelId": "db.NonUnifiedShareStockUnissuedConfirmationFile",
+      "before": {
+        "x": 29510.71,
+        "y": 31332.35
+      },
+      "after": {
+        "x": 29531.57,
+        "y": 31392.14
+      }
+    },
+    {
+      "modelId": "db.NonUnifiedShareSucPoaDocument",
+      "before": {
+        "x": 24203.05,
+        "y": 23257.87
+      },
+      "after": {
+        "x": 24223.91,
+        "y": 23317.66
+      }
+    },
+    {
+      "modelId": "db.NonUnifiedShareSucPoaModusignDocument",
+      "before": {
+        "x": 23187.47,
+        "y": 22174.3
+      },
+      "after": {
+        "x": 23208.33,
+        "y": 22234.09
+      }
+    },
+    {
+      "modelId": "db.NonUnifiedShareSucRenewRequest",
+      "before": {
+        "x": 27849.8,
+        "y": 28198.65
+      },
+      "after": {
+        "x": 27870.66,
+        "y": 28258.44
+      }
+    },
+    {
+      "modelId": "db.NotarizationPoA",
+      "before": {
+        "x": 16236.89,
+        "y": 23756.06
+      },
+      "after": {
+        "x": 16216.66,
+        "y": 23673.77
+      }
+    },
+    {
+      "modelId": "db.NotarizationPoaDirectorSigner",
+      "before": {
+        "x": 16122.95,
+        "y": 23519.24
+      },
+      "after": {
+        "x": 16102.72,
+        "y": 23436.95
+      }
+    },
+    {
+      "modelId": "db.NotarizationPoaShareholderSigner",
+      "before": {
+        "x": 16697.36,
+        "y": 23749.45
+      },
+      "after": {
+        "x": 16677.13,
+        "y": 23667.16
+      }
+    },
+    {
+      "modelId": "db.Registration",
+      "before": {
+        "x": 13600.09,
+        "y": 22114.95
+      },
+      "after": {
+        "x": 13631.44,
+        "y": 22100.86
+      }
+    },
+    {
+      "modelId": "db.RegistrationAgenda",
+      "before": {
+        "x": 13342.76,
+        "y": 22458.34
+      },
+      "after": {
+        "x": 13374.11,
+        "y": 22444.25
+      }
+    },
+    {
+      "modelId": "db.RegistrationDirector",
+      "before": {
+        "x": 13755.87,
+        "y": 22334.03
+      },
+      "after": {
+        "x": 13787.22,
+        "y": 22319.94
+      }
+    },
+    {
+      "modelId": "db.ResignationLetterDocument",
+      "before": {
+        "x": 13580.05,
+        "y": 22883.28
+      },
+      "after": {
+        "x": 13611.4,
+        "y": 22869.19
+      }
+    },
+    {
+      "modelId": "db.RightToConsentOrConsult",
+      "before": {
+        "x": 15172.35,
+        "y": 16056.86
+      },
+      "after": {
+        "x": 15206.4,
+        "y": 16056.09
+      }
+    },
+    {
+      "modelId": "db.RsuExerciseClaimEventRelation",
+      "before": {
+        "x": 14944.72,
+        "y": 14984.52
+      },
+      "after": {
+        "x": 14937.64,
+        "y": 15000.89
+      }
+    },
+    {
+      "modelId": "db.RsuExerciseEvent",
+      "before": {
+        "x": 15645.56,
+        "y": 15489.85
+      },
+      "after": {
+        "x": 15638.48,
+        "y": 15506.22
+      }
+    },
+    {
+      "modelId": "db.RtccEmail",
+      "before": {
+        "x": 14959.29,
+        "y": 16210.41
+      },
+      "after": {
+        "x": 14993.34,
+        "y": 16209.64
+      }
+    },
+    {
+      "modelId": "db.RtccEmailAuthentication",
+      "before": {
+        "x": 15546.72,
+        "y": 16967.95
+      },
+      "after": {
+        "x": 15580.77,
+        "y": 16967.18
+      }
+    },
+    {
+      "modelId": "db.RtccInvestor",
+      "before": {
+        "x": 15446.86,
+        "y": 17370.92
+      },
+      "after": {
+        "x": 15480.91,
+        "y": 17370.15
+      }
+    },
+    {
+      "modelId": "db.RtccInvestorFile",
+      "before": {
+        "x": 18390.78,
+        "y": 17983.25
+      },
+      "after": {
+        "x": 18424.83,
+        "y": 17982.48
+      }
+    },
+    {
+      "modelId": "db.ShareholdersMeetingConvocationNoticeRecipient",
+      "before": {
+        "x": 19162.78,
+        "y": 22676.47
+      },
+      "after": {
+        "x": 19401.52,
+        "y": 22440.19
+      }
+    },
+    {
+      "modelId": "db.ShareholdersMeetingConvocationNoticeWrittenRecipient",
+      "before": {
+        "x": 19841.25,
+        "y": 23409.1
+      },
+      "after": {
+        "x": 20079.99,
+        "y": 23172.82
+      }
+    },
+    {
+      "modelId": "db.ShareholdersMeetingDirectorAttendance",
+      "before": {
+        "x": 15829.99,
+        "y": 23194.53
+      },
+      "after": {
+        "x": 15809.76,
+        "y": 23112.24
+      }
+    },
+    {
+      "modelId": "db.YetsAssistance",
+      "before": {
+        "x": 14860.51,
+        "y": 32859.78
+      },
+      "after": {
+        "x": 14829.22,
+        "y": 32023.5
+      }
+    },
+    {
+      "modelId": "db.YetsAssistanceCreator",
+      "before": {
+        "x": 13435.11,
+        "y": 32147.43
+      },
+      "after": {
+        "x": 13403.82,
+        "y": 31311.15
+      }
+    },
+    {
+      "modelId": "db.YetsAssistanceCreatorUser",
+      "before": {
+        "x": 13080.15,
+        "y": 32418.67
+      },
+      "after": {
+        "x": 13048.86,
+        "y": 31582.39
+      }
+    },
+    {
+      "modelId": "db.YetsAssistanceCreatorYetsEmployee",
+      "before": {
+        "x": 9742.77,
+        "y": 32192
+      },
+      "after": {
+        "x": 9711.48,
+        "y": 31355.72
+      }
+    },
+    {
+      "modelId": "db.YetsAssistanceMessage",
+      "before": {
+        "x": 15434.43,
+        "y": 32514.61
+      },
+      "after": {
+        "x": 15403.14,
+        "y": 31678.33
+      }
+    },
+    {
+      "modelId": "db.YetsAssistanceMessageFile",
+      "before": {
+        "x": 22591.08,
+        "y": 33936.58
+      },
+      "after": {
+        "x": 22559.79,
+        "y": 33100.3
+      }
+    },
+    {
+      "modelId": "db.YetsAssistanceStaffAccessLog",
+      "before": {
+        "x": 14109.25,
+        "y": 32943.69
+      },
+      "after": {
+        "x": 14077.96,
+        "y": 32107.41
+      }
+    },
+    {
+      "modelId": "db.YetsAssistanceStaffFavoriteRelation",
+      "before": {
+        "x": 14688,
+        "y": 32709.69
+      },
+      "after": {
+        "x": 14656.71,
+        "y": 31873.41
+      }
+    },
+    {
+      "modelId": "db.YetsEmployeeResult",
+      "before": {
+        "x": 12272.64,
+        "y": 30174.22
+      },
+      "after": {
+        "x": 12241.35,
+        "y": 29337.94
+      }
+    },
+    {
+      "modelId": "db.YetsEmployeeResultAssistanceMessageRelation",
+      "before": {
+        "x": 13715.59,
+        "y": 31636.01
+      },
+      "after": {
+        "x": 13684.3,
+        "y": 30799.73
+      }
+    },
+    {
+      "modelId": "db.YetsEmployeeResultStatusLog",
+      "before": {
+        "x": 10655.78,
+        "y": 31668.68
+      },
+      "after": {
+        "x": 10624.49,
+        "y": 30832.4
+      }
+    },
+    {
+      "modelId": "db.YetsEmployeeResultWhtReceipt",
+      "before": {
+        "x": 22051.66,
+        "y": 32022.51
+      },
+      "after": {
+        "x": 22020.37,
+        "y": 31186.23
+      }
+    },
+    {
+      "modelId": "db.AgendaOptionCancelOptionDistribution",
+      "before": {
+        "x": 15337.77,
+        "y": 21374.28
+      },
+      "after": {
+        "x": 15294.12,
+        "y": 21450.86
+      }
+    }
+  ],
+  "changedRoutes": [
+    "edge:declared:db.AgendaCeoAddressChange:meeting_draft",
+    "edge:declared:db.AgendaCeoAddressChangeItem:agenda_ceo_address_change",
+    "edge:declared:db.AgendaChangeOfAoiClassStock:aoi",
+    "edge:declared:db.AgendaChangeOfAoiCustom:aoi",
+    "edge:declared:db.AgendaChangeOfAoiCustom:changed_part",
+    "edge:declared:db.AgendaChangeOfAoiDirectorCompensationRule:aoi",
+    "edge:declared:db.AgendaChangeOfAoiNumberOfDirectors:aoi",
+    "edge:declared:db.AgendaChangeOfAoiThirdPartyAllocation:aoi",
+    "edge:declared:db.AgendaChangeOfArticlesOfIncorporation:_deprecated_changed_part",
+    "edge:declared:db.AgendaChangeOfArticlesOfIncorporation:meeting_draft",
+    "edge:declared:db.AgendaDirectorChange:stakeholder",
+    "edge:declared:db.AgendaDirectorCompensationItem:director_compensation",
+    "edge:declared:db.AgendaDirectorCompensationItem:stakeholder",
+    "edge:declared:db.AgendaOptionCancelGrantee:option_cancel",
+    "edge:declared:db.AgendaOptionCancelGrantee:option_grantee",
+    "edge:declared:db.AgendaOptionCancelOption:_deprecated_grantee",
+    "edge:declared:db.AgendaOptionCancelOption:option_cancel",
+    "edge:declared:db.AgendaOptionCancelOptionDistribution:option",
+    "edge:declared:db.AgendaOptionExercise:meeting_draft",
+    "edge:declared:db.AgendaOptionExerciseClaim:option_exercise",
+    "edge:declared:db.AgendaOptionExerciseGrantee:option_exercise",
+    "edge:declared:db.AvailableModusignRequest:company",
+    "edge:declared:db.AvailableModusignRequest:modusign_account",
+    "edge:declared:db.BalanceCertificateDocument:option_exercise_agenda",
+    "edge:declared:db.BulkEmail:template_revision",
+    "edge:declared:db.BulkEmailTemplateRevision:template",
+    "edge:declared:db.CmeBulkEmailTemplate:cme",
+    "edge:declared:db.CompanyBulkEmailTemplate:company",
+    "edge:declared:db.DirectorsMeetingAgenda:agenda_director_change",
+    "edge:declared:db.DirectorsMeetingAgenda:agenda_director_compensation_decision",
+    "edge:declared:db.EmployeeOption:company",
+    "edge:declared:db.EmployeeOption:grantee",
+    "edge:declared:db.EmployeeOptionExerciseCandidate:management",
+    "edge:declared:db.EmployeeOptionExerciseCandidate:option",
+    "edge:declared:db.EmployeeOptionExerciseCandidate:option_exercise_claim",
+    "edge:declared:db.EmployeeOptionExerciseCandidateFile:candidate",
+    "edge:declared:db.EmployeeOptionExerciseClaim:company",
+    "edge:declared:db.EmployeeOptionExerciseClaimOption:option",
+    "edge:declared:db.EmployeeOptionExerciseClaimOption:option_exercise_claim",
+    "edge:declared:db.EmployeeOptionExerciseManagement:company",
+    "edge:declared:db.EmployeeOptionExerciseManagementEmail:management",
+    "edge:declared:db.EmployeeOptionVesting:employee_option",
+    "edge:declared:db.EmployeeOptionVestingItem:option_vesting",
+    "edge:declared:db.EmployeeOptionVestingTraceable:option",
+    "edge:declared:db.IaExpertPartnerBulkEmailTemplate:legal_partner",
+    "edge:declared:db.IaRule:address",
+    "edge:declared:db.IaRule:file",
+    "edge:declared:db.IaRule:investment_association",
+    "edge:declared:db.IaRuleCompensation:rule",
+    "edge:declared:db.IaRuleDocument:rule",
+    "edge:declared:db.IaRuleInvestment:rule",
+    "edge:declared:db.IaRuleMeeting:rule",
+    "edge:declared:db.IaRulePartner:rule",
+    "edge:declared:db.InauguralConsentDocument:director_change_agenda",
+    "edge:declared:db.IndividualInvestorCompanyShareStock:_deprecated_non_unified_stock_create_request",
+    "edge:declared:db.IndividualInvestorCompanyShareStock:_deprecated_stock_unissued_confirmation_file",
+    "edge:declared:db.IndividualInvestorCompanyShareStock:management_history",
+    "edge:declared:db.ModusignApiLog:modusign_account",
+    "edge:declared:db.ModusignAuthentication:modusign_account",
+    "edge:declared:db.ModusignDocumentModusignAccountRelation:modusign_account",
+    "edge:declared:db.ModusignDocumentModusignAccountRelation:modusign_document",
+    "edge:declared:db.ModusignEmbeddedDraft:modusign_account",
+    "edge:declared:db.NonUnifiedShareCreateRequest:stock_unissued_confirmation_file",
+    "edge:declared:db.NonUnifiedShareEtcFile:create_request",
+    "edge:declared:db.NonUnifiedShareEtcFile:management_history",
+    "edge:declared:db.NonUnifiedShareManagementHistory:create_request",
+    "edge:declared:db.NonUnifiedShareManagementHistory:management",
+    "edge:declared:db.NonUnifiedShareManagementHistory:renew_request",
+    "edge:declared:db.NonUnifiedShareManagementHistory:stock_unissued_confirmation_file",
+    "edge:declared:db.NonUnifiedShareSucPoaDocument:modusign_document",
+    "edge:declared:db.NonUnifiedShareSucPoaDocument:request",
+    "edge:declared:db.NonUnifiedShareSucPoaDocument:user_address",
+    "edge:declared:db.NonUnifiedShareSucRenewRequest:management",
+    "edge:declared:db.NonUnifiedShareSucRenewRequest:renew_stock_unissued_confirmation_file",
+    "edge:declared:db.NotarizationPoA:meeting",
+    "edge:declared:db.NotarizationPoaDirectorSigner:director",
+    "edge:declared:db.NotarizationPoaDirectorSigner:notarization_poa",
+    "edge:declared:db.NotarizationPoaShareholderSigner:notarization_poa",
+    "edge:declared:db.NotarizationPoaShareholderSigner:shareholder",
+    "edge:declared:db.Registration:meeting",
+    "edge:declared:db.RegistrationAgenda:agenda_ceo_address_change",
+    "edge:declared:db.RegistrationAgenda:agenda_director_change",
+    "edge:declared:db.RegistrationAgenda:agenda_option_exercise",
+    "edge:declared:db.RegistrationAgenda:registration",
+    "edge:declared:db.RegistrationDirector:registration",
+    "edge:declared:db.ResignationLetterDocument:director_change_agenda",
+    "edge:declared:db.RightToConsentOrConsult:company",
+    "edge:declared:db.RsuExerciseClaimEventRelation:claim",
+    "edge:declared:db.RsuExerciseClaimEventRelation:event",
+    "edge:declared:db.RtccEmail:right_to_consent_or_consult",
+    "edge:declared:db.RtccEmailAuthentication:rtcc_investor",
+    "edge:declared:db.RtccInvestor:right_to_consent_or_consult",
+    "edge:declared:db.RtccInvestor:stakeholder",
+    "edge:declared:db.RtccInvestorFile:investor",
+    "edge:declared:db.ShareholdersMeeting:chairperson",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_change_of_articles_of_incorporation",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_director_change",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_director_compensation_decision",
+    "edge:declared:db.ShareholdersMeetingConvocationNoticeRecipient:bulk_email_recipient",
+    "edge:declared:db.ShareholdersMeetingConvocationNoticeRecipient:convocation_notice_email",
+    "edge:declared:db.ShareholdersMeetingConvocationNoticeRecipient:shareholder",
+    "edge:declared:db.ShareholdersMeetingDirectorAttendance:stakeholder",
+    "edge:declared:db.YetsAssistance:employee",
+    "edge:declared:db.YetsAssistanceCreatorYetsEmployee:yets_employee",
+    "edge:declared:db.YetsAssistanceMessage:assistance",
+    "edge:declared:db.YetsAssistanceMessage:creator",
+    "edge:declared:db.YetsAssistanceMessageFile:message",
+    "edge:declared:db.YetsAssistanceStaffAccessLog:assistance",
+    "edge:declared:db.YetsAssistanceStaffFavoriteRelation:assistance",
+    "edge:declared:db.YetsEmployeeResult:yets_employee",
+    "edge:declared:db.YetsEmployeeResultAssistanceMessageRelation:assistance_message",
+    "edge:declared:db.YetsEmployeeResultAssistanceMessageRelation:result",
+    "edge:declared:db.YetsEmployeeResultStatusLog:result",
+    "edge:declared:db.YetsEmployeeResultWhtReceipt:result",
+    "edge:inheritance:db.CmeBulkEmailTemplate->db.BulkEmailTemplate",
+    "edge:inheritance:db.CompanyBulkEmailTemplate->db.BulkEmailTemplate",
+    "edge:inheritance:db.EmployeeOptionExerciseManagementEmail->db.BulkEmail",
+    "edge:inheritance:db.EmployeeOptionGrantee->db.Employee",
+    "edge:inheritance:db.IaExpertPartnerBulkEmailTemplate->db.BulkEmailTemplate",
+    "edge:inheritance:db.IaRuleDocument->db.InvestmentAssociationDocument",
+    "edge:inheritance:db.InauguralConsentDocument->db.MeetingDocument",
+    "edge:inheritance:db.NonUnifiedShareSucPoaModusignDocument->db.ModusignDocument",
+    "edge:inheritance:db.ResignationLetterDocument->db.MeetingDocument",
+    "edge:inheritance:db.RsuExerciseEvent->db.Event",
+    "edge:inheritance:db.RtccEmail->db.BulkEmail",
+    "edge:inheritance:db.RtccInvestorFile->db.FileAttachment",
+    "edge:inheritance:db.ShareholdersMeetingConvocationNoticeEmailRecipient->db.ShareholdersMeetingConvocationNoticeRecipient",
+    "edge:inheritance:db.ShareholdersMeetingConvocationNoticeWrittenRecipient->db.ShareholdersMeetingConvocationNoticeRecipient",
+    "edge:inheritance:db.YetsAssistanceCreatorUser->db.YetsAssistanceCreator",
+    "edge:inheritance:db.YetsAssistanceCreatorYetsEmployee->db.YetsAssistanceCreator",
+    "edge:inheritance:db.YetsAssistanceMessageFile->db.FileAttachment",
+    "edge:inheritance:db.YetsEmployeeResultWhtReceipt->db.FileAttachment"
+  ],
+  "sizesPreserved": true,
+  "membershipsPreserved": true,
+  "rigidLeafGeometryPreserved": true,
+  "productRouteParity": true,
+  "nativeProposal": {
+    "initialVisual": 289,
+    "visual": 289,
+    "initialIndividualVisual": 4447,
+    "individualVisual": 4459,
+    "hardConditions": 0,
+    "initialHardConditions": 0,
+    "individualHardConditions": 0,
+    "initialIndividualHardConditions": 0,
+    "canonicalStart": false,
+    "rolloutInitialVisual": 289,
+    "rolloutInitialIndividualVisual": 4447,
+    "jointMoves": false,
+    "neighborMoves": false,
+    "branchMoves": true,
+    "branchMode": "pair-cut",
+    "movingRayPorts": true,
+    "boundedMoves": true,
+    "overviewOnly": true,
+    "allowNeutral": true,
+    "acceptedNeutralActions": 167,
+    "explorationLimit": 0,
+    "savedActionPrefix": -1,
+    "acceptedExploratoryActions": 0,
+    "swapSlots": false,
+    "pairActions": false,
+    "portActions": false,
+    "residualPorts": false,
+    "globalScale": false,
+    "bboxLimit": 0,
+    "areaExploration": false,
+    "temporaryRegressionBudget": 0,
+    "globalAttachedPorts": false,
+    "overlap": 0,
+    "spacing": 0,
+    "policyActionsEvaluated": 1853,
+    "acceptedActions": 167,
+    "heuristicSearchCalls": 0,
+    "proposalAuthority": "external-policy",
+    "decoder": "model tanh latent decoded inside current spacing/frame translation bounds with moving-ray ports"
+  },
+  "learnedPolicy": {
+    "checkpoint": ".tmp/visualcross-ml-150-750-20261003/bounded-policy-training1/overview.npz",
+    "checkpointSha256": "39a135d12be3e7c76d6005b87df65226464307232782920448db1ad68c417992",
+    "untrainedControl": false,
+    "sourceDirectory": ".tmp/visualcross-ml-150-750-20261003/overview-pair-context1",
+    "syntheticSeed": null,
+    "policyProposalSource": "conditional mixture neural network",
+    "heuristicSearchCalls": 0,
+    "overviewOnly": true,
+    "allowNeutral": true,
+    "branchMoves": true,
+    "branchMode": "pair-cut",
+    "checkpointBranchMode": "cut",
+    "areaExploration": false,
+    "explorationLimit": 0,
+    "initialTemperature": 2,
+    "initial": {
+      "ready": true,
+      "eligible": 18,
+      "visual": 289,
+      "individualVisual": 4447,
+      "canonicalStart": false,
+      "sourceVisual": 289,
+      "sourceIndividualVisual": 4447
+    },
+    "final": {
+      "initialVisual": 289,
+      "visual": 289,
+      "initialIndividualVisual": 4447,
+      "individualVisual": 4459,
+      "hardConditions": 0,
+      "initialHardConditions": 0,
+      "individualHardConditions": 0,
+      "initialIndividualHardConditions": 0,
+      "canonicalStart": false,
+      "rolloutInitialVisual": 289,
+      "rolloutInitialIndividualVisual": 4447,
+      "jointMoves": false,
+      "neighborMoves": false,
+      "branchMoves": true,
+      "branchMode": "pair-cut",
+      "movingRayPorts": true,
+      "boundedMoves": true,
+      "overviewOnly": true,
+      "allowNeutral": true,
+      "acceptedNeutralActions": 167,
+      "explorationLimit": 0,
+      "savedActionPrefix": -1,
+      "acceptedExploratoryActions": 0,
+      "swapSlots": false,
+      "pairActions": false,
+      "portActions": false,
+      "residualPorts": false,
+      "globalScale": false,
+      "bboxLimit": 0,
+      "areaExploration": false,
+      "temporaryRegressionBudget": 0,
+      "globalAttachedPorts": false,
+      "overlap": 0,
+      "spacing": 0,
+      "policyActionsEvaluated": 1853,
+      "acceptedActions": 167,
+      "heuristicSearchCalls": 0,
+      "proposalAuthority": "external-policy",
+      "decoder": "model tanh latent decoded inside current spacing/frame translation bounds with moving-ray ports"
+    },
+    "budget": 4096,
+    "seed": 13331,
+    "seconds": 20.24477404198842,
+    "observationsSha256": "2c2aac15f64c417fdb6f05767f4776815b6a6b3054db950a3282380dc4aa19eb",
+    "actionsSha256": "2ac98ca0fdb00314eeac22221f62db00cc4430a95ee2980f6069c5b15ade5cef",
+    "movingRayInputHashes": {
+      "nodes.tsv": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+      "edges.tsv": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+      "positions.tsv": "f22cbc759742ae9a2b5cc6f64f6cf02a25878fafde965f88e83161d6dce086be",
+      "routes.tsv": "107653e30b4d861d758ae1efca6a7444894939c9d6826039daa9e3c47d4f0063",
+      "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "individual.positions.tsv": "9a8f92a1e756d42a8177eca8947cd9700c0cc5e53e6a81b6d1eae37200742e72",
+      "individual.routes.tsv": "d3db0db863e5ce0042f53cd287a86aa67e9a31e55b5fc6e6acd884fadeb2d7d7",
+      "components.tsv": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+      "groups.tsv": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc"
+    },
+    "branchInputHashes": {
+      "branches.tsv": "54a34d09a0c71b0b62613a739afe19ed120001669be6e0f71da9dad22493a580",
+      "branch-map.json": "d97c02743565283e0cd2d7ac1b2cccb5d5844001daed3cf636aa1e5e93be7d00"
+    }
+  },
+  "browserVerified": false,
+  "experimental": true,
+  "dominatesSource": false,
+  "allowAreaGrowth": false,
+  "bboxArea": 1348777883.9906998,
+  "individualBboxArea": 1348777883.9906998
+}

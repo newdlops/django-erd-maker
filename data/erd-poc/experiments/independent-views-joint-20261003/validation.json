@@ -1,0 +1,59 @@
+{
+  "nativeComponentV21": {
+    "sha256": "8ea7ba72be82cad98cdc2c672aa73da59e1b8c1fa85680789bb85f42f0317e0f",
+    "originalGlobalComparisons": 6424,
+    "exploratoryGlobalComparisons": 3072,
+    "uphillMoves": 367,
+    "restoredCheckpoints": 12,
+    "compilePeakMiB": 238.0
+  },
+  "jointBatchV1": {
+    "sha256": "80454a0c4b715f2413f15451407639405604b6cab70ad1ee7327197a14e7f946",
+    "geometryComparisons": 192,
+    "legalBatches": 168,
+    "compilePeakMiB": 214.4
+  },
+  "jointBatchV2": {
+    "sha256": "ecb50b141605bedf33e64b31403a9c8531be6a71e3426cc0675ff3309f57f54d",
+    "compilePeakMiB": 232.1,
+    "temporaryRegressionReplay2021Verified": true
+  },
+  "differentiableGradients": {
+    "comparisons": 44,
+    "passedForLossVersions": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "browserVerified": false,
+  "guardLimitMiB": 256,
+  "mathThreads": 1,
+  "serializedJobs": true,
+  "proxyBinaryCanonicalParity": {
+    "edgeCrossings": 1540,
+    "cardHits": 539,
+    "visual": 2079
+  },
+  "memoryGuardStop": {
+    "stage": "overview-joint1 product audit",
+    "peakMiB": 262.3,
+    "exitCode": 137,
+    "productPromoted": false
+  },
+  "sequentialProcessFix": {
+    "recoveredAuditPeakMiB": 182.9,
+    "fullPipelinePeakMiB": 180.3,
+    "frozenBatchesReplayedAfterRecovery": 129,
+    "verified": true
+  },
+  "combinedProductAudit": {
+    "overview": 299,
+    "individual": 1996,
+    "peakMiB": 168.5,
+    "actualFileLoadVerified": true,
+    "browserRouteFunctionParity": true,
+    "actualBrowserVerified": false
+  }
+}

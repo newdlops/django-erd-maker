@@ -1,0 +1,735 @@
+{
+  "sourceFile": "/Users/lky/project/django-erd-maker/.tmp/visualcross-ml-150-750-20261003/overview-bounded-trained2/candidate.layout.json",
+  "payloadFile": "data/erd-poc/recovered/captain-2026-09-15-payload.json",
+  "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52",
+  "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+  "baseline": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 5,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 191,
+    "edgeNodeIntersections": 93,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 289
+  },
+  "individualBaseline": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 3091,
+    "edgeNodeIntersections": 1356,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 4447
+  },
+  "bboxB": 1.3487778839906999,
+  "physicalCards": 1035,
+  "canonicalRoutes": 1727,
+  "eligibleRoutes": 977,
+  "selectedRoutes": 173,
+  "selection": [
+    {
+      "edgeId": "edge:declared:db.StockTransferAgreement:seller",
+      "conflicts": 12
+    },
+    {
+      "edgeId": "edge:declared:db.AgendaBranchChange:address",
+      "conflicts": 11
+    },
+    {
+      "edgeId": "edge:declared:db.AgendaHeadOfficeRelocation:address",
+      "conflicts": 11
+    },
+    {
+      "edgeId": "edge:inheritance:db.Director->db.Stakeholder",
+      "conflicts": 10
+    },
+    {
+      "edgeId": "edge:inheritance:db.OptionExerciseClaimAttachment->db.FileAttachment",
+      "conflicts": 9
+    },
+    {
+      "edgeId": "edge:inheritance:db.ShareholdersMeetingConvocationNoticeEmail->db.BulkEmail",
+      "conflicts": 9
+    },
+    {
+      "edgeId": "edge:declared:db.InternetRegistryOfficeOtpReturnRequest:internet_registry_office_otp",
+      "conflicts": 8
+    },
+    {
+      "edgeId": "edge:declared:db.MeetingDocument:directors_meeting",
+      "conflicts": 8
+    },
+    {
+      "edgeId": "edge:declared:db.RsuGrantContractModusignDocument:rsu_grant_contract",
+      "conflicts": 8
+    },
+    {
+      "edgeId": "edge:declared:db.StockTransferAgreementManagement:stock_transfer_agreement",
+      "conflicts": 8
+    },
+    {
+      "edgeId": "edge:declared:db.OptionGrantContract:_grantee",
+      "conflicts": 7
+    },
+    {
+      "edgeId": "edge:declared:db.OptionManagementStakeholderSeat:stakeholder_seat",
+      "conflicts": 6
+    },
+    {
+      "edgeId": "edge:declared:db.RsuRsa:grantee",
+      "conflicts": 6
+    },
+    {
+      "edgeId": "edge:declared:db.SealStampUsageHistory:seal_stamp",
+      "conflicts": 6
+    },
+    {
+      "edgeId": "edge:inheritance:db.DirectorsMeetingNoticeEmail->db.BulkEmail",
+      "conflicts": 6
+    },
+    {
+      "edgeId": "edge:inheritance:db.NewIssueNoticeEmail->db.BulkEmail",
+      "conflicts": 6
+    },
+    {
+      "edgeId": "edge:inheritance:db.StockTransferAgreementModusignDocument->db.ModusignDocument",
+      "conflicts": 6
+    },
+    {
+      "edgeId": "edge:inheritance:db.YetsEmail->db.BulkEmail",
+      "conflicts": 6
+    },
+    {
+      "edgeId": "edge:declared:db.AgendaOptionExerciseClaim:option_exercise_claim",
+      "conflicts": 5
+    },
+    {
+      "edgeId": "edge:declared:db.BaseModusignDocumentUsageHistory:modusign_document",
+      "conflicts": 5
+    },
+    {
+      "edgeId": "edge:declared:db.BranchInstallationEvent:address",
+      "conflicts": 5
+    },
+    {
+      "edgeId": "edge:declared:db.EmploymentStatusHistory:related_events",
+      "conflicts": 5
+    },
+    {
+      "edgeId": "edge:declared:db.OptionExerciseClaimCandidate:option_grantee",
+      "conflicts": 5
+    },
+    {
+      "edgeId": "edge:declared:db.Stock:shareholder",
+      "conflicts": 5
+    },
+    {
+      "edgeId": "edge:inheritance:db.EmployeeOptionExerciseManagementEmail->db.BulkEmail",
+      "conflicts": 5
+    },
+    {
+      "edgeId": "edge:inheritance:db.YetsAssistanceMessageFile->db.FileAttachment",
+      "conflicts": 5
+    },
+    {
+      "edgeId": "edge:inheritance:db.YetsEmployeeFile->db.FileAttachment",
+      "conflicts": 5
+    },
+    {
+      "edgeId": "edge:inheritance:db.YetsEmployeeResultWhtReceipt->db.FileAttachment",
+      "conflicts": 5
+    },
+    {
+      "edgeId": "edge:declared:db.AgendaBranchChange:installation_event",
+      "conflicts": 4
+    },
+    {
+      "edgeId": "edge:declared:db.AgendaNewIssue:meeting_draft",
+      "conflicts": 4
+    },
+    {
+      "edgeId": "edge:declared:db.BulkEmail:template_revision",
+      "conflicts": 4
+    },
+    {
+      "edgeId": "edge:declared:db.EmploymentStatusHistory:connected_hrm_status_event",
+      "conflicts": 4
+    },
+    {
+      "edgeId": "edge:declared:db.ESOP:shareholder",
+      "conflicts": 4
+    },
+    {
+      "edgeId": "edge:declared:db.MeetingDraftAgendaDirectorCompensationItem:director_compensation",
+      "conflicts": 4
+    },
+    {
+      "edgeId": "edge:declared:db.OptionGrantContract:_deprecated_template",
+      "conflicts": 4
+    },
+    {
+      "edgeId": "edge:declared:db.OptionGrantContract:template_revision",
+      "conflicts": 4
+    },
+    {
+      "edgeId": "edge:declared:db.ShareholdersMeetingAgenda:agenda_director_change",
+      "conflicts": 4
+    },
+    {
+      "edgeId": "edge:declared:db.ShareholdersMeetingConvocationNoticeEmail:shareholders_meeting",
+      "conflicts": 4
+    },
+    {
+      "edgeId": "edge:declared:db.ShareholdersMeetingConvocationNoticeEmailAttachment:convocation_notice_email",
+      "conflicts": 4
+    },
+    {
+      "edgeId": "edge:declared:db.StockTransferAgreementModusignDocument:stock_transfer_agreement",
+      "conflicts": 4
+    },
+    {
+      "edgeId": "edge:declared:db.StockTransferAgreementModusignEmbeddedDraft:stock_transfer_agreement",
+      "conflicts": 4
+    },
+    {
+      "edgeId": "edge:inheritance:db.OptionExerciseClaimMeetingDocument->db.MeetingDocument",
+      "conflicts": 4
+    },
+    {
+      "edgeId": "edge:inheritance:db.OptionGrantEvent->db.Event",
+      "conflicts": 4
+    },
+    {
+      "edgeId": "edge:inheritance:db.QuarterlyReportRequestAttachment->db.FileAttachment",
+      "conflicts": 4
+    },
+    {
+      "edgeId": "edge:inheritance:db.StockTransferAgreementModusignEmbeddedDraft->db.ModusignEmbeddedDraft",
+      "conflicts": 4
+    },
+    {
+      "edgeId": "edge:declared:db.AgendaHeadOfficeRelocation:meeting_draft",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:declared:db.AgendaNewIssueItem:new_issue",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:declared:db.ConsentForm:investor",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:declared:db.DirectorsMeetingAgenda:agenda_head_office_relocation",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:declared:db.OptionExerciseClaimCandidate:option_exercise_management",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:declared:db.OptionExerciseManagement:excluded_institution_set",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:declared:db.OptionGrantContractModusignEmbeddedDraft:option_grant_contract",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:declared:db.PayrollStatementEmail:payroll_ledger",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:declared:db.PingpongDelivery:dropoff_address",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:declared:db.RegistrationFormCaptable:agenda",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:declared:db.RsuExerciseClaim:financial_account",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:declared:db.RtccInvestor:right_to_consent_or_consult",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:declared:db.SealStampImage:seal_stamp",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:declared:db.ShareholdersMeetingAgenda:agenda_option_cancel",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:declared:db.ShareholdersMeetingShareholderAttendance:original_shareholder",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:declared:db.TbkConsulting:tbk_question_thread",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:inheritance:db.CmeBulkEmail->db.BulkEmail",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:inheritance:db.ESOPParticipant->db.Employee",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:inheritance:db.IaConsentFormOrMeetingElectronicSignatureRequestModusignEmbeddedDraft->db.ModusignEmbeddedDraft",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:inheritance:db.IaMeetingSealedNoticeDocumentFile->db.FileAttachment",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:inheritance:db.OptionGrantee->db.Stakeholder",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:inheritance:db.PayrollStatementEmail->db.BulkEmail",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:inheritance:db.PingpongDeliveryAddress->db.Address",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:inheritance:db.RsuExerciseManagementEmail->db.BulkEmail",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:inheritance:db.RsuGrantContractModusignDocument->db.ModusignDocument",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:inheritance:db.RsuGrantee->db.Stakeholder",
+      "conflicts": 3
+    },
+    {
+      "edgeId": "edge:declared:db.AgendaChangeOfArticlesOfIncorporation:meeting_draft",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.AgendaOptionCancel:meeting_draft",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.AgendaOptionCancelGrantee:option_grantee",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.AgendaOptionExerciseGrantee:option_grantee",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.BulkEmailTemplateRevision:template",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.CmeBulkEmailTemplate:cme",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.CmeCompany:contact_set",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.CorporateRegistrationIssueCouponUseRequest:coupon",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.DirectorsMeetingAgenda:agenda_branch_change",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.DirectorsMeetingAgenda:agenda_new_issue",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.EmployeeStockGuideEmail:employee_stock_guide",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.IaConsentFormOrMeetingElectronicSignatureRequest:document",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.MeetingDocument:shareholders_meeting",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.ModusignDocument:_option_grant_contract",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.NewIssueNoticeEmail:new_issue",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.OptionExerciseClaimMeetingDocument:exercise_claim",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.OptionExerciseManagementAttachmentSettingItem:setting",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.OptionManagementStakeholderSeat:option_management",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.PayrollSettlement:company_question_thread_set",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.PayrollStatement:payroll_ledger",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.RsuExerciseManagementEmail:rsu_exercise_management",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.RtccInvestorFile:investor",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.ShareholdersMeetingAgenda:agenda_branch_change",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.ShareholdersMeetingAgenda:agenda_change_of_articles_of_incorporation",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.ShareholdersMeetingAgenda:agenda_option_grant",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.ShareholdersMeetingConvocationNoticeRecipient:shareholder",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.StockTransferAgreementManagementStakeholderSeat:stakeholder_seat",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.StockTransferAgreementManagementStakeholderSeat:stock_transfer_agreement_management",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.TaxBookkeepingServiceRequest:incorporation_request",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.VentureCapitalQuarterlyReportReply:company_create_request",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.YetsEmployee:employee",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:inheritance:db.EmployeeStockGuideEmail->db.BulkEmail",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:inheritance:db.OptionGrantContractModusignDocument->db.ModusignDocument",
+      "conflicts": 2
+    },
+    {
+      "edgeId": "edge:declared:db.AgendaDirectorCompensationItem:director_compensation",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.AgendaOptionGrantGrantee:option_grant",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.Article:thumbnail_image",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.BranchAbolitionEvent:installation_event",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.CmeCompany:company_managing_entity",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.CompanyCreateRequest:address",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.CompanyManagingEntity:expert_client",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.CorporateRegistrationIssueLog:_deprecated_staff_review_required_question_thread",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.DirectorsMeetingAgenda:meeting",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.DirectorsMeetingNoticeEmail:directors_meeting",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.DirectorsMeetingNoticeEmailRecipient:director",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.EmployeeStockGuideAudience:participant",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.ExpertClientSignupChannel:expert_client",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.HrmAttendanceLocation:work_location",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.HrmDocumentDraft:form",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.HrmDocumentFieldValue:document",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.HrmPersonalLocation:work_location_config",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.IaConsentFormOrMeetingElectronicSignatureRequiredDocument:partner",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.IaMeeting:consent_form_or_meeting",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.IaMeetingSealedNoticeDocumentFile:ia_meeting",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.IncorporationRequest:address",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.IncorporationRequest:company_question_thread",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.NewIssueNoticeEmailRecipient:shareholder",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.NonUnifiedShareSucPoaDocument:request",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.NonUnifiedShareSucPoaDocument:user_address",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.OptionExerciseClaim:financial_account",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.OptionExerciseClaimAttachment:option_exercise_claim",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.OptionExerciseManagementAttachmentSetting:management",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.OptionGrantContractTemplateRevision:template",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.OptionManagement:agenda_option_grant",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.Payment:credit_card",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.PayrollSettlement:payroll",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.PayrollStatementDocument:payroll_statement",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.PayrollStatementPayrollInformation:payroll_statement",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.QuarterlyReportSignupChannel:quarterly_report",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.QuestionThreadMessage:question_thread",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.RsuExerciseClaimCandidate:rsu_exercise_claim",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.RsuExerciseClaimEventRelation:claim",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.RsuExerciseClaimRsu:rsu_exercise_claim",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.ShareholdersMeetingAgenda:agenda_director_compensation_decision",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.ShareholdersMeetingAgenda:meeting",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.ShareholdersMeetingConvocationNoticeEmailNewIssueAttachment:email",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.ShareholdersMeetingConvocationNoticeEmailNewIssueAttachment:new_issue",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.ShareholdersMeetingConvocationNoticeRecipient:convocation_notice_email",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.StockTransferAgreementManagement:related_tax_advices",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.SubscriptionModusignDocumentUsageHistory:subscription",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.ValuationServiceRequest:company_question_thread",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.VentureCapitalQuarterlyReportReply:portfolio_company",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.YearEndTaxSettlement:payroll",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.YetsAssistanceMessageFile:message",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.YetsEmail:year_end_tax_settlement",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.YetsEmployeeFile:employee",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:declared:db.YetsEmployeeResultWhtReceipt:result",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.BranchInstallationEvent->db.Event",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.CompanyOwnerAuditLog->db.AuditLog",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.CompanyQuestionThread->db.QuestionThread",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.ConsentFormModusignDocument->db.ModusignDocument",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.Employee->db.Stakeholder",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.HrmAlpUsagePlan->db.HrmApprovable",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.HrmDocument->db.HrmApprovable",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.HrmEmpContractModusignDocument->db.ModusignDocument",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.HrmEmpStatusEventBase->db.HrmEmpEventBase",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.HrmLeaveUsage->db.HrmApprovable",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.HrmPersonalLocation->db.HrmApprovable",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.IaConsentFormOrMeetingElectronicSignatureRequestModusignDocument->db.ModusignDocument",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.IaRuleDocument->db.InvestmentAssociationDocument",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.RegistrationFormCaptableDocument->db.MeetingDocument",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.RtccInvestorFile->db.FileAttachment",
+      "conflicts": 1
+    },
+    {
+      "edgeId": "edge:inheritance:db.ShareholdersMeetingConvocationNoticeEmailAttachment->db.FileAttachment",
+      "conflicts": 1
+    }
+  ],
+  "resourcePolicy": {
+    "threads": 1,
+    "rssLimitMiB": 256,
+    "maxSearchSeconds": 20,
+    "maxSelectedRoutes": 256,
+    "withIndividual": true
+  },
+  "browserVerified": false
+}

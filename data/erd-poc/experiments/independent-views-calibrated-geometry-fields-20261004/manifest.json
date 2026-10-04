@@ -1,0 +1,3139 @@
+{
+  "scope": "Calibrated NN ranking and compact learned fields; complete optimizer replay, all actual trajectory/field outputs, precise sampled tied reward scope; failed static run retained",
+  "candidateSource": "data/erd-poc/candidates/captain-ml-independent-views.layout.json",
+  "candidateSha256": "4e741de39ca655c7ff042422b9407206427f89e02ecd56b7f4a9f36f6a5cd02e",
+  "overviewVisual": 285,
+  "individualVisual": 1963,
+  "targetOverview": 150,
+  "targetIndividual": 750,
+  "targetMet": false,
+  "promotedNewCandidate": false,
+  "newTrainingUpdates": 2430,
+  "modelRankingsFullyReplayed": 1952,
+  "actualNeuralMoves": 137,
+  "actualNeuralMovesFullyRemeasured": 129,
+  "strictImprovements": 0,
+  "verification": {
+    "calibration": {
+      "status": "pass",
+      "checkpointSha256": "da3b7bf93df788de65956534b7f228cda5f0ade10a762c59a100282e358d1ae0",
+      "rowsRebuilt": 493,
+      "trainingRows": 396,
+      "validationRows": 97,
+      "illegalRowsExcluded": 243,
+      "updatesReplayed": 2100,
+      "selectedUpdates": 70,
+      "allSavedWeightsExactlyMatched": true,
+      "wholeActionSplitKeysDisjoint": true,
+      "sourceStages": [
+        {
+          "stage": "individual-trained1",
+          "legalRowsRebuilt": 56
+        },
+        {
+          "stage": "overview-trained1",
+          "legalRowsRebuilt": 60
+        },
+        {
+          "stage": "individual-swap-trained1",
+          "legalRowsRebuilt": 62
+        },
+        {
+          "stage": "overview-swap-trained1",
+          "legalRowsRebuilt": 35
+        },
+        {
+          "stage": "individual-local-trained1",
+          "legalRowsRebuilt": 51
+        },
+        {
+          "stage": "individual-ports-trained1",
+          "legalRowsRebuilt": 126
+        },
+        {
+          "stage": "overview-ports-trained1",
+          "legalRowsRebuilt": 103
+        }
+      ],
+      "rawValidationMse": 12.73219169882341,
+      "calibratedValidationMse": 0.648059020914488,
+      "newNativeMeasurements": 0,
+      "nativeGroundTruthProof": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/policies.audit.json",
+      "validationIsUnseenCaptainScene": false,
+      "verificationCodeSha256": "0639642b0c2795749332cea95ba1966fd3a90b532108fa883a1af12b97a812cc"
+    },
+    "walks": {
+      "status": "pass",
+      "scope": "Every recorded trajectory spectrum/rank, each full Native input observation, every attempted action, saved source geometry; static duplicate cause identified",
+      "counts": {
+        "rankings": 1952,
+        "attemptedActionsFullMeasured": 48,
+        "fullFeatureControls": 11,
+        "fullMeasures": 50
+      },
+      "stages": [
+        {
+          "view": "individual",
+          "rankingsReplayed": 960,
+          "attemptedActionsFullMeasured": 5,
+          "admittedStates": 3,
+          "savedVisual": 1963,
+          "lastExploratoryVisual": 1966,
+          "allSavedCoordinatesPreserveSource": true
+        },
+        {
+          "view": "overview",
+          "rankingsReplayed": 992,
+          "attemptedActionsFullMeasured": 43,
+          "admittedStates": 7,
+          "savedVisual": 285,
+          "lastExploratoryVisual": 329,
+          "allSavedCoordinatesPreserveSource": true
+        }
+      ],
+      "failedStaticCompletedActions": 8,
+      "failedStaticCandidates": 1441,
+      "failedStaticNinthCandidateDuplicatesEarlierWire": true,
+      "failedStaticRankingsOrMetricsFullyReplayed": false,
+      "newNativeTryCalls": 0,
+      "candidatePromoted": false,
+      "overviewVisual": 285,
+      "individualVisual": 1963,
+      "targetMet": false,
+      "verificationCodeSha256": "d79aa81bade0b15b1f9aba84c235ca370387b6b22d73cab8b2f431c1ea383a00"
+    },
+    "fields": {
+      "status": "pass",
+      "scope": "Every recorded model update, every reward probe and trained output, complete source features, checkpoint arrays and saved geometry",
+      "totals": {
+        "updatesReplayed": 235,
+        "fullRewardProbeMeasurements": 940,
+        "fullTrainedOutputMeasurements": 58,
+        "sourceControls": 2
+      },
+      "stages": [
+        {
+          "view": "individual",
+          "updatesReplayed": 107,
+          "fullRewardProbesMeasured": 428,
+          "fullTrainedOutputsMeasured": 26,
+          "allFixedEncoderAndDecoderBuffersUnchanged": true,
+          "allProposedPhysicalCardSpacingVerifiedZeroByFullNative": true,
+          "acceptedOutputs": 0,
+          "initialVisual": 1963,
+          "savedVisual": 1963
+        },
+        {
+          "view": "overview",
+          "updatesReplayed": 128,
+          "fullRewardProbesMeasured": 512,
+          "fullTrainedOutputsMeasured": 32,
+          "allFixedEncoderAndDecoderBuffersUnchanged": true,
+          "allProposedPhysicalCardSpacingVerifiedZeroByFullNative": true,
+          "acceptedOutputs": 0,
+          "initialVisual": 285,
+          "savedVisual": 285
+        }
+      ],
+      "nativeTryCallsDuringVerification": 0,
+      "productLoadOrBrowserVerifiedByThisScript": false,
+      "targetProvenByThisScript": false,
+      "verificationCodeSha256": "3241a0812d0ddcfd208a7196f89990b2215905bc7e280d57e038968f0b4e7a83"
+    },
+    "tied-fields": {
+      "status": "pass",
+      "scope": "All updates, reward probe wires, source features, checkpoint arrays, trained outputs and saved geometry; full reward controls only for the first and last update of each view",
+      "totals": {
+        "updatesReplayed": 95,
+        "allRewardProbeWiresReplayed": 380,
+        "recordedRewardLabelsUsedWithoutFullRemeasurement": 364,
+        "fullRewardProbeMeasurements": 16,
+        "fullTrainedOutputMeasurements": 23,
+        "sourceControls": 2
+      },
+      "stages": [
+        {
+          "view": "individual",
+          "updatesReplayed": 31,
+          "allRewardProbeWiresReplayed": 124,
+          "fullRewardProbeControlsMeasured": 8,
+          "fullTrainedOutputsMeasured": 7,
+          "allFixedEncoderAndDecoderBuffersUnchanged": true,
+          "allRecordedProbeSpacingLabelsZero": true,
+          "allTrainedOutputSpacingVerifiedZeroByFullNative": true,
+          "acceptedOutputs": 0,
+          "initialVisual": 1963,
+          "savedVisual": 1963
+        },
+        {
+          "view": "overview",
+          "updatesReplayed": 64,
+          "allRewardProbeWiresReplayed": 256,
+          "fullRewardProbeControlsMeasured": 8,
+          "fullTrainedOutputsMeasured": 16,
+          "allFixedEncoderAndDecoderBuffersUnchanged": true,
+          "allRecordedProbeSpacingLabelsZero": true,
+          "allTrainedOutputSpacingVerifiedZeroByFullNative": true,
+          "acceptedOutputs": 0,
+          "initialVisual": 285,
+          "savedVisual": 285
+        }
+      ],
+      "nativeTryCallsDuringVerification": 0,
+      "productLoadOrBrowserVerifiedByThisScript": false,
+      "targetProvenByThisScript": false,
+      "verificationCodeSha256": "80d95d9063b08ac07ae15966be327665dc4b26745bd62012326accf1e6abab47"
+    },
+    "field-hard-diagnosis": {
+      "status": "pass",
+      "scope": "First and last trained field outputs; Python hard-kind totals matched recorded Native metrics",
+      "inspectedOutputs": [
+        {
+          "step": 4,
+          "checkpointSha256": "71200e23c7a680224462ee647069f2ddcfbbd2154d04d46f4c9daab956c2738a",
+          "inwardOrInvalidBoundaryEndpoints": 0,
+          "ownCardReentries": 0,
+          "adjacentProperCrossings": 5,
+          "disallowedBoundaryContacts": 0,
+          "totalHard": 10,
+          "firstAdjacentCrossingPairs": [
+            [
+              712,
+              1349
+            ],
+            [
+              891,
+              1241
+            ],
+            [
+              927,
+              952
+            ],
+            [
+              1241,
+              1676
+            ],
+            [
+              1279,
+              1280
+            ]
+          ],
+          "firstBoundaryContactPairs": []
+        },
+        {
+          "step": 104,
+          "checkpointSha256": "4734fb14349d6106778bd6397a1dca90f9c7cf45017abcaae526881aaee36df9",
+          "inwardOrInvalidBoundaryEndpoints": 0,
+          "ownCardReentries": 0,
+          "adjacentProperCrossings": 4,
+          "disallowedBoundaryContacts": 0,
+          "totalHard": 8,
+          "firstAdjacentCrossingPairs": [
+            [
+              891,
+              1241
+            ],
+            [
+              940,
+              1161
+            ],
+            [
+              1241,
+              1676
+            ],
+            [
+              1279,
+              1286
+            ]
+          ],
+          "firstBoundaryContactPairs": []
+        }
+      ],
+      "proposesNewCoordinates": false,
+      "coordinateRepairs": 0,
+      "allFieldOutputsHardKindsClassified": false,
+      "diagnosticCodeSha256": "7afb3d014e94a1fca3dead8e2a7257b5fdf08497a11f42028149e9db9fb689a0"
+    }
+  },
+  "diagnosis": {
+    "status": "pass",
+    "strictImprovements": 0,
+    "candidatePromoted": false,
+    "overviewVisual": 285,
+    "individualVisual": 1963,
+    "targetOverview": 150,
+    "targetIndividual": 750,
+    "targetMet": false,
+    "newTrainingUpdates": 2430,
+    "fullyReplayedTrajectoryRankings": 1952,
+    "completedTryCalls": 137,
+    "completedTryCallsFullyRemeasured": 129,
+    "failedStaticTryCallsNotFullyRemeasured": 8,
+    "fullNativeVerificationMeasurements": 1091,
+    "newCompactRewardProbes": 1320,
+    "newCompactRewardProbesFullyRemeasured": 956,
+    "tiedRewardProbesReplayedFromRecordedLabelsOnly": 364,
+    "calibrationValidationIsUnseenCaptainScene": false,
+    "calibrationRawValidationMse": 12.73219169882341,
+    "calibrationSelectedValidationMse": 0.648059020914488,
+    "sourceCoincidentEndpointFixturePassed": true,
+    "tiedDecoderDoesNotProveAllAdjacentEdgeLegality": true,
+    "failedStaticDuplicateCauseVerified": true,
+    "failedStaticAllRanksOrMetricsReplayed": false,
+    "nativeCoordinateSearchOrRepairs": 0,
+    "browserVerified": false,
+    "stages": {
+      "individual-walk1": {
+        "view": "individual",
+        "attempts": 5,
+        "accepted": 0,
+        "initialVisual": 1963,
+        "reasons": {
+          "hard": 2,
+          "legal": 3
+        }
+      },
+      "overview-walk1": {
+        "view": "overview",
+        "attempts": 43,
+        "accepted": 0,
+        "initialVisual": 285,
+        "reasons": {
+          "hard": 27,
+          "projection": 9,
+          "legal": 7
+        }
+      },
+      "individual-field1": {
+        "view": "individual",
+        "attempts": 26,
+        "accepted": 0,
+        "initialVisual": 1963,
+        "reasons": {
+          "hard": 26
+        },
+        "updatesExecuted": 107,
+        "rewardProbes": 428,
+        "legalRewardProbes": 0,
+        "minimumProbeHard": 6,
+        "legalTrainedOutputs": 0,
+        "trainableParameters": 18
+      },
+      "overview-field1": {
+        "view": "overview",
+        "attempts": 32,
+        "accepted": 0,
+        "initialVisual": 285,
+        "reasons": {
+          "legal": 32
+        },
+        "updatesExecuted": 128,
+        "rewardProbes": 512,
+        "legalRewardProbes": 498,
+        "minimumProbeHard": 0,
+        "legalTrainedOutputs": 32,
+        "trainableParameters": 18
+      },
+      "individual-tied1": {
+        "view": "individual",
+        "attempts": 7,
+        "accepted": 0,
+        "initialVisual": 1963,
+        "reasons": {
+          "hard": 7
+        },
+        "updatesExecuted": 31,
+        "rewardProbes": 124,
+        "legalRewardProbes": 6,
+        "minimumProbeHard": 0,
+        "legalTrainedOutputs": 0,
+        "trainableParameters": 18
+      },
+      "overview-tied1": {
+        "view": "overview",
+        "attempts": 16,
+        "accepted": 0,
+        "initialVisual": 285,
+        "reasons": {
+          "legal": 16
+        },
+        "updatesExecuted": 64,
+        "rewardProbes": 256,
+        "legalRewardProbes": 252,
+        "minimumProbeHard": 0,
+        "legalTrainedOutputs": 16,
+        "trainableParameters": 18
+      }
+    }
+  },
+  "resources": {
+    "limitMiB": 128,
+    "mathThreads": 1,
+    "niceAdjustment": 10,
+    "numericalJobsSerialized": true,
+    "sampledProcessGroupRssGuard": true,
+    "hardCpuPercentageQuota": false,
+    "limitRaised": false,
+    "allListedJobsTerminal": true,
+    "observedMaximumSampledPeakMiB": 83.7,
+    "jobs": [
+      {
+        "log": ".tmp/compact-patch-fixture-green.guard.log",
+        "logSha256": "af12054258f0cadaa821a162fe584f0dd3aaba5f14382f88e03da3b8b77ea202",
+        "sampledPeakMiB": 25.4,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": false
+      },
+      {
+        "log": ".tmp/compact-patch-fixture-red.guard.log",
+        "logSha256": "d6e0cae298196b4a22e4f03442ff6002237780298cc8b2139d9b4ab0b30681fa",
+        "sampledPeakMiB": 23.6,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": true
+      },
+      {
+        "log": ".tmp/compact-patch-hard-diagnosis.guard.log",
+        "logSha256": "79f55cd1e1eb4c7734d91610ebcaa5bd790459365999f882047fa144d1ca9143",
+        "sampledPeakMiB": 83.7,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": false
+      },
+      {
+        "log": ".tmp/geometry-calibration-individual-field.guard.log",
+        "logSha256": "9afc798d7c44983ffb647ba68fc2c916eaef4b78749396602e1d6b4a079d80ec",
+        "sampledPeakMiB": 53.8,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": false
+      },
+      {
+        "log": ".tmp/geometry-calibration-individual-macro.guard.log",
+        "logSha256": "367b4864d17f7705321fbb067761d48021e30f40ead4dfcf894b1e5390ca5d82",
+        "sampledPeakMiB": 61.0,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": true
+      },
+      {
+        "log": ".tmp/geometry-calibration-individual-tied.guard.log",
+        "logSha256": "9ff0397154cfe938e844e515ac6f162dc295203d8339ab76092d22a2b5630fea",
+        "sampledPeakMiB": 53.0,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": false
+      },
+      {
+        "log": ".tmp/geometry-calibration-individual-walk.guard.log",
+        "logSha256": "937ece68f0e5dd183beeb081458fb9d372cad330d16e9815f695c2ca4d0f99f2",
+        "sampledPeakMiB": 50.6,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": false
+      },
+      {
+        "log": ".tmp/geometry-calibration-overview-field.guard.log",
+        "logSha256": "9e2f2c042250c1245d0bb9a2dc7380c43f0654e16b11009f24b3ff4b424c6184",
+        "sampledPeakMiB": 52.6,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": false
+      },
+      {
+        "log": ".tmp/geometry-calibration-overview-tied.guard.log",
+        "logSha256": "1d12c3eb38391720fc98816b89a37aa34a6fde863b8e97762545696fcef4f6a1",
+        "sampledPeakMiB": 51.8,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": false
+      },
+      {
+        "log": ".tmp/geometry-calibration-overview-walk.guard.log",
+        "logSha256": "a6523983fab5ca2dbf214ec4c3d79bf03a558ebddc680215e543e186c4c22cc4",
+        "sampledPeakMiB": 62.2,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": false
+      },
+      {
+        "log": ".tmp/geometry-calibration-training.guard.log",
+        "logSha256": "6005d5fa5e05f4b3ac93bc8e272941b2f0031488dbc5bb212f84bcf42fafb03e",
+        "sampledPeakMiB": 61.9,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": false
+      },
+      {
+        "log": ".tmp/geometry-calibration-verify-fields.guard.log",
+        "logSha256": "0df7ab34e0bd30a85cb86706cf72df93728ca605af7e8ce2ce22365c472e58eb",
+        "sampledPeakMiB": 54.5,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": false
+      },
+      {
+        "log": ".tmp/geometry-calibration-verify-tied.guard.log",
+        "logSha256": "9e94575c98432b091a000d291594ed4171dd36cb6de0dc21cecee55bcde90a4a",
+        "sampledPeakMiB": 57.0,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": false
+      },
+      {
+        "log": ".tmp/geometry-calibration-verify-training.guard.log",
+        "logSha256": "09109794b954de04824988669a8ebb0a417a12641d02eec74d73ead98f94a1e2",
+        "sampledPeakMiB": 62.0,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": false
+      },
+      {
+        "log": ".tmp/geometry-calibration-verify-walks.guard.log",
+        "logSha256": "7e62673229139636f5a9ae6d576bec9e2a6552866aa672cb3cbe0c77150995e4",
+        "sampledPeakMiB": 68.1,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": true
+      },
+      {
+        "log": ".tmp/geometry-calibration-verify-walks2.guard.log",
+        "logSha256": "7c6f73d1f9092a2a70700e0c300f1471f2ee7e34f40cae00cc8d97dd25ece44f",
+        "sampledPeakMiB": 65.2,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": false
+      },
+      {
+        "log": ".tmp/shared-patch-fixture-green.guard.log",
+        "logSha256": "700b33a66b27dd9118a5a1213775e141da8a93bbe2f4ebb17855576848a0d11e",
+        "sampledPeakMiB": 42.7,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": false
+      },
+      {
+        "log": ".tmp/shared-patch-fixture-red.guard.log",
+        "logSha256": "2c0771531bd5360dc454dc08141dc4f020c39cb377c1da90d468bae5cc0c2de9",
+        "sampledPeakMiB": null,
+        "terminalGuardReceiptPresent": false,
+        "refusedBeforeChildLaunch": true,
+        "tracebackObserved": false
+      },
+      {
+        "log": ".tmp/shared-patch-fixture-red2.guard.log",
+        "logSha256": "baa95fd9864ef1997097cd6c3e704c36166e8b4c44e77dca7fe642147d472dcc",
+        "sampledPeakMiB": 43.2,
+        "terminalGuardReceiptPresent": true,
+        "refusedBeforeChildLaunch": false,
+        "tracebackObserved": true
+      }
+    ],
+    "unguardedTextGenerationAttempt": {
+      "exitCode": 137,
+      "outputFileCreated": false,
+      "replacedByWorkspaceApplyPatch": true,
+      "mathematicalJob": false,
+      "causeEstablished": false
+    }
+  },
+  "nativeCoordinateSearchOrRepairs": 0,
+  "browserVerified": false,
+  "prerequisiteManifests": [
+    {
+      "path": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "sha256": "bbb05d5525532628c58084a27999c7c69bf0d46477291732165efa35b3a48831"
+    },
+    {
+      "path": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "sha256": "b17325cd48e8e977b6e7c58211491b84cd52dc2eedce1345de58c47a92575ffb"
+    },
+    {
+      "path": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/manifest.json",
+      "sha256": "6b31d46cd53ab370048e36ba43ed04bdc423e3507adddd42423dca0426a565a7"
+    },
+    {
+      "path": "data/erd-poc/experiments/independent-views-positive-cycles-20261003/manifest.json",
+      "sha256": "33777419b749246e9e4dc481b912d66924dd8bb003b082b73fe46c40a9103e2c"
+    },
+    {
+      "path": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "sha256": "77a3510ea02545f30045f0e1b038617aae7218087495e95e815fd6be8173a80c"
+    },
+    {
+      "path": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "sha256": "8c24abd16db00344e05fcce1441a00b2c1b002db723185c3f36e93c4b3d52f15"
+    },
+    {
+      "path": "data/erd-poc/experiments/independent-views-single-owner-learning-20261004/manifest.json",
+      "sha256": "6b9b97a2aafd690eed135ce561091e0b98b29758ee70ba73fbeb397a1a956298"
+    },
+    {
+      "path": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/manifest.json",
+      "sha256": "5a24ded20b6c2feec46b7d11f2911d9673052dece55c59762e8162e487e32f16"
+    }
+  ],
+  "files": [
+    {
+      "source": ".tmp/cli-transport-20261004-followup.json",
+      "archive": "dependencies/535481feb6972c836c34c3a4f4f8685d65d51261ea007e5a93db43038ca0dbc9/cli-transport-20261004-followup.json.gz",
+      "bytes": 1919,
+      "sha256": "535481feb6972c836c34c3a4f4f8685d65d51261ea007e5a93db43038ca0dbc9",
+      "compressedBytes": 1061
+    },
+    {
+      "source": ".tmp/compact-patch-fixture-green.guard.log",
+      "archive": "logs/compact-patch-fixture-green.guard.log.gz",
+      "bytes": 109,
+      "sha256": "af12054258f0cadaa821a162fe584f0dd3aaba5f14382f88e03da3b8b77ea202",
+      "compressedBytes": 116
+    },
+    {
+      "source": ".tmp/compact-patch-fixture-red.guard.log",
+      "archive": "logs/compact-patch-fixture-red.guard.log.gz",
+      "bytes": 316,
+      "sha256": "d6e0cae298196b4a22e4f03442ff6002237780298cc8b2139d9b4ab0b30681fa",
+      "compressedBytes": 234
+    },
+    {
+      "source": ".tmp/compact-patch-hard-diagnosis.guard.log",
+      "archive": "logs/compact-patch-hard-diagnosis.guard.log.gz",
+      "bytes": 777,
+      "sha256": "79f55cd1e1eb4c7734d91610ebcaa5bd790459365999f882047fa144d1ca9143",
+      "compressedBytes": 382
+    },
+    {
+      "source": ".tmp/diagnose_compact_patch_hard.py",
+      "archive": "tools/diagnose_compact_patch_hard.py.gz",
+      "bytes": 5212,
+      "sha256": "7afb3d014e94a1fca3dead8e2a7257b5fdf08497a11f42028149e9db9fb689a0",
+      "compressedBytes": 2251
+    },
+    {
+      "source": ".tmp/finalize_geometry_calibration.py",
+      "archive": "tools/finalize_geometry_calibration.py.gz",
+      "bytes": 2614,
+      "sha256": "692a52b94bbfb7465153afcf055147d8a5aa9db084d3f57709c81c4a58fe75cb",
+      "compressedBytes": 1263
+    },
+    {
+      "source": ".tmp/geometry-calibration-individual-field.guard.log",
+      "archive": "logs/geometry-calibration-individual-field.guard.log.gz",
+      "bytes": 572,
+      "sha256": "9afc798d7c44983ffb647ba68fc2c916eaef4b78749396602e1d6b4a079d80ec",
+      "compressedBytes": 396
+    },
+    {
+      "source": ".tmp/geometry-calibration-individual-macro.guard.log",
+      "archive": "logs/geometry-calibration-individual-macro.guard.log.gz",
+      "bytes": 680,
+      "sha256": "367b4864d17f7705321fbb067761d48021e30f40ead4dfcf894b1e5390ca5d82",
+      "compressedBytes": 348
+    },
+    {
+      "source": ".tmp/geometry-calibration-individual-tied.guard.log",
+      "archive": "logs/geometry-calibration-individual-tied.guard.log.gz",
+      "bytes": 569,
+      "sha256": "9ff0397154cfe938e844e515ac6f162dc295203d8339ab76092d22a2b5630fea",
+      "compressedBytes": 395
+    },
+    {
+      "source": ".tmp/geometry-calibration-individual-walk.guard.log",
+      "archive": "logs/geometry-calibration-individual-walk.guard.log.gz",
+      "bytes": 283,
+      "sha256": "937ece68f0e5dd183beeb081458fb9d372cad330d16e9815f695c2ca4d0f99f2",
+      "compressedBytes": 218
+    },
+    {
+      "source": ".tmp/geometry-calibration-overview-field.guard.log",
+      "archive": "logs/geometry-calibration-overview-field.guard.log.gz",
+      "bytes": 563,
+      "sha256": "9e2f2c042250c1245d0bb9a2dc7380c43f0654e16b11009f24b3ff4b424c6184",
+      "compressedBytes": 388
+    },
+    {
+      "source": ".tmp/geometry-calibration-overview-tied.guard.log",
+      "archive": "logs/geometry-calibration-overview-tied.guard.log.gz",
+      "bytes": 560,
+      "sha256": "1d12c3eb38391720fc98816b89a37aa34a6fde863b8e97762545696fcef4f6a1",
+      "compressedBytes": 384
+    },
+    {
+      "source": ".tmp/geometry-calibration-overview-walk.guard.log",
+      "archive": "logs/geometry-calibration-overview-walk.guard.log.gz",
+      "bytes": 298,
+      "sha256": "a6523983fab5ca2dbf214ec4c3d79bf03a558ebddc680215e543e186c4c22cc4",
+      "compressedBytes": 225
+    },
+    {
+      "source": ".tmp/geometry-calibration-training.guard.log",
+      "archive": "logs/geometry-calibration-training.guard.log.gz",
+      "bytes": 1169,
+      "sha256": "6005d5fa5e05f4b3ac93bc8e272941b2f0031488dbc5bb212f84bcf42fafb03e",
+      "compressedBytes": 558
+    },
+    {
+      "source": ".tmp/geometry-calibration-verify-fields.guard.log",
+      "archive": "logs/geometry-calibration-verify-fields.guard.log.gz",
+      "bytes": 765,
+      "sha256": "0df7ab34e0bd30a85cb86706cf72df93728ca605af7e8ce2ce22365c472e58eb",
+      "compressedBytes": 347
+    },
+    {
+      "source": ".tmp/geometry-calibration-verify-tied.guard.log",
+      "archive": "logs/geometry-calibration-verify-tied.guard.log.gz",
+      "bytes": 1007,
+      "sha256": "9e94575c98432b091a000d291594ed4171dd36cb6de0dc21cecee55bcde90a4a",
+      "compressedBytes": 401
+    },
+    {
+      "source": ".tmp/geometry-calibration-verify-training.guard.log",
+      "archive": "logs/geometry-calibration-verify-training.guard.log.gz",
+      "bytes": 637,
+      "sha256": "09109794b954de04824988669a8ebb0a417a12641d02eec74d73ead98f94a1e2",
+      "compressedBytes": 274
+    },
+    {
+      "source": ".tmp/geometry-calibration-verify-walks.guard.log",
+      "archive": "logs/geometry-calibration-verify-walks.guard.log.gz",
+      "bytes": 930,
+      "sha256": "7e62673229139636f5a9ae6d576bec9e2a6552866aa672cb3cbe0c77150995e4",
+      "compressedBytes": 453
+    },
+    {
+      "source": ".tmp/geometry-calibration-verify-walks2.guard.log",
+      "archive": "logs/geometry-calibration-verify-walks2.guard.log.gz",
+      "bytes": 569,
+      "sha256": "7c6f73d1f9092a2a70700e0c300f1471f2ee7e34f40cae00cc8d97dd25ece44f",
+      "compressedBytes": 297
+    },
+    {
+      "source": ".tmp/seal_geometry_calibration.py",
+      "archive": "tools/seal_geometry_calibration.py.gz",
+      "bytes": 12376,
+      "sha256": "137cf41f6aaa9df7dcb0478d828d536450cb47596ef352ccff334d3a758b4734",
+      "compressedBytes": 4859
+    },
+    {
+      "source": ".tmp/shared-patch-fixture-green.guard.log",
+      "archive": "logs/shared-patch-fixture-green.guard.log.gz",
+      "bytes": 142,
+      "sha256": "700b33a66b27dd9118a5a1213775e141da8a93bbe2f4ebb17855576848a0d11e",
+      "compressedBytes": 138
+    },
+    {
+      "source": ".tmp/shared-patch-fixture-red.guard.log",
+      "archive": "logs/shared-patch-fixture-red.guard.log.gz",
+      "bytes": 61,
+      "sha256": "2c0771531bd5360dc454dc08141dc4f020c39cb377c1da90d468bae5cc0c2de9",
+      "compressedBytes": 79
+    },
+    {
+      "source": ".tmp/shared-patch-fixture-red2.guard.log",
+      "archive": "logs/shared-patch-fixture-red2.guard.log.gz",
+      "bytes": 452,
+      "sha256": "baa95fd9864ef1997097cd6c3e704c36166e8b4c44e77dca7fe642147d472dcc",
+      "compressedBytes": 309
+    },
+    {
+      "source": ".tmp/test_compact_patch_decoder.py",
+      "archive": "tools/test_compact_patch_decoder.py.gz",
+      "bytes": 1195,
+      "sha256": "7ed6c2f3e581b30b499205b8d608a049e4801f4f801a72178ed53eb20bfe32a4",
+      "compressedBytes": 619
+    },
+    {
+      "source": ".tmp/test_shared_patch_endpoints.py",
+      "archive": "tools/test_shared_patch_endpoints.py.gz",
+      "bytes": 1738,
+      "sha256": "9771f3563cc7d36d5b8e2cf6e50463b2ad359bbd42d01e6d0cc81f703f0fcd5f",
+      "compressedBytes": 894
+    },
+    {
+      "source": ".tmp/train_geometry_calibration.py",
+      "archive": "tools/train_geometry_calibration.py.gz",
+      "bytes": 5997,
+      "sha256": "75ea6e2995d92e828f616f8203c309cfe91ab66eee0ff6ba11c2ef948084334f",
+      "compressedBytes": 2553
+    },
+    {
+      "source": ".tmp/verify_calibrated_macro_walks.py",
+      "archive": "tools/verify_calibrated_macro_walks.py.gz",
+      "bytes": 8222,
+      "sha256": "d79aa81bade0b15b1f9aba84c235ca370387b6b22d73cab8b2f431c1ea383a00",
+      "compressedBytes": 3105
+    },
+    {
+      "source": ".tmp/verify_compact_patch_reward.py",
+      "archive": "tools/verify_compact_patch_reward.py.gz",
+      "bytes": 7832,
+      "sha256": "3241a0812d0ddcfd208a7196f89990b2215905bc7e280d57e038968f0b4e7a83",
+      "compressedBytes": 3021
+    },
+    {
+      "source": ".tmp/verify_compact_tied_reward.py",
+      "archive": "tools/verify_compact_tied_reward.py.gz",
+      "bytes": 8915,
+      "sha256": "80d95d9063b08ac07ae15966be327665dc4b26745bd62012326accf1e6abab47",
+      "compressedBytes": 3202
+    },
+    {
+      "source": ".tmp/verify_geometry_calibration.py",
+      "archive": "tools/verify_geometry_calibration.py.gz",
+      "bytes": 5970,
+      "sha256": "0639642b0c2795749332cea95ba1966fd3a90b532108fa883a1af12b97a812cc",
+      "compressedBytes": 2512
+    },
+    {
+      "source": ".tmp/verify_geometry_calibration_archive.py",
+      "archive": "tools/verify_geometry_calibration_archive.py.gz",
+      "bytes": 2446,
+      "sha256": "8bc235ae33476172f84fdeb2a7ae0874c938115138412ef9ff62a72a29997689",
+      "compressedBytes": 1093
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/diagnosis.json",
+      "archive": "run/diagnosis.json.gz",
+      "bytes": 2887,
+      "sha256": "97c72f13a8c238e123162039f7aecde4139b94df59ada7a97ac51813cf7c4dc0",
+      "compressedBytes": 912
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/actions.jsonl",
+      "archive": "run/individual-field1/actions.jsonl.gz",
+      "bytes": 12280,
+      "sha256": "8c71cf7a3311bee8f1ba0e092595dcaa09e0dd27bee5886a55419399036f58d2",
+      "compressedBytes": 2800
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/initial-model.npz",
+      "archive": "run/individual-field1/initial-model.npz.gz",
+      "bytes": 12143,
+      "sha256": "4f28d91ac6ea770d58ecaa628473d4922abd10d6913750c24a1eb74e8acfd81b",
+      "compressedBytes": 9903
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/learned.tsv.stats.json",
+      "archive": "run/individual-field1/learned.tsv.stats.json.gz",
+      "bytes": 967,
+      "sha256": "4ed8abe28050d953fd1d36a22e3c610188f78963d4d9d032226f4965ba15ea6d",
+      "compressedBytes": 451
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-004.npz",
+      "archive": "run/individual-field1/model-step-004.npz.gz",
+      "bytes": 12291,
+      "sha256": "71200e23c7a680224462ee647069f2ddcfbbd2154d04d46f4c9daab956c2738a",
+      "compressedBytes": 10054
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-008.npz",
+      "archive": "run/individual-field1/model-step-008.npz.gz",
+      "bytes": 12291,
+      "sha256": "79602422c47868b8e484d1fe1c8c708d0fb5ebd76ebde89a7bd4a65c7b0e6d92",
+      "compressedBytes": 10053
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-012.npz",
+      "archive": "run/individual-field1/model-step-012.npz.gz",
+      "bytes": 12295,
+      "sha256": "004d6d66cb13083343812d588941c3ec3840015b6411d7a7daf51ce4c4fe53ff",
+      "compressedBytes": 10057
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-016.npz",
+      "archive": "run/individual-field1/model-step-016.npz.gz",
+      "bytes": 12293,
+      "sha256": "99c25524a11747001c1471a3ebc724850c26336deb767ea48e7ea70cfc286d1b",
+      "compressedBytes": 10055
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-020.npz",
+      "archive": "run/individual-field1/model-step-020.npz.gz",
+      "bytes": 12293,
+      "sha256": "8c32d1d787a9cd53d352a6624c148b97a4607b82eec899a7742db0c14bdd3221",
+      "compressedBytes": 10055
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-024.npz",
+      "archive": "run/individual-field1/model-step-024.npz.gz",
+      "bytes": 12292,
+      "sha256": "935fcd320f689d6803202ce6e44bc9524c5c13eb547e6e32b5e7be3fa03cd90e",
+      "compressedBytes": 10056
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-028.npz",
+      "archive": "run/individual-field1/model-step-028.npz.gz",
+      "bytes": 12294,
+      "sha256": "d4b35484a69170fd090bbc7ced95b76dc4b585550570e1dde496092a5a5756a0",
+      "compressedBytes": 10059
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-032.npz",
+      "archive": "run/individual-field1/model-step-032.npz.gz",
+      "bytes": 12293,
+      "sha256": "9ed0698df4f95df9b78433f2344ab3993c6c9df1c71823ada44754e7bbc2f788",
+      "compressedBytes": 10054
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-036.npz",
+      "archive": "run/individual-field1/model-step-036.npz.gz",
+      "bytes": 12293,
+      "sha256": "c14b92150af49833824985b0f72c316a073794b0e8bb91a6ae4a466e5cf50f1e",
+      "compressedBytes": 10059
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-040.npz",
+      "archive": "run/individual-field1/model-step-040.npz.gz",
+      "bytes": 12294,
+      "sha256": "8dc10845b9efb599931151b295960a5102c2c7ae59f5820a179cb8bca407466c",
+      "compressedBytes": 10058
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-044.npz",
+      "archive": "run/individual-field1/model-step-044.npz.gz",
+      "bytes": 12293,
+      "sha256": "3051c05129403a9e3b4421a64574fe7e98da7538c1867e8acccb8baa3dc51d2c",
+      "compressedBytes": 10057
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-048.npz",
+      "archive": "run/individual-field1/model-step-048.npz.gz",
+      "bytes": 12294,
+      "sha256": "23c52152ec5f3fc22497304452e7779b472715731e5004a93753e4a469380d7f",
+      "compressedBytes": 10060
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-052.npz",
+      "archive": "run/individual-field1/model-step-052.npz.gz",
+      "bytes": 12293,
+      "sha256": "0db60bc609099f012149238ae1c2f5f7af8997c18da0ca4b5fea23dd399350cc",
+      "compressedBytes": 10057
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-056.npz",
+      "archive": "run/individual-field1/model-step-056.npz.gz",
+      "bytes": 12293,
+      "sha256": "3aad9648138cc144cb19bff64811f9ed253ae41af04159258d2899aea1648f39",
+      "compressedBytes": 10058
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-060.npz",
+      "archive": "run/individual-field1/model-step-060.npz.gz",
+      "bytes": 12293,
+      "sha256": "219670dbd75c45b30a3e890885f59e8329b659830983d2b0209a94ecda14301a",
+      "compressedBytes": 10059
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-064.npz",
+      "archive": "run/individual-field1/model-step-064.npz.gz",
+      "bytes": 12294,
+      "sha256": "57aa046366c74be8ef72f2b980e0a40f64365b8b73d6af540f94fd3240c86301",
+      "compressedBytes": 10058
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-068.npz",
+      "archive": "run/individual-field1/model-step-068.npz.gz",
+      "bytes": 12292,
+      "sha256": "5821f52053231d8e7387bfd803da6b0ba9aff64c6681b4df924ebec91e616064",
+      "compressedBytes": 10057
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-072.npz",
+      "archive": "run/individual-field1/model-step-072.npz.gz",
+      "bytes": 12293,
+      "sha256": "d8daa2d02454ad64ad7b4d0dcf6c12652c1013668c3cacac304388583131fc8e",
+      "compressedBytes": 10058
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-076.npz",
+      "archive": "run/individual-field1/model-step-076.npz.gz",
+      "bytes": 12292,
+      "sha256": "be438f9021f444c41a1b05c4f1a361666577764bb27f5214e0b43c689b8092d9",
+      "compressedBytes": 10057
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-080.npz",
+      "archive": "run/individual-field1/model-step-080.npz.gz",
+      "bytes": 12293,
+      "sha256": "457cff094cf303841cb620c92e312ef772a6deb21be2f66f5f95b09518b95d4a",
+      "compressedBytes": 10056
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-084.npz",
+      "archive": "run/individual-field1/model-step-084.npz.gz",
+      "bytes": 12293,
+      "sha256": "fcbae2d840c4696fa9cd17e690a75185ccf5e1014c66092cd12c17798d1c864f",
+      "compressedBytes": 10057
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-088.npz",
+      "archive": "run/individual-field1/model-step-088.npz.gz",
+      "bytes": 12292,
+      "sha256": "b9bfc3c846f716a3cc93cebaede32cb0c45705f74dd0501e8c49c22efff498ca",
+      "compressedBytes": 10057
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-092.npz",
+      "archive": "run/individual-field1/model-step-092.npz.gz",
+      "bytes": 12294,
+      "sha256": "6db548bf7f09cf6a11a33e827e0962294f75614b61766e25aec7ddc9697fa0d7",
+      "compressedBytes": 10058
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-096.npz",
+      "archive": "run/individual-field1/model-step-096.npz.gz",
+      "bytes": 12292,
+      "sha256": "289ce49fcd913ed58312c4380391710345ad5cb68e453bf131c707b7d9b0196f",
+      "compressedBytes": 10056
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-100.npz",
+      "archive": "run/individual-field1/model-step-100.npz.gz",
+      "bytes": 12293,
+      "sha256": "3b6e325d3d9f9812049d9acc6e02761250ca61aaeb244989baef33658f248ab2",
+      "compressedBytes": 10059
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/model-step-104.npz",
+      "archive": "run/individual-field1/model-step-104.npz.gz",
+      "bytes": 12295,
+      "sha256": "4734fb14349d6106778bd6397a1dca90f9c7cf45017abcaae526881aaee36df9",
+      "compressedBytes": 10060
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/observations.npz",
+      "archive": "run/individual-field1/observations.npz.gz",
+      "bytes": 260076,
+      "sha256": "d0c6fcc505d3a574b2faf85bb5b9ebe3b09b38cd333c84e7d501d0d53fef85b9",
+      "compressedBytes": 260150
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/report.json",
+      "archive": "run/individual-field1/report.json.gz",
+      "bytes": 5096,
+      "sha256": "e8a11ab7f48452b7ea88774840893377be9b7be97b333dbc1d540b478428beed",
+      "compressedBytes": 2310
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/training.jsonl",
+      "archive": "run/individual-field1/training.jsonl.gz",
+      "bytes": 154476,
+      "sha256": "2165b318fc962251b64ee707b5727a97b2d1c3b9c4bf2c0bfb6d5ed2ae576887",
+      "compressedBytes": 32612
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-macro1/actions.jsonl",
+      "archive": "run/individual-macro1/actions.jsonl.gz",
+      "bytes": 3233,
+      "sha256": "b4da4873dcd96054668942cac890f7e8617aac61d600b1d72cd4ced7e9b99d9e",
+      "compressedBytes": 899
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-macro1/failed-runner-v1.py",
+      "archive": "run/individual-macro1/failed-runner-v1.py.gz",
+      "bytes": 9404,
+      "sha256": "c1f43b280ebf5bc5134ce88a7cee77b8933e6093f7c78dd3cee9b3edc63ec619",
+      "compressedBytes": 3765
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-macro1/observations.npz",
+      "archive": "run/individual-macro1/observations.npz.gz",
+      "bytes": 323602,
+      "sha256": "0b7e45454f9edbaf8926bb6e7e0ba4aaf94e8238c7f467ac936b66bce3bad664",
+      "compressedBytes": 323615
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-macro1/ranking.jsonl",
+      "archive": "run/individual-macro1/ranking.jsonl.gz",
+      "bytes": 327305,
+      "sha256": "5c0cbacdd95dd917f5b30b599b0055bc4d7d120535394c272d024658f0a19390",
+      "compressedBytes": 93230
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-tied1/actions.jsonl",
+      "archive": "run/individual-tied1/actions.jsonl.gz",
+      "bytes": 3288,
+      "sha256": "82f36683aca79a60d572dd918469540536393ca00f414f216634586cab9afeb1",
+      "compressedBytes": 906
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-tied1/initial-model.npz",
+      "archive": "run/individual-field1/initial-model.npz.gz",
+      "bytes": 12143,
+      "sha256": "4f28d91ac6ea770d58ecaa628473d4922abd10d6913750c24a1eb74e8acfd81b",
+      "compressedBytes": 9903
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-tied1/learned.tsv.stats.json",
+      "archive": "run/individual-tied1/learned.tsv.stats.json.gz",
+      "bytes": 966,
+      "sha256": "727d4975731e9f4d6894ede43a79ef8bfe2a70cfc537a3584ecc066fcdac5fa5",
+      "compressedBytes": 450
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-tied1/model-step-004.npz",
+      "archive": "run/individual-tied1/model-step-004.npz.gz",
+      "bytes": 12293,
+      "sha256": "cb401d5a4022957bf6b4e9c9e5b5ecb40da450486b5ed1a7c9ceade26af00308",
+      "compressedBytes": 10058
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-tied1/model-step-008.npz",
+      "archive": "run/individual-tied1/model-step-008.npz.gz",
+      "bytes": 12292,
+      "sha256": "23f361651bb618e9290c348ba81fe2c63dbd563859f2478fd218997963a7416f",
+      "compressedBytes": 10055
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-tied1/model-step-012.npz",
+      "archive": "run/individual-tied1/model-step-012.npz.gz",
+      "bytes": 12294,
+      "sha256": "5304fa0ef7479b2f221cd0a4289e14a86199e725454e83e7bfa14fccd6a8e4e0",
+      "compressedBytes": 10055
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-tied1/model-step-016.npz",
+      "archive": "run/individual-tied1/model-step-016.npz.gz",
+      "bytes": 12294,
+      "sha256": "aa839d12396f9e0ec643c9bce9b379e6a9a8c076d771943b6e97c346481af0e2",
+      "compressedBytes": 10057
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-tied1/model-step-020.npz",
+      "archive": "run/individual-tied1/model-step-020.npz.gz",
+      "bytes": 12294,
+      "sha256": "e240ee1d1ac0dc3ae1cd62957d193f4b3d49b58bb7874aab6088d8c51f29586c",
+      "compressedBytes": 10056
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-tied1/model-step-024.npz",
+      "archive": "run/individual-tied1/model-step-024.npz.gz",
+      "bytes": 12294,
+      "sha256": "3918dc3834c6a0568e22807b1730533d6f32a4788e60c14752cc2538b926ccc5",
+      "compressedBytes": 10061
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-tied1/model-step-028.npz",
+      "archive": "run/individual-tied1/model-step-028.npz.gz",
+      "bytes": 12293,
+      "sha256": "220cccbee295b4ca20c53a3b33284298f2cf138349db66e61ced7c6a350e9f9d",
+      "compressedBytes": 10059
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-tied1/observations.npz",
+      "archive": "run/individual-field1/observations.npz.gz",
+      "bytes": 260076,
+      "sha256": "d0c6fcc505d3a574b2faf85bb5b9ebe3b09b38cd333c84e7d501d0d53fef85b9",
+      "compressedBytes": 260150
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-tied1/report.json",
+      "archive": "run/individual-tied1/report.json.gz",
+      "bytes": 5515,
+      "sha256": "a689ee1cff22bd5ddecca7ab931f374495d4a58a1b8534af807edfcbcf4317dc",
+      "compressedBytes": 2512
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-tied1/training.jsonl",
+      "archive": "run/individual-tied1/training.jsonl.gz",
+      "bytes": 44531,
+      "sha256": "ce501a5a1717c7921606498188722e298bd85c7382589a1bc8564a9b6779f2fb",
+      "compressedBytes": 9639
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-walk1/actions.jsonl",
+      "archive": "run/individual-walk1/actions.jsonl.gz",
+      "bytes": 2605,
+      "sha256": "7266b837245ae87022d9efe2a0932e68c03ef7037312ff8e10ebfa922c8e8880",
+      "compressedBytes": 913
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-walk1/learned.tsv.stats.json",
+      "archive": "run/individual-walk1/learned.tsv.stats.json.gz",
+      "bytes": 966,
+      "sha256": "9e4403f257436628a330c138ef651cb87ff5b185960c5d9eaeb91076949d8fe0",
+      "compressedBytes": 450
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-walk1/observation-00.npz",
+      "archive": "run/individual-walk1/observation-00.npz.gz",
+      "bytes": 280433,
+      "sha256": "b9ef3073a480b65260d0561bc3f4b13726832860c51f3b7c747b0e2222154bb4",
+      "compressedBytes": 279894
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-walk1/observation-01.npz",
+      "archive": "run/individual-walk1/observation-01.npz.gz",
+      "bytes": 280520,
+      "sha256": "a096750009ccb663bff3e73498c03c16e6b94f7d018f7f57f55cf058829cc27f",
+      "compressedBytes": 279851
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-walk1/observation-02.npz",
+      "archive": "run/individual-walk1/observation-02.npz.gz",
+      "bytes": 280916,
+      "sha256": "351a8753753f61237747f319d7088e6f8de04160464840beccb1a23fc398bb65",
+      "compressedBytes": 280450
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-walk1/ranking-00.jsonl",
+      "archive": "run/individual-walk1/ranking-00.jsonl.gz",
+      "bytes": 98707,
+      "sha256": "568b1d862db1fac6639dedbc60cbd7e2849b60d93f93ffdd656623fa4921ae65",
+      "compressedBytes": 35809
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-walk1/ranking-01.jsonl",
+      "archive": "run/individual-walk1/ranking-01.jsonl.gz",
+      "bytes": 100015,
+      "sha256": "0fd80f536e205b2d4a1bdffb2f54d0122e99861fb1b5f59e5da9e641a548f27a",
+      "compressedBytes": 36236
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-walk1/ranking-02.jsonl",
+      "archive": "run/individual-walk1/ranking-02.jsonl.gz",
+      "bytes": 102062,
+      "sha256": "6c9b38ec25ac471617b8a88157ccdb1eea275aca280d1a75bf6467aa1a58dd0a",
+      "compressedBytes": 36874
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-walk1/report.json",
+      "archive": "run/individual-walk1/report.json.gz",
+      "bytes": 42731,
+      "sha256": "c5185c2ff937b2a859f0b2a86e7266f1d50d67f559f472ce79ce10fe415aac1d",
+      "compressedBytes": 10496
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/actions.jsonl",
+      "archive": "run/overview-field1/actions.jsonl.gz",
+      "bytes": 14982,
+      "sha256": "f00ad26c26b375e2ea9ad6fe916b1cfc58a81dacc96154ba117769c4809d4c7e",
+      "compressedBytes": 3140
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/initial-model.npz",
+      "archive": "run/overview-field1/initial-model.npz.gz",
+      "bytes": 12223,
+      "sha256": "d3bbc963b8177a448a2e502f05bbce4e031b74bce8767662dece35eaaaf74abe",
+      "compressedBytes": 9989
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/learned.tsv.stats.json",
+      "archive": "run/overview-field1/learned.tsv.stats.json.gz",
+      "bytes": 963,
+      "sha256": "a4484325fa1566054059f140f1c5a6fd748a310c1ea1e9b6cde15faa4ee06b7f",
+      "compressedBytes": 459
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-004.npz",
+      "archive": "run/overview-field1/model-step-004.npz.gz",
+      "bytes": 12372,
+      "sha256": "a36972c09bfe1088ab2f04a674cae886c24757eb0c5ef100b87068aa5aa0c900",
+      "compressedBytes": 10145
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-008.npz",
+      "archive": "run/overview-field1/model-step-008.npz.gz",
+      "bytes": 12372,
+      "sha256": "390af8a0bb7eed66caa8898f03797e0b72854ecec8aee3457f378bcdd55ded11",
+      "compressedBytes": 10139
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-012.npz",
+      "archive": "run/overview-field1/model-step-012.npz.gz",
+      "bytes": 12375,
+      "sha256": "8c9f6edd80a051cc7ef849a56c74de8c4b71d23b59e309340adfe0e7b8f47dcd",
+      "compressedBytes": 10143
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-016.npz",
+      "archive": "run/overview-field1/model-step-016.npz.gz",
+      "bytes": 12373,
+      "sha256": "d47c1810bf11dc8c049db13c142f9ca5aa892205e877d31414102b71354eb7a8",
+      "compressedBytes": 10144
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-020.npz",
+      "archive": "run/overview-field1/model-step-020.npz.gz",
+      "bytes": 12375,
+      "sha256": "b21337e159395a58105cf3301eb65f8cb0dea20189ec8a29a36fbf3c68d35942",
+      "compressedBytes": 10147
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-024.npz",
+      "archive": "run/overview-field1/model-step-024.npz.gz",
+      "bytes": 12373,
+      "sha256": "9a3461084fdf2561a6cf96a623c584e4e96f05b71e52f89cd46004023e686965",
+      "compressedBytes": 10146
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-028.npz",
+      "archive": "run/overview-field1/model-step-028.npz.gz",
+      "bytes": 12373,
+      "sha256": "8ead9af600ebde5b2aef8e63b6da7a115336b5f22c50438a35d23f767ae40e4e",
+      "compressedBytes": 10142
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-032.npz",
+      "archive": "run/overview-field1/model-step-032.npz.gz",
+      "bytes": 12373,
+      "sha256": "32148af4de32caee5001541fb87b4973211158ea5ca1942f270fa8a6ea8b851f",
+      "compressedBytes": 10143
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-036.npz",
+      "archive": "run/overview-field1/model-step-036.npz.gz",
+      "bytes": 12373,
+      "sha256": "cc47915756e6788ce25041c83e1f0e68d4164d3a7e562c1d046342f2b5a63172",
+      "compressedBytes": 10142
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-040.npz",
+      "archive": "run/overview-field1/model-step-040.npz.gz",
+      "bytes": 12373,
+      "sha256": "30640613f553184ab2200db365ce2c49e781489e48f8ed1c7ad293df82810b3f",
+      "compressedBytes": 10145
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-044.npz",
+      "archive": "run/overview-field1/model-step-044.npz.gz",
+      "bytes": 12373,
+      "sha256": "e6eca8f5bd9881ebae6b2525ae9b1ad8c8c29a21fd3243c8928776b401e8e79d",
+      "compressedBytes": 10146
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-048.npz",
+      "archive": "run/overview-field1/model-step-048.npz.gz",
+      "bytes": 12374,
+      "sha256": "4792dc2f1c976f077e470ec14a22c7f3441f42cf58dd320870632654221638ec",
+      "compressedBytes": 10146
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-052.npz",
+      "archive": "run/overview-field1/model-step-052.npz.gz",
+      "bytes": 12374,
+      "sha256": "66cfd0d3853a4707f5d93da7d5137bd7e56aff9a02cd56c62ef3a9ed5c5e65a2",
+      "compressedBytes": 10144
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-056.npz",
+      "archive": "run/overview-field1/model-step-056.npz.gz",
+      "bytes": 12373,
+      "sha256": "490e472f5c88633b5640d71858d4728c0717e540584309f949793fd0d0753803",
+      "compressedBytes": 10144
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-060.npz",
+      "archive": "run/overview-field1/model-step-060.npz.gz",
+      "bytes": 12373,
+      "sha256": "2bb93be510cde416934e3f1c8c77973ae3fa52b9187e80247da28e9d8d159db2",
+      "compressedBytes": 10145
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-064.npz",
+      "archive": "run/overview-field1/model-step-064.npz.gz",
+      "bytes": 12372,
+      "sha256": "7a048445cff22af45841527f5fb9a15cba55286b81a5d48991c025daa379f64e",
+      "compressedBytes": 10145
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-068.npz",
+      "archive": "run/overview-field1/model-step-068.npz.gz",
+      "bytes": 12373,
+      "sha256": "1e2872d8d543b722803bee7f54bd720df1c4be81daa62a1402f8197253beb512",
+      "compressedBytes": 10147
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-072.npz",
+      "archive": "run/overview-field1/model-step-072.npz.gz",
+      "bytes": 12374,
+      "sha256": "0c675b9ecb4d7156ad4f77789a08be2f7dd354b68a4dc453695cc4d948e3c774",
+      "compressedBytes": 10146
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-076.npz",
+      "archive": "run/overview-field1/model-step-076.npz.gz",
+      "bytes": 12372,
+      "sha256": "c8d8425b3338daf2cda98528a1a130f0d47c051e635e4e70fd6f0d618f04d99f",
+      "compressedBytes": 10144
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-080.npz",
+      "archive": "run/overview-field1/model-step-080.npz.gz",
+      "bytes": 12373,
+      "sha256": "8068ecc530af623790581b982d17ac7da3c1cede3ebf7a938b850cafc72a70bc",
+      "compressedBytes": 10146
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-084.npz",
+      "archive": "run/overview-field1/model-step-084.npz.gz",
+      "bytes": 12374,
+      "sha256": "861c388bf935393860f9af446bd5573af5da89c40cb0af534424bb61fb434a6c",
+      "compressedBytes": 10146
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-088.npz",
+      "archive": "run/overview-field1/model-step-088.npz.gz",
+      "bytes": 12371,
+      "sha256": "9d42c6cbc64921b1ffe2013c8d9a69d2eefd1a9c6146f5a600021f66b5c02e61",
+      "compressedBytes": 10141
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-092.npz",
+      "archive": "run/overview-field1/model-step-092.npz.gz",
+      "bytes": 12372,
+      "sha256": "91afc284ca2e27a5c7712b4d8afef01545ae36e90a801f3b7a4f494ac8fae0fa",
+      "compressedBytes": 10144
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-096.npz",
+      "archive": "run/overview-field1/model-step-096.npz.gz",
+      "bytes": 12372,
+      "sha256": "38c19f11960b115e85cdf47cfd9044c9e30a83b0c8a1b8ff2b35dd8f16e30503",
+      "compressedBytes": 10147
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-100.npz",
+      "archive": "run/overview-field1/model-step-100.npz.gz",
+      "bytes": 12374,
+      "sha256": "6acdd67f421213d3411f0a9ae988a21df86cc149712c8e3e223d5a7d14251b64",
+      "compressedBytes": 10149
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-104.npz",
+      "archive": "run/overview-field1/model-step-104.npz.gz",
+      "bytes": 12377,
+      "sha256": "ba047ed97d41121d6b548f92361138d57ce03cd6cea581d231ec21dfd889c070",
+      "compressedBytes": 10149
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-108.npz",
+      "archive": "run/overview-field1/model-step-108.npz.gz",
+      "bytes": 12376,
+      "sha256": "c1c435b144e4081f71d1b0887d924884e053ab213cfd5165bc266d03de76685e",
+      "compressedBytes": 10149
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-112.npz",
+      "archive": "run/overview-field1/model-step-112.npz.gz",
+      "bytes": 12374,
+      "sha256": "0ff000ee485d8963e864c1db273f63be0b7247542637423d4b3d366e89a6f740",
+      "compressedBytes": 10147
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-116.npz",
+      "archive": "run/overview-field1/model-step-116.npz.gz",
+      "bytes": 12374,
+      "sha256": "e073e25ed78f2612146c8079cf6afb69fadfe6dc316e8c0e53da15cef5d4e3af",
+      "compressedBytes": 10147
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-120.npz",
+      "archive": "run/overview-field1/model-step-120.npz.gz",
+      "bytes": 12376,
+      "sha256": "5dfd605189a5fd2d565e5cb71aeb92829173f7048d05ed0fd4c5d4e9a8fc10a7",
+      "compressedBytes": 10148
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-124.npz",
+      "archive": "run/overview-field1/model-step-124.npz.gz",
+      "bytes": 12376,
+      "sha256": "f43fefcc635ea3a41d553e62530ac618e2886a6379a78ceba7daca31683eb325",
+      "compressedBytes": 10146
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/model-step-128.npz",
+      "archive": "run/overview-field1/model-step-128.npz.gz",
+      "bytes": 12376,
+      "sha256": "2aed88d627e60ffbb8477921779bffc448355eb07c460799acdd050a699df001",
+      "compressedBytes": 10149
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/observations.npz",
+      "archive": "run/overview-field1/observations.npz.gz",
+      "bytes": 234084,
+      "sha256": "b0c5bf62c55a3a1cd2fd113cea80fd55ff8d6e1612979da007b107f0dce1f455",
+      "compressedBytes": 234170
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/report.json",
+      "archive": "run/overview-field1/report.json.gz",
+      "bytes": 5081,
+      "sha256": "6851bb77dc69909efe9fae6aff33667dc0ab5b8b3c9bd7c017819463e1c22261",
+      "compressedBytes": 2465
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/training.jsonl",
+      "archive": "run/overview-field1/training.jsonl.gz",
+      "bytes": 181683,
+      "sha256": "8abee382c1279cd9bae610fd20e639c48d2a7f9f6952c00fcf4d0bd5d5368f8f",
+      "compressedBytes": 33711
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/actions.jsonl",
+      "archive": "run/overview-tied1/actions.jsonl.gz",
+      "bytes": 7470,
+      "sha256": "edd79bb827934432c88a217571172ecc1fb3e264932f1d742382f05803d01794",
+      "compressedBytes": 1731
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/initial-model.npz",
+      "archive": "run/overview-field1/initial-model.npz.gz",
+      "bytes": 12223,
+      "sha256": "d3bbc963b8177a448a2e502f05bbce4e031b74bce8767662dece35eaaaf74abe",
+      "compressedBytes": 9989
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/learned.tsv.stats.json",
+      "archive": "run/overview-tied1/learned.tsv.stats.json.gz",
+      "bytes": 963,
+      "sha256": "075dca0a080bce3fa86a59cd1a6f1abfb3b7feb525b313842a50cfe339da99ac",
+      "compressedBytes": 459
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/model-step-004.npz",
+      "archive": "run/overview-tied1/model-step-004.npz.gz",
+      "bytes": 12372,
+      "sha256": "c3a783a2c0f2292b8efb31533c91d46c18f9283e77d19b1fe297bc6a43d8f7e0",
+      "compressedBytes": 10144
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/model-step-008.npz",
+      "archive": "run/overview-tied1/model-step-008.npz.gz",
+      "bytes": 12372,
+      "sha256": "39e5d531555ad584457c8760940dd4494459b8e4661c796a69953b584e030f8e",
+      "compressedBytes": 10140
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/model-step-012.npz",
+      "archive": "run/overview-tied1/model-step-012.npz.gz",
+      "bytes": 12374,
+      "sha256": "699a20469d921d17ce3e8486bd1332db886a0232b93c67c67fe33871dbc072c4",
+      "compressedBytes": 10145
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/model-step-016.npz",
+      "archive": "run/overview-tied1/model-step-016.npz.gz",
+      "bytes": 12374,
+      "sha256": "ff1ecec5b658c460f513d8ceb204c10075bf47b5216f7ddff8375506e6cce9ef",
+      "compressedBytes": 10149
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/model-step-020.npz",
+      "archive": "run/overview-tied1/model-step-020.npz.gz",
+      "bytes": 12374,
+      "sha256": "e145792d7ef86c6769bbe90825687b1f4191ffce82a03957319b0aa61bb5e8f5",
+      "compressedBytes": 10142
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/model-step-024.npz",
+      "archive": "run/overview-tied1/model-step-024.npz.gz",
+      "bytes": 12374,
+      "sha256": "b0cff80713326374d204bcfba7773b82f089f0a222c5a78d2f876c0980f16af5",
+      "compressedBytes": 10147
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/model-step-028.npz",
+      "archive": "run/overview-tied1/model-step-028.npz.gz",
+      "bytes": 12373,
+      "sha256": "696ae156fd0bfaabcef57d6d45de49996ef3897f3280cc9f6745b52d0e73aef9",
+      "compressedBytes": 10144
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/model-step-032.npz",
+      "archive": "run/overview-tied1/model-step-032.npz.gz",
+      "bytes": 12373,
+      "sha256": "e84af0f83378e3167223c4879be49b44939c7a1ae0510168aaf2fb41b01e1df5",
+      "compressedBytes": 10146
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/model-step-036.npz",
+      "archive": "run/overview-tied1/model-step-036.npz.gz",
+      "bytes": 12373,
+      "sha256": "610e3fd3d274b57d1f1b318dd8dc92410e89f89e171427bdaf5a618f42c65c19",
+      "compressedBytes": 10148
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/model-step-040.npz",
+      "archive": "run/overview-tied1/model-step-040.npz.gz",
+      "bytes": 12376,
+      "sha256": "cae89bd0a33f0cd6ed321c8e36f0748a54ada02fef6eb000554341fbe3dd0a0e",
+      "compressedBytes": 10149
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/model-step-044.npz",
+      "archive": "run/overview-tied1/model-step-044.npz.gz",
+      "bytes": 12373,
+      "sha256": "2d6b97b2312d93af4e1375cb08ee5e4694c5afbfc209d0d9427add04ed6b737c",
+      "compressedBytes": 10146
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/model-step-048.npz",
+      "archive": "run/overview-tied1/model-step-048.npz.gz",
+      "bytes": 12373,
+      "sha256": "2a051759cb2925820d86e9fcd369b211b759ba7ebae0e185205ad1c9d565aec3",
+      "compressedBytes": 10145
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/model-step-052.npz",
+      "archive": "run/overview-tied1/model-step-052.npz.gz",
+      "bytes": 12374,
+      "sha256": "f9dc39165cd911623cdb5cdd9f2df367b479fa59e5b485b20c417b17dae0ab3f",
+      "compressedBytes": 10146
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/model-step-056.npz",
+      "archive": "run/overview-tied1/model-step-056.npz.gz",
+      "bytes": 12373,
+      "sha256": "8f840f2399fc1feafd811fc9c9f6536d0045c9e502e2e806ad6f53cce8a90374",
+      "compressedBytes": 10145
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/model-step-060.npz",
+      "archive": "run/overview-tied1/model-step-060.npz.gz",
+      "bytes": 12373,
+      "sha256": "c369a7596f689a354897ff146cf645b647f37f0c45f3a08d1f178a7b9f17cc5e",
+      "compressedBytes": 10146
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/model-step-064.npz",
+      "archive": "run/overview-tied1/model-step-064.npz.gz",
+      "bytes": 12373,
+      "sha256": "3d4ac7cf9a086e0a277616859a0b2512125317c297bc30e4130351672cfdae0d",
+      "compressedBytes": 10141
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/observations.npz",
+      "archive": "run/overview-field1/observations.npz.gz",
+      "bytes": 234084,
+      "sha256": "b0c5bf62c55a3a1cd2fd113cea80fd55ff8d6e1612979da007b107f0dce1f455",
+      "compressedBytes": 234170
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/report.json",
+      "archive": "run/overview-tied1/report.json.gz",
+      "bytes": 5501,
+      "sha256": "035d00f833dc18fb6241fafd56245cb3b2677fc291221d497ded84e11e1df256",
+      "compressedBytes": 2674
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/training.jsonl",
+      "archive": "run/overview-tied1/training.jsonl.gz",
+      "bytes": 90947,
+      "sha256": "38e0ee617eabb19db1d8bc08c0553d4fe2e22bae7d53c4b5ddf43f5112bbd717",
+      "compressedBytes": 17413
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/actions.jsonl",
+      "archive": "run/overview-walk1/actions.jsonl.gz",
+      "bytes": 22737,
+      "sha256": "3fc0a10740875e44c66342f69ce969ee67b7a6665ce27b97aee9647b9270a457",
+      "compressedBytes": 6479
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/learned.tsv.stats.json",
+      "archive": "run/overview-walk1/learned.tsv.stats.json.gz",
+      "bytes": 963,
+      "sha256": "0ce11a442c350b5131bd2ac0a6bd8db77e62a3a571ec8bccc6f81028c5a8cab8",
+      "compressedBytes": 458
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/observation-00.npz",
+      "archive": "run/overview-walk1/observation-00.npz.gz",
+      "bytes": 243196,
+      "sha256": "a7758f9a11ebdc9d2ee2edc9355576333a46814426d65541c24666c9565530f2",
+      "compressedBytes": 242565
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/observation-01.npz",
+      "archive": "run/overview-walk1/observation-01.npz.gz",
+      "bytes": 243417,
+      "sha256": "775ee22d21c89eb03ef73bfc0b9ae43b67e34fc44065d55e80b96c65bf2f1f86",
+      "compressedBytes": 242986
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/observation-02.npz",
+      "archive": "run/overview-walk1/observation-02.npz.gz",
+      "bytes": 244712,
+      "sha256": "e16ede4263210b472c16629456c07bd1249e035e8e42e68bf8d70c89b35b809e",
+      "compressedBytes": 244376
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/observation-03.npz",
+      "archive": "run/overview-walk1/observation-03.npz.gz",
+      "bytes": 244943,
+      "sha256": "b1792e037974870b7975c511346594d96e32dc560ccfd20df0418f3ed8856f17",
+      "compressedBytes": 244610
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/observation-04.npz",
+      "archive": "run/overview-walk1/observation-04.npz.gz",
+      "bytes": 245043,
+      "sha256": "65cf82d93019c35862c62b8b8ff24e33a488a102759b0aa959c596068f5ace6f",
+      "compressedBytes": 244716
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/observation-05.npz",
+      "archive": "run/overview-walk1/observation-05.npz.gz",
+      "bytes": 246010,
+      "sha256": "7e1b954b8ffb5be58987e47c21db28f3fd60c6c0dff0c8fc27239d9c0daa7400",
+      "compressedBytes": 245412
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/observation-06.npz",
+      "archive": "run/overview-walk1/observation-06.npz.gz",
+      "bytes": 245066,
+      "sha256": "550133bde1893a481a21a87d9b0ef291f77822862b107a98c5bfa5bc730efafc",
+      "compressedBytes": 244485
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/observation-07.npz",
+      "archive": "run/overview-walk1/observation-07.npz.gz",
+      "bytes": 245765,
+      "sha256": "d78329a3d2198ee8a937cf3937af8b87dac298643dc6e3e3cd6a25f1cf7d77a4",
+      "compressedBytes": 245359
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/ranking-00.jsonl",
+      "archive": "run/overview-walk1/ranking-00.jsonl.gz",
+      "bytes": 38041,
+      "sha256": "d1a5883fd3a2826eb3b3bb60f6c4e77333184e5a8ec0a4d4c485c01fd287771f",
+      "compressedBytes": 13944
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/ranking-01.jsonl",
+      "archive": "run/overview-walk1/ranking-01.jsonl.gz",
+      "bytes": 38113,
+      "sha256": "86aa159342ce8c88c37fb661d6126ad8b74a50091b135474fb81186cfd14f10f",
+      "compressedBytes": 13966
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/ranking-02.jsonl",
+      "archive": "run/overview-walk1/ranking-02.jsonl.gz",
+      "bytes": 40168,
+      "sha256": "043793dcb045ac6a9c3ae8bc364dc7ffad9e4937d1ab872080ab6a5cfd284bcd",
+      "compressedBytes": 14681
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/ranking-03.jsonl",
+      "archive": "run/overview-walk1/ranking-03.jsonl.gz",
+      "bytes": 39504,
+      "sha256": "7f23fa7da9c04ca4fc0e79daed0faf6ea062e3c33e686a6deaa2a0f90f1a6e5c",
+      "compressedBytes": 14461
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/ranking-04.jsonl",
+      "archive": "run/overview-walk1/ranking-04.jsonl.gz",
+      "bytes": 39561,
+      "sha256": "3e52ca05bcf05aefc90abc15c8c14a433b56b6bb1fcad40f4096773344dc5e67",
+      "compressedBytes": 14455
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/ranking-05.jsonl",
+      "archive": "run/overview-walk1/ranking-05.jsonl.gz",
+      "bytes": 40896,
+      "sha256": "e277dd94c908048199c18f9ce7ee2c464b94ae97b330afce85599797c8ddd483",
+      "compressedBytes": 14888
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/ranking-06.jsonl",
+      "archive": "run/overview-walk1/ranking-06.jsonl.gz",
+      "bytes": 36659,
+      "sha256": "c55f3def659a2f85ef327bc4377e23f249fad78d143fdfc3b5ea1eb2bd978696",
+      "compressedBytes": 13512
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/ranking-07.jsonl",
+      "archive": "run/overview-walk1/ranking-07.jsonl.gz",
+      "bytes": 37364,
+      "sha256": "3b13e50d0f40baa2b7ff5233a41db691603fe6cede7a32fc2f802c0b79b7ad72",
+      "compressedBytes": 13705
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/report.json",
+      "archive": "run/overview-walk1/report.json.gz",
+      "bytes": 48492,
+      "sha256": "ac5b5c97326d33e043daca2e95a05e8f7d20dad5524baaddef2dcc48618cc52a",
+      "compressedBytes": 11741
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/resources.json",
+      "archive": "run/resources.json.gz",
+      "bytes": 6387,
+      "sha256": "4164d509d867166d8e2049460bb5652c318d736d2718a9db9e5c030e12b006c5",
+      "compressedBytes": 1577
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/training1/dataset.npz",
+      "archive": "run/training1/dataset.npz.gz",
+      "bytes": 18375,
+      "sha256": "3afc1607c8c9413781bc18c9e10fe0a71076094f9c2a9365bc0260f4fcfd4a9e",
+      "compressedBytes": 18179
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/training1/model.npz",
+      "archive": "run/training1/model.npz.gz",
+      "bytes": 8805,
+      "sha256": "da3b7bf93df788de65956534b7f228cda5f0ade10a762c59a100282e358d1ae0",
+      "compressedBytes": 8477
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/training1/report.json",
+      "archive": "run/training1/report.json.gz",
+      "bytes": 31346,
+      "sha256": "9e445b5a8b46463bc61b2a99bcc5ec82807eea5ec9c97c9ca60c004926f78375",
+      "compressedBytes": 7325
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/training1/rows.jsonl",
+      "archive": "run/training1/rows.jsonl.gz",
+      "bytes": 163106,
+      "sha256": "a2272f7678e95309517d48f63ffbe3fe1de0016f855fe24967124acb564999db",
+      "compressedBytes": 27707
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/calibration.audit.json",
+      "archive": "run/verification/calibration.audit.json.gz",
+      "bytes": 1328,
+      "sha256": "d6c7a1644dd914333086acdbcc10dd04510aeda0bdb05d32c2fd8f6f16a16562",
+      "compressedBytes": 600
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/field-hard-diagnosis.audit.json",
+      "archive": "run/verification/field-hard-diagnosis.audit.json.gz",
+      "bytes": 1584,
+      "sha256": "4597693fdac89b52c05e254f5ada804f7296a458035f57801187865b399dc756",
+      "compressedBytes": 612
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/fields.audit.json",
+      "archive": "run/verification/fields.audit.json.gz",
+      "bytes": 1281,
+      "sha256": "10faa39f5adc066428260ab01647b4b4761fa6a45d9ea6e87c140cc584f55ccd",
+      "compressedBytes": 581
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/tied-fields.audit.json",
+      "archive": "run/verification/tied-fields.audit.json.gz",
+      "bytes": 1598,
+      "sha256": "6a9e0927d6deb4a4dcef5ebaf4941548726d2773f931afd235c81ef08d2ead9a",
+      "compressedBytes": 658
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/walks.audit.json",
+      "archive": "run/verification/walks.audit.json.gz",
+      "bytes": 1261,
+      "sha256": "048e100901bafed651294cbdb7e410420c63ce2ec14f985ab05e2462be2742d7",
+      "compressedBytes": 597
+    },
+    {
+      "source": "context.md",
+      "archive": "dependencies/0ce460f18ee8d48b3acc7294ba032b1ea813ef209682e7f32bf743d9f6874235/context.md.gz",
+      "bytes": 340596,
+      "sha256": "0ce460f18ee8d48b3acc7294ba032b1ea813ef209682e7f32bf743d9f6874235",
+      "compressedBytes": 138453
+    },
+    {
+      "source": "data/erd-poc/candidates/README.md",
+      "archive": "dependencies/2ff4554a369c4c58b90a69061da3170c421e10da7a8f1aa77f8463fc5d8cb100/README.md.gz",
+      "bytes": 16939,
+      "sha256": "2ff4554a369c4c58b90a69061da3170c421e10da7a8f1aa77f8463fc5d8cb100",
+      "compressedBytes": 6272
+    },
+    {
+      "source": "data/erd-poc/experiments/independent-views-geometry-world-20261004/final-artifact-record.json",
+      "archive": "dependencies/528486988deda21914f8d04b2566deb7f8eb05b3029fce77b6c2ceabe01c78d0/final-artifact-record.json.gz",
+      "bytes": 3658,
+      "sha256": "528486988deda21914f8d04b2566deb7f8eb05b3029fce77b6c2ceabe01c78d0",
+      "compressedBytes": 1460
+    },
+    {
+      "source": "scripts/erd-poc/calibrated_geometry_world.py",
+      "archive": "code/calibrated_geometry_world.py.gz",
+      "bytes": 3732,
+      "sha256": "bba1897774c403e3feef0b161bb4fe2cd577ac65b3b2d49d7bfa6c2938faa08b",
+      "compressedBytes": 1454
+    },
+    {
+      "source": "scripts/erd-poc/compact_patch_neural_policy.py",
+      "archive": "code/compact_patch_neural_policy.py.gz",
+      "bytes": 4374,
+      "sha256": "9547be95ec3eb29966d03dba8c6f241801b6dcfef05f65c3e89de35ff18f2c6d",
+      "compressedBytes": 1909
+    },
+    {
+      "source": "scripts/erd-poc/compact_patch_tied_policy.py",
+      "archive": "code/compact_patch_tied_policy.py.gz",
+      "bytes": 514,
+      "sha256": "34765d6f27301886d3383df1006027534bd49c77032620867a7ed8a589404434",
+      "compressedBytes": 327
+    },
+    {
+      "source": "scripts/erd-poc/joint_reward_training.py",
+      "archive": "code/joint_reward_training.py.gz",
+      "bytes": 10248,
+      "sha256": "6bdb8c2f52fe27298dd5da090394d5096396e88462ce3e7a685e3b32f091d0c8",
+      "compressedBytes": 3731
+    },
+    {
+      "source": "scripts/erd-poc/run_calibrated_macro_policy.py",
+      "archive": "run/individual-macro1/failed-runner-v1.py.gz",
+      "bytes": 9404,
+      "sha256": "c1f43b280ebf5bc5134ce88a7cee77b8933e6093f7c78dd3cee9b3edc63ec619",
+      "compressedBytes": 3765
+    },
+    {
+      "source": "scripts/erd-poc/run_calibrated_macro_walk.py",
+      "archive": "code/run_calibrated_macro_walk.py.gz",
+      "bytes": 10511,
+      "sha256": "ce69638c3c737e6b5ee8ab052ac9b0d6ef894b378befffbbb2d1f9290832f1e7",
+      "compressedBytes": 3908
+    },
+    {
+      "source": "scripts/erd-poc/run_compact_patch_reward.py",
+      "archive": "code/run_compact_patch_reward.py.gz",
+      "bytes": 9189,
+      "sha256": "717945de7429cce0f2445cfb7175725fb70e11292e8138ed93cf183dbdcd1722",
+      "compressedBytes": 3575
+    },
+    {
+      "source": "scripts/erd-poc/run_compact_tied_reward.py",
+      "archive": "code/run_compact_tied_reward.py.gz",
+      "bytes": 1790,
+      "sha256": "235e74c9e1e1dd97a74cd18520c959dbf7080658ff2defea776bf07ad08cedb9",
+      "compressedBytes": 781
+    }
+  ],
+  "referencedFiles": [
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs.json",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/dependencies/c97cfad46427c27df2287cccce1f7731ab296c17551344e3176728bee49f6a04/build-inputs.json.gz",
+      "bytes": 607,
+      "sha256": "c97cfad46427c27df2287cccce1f7731ab296c17551344e3176728bee49f6a04",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/constrained_boundary_sweep.h",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/dependencies/296dab7012fe0e0192e2d526bda778f38595f1b8d446d0e2b124d4576297aa79/constrained_boundary_sweep.h.gz",
+      "bytes": 9566,
+      "sha256": "296dab7012fe0e0192e2d526bda778f38595f1b8d446d0e2b124d4576297aa79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/constrained_dual_node_geometry.h",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/dependencies/aa984669fd96ddbcd375301d564f9f511cb406549a44619a17ce80cbdbdcf692/constrained_dual_node_geometry.h.gz",
+      "bytes": 6646,
+      "sha256": "aa984669fd96ddbcd375301d564f9f511cb406549a44619a17ce80cbdbdcf692",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/constrained_scene.h",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/dependencies/ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6/constrained_scene.h.gz",
+      "bytes": 9252,
+      "sha256": "ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/learned_pair_contexts.h",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/dependencies/70231fb76081d97c6fe749bbf590a87fb7d57de30eec299a9c3cdb57def8017f/learned_pair_contexts.h.gz",
+      "bytes": 3627,
+      "sha256": "70231fb76081d97c6fe749bbf590a87fb7d57de30eec299a9c3cdb57def8017f",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/ml_component_environment.cpp",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/dependencies/930e1170deae7e393b09034be95b636c5afc13d7e67d3f275688dbda9a6d9443/ml_component_environment.cpp.gz",
+      "bytes": 66996,
+      "sha256": "930e1170deae7e393b09034be95b636c5afc13d7e67d3f275688dbda9a6d9443",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/ml_joint_batch_environment.cpp",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/dependencies/0bf63bb9502dfbfcea70f09a4db09a30885f35a022324f54da85f75f01bd1301/ml_joint_batch_environment.cpp.gz",
+      "bytes": 15178,
+      "sha256": "0bf63bb9502dfbfcea70f09a4db09a30885f35a022324f54da85f75f01bd1301",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/environment",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/run/environment.gz",
+      "bytes": 749496,
+      "sha256": "b5c355b2675d225114279549051ef201d84d6e56dbe8658810cc9705004f5514",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-field1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-tied1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-tied1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-tied1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-tied1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-walk1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-walk1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-walk1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/individual-walk1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.gz",
+      "bytes": 60175,
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.gz",
+      "bytes": 73662,
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160831,
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-field1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.routes.tsv.gz",
+      "bytes": 98042,
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.gz",
+      "bytes": 60175,
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.gz",
+      "bytes": 73662,
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160831,
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-tied1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.routes.tsv.gz",
+      "bytes": 98042,
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.gz",
+      "bytes": 60175,
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.gz",
+      "bytes": 73662,
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160831,
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/overview-walk1/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.routes.tsv.gz",
+      "bytes": 98042,
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/individual-field-native/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/individual-field-native/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/individual-field-native/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/individual-field-native/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/individual-field-native/learned.tsv.stats.json",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-learning-20261004/run/verification/single-owner-learning1-individual-frozen-current1-full.tsv.stats.json.gz",
+      "bytes": 966,
+      "sha256": "f3bc2c017d215f2aab88436a2a4eabaadf36ff889681cbcad0c126fb95d0b2af",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/individual-tied-native/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/individual-tied-native/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/individual-tied-native/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/individual-tied-native/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/individual-tied-native/learned.tsv.stats.json",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-learning-20261004/run/verification/single-owner-learning1-individual-frozen-current1-full.tsv.stats.json.gz",
+      "bytes": 966,
+      "sha256": "f3bc2c017d215f2aab88436a2a4eabaadf36ff889681cbcad0c126fb95d0b2af",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/individual-walk-native/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/individual-walk-native/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/individual-walk-native/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/individual-walk-native/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/individual-walk-native/learned.tsv.stats.json",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-learning-20261004/run/verification/single-owner-learning1-individual-frozen-current1-full.tsv.stats.json.gz",
+      "bytes": 966,
+      "sha256": "f3bc2c017d215f2aab88436a2a4eabaadf36ff889681cbcad0c126fb95d0b2af",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/overview-field-native/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.gz",
+      "bytes": 60175,
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/overview-field-native/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.gz",
+      "bytes": 73662,
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/overview-field-native/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160831,
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/overview-field-native/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.routes.tsv.gz",
+      "bytes": 98042,
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/overview-field-native/learned.tsv.stats.json",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/verification/overview-ports-trained1/learned.tsv.stats.json.gz",
+      "bytes": 962,
+      "sha256": "0f619427bb6a2b8a098a6ef6ada9d0376f34b8809307ad1d24724209595af6a2",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/overview-tied-native/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.gz",
+      "bytes": 60175,
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/overview-tied-native/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.gz",
+      "bytes": 73662,
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/overview-tied-native/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160831,
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/overview-tied-native/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.routes.tsv.gz",
+      "bytes": 98042,
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/overview-tied-native/learned.tsv.stats.json",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/verification/overview-ports-trained1/learned.tsv.stats.json.gz",
+      "bytes": 962,
+      "sha256": "0f619427bb6a2b8a098a6ef6ada9d0376f34b8809307ad1d24724209595af6a2",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/overview-walk-native/learned.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.gz",
+      "bytes": 60175,
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/overview-walk-native/learned.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.gz",
+      "bytes": 73662,
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/overview-walk-native/learned.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160831,
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/overview-walk-native/learned.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.routes.tsv.gz",
+      "bytes": 98042,
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-calibration1/verification/overview-walk-native/learned.tsv.stats.json",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/verification/overview-ports-trained1/learned.tsv.stats.json.gz",
+      "bytes": 962,
+      "sha256": "0f619427bb6a2b8a098a6ef6ada9d0376f34b8809307ad1d24724209595af6a2",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-local-trained1/actions.jsonl",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/individual-local-trained1/actions.jsonl.gz",
+      "bytes": 66550,
+      "sha256": "490a27e5448f93e6b36b103887ac63da5257c4d89c7a5729c74ef8124ccada8f",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-local-trained1/ranking.jsonl",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/individual-local-trained1/ranking.jsonl.gz",
+      "bytes": 176881,
+      "sha256": "1cd84b2945b2b67404fef68e9e21e2d8cdeb27a3faf2bf331aac26139c153417",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-local-trained1/report.json",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/individual-local-trained1/report.json.gz",
+      "bytes": 33700,
+      "sha256": "c9b1856b553edaf7e34a05851d389dfceb43a4dbb16aad8cd321ff5b678ad8ab",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-ports-trained1/actions.jsonl",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/individual-ports-trained1/actions.jsonl.gz",
+      "bytes": 70966,
+      "sha256": "3f5e5f77ebdcaf43d626572214f631c24880518b7de22007d0edbe0790ba3f62",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-ports-trained1/ranking.jsonl",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/individual-ports-trained1/ranking.jsonl.gz",
+      "bytes": 1103960,
+      "sha256": "8a8e929b5cace356ff7c6fad72cd5c20aeff682a768c3c01b20d01b3c02be22b",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-ports-trained1/report.json",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/individual-ports-trained1/report.json.gz",
+      "bytes": 34671,
+      "sha256": "eed0942a711583815044f076ad963859fd397a13bf815b5dcf174bcbf75a11c5",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/components.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/individual-slot-cached1/components.tsv.gz",
+      "bytes": 68780,
+      "sha256": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/edges.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/individual.edges.tsv.gz",
+      "bytes": 182412,
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/groups.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/individual-slot-cached1/groups.tsv.gz",
+      "bytes": 199382,
+      "sha256": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/individual.edges.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/individual.edges.tsv.gz",
+      "bytes": 182412,
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/individual.nodes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/individual.nodes.tsv.gz",
+      "bytes": 43187,
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/individual.positions.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/nodes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/individual.nodes.tsv.gz",
+      "bytes": 43187,
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/positions.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.gz",
+      "bytes": 73707,
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-source1963/routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/run/individual-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160868,
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-swap-trained1/actions.jsonl",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/individual-swap-trained1/actions.jsonl.gz",
+      "bytes": 66307,
+      "sha256": "f0c1be4b54bc76905f70c37377ee3be122e59661fad15817570e369e5c7dfe79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-swap-trained1/ranking.jsonl",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/individual-swap-trained1/ranking.jsonl.gz",
+      "bytes": 134318,
+      "sha256": "c664802a6a2d13ec8295ed8b64f61a1842077312fb213e76baf28a72bb8f81be",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-swap-trained1/report.json",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/individual-swap-trained1/report.json.gz",
+      "bytes": 33191,
+      "sha256": "7c7c324876517f925c5e2e1533c376ec094c4e493eb312214028fa82b8715bda",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-trained1/actions.jsonl",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/individual-trained1/actions.jsonl.gz",
+      "bytes": 41553,
+      "sha256": "77a6880d4e739f2fe98e7f402961d627867399c23d71268c403a2adb39ade9df",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-trained1/ranking.jsonl",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/individual-trained1/ranking.jsonl.gz",
+      "bytes": 116365,
+      "sha256": "c0748984b381d76acd89396ef0897d5cc55963f477ceecfacf8c819a5e620b6f",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/individual-trained1/report.json",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/individual-trained1/report.json.gz",
+      "bytes": 126651,
+      "sha256": "af09554ac4584f8b24124b1bfa2777a046438e3e1a53cb5b343eb75785033446",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-ports-trained1/actions.jsonl",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/overview-ports-trained1/actions.jsonl.gz",
+      "bytes": 71282,
+      "sha256": "da2327fb85308df7d3a454c81f9acd5708a8c138a9d3eab4d29dca238c64213f",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-ports-trained1/ranking.jsonl",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/overview-ports-trained1/ranking.jsonl.gz",
+      "bytes": 1146917,
+      "sha256": "1c3eb986da5b826491c19e8d85310e24fccc1115177896fbf3baec7a939a5392",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-ports-trained1/report.json",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/overview-ports-trained1/report.json.gz",
+      "bytes": 34661,
+      "sha256": "ef1a401ff2a2568437c46c73d920f069d6e5fb6b428a1bbd866164bbf4b40fc8",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/components.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/components.tsv.gz",
+      "bytes": 61887,
+      "sha256": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/edges.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/edges.tsv.gz",
+      "bytes": 113471,
+      "sha256": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/export.json",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/overview-source285/export.json.gz",
+      "bytes": 21026,
+      "sha256": "7a21d1ac9eaaae1e04dab92f2cc0417f2a0fb927323650f0019214b5ad497648",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/groups.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/groups.tsv.gz",
+      "bytes": 160987,
+      "sha256": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/individual.edges.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/individual.edges.tsv.gz",
+      "bytes": 182412,
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/individual.nodes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/individual.nodes.tsv.gz",
+      "bytes": 43187,
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/individual.positions.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.gz",
+      "bytes": 73662,
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.individual.routes.tsv.gz",
+      "bytes": 160831,
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/nodes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/nodes.tsv.gz",
+      "bytes": 34879,
+      "sha256": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/positions.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.gz",
+      "bytes": 60175,
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285/routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/overview-frozen1/learned.tsv.routes.tsv.gz",
+      "bytes": 98042,
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-swap-trained1/actions.jsonl",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/overview-swap-trained1/actions.jsonl.gz",
+      "bytes": 49515,
+      "sha256": "bd43c0ffd1b59850315a46a4df35cbb4efa1e428b0d8f5b286135c1122d21ed0",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-swap-trained1/ranking.jsonl",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/overview-swap-trained1/ranking.jsonl.gz",
+      "bytes": 31661,
+      "sha256": "a1dd63b021f13520b90135f8ce449a05a0dd40460cdb729293b1297b3e140ae3",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-swap-trained1/report.json",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/overview-swap-trained1/report.json.gz",
+      "bytes": 33200,
+      "sha256": "8a5c6cafe64a183a95e6ca9515691baf1b597177c1ca0546363be47bc0841867",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-trained1/actions.jsonl",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/overview-trained1/actions.jsonl.gz",
+      "bytes": 41637,
+      "sha256": "ef6ae1c96c3d4efd3d25584f978191888e17f2c07f34574e4575b77aeaa05de1",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-trained1/ranking.jsonl",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/overview-trained1/ranking.jsonl.gz",
+      "bytes": 116770,
+      "sha256": "5032fa878cc1ea9d5658cf7aee8d11a2728f955d116062a07dd98eecf5e9aeb6",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-trained1/report.json",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/overview-trained1/report.json.gz",
+      "bytes": 126642,
+      "sha256": "f5f6c53798c2210d4bb99e36e2f09919c6af7028a294c0a7d053788f8d1a02bc",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/source-binding.json",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/source-binding.json.gz",
+      "bytes": 2784,
+      "sha256": "c5e3001d3a14304ada656ffd7d5bdfd69ac7f56abecf77fe2a2e6623dc2ed20c",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/training2/model.npz",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/training2/model.npz.gz",
+      "bytes": 36320,
+      "sha256": "efec2a7e722662715799ecfcc75f162d32952485d8e024ef41e8fb0037f04a3c",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/policies.audit.json",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/run/verification/policies.audit.json.gz",
+      "bytes": 3738,
+      "sha256": "24237ea52eca7b5db14b51fe6948f325d9899efaeb9f4ea3182f05679cf6caf1",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.audit.json",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/dependencies/82529202dbd61798334e2c0b451c75eaa9f418c2c19b371724c76ff58dfd277e/captain-ml-independent-views.audit.json.gz",
+      "bytes": 1652,
+      "sha256": "82529202dbd61798334e2c0b451c75eaa9f418c2c19b371724c76ff58dfd277e",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.layout.json",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/run/combined-best1/candidate.layout.json.gz",
+      "bytes": 2428226,
+      "sha256": "4e741de39ca655c7ff042422b9407206427f89e02ecd56b7f4a9f36f6a5cd02e",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "data/erd-poc/candidates/captain-ml-independent-views.provenance.json",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/dependencies/bca34270005e19dc7c2c06aa8d95742fe7603c0bc8cc027e8017e0489e51d29f/captain-ml-independent-views.provenance.json.gz",
+      "bytes": 25770,
+      "sha256": "bca34270005e19dc7c2c06aa8d95742fe7603c0bc8cc027e8017e0489e51d29f",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "data/erd-poc/recovered/captain-2026-09-15-payload.json",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/dependencies/ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce/captain-2026-09-15-payload.json.gz",
+      "bytes": 3230070,
+      "sha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/directed_cycle_model.py",
+      "archive": "data/erd-poc/experiments/independent-views-directed-cycles-20261003/code/directed_cycle_model.py.gz",
+      "bytes": 3563,
+      "sha256": "d4dd35882eb0a32590f1593e4aa4aa2941e34cf898594da93b8b92e2d9682eec",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/float32_input_owner_model.py",
+      "archive": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/code/float32_input_owner_model.py.gz",
+      "bytes": 727,
+      "sha256": "4299e9ba9fa613baecc80ef9dd8cc007f31259c22a95ff0fd381a5782e578bcd",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/fractional_cycle_model.py",
+      "archive": "data/erd-poc/experiments/independent-views-fraction-conditioned-cycles-20261003/code/fractional_cycle_model.py.gz",
+      "bytes": 2504,
+      "sha256": "63348306af5f82eec6105a01370557b95811b0d06878490a0d306afb3cbb7f9b",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/full_context_pair_model.py",
+      "archive": "data/erd-poc/experiments/independent-views-full-context-pairs-20261003/code/full_context_pair_model.py.gz",
+      "bytes": 10153,
+      "sha256": "c898871704ed29f77498c05527a1345259eacc3cf66405fc5788f3952b281a7d",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/geometry_world_model.py",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/code/geometry_world_model.py.gz",
+      "bytes": 6080,
+      "sha256": "64f6bf8d09c46a89cdfee0284c7ce4df4390e069760b91b6779b862de68833b1",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/geometry_world_multi_owner.py",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/code/geometry_world_multi_owner.py.gz",
+      "bytes": 2666,
+      "sha256": "c3a1e007b5c3ad1b487be709ddd33d081dce3ee1a33d6b500bbf114fc83f7dec",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/geometry_world_port_model.py",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/code/geometry_world_port_model.py.gz",
+      "bytes": 5286,
+      "sha256": "3c7062ceb416c2533673303c79c750ff131c1fd62bc6f6c87e12fe3a90b78f0a",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/global_mixed_owner_support.py",
+      "archive": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/code/global_mixed_owner_support.py.gz",
+      "bytes": 2579,
+      "sha256": "c75c4bd14a001de322ab63a3032df86f3c996b562c1862fc5da50e8eaffdd0bd",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/global_single_owner_support.py",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/code/global_single_owner_support.py.gz",
+      "bytes": 1683,
+      "sha256": "f4f1df0e72adb1864b9e17fa9c60b47e298d73f7165182a78128d814f5764225",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/joint_anchor_ray_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/source-joint_anchor_ray_policy.py",
+      "bytes": 5379,
+      "sha256": "f292ed184dc7c4e24ec19b78f86f10bdff1ee4fc2fe2407f904347684b500877",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/joint_grouped_routes.py",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/source-joint_grouped_routes.py",
+      "bytes": 8165,
+      "sha256": "3b7757e76590aa0e1e935e7f757035f89a6fece56e6a10deb7791e71f1642f6f",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/joint_layout_proxy.py",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/source-joint_layout_proxy.py",
+      "bytes": 21160,
+      "sha256": "d21091db3bbde2b659cced3ed9c2161a98a69cbe4659ac4954f36cfb41176428",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/joint_neural_ports.py",
+      "archive": "data/erd-poc/experiments/independent-views-relaxed-slots-20261003/overview-sorted-relaxed1/source-joint_neural_ports.py",
+      "bytes": 18181,
+      "sha256": "cde68a0ca3419df89ab6e3b369f564467edec5fea53892ff17367e1e0ee94807",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/joint_relaxed_slot_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-relaxed-slots-20261003/overview-sorted-relaxed1/source-joint_relaxed_slot_policy.py",
+      "bytes": 5996,
+      "sha256": "cd5f7b274b28a103c31868c9eff48991969887664db93f775be5c750167d616c",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/joint_separation_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/source-joint_separation_policy.py",
+      "bytes": 8883,
+      "sha256": "045b9552977486eb1b7e0f5fdb8a04968f97cd6ff706c3e9d917a04d14083b34",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/joint_slot_anchor_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/source-joint_slot_anchor_policy.py",
+      "bytes": 1142,
+      "sha256": "58d2e290ff6d18dce7e8bc46734ae2f21b89d7e901b0da2978ff8e9ad63b863b",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/joint_slot_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-slot-anchor-20261003/overview-slot-graph1/source-joint_slot_policy.py",
+      "bytes": 4506,
+      "sha256": "f3d1e5e3fb9732eba5a8867f315625295e1bb4ee9afdc065938808ce2f5b317e",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/learn_card_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/code/learn_card_policy.py.gz",
+      "bytes": 43351,
+      "sha256": "2447e4aae172b46d8c4f07fb7b774aebc1444adaafff5d87fe077ee0a885ba37",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/learn_pair_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/code/learn_pair_policy.py.gz",
+      "bytes": 14619,
+      "sha256": "b7e04b52ab78592075979de28baaa4eb61432cecb32b8f9b40f5182468b85d2e",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/learned_bounded_replay.py",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/code/learned_bounded_replay.py.gz",
+      "bytes": 4793,
+      "sha256": "dfe26868cf25d6d3c8039d5e481142d8a64b45a775c15f061da31760dcf932ae",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/learned_global_replay.py",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/code/learned_global_replay.py.gz",
+      "bytes": 11116,
+      "sha256": "38bccbe20b4fb7cf4c548b8648f79f977b05d61e1391150b679c6d527d2d6f92",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/learned_pair_contexts.py",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/code/learned_pair_contexts.py.gz",
+      "bytes": 4518,
+      "sha256": "3d0361196361e07cdd20b1e6d55072bf58f906de50f3acf5e9a2b657d98ab607",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/local_positive_cycle_support.py",
+      "archive": "data/erd-poc/experiments/independent-views-positive-cycles-20261003/code/local_positive_cycle_support.py.gz",
+      "bytes": 2188,
+      "sha256": "818f296f5a8df886bcdeaad9d749ab5d5c218568cf23c58fa2aa2a12293c0747",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-positive-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/mixed_size_owner_cycles.py",
+      "archive": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/code/mixed_size_owner_cycles.py.gz",
+      "bytes": 2794,
+      "sha256": "4f3da1e4844226a08dca546c6f568b0d2fb8af6c100f172cbb1e031a4eb3ecab",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/owner_amplitude_cycle_model.py",
+      "archive": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/code/owner_amplitude_cycle_model.py.gz",
+      "bytes": 4456,
+      "sha256": "8fa07844f3bac2ce4620010658f2b90a8a8d46c3c10851627a236853383b70ce",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_anchor_pair_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/code/run_anchor_pair_policy.py.gz",
+      "bytes": 11655,
+      "sha256": "db189d196ed68a8dbcdc4c39f8a8dd4873096d1aef6c568e47511eb7eeeb63a2",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_anchor_pair_walk.py",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/code/run_anchor_pair_walk.py.gz",
+      "bytes": 13558,
+      "sha256": "e73fa26e35e1d1bbdfe5f48c2e5f092e71889cf034d42a2f1aa63d52c2e142c8",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_directed_cycle_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-directed-cycles-20261003/code/run_directed_cycle_policy.py.gz",
+      "bytes": 12680,
+      "sha256": "d1800249cee16f8a42aa0900e7311058816348033275f804069c0c5a44dc9c39",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_fraction_conditioned_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-fraction-conditioned-cycles-20261003/code/run_fraction_conditioned_policy.py.gz",
+      "bytes": 11351,
+      "sha256": "5cef3e0fa9933833f3b77e3c64cea05161441da90e05f3121aa2306894d20f51",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_fractional_cycle_transfer.py",
+      "archive": "data/erd-poc/experiments/independent-views-directed-cycles-20261003/code/run_fractional_cycle_transfer.py.gz",
+      "bytes": 7092,
+      "sha256": "5245523bdda92e192edb72ae0cb11998af24c50513527367462ffc7bb3035cef",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_geometry_world_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/code/run_geometry_world_policy.py.gz",
+      "bytes": 9399,
+      "sha256": "96457f57527f6e26ab9bf78d7677e4cddc7ef7bdf0132c13e317f89039ad6e79",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_geometry_world_port_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-geometry-world-20261004/code/run_geometry_world_port_policy.py.gz",
+      "bytes": 10088,
+      "sha256": "cc2be2a62d827ffa0e74df1d52076bc0e3f6527039f3ac99e571f1417f8548a5",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_global_mixed_owner_cycles.py",
+      "archive": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/code/run_global_mixed_owner_cycles.py.gz",
+      "bytes": 13584,
+      "sha256": "62246453d64a30560134635cfea119c3df1297b902a126a4a94fb50c81723d08",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-owner-amplitudes-20261004-v2/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_memory_bounded.py",
+      "archive": "data/erd-poc/experiments/independent-views-separation-dag-20261003/current-code/run_memory_bounded.py",
+      "bytes": 5742,
+      "sha256": "7784ae78aec359887155ff86d37dd503628d490487d2a3e1f9b4e89f3c02a43d",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_neural_cycle_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-directed-cycles-20261003/code/run_neural_cycle_policy.py.gz",
+      "bytes": 11170,
+      "sha256": "7ed8a0ec5ea60ff317dfae87a673f7b2e89e3249856d5c03c0f0ac3472d4cf1c",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_signed_cycle_policy.py",
+      "archive": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/code/run_signed_cycle_policy.py.gz",
+      "bytes": 12479,
+      "sha256": "827b6e0f985438399da14b7e3f891aeae2899cab6069ccaaff0bc208f3504ae4",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/run_single_owner_cycle_policy_v4.py",
+      "archive": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/code/run_single_owner_cycle_policy_v4.py.gz",
+      "bytes": 9099,
+      "sha256": "6da0b28003551b90d308da603f042040aad6498f23fe5db71c16c69d8603cb76",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-global-owner-learning-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/signed_cycle_model.py",
+      "archive": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/code/signed_cycle_model.py.gz",
+      "bytes": 2827,
+      "sha256": "481926f9b6467ea2aedef32176d2a43f417a72e774f94f79a88685dfaf4ca65b",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/signed_trained_critic.py",
+      "archive": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/code/signed_trained_critic.py.gz",
+      "bytes": 1097,
+      "sha256": "02c789157ae15e004e8fc3e73a38eb474f87650647aed8305f23d1a4769fe090",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/single_owner_cached_observer_v2.py",
+      "archive": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/code/single_owner_cached_observer_v2.py.gz",
+      "bytes": 11419,
+      "sha256": "cb0d81952f2b0245906d10cb61cdc51135c634ffe766dee88a095d20ec3a1db1",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-trained-owner-policies-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/single_owner_cycle_model.py",
+      "archive": "data/erd-poc/experiments/independent-views-single-owner-20261004/code/single_owner_cycle_model.py.gz",
+      "bytes": 5414,
+      "sha256": "b2edd5ee18af0032a47c145de541016629d077526cb445b0bcaebc26988471e8",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-single-owner-20261004/manifest.json",
+      "restoreHashVerified": true
+    },
+    {
+      "source": "scripts/erd-poc/train_anchor_pair_outcomes.py",
+      "archive": "data/erd-poc/experiments/independent-views-full-context-pairs-20261003/code/train_anchor_pair_outcomes.py.gz",
+      "bytes": 7618,
+      "sha256": "8531625e603af3b7a066dd48d8bbc9d950febf652d2c66b2361dc5f53fc6aefc",
+      "prerequisiteManifest": "data/erd-poc/experiments/independent-views-signed-cycles-20261003/manifest.json",
+      "restoreHashVerified": true
+    }
+  ],
+  "newPhysicalCompressedFiles": 185,
+  "newPhysicalCompressedBytes": 5177554,
+  "allStoredAndReferencedMappingsRestoreHashVerified": true,
+  "sourcesUnchangedAtSeal": true
+}

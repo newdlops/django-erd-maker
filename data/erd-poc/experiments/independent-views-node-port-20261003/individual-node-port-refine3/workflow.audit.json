@@ -1,0 +1,35 @@
+{
+  "scope": "independent individual-view experiment",
+  "promoted": false,
+  "allowNeutral": true,
+  "pairPolicy": false,
+  "areaExploration": false,
+  "explorationLimit": 0,
+  "initialTemperature": 2.0,
+  "source": ".tmp/visualcross-ml-150-750-20261003/individual-node-port-refine2/candidate.individual.layout.json",
+  "sourceSha256": "9b7f3ff370bf6304e2428dce71d62080b656c252adb336a2c00776f72f6cfa4c",
+  "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+  "checkpointSha256": "0dbb227368f10b06bd2b0d9ab3f2a776b0c7c48384696dbcc39967e8030fc2d7",
+  "environmentSha256": "8ea7ba72be82cad98cdc2c672aa73da59e1b8c1fa85680789bb85f42f0317e0f",
+  "sourceIndividualVisual": 1992,
+  "steps": [
+    {
+      "name": "inference",
+      "seconds": 19.582971166993957
+    },
+    {
+      "name": "frozen-action-replay",
+      "seconds": 0.9825472499942407
+    },
+    {
+      "name": "product-renderer-audit",
+      "seconds": 0.2797854579985142
+    }
+  ],
+  "candidate": ".tmp/visualcross-ml-150-750-20261003/individual-node-port-refine3/candidate.individual.layout.json",
+  "candidateSha256": "24f93fab2a190f06a5399fc6a48498374e1b0e5e1fe75896d2843d2cc7617347",
+  "individualVisual": 1991,
+  "improvesSource": true,
+  "seconds": 20.846148249984253,
+  "allChecksPassed": true
+}

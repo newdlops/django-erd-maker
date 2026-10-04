@@ -1,0 +1,323 @@
+{
+  "sourceFile": ".tmp/visualcross-ml-targets-20261003/round6/candidate.layout.json",
+  "candidateFile": ".tmp/visualcross-ml-targets-20261003/round7fixed2/candidate.layout.json",
+  "sourceSha256": "9e1de82cd2f416d9f7a0d5c669ade3d9db1ebcf1e2b078a5595a8bd3846d84b4",
+  "candidateSha256": "907cf119e674b265dbbbaf47c0308f8a86a0dfef92715973fb221db4aec045fc",
+  "baseline": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 260,
+    "edgeNodeIntersections": 125,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 387
+  },
+  "metrics": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 260,
+    "edgeNodeIntersections": 124,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 386
+  },
+  "originalIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 2469,
+    "edgeNodeIntersections": 991,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 3460
+  },
+  "candidateIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 2464,
+    "edgeNodeIntersections": 989,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 3453
+  },
+  "changedNodes": [
+    {
+      "modelId": "db.Address",
+      "before": {
+        "x": 22572.2,
+        "y": 18813.63
+      },
+      "after": {
+        "x": 22563.75,
+        "y": 18818.25
+      }
+    },
+    {
+      "modelId": "db.AgendaAuthorizedSharesChange",
+      "before": {
+        "x": 17278.95,
+        "y": 21645.61
+      },
+      "after": {
+        "x": 17225.62,
+        "y": 21693.11
+      }
+    },
+    {
+      "modelId": "db.AgendaRsuGrantGrantee",
+      "before": {
+        "x": 14775.323479343,
+        "y": 18147.123419839
+      },
+      "after": {
+        "x": 14774.583479343,
+        "y": 18196.803419839
+      }
+    },
+    {
+      "modelId": "db.BranchChangeEvent",
+      "before": {
+        "x": 18841.68,
+        "y": 17944.05
+      },
+      "after": {
+        "x": 18833.23,
+        "y": 17948.67
+      }
+    },
+    {
+      "modelId": "db.CompanyAddressChangeEvent",
+      "before": {
+        "x": 18845.68,
+        "y": 18068.05
+      },
+      "after": {
+        "x": 18837.23,
+        "y": 18072.67
+      }
+    },
+    {
+      "modelId": "db.MeetingAttachment",
+      "before": {
+        "x": 18552.88,
+        "y": 17605.15
+      },
+      "after": {
+        "x": 18545.21,
+        "y": 17647.01
+      }
+    },
+    {
+      "modelId": "db.QuestionThreadMessage",
+      "before": {
+        "x": 22296.74,
+        "y": 11495.35
+      },
+      "after": {
+        "x": 22509.96,
+        "y": 11444.75
+      }
+    },
+    {
+      "modelId": "db.QuestionThreadMessageAccessLog",
+      "before": {
+        "x": 23024.46,
+        "y": 11559.31
+      },
+      "after": {
+        "x": 23237.68,
+        "y": 11508.71
+      }
+    },
+    {
+      "modelId": "db.QuestionThreadMessageCategory",
+      "before": {
+        "x": 23386.96,
+        "y": 11559.31
+      },
+      "after": {
+        "x": 23600.18,
+        "y": 11508.71
+      }
+    },
+    {
+      "modelId": "db.QuestionThreadMessageProfile",
+      "before": {
+        "x": 23035.46,
+        "y": 11675.31
+      },
+      "after": {
+        "x": 23248.68,
+        "y": 11624.71
+      }
+    },
+    {
+      "modelId": "db.QuestionThreadMessageReminder",
+      "before": {
+        "x": 23386.96,
+        "y": 11675.31
+      },
+      "after": {
+        "x": 23600.18,
+        "y": 11624.71
+      }
+    },
+    {
+      "modelId": "db.QuestionThreadMessageReview",
+      "before": {
+        "x": 23039.46,
+        "y": 11791.31
+      },
+      "after": {
+        "x": 23252.68,
+        "y": 11740.71
+      }
+    },
+    {
+      "modelId": "db.QuestionThreadMessageReviewRequest",
+      "before": {
+        "x": 23364.46,
+        "y": 11791.31
+      },
+      "after": {
+        "x": 23577.68,
+        "y": 11740.71
+      }
+    },
+    {
+      "modelId": "db.RsuExtraAttachment",
+      "before": {
+        "x": 16331.099999999999,
+        "y": 14853.54
+      },
+      "after": {
+        "x": 16267.66,
+        "y": 14762.14
+      }
+    }
+  ],
+  "changedRoutes": [
+    "edge:declared:db.AgendaBranchChange:address",
+    "edge:declared:db.AgendaHeadOfficeRelocation:address",
+    "edge:declared:db.AgendaRsuGrantGrantee:rsu",
+    "edge:declared:db.AgendaRsuGrantGrantee:rsu_grant",
+    "edge:declared:db.AgendaRsuGrantGrantee:stakeholder",
+    "edge:declared:db.BranchChangeEvent:address",
+    "edge:declared:db.BranchChangeEvent:installation_event",
+    "edge:declared:db.BranchInstallationEvent:address",
+    "edge:declared:db.CompanyAddressChangeEvent:address",
+    "edge:declared:db.CompanyCreateRequest:address",
+    "edge:declared:db.CsAgentResponse:inquiry_thread_message",
+    "edge:declared:db.ElectronicCertificateReturnRequest:recipient_address",
+    "edge:declared:db.IaPartnerDataCollectionItem:address",
+    "edge:declared:db.IaPartnerDataCollectionItemReply:address",
+    "edge:declared:db.IaRule:address",
+    "edge:declared:db.IncorporationRequest:address",
+    "edge:declared:db.IncorporationRequestDirector:address",
+    "edge:declared:db.IncorporationRequestPromoter:address",
+    "edge:declared:db.IncorporationRequestPromoterCustodian:address",
+    "edge:declared:db.IndividualInvestorCompanyInfo:address",
+    "edge:declared:db.IndividualInvestorStakeholder:address",
+    "edge:declared:db.IndividualInvestorUser:address",
+    "edge:declared:db.InternetRegistryOfficeOtpReturnRequest:recipient_address",
+    "edge:declared:db.InvestmentAssociationPartner:address",
+    "edge:declared:db.MeetingAttachment:meeting",
+    "edge:declared:db.NonUnifiedShareSucPoaDocument:user_address",
+    "edge:declared:db.QuestionMessageAttachment:message",
+    "edge:declared:db.QuestionMessageScheduled:question_thread_message",
+    "edge:declared:db.QuestionThreadMessage:question_thread",
+    "edge:declared:db.QuestionThreadMessageAccessLog:message",
+    "edge:declared:db.QuestionThreadMessageCategory:question_thread_message",
+    "edge:declared:db.QuestionThreadMessageProfile:message",
+    "edge:declared:db.QuestionThreadMessageReminder:message",
+    "edge:declared:db.QuestionThreadMessageReview:message",
+    "edge:declared:db.QuestionThreadMessageReviewRequest:message",
+    "edge:declared:db.RsuExtraAttachment:rsu",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_authorized_shares_change",
+    "edge:declared:db.Stakeholder:standardized_address",
+    "edge:declared:db.VentureComplex:address",
+    "edge:inheritance:db.BranchChangeEvent->db.Event",
+    "edge:inheritance:db.CompanyAddressChangeEvent->db.Event",
+    "edge:inheritance:db.MeetingAttachment->db.FileAttachment",
+    "edge:inheritance:db.PingpongDeliveryAddress->db.Address"
+  ],
+  "sizesPreserved": true,
+  "membershipsPreserved": true,
+  "rigidLeafGeometryPreserved": true,
+  "productRouteParity": true,
+  "nativeProposal": {
+    "initialVisual": 387,
+    "visual": 386,
+    "initialIndividualVisual": 3460,
+    "individualVisual": 3453,
+    "hardConditions": 0,
+    "initialHardConditions": 0,
+    "individualHardConditions": 46,
+    "initialIndividualHardConditions": 46,
+    "canonicalStart": false,
+    "rolloutInitialVisual": 387,
+    "rolloutInitialIndividualVisual": 3460,
+    "jointMoves": true,
+    "overlap": 0,
+    "spacing": 0,
+    "policyActionsEvaluated": 12000,
+    "acceptedActions": 6,
+    "heuristicSearchCalls": 0,
+    "proposalAuthority": "external-policy",
+    "decoder": "rigid component translation with every port attached"
+  },
+  "learnedPolicy": {
+    "checkpoint": ".tmp/visualcross-ml-targets-20261003/component-policy-v7.npz",
+    "checkpointSha256": "fe1624651ea1a05aac93662637f090f5e56cd6c5be6b83db113834f3461700eb",
+    "untrainedControl": false,
+    "sourceDirectory": ".tmp/visualcross-ml-targets-20261003/round7fixed2",
+    "syntheticSeed": null,
+    "policyProposalSource": "conditional mixture neural network",
+    "heuristicSearchCalls": 0,
+    "initial": {
+      "ready": true,
+      "eligible": 1035,
+      "visual": 387,
+      "individualVisual": 3460,
+      "canonicalStart": false,
+      "sourceVisual": 387,
+      "sourceIndividualVisual": 3460
+    },
+    "final": {
+      "initialVisual": 387,
+      "visual": 386,
+      "initialIndividualVisual": 3460,
+      "individualVisual": 3453,
+      "hardConditions": 0,
+      "initialHardConditions": 0,
+      "individualHardConditions": 46,
+      "initialIndividualHardConditions": 46,
+      "canonicalStart": false,
+      "rolloutInitialVisual": 387,
+      "rolloutInitialIndividualVisual": 3460,
+      "jointMoves": true,
+      "overlap": 0,
+      "spacing": 0,
+      "policyActionsEvaluated": 12000,
+      "acceptedActions": 6,
+      "heuristicSearchCalls": 0,
+      "proposalAuthority": "external-policy",
+      "decoder": "rigid component translation with every port attached"
+    },
+    "budget": 12000,
+    "seed": 130,
+    "seconds": 12.321005999983754,
+    "observationsSha256": "bfc0a3ae16391667bbf3023a9bdd1536ad6412aa76bcbf6ff6c552c055cb3f9b",
+    "actionsSha256": "fa2a15090d954c9aad172cd83fe9dc9f42c8bb3c9107df266c8000b88c0fe8fa"
+  },
+  "browserVerified": false,
+  "experimental": false,
+  "dominatesSource": true
+}

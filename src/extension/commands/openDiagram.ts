@@ -45,19 +45,19 @@ export async function openDiagram(
     const clusterGraphLayout = viewState?.clusterGraphLayout === true;
     const bubbleLayout = viewState?.bubbleLayout === true;
     const optimizedLayout = viewState?.optimizedLayout === true;
-    const optimizedBudgetMs = readPositiveIntEnv(
+    const optimizedTimeLimitMs = readOptionalNonNegativeIntEnv(
       "DJERD_OPTIMIZED_TOTAL_BUDGET_MS",
-      readPositiveIntEnv(
-        "DJERD_OPTIMIZED_POST_REROUTE_POLISH_BUDGET_MS",
-        90_000,
-      ),
-    );
+    ) ?? readOptionalNonNegativeIntEnv(
+      "DJERD_OPTIMIZED_POST_REROUTE_POLISH_BUDGET_MS",
+    ) ?? 0;
 
     return vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
         title: optimizedLayout
-          ? `Optimizing Django ERD (${Math.ceil(optimizedBudgetMs / 1_000)}s budget)`
+          ? optimizedTimeLimitMs > 0
+            ? `Optimizing Django ERD (${Math.ceil(optimizedTimeLimitMs / 1_000)}s limit)`
+            : "Optimizing Django ERD (no time limit)"
           : "Loading Django ERD",
       },
       async () => {
@@ -222,9 +222,13 @@ function readBoolEnv(name: string, fallback: boolean): boolean {
   return fallback;
 }
 
-function readPositiveIntEnv(name: string, fallback: number): number {
-  const parsed = Number.parseInt(process.env[name] ?? "", 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+function readOptionalNonNegativeIntEnv(name: string): number | undefined {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    return undefined;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
 function logLiveDiagramResult(

@@ -1,0 +1,85 @@
+{
+  "source": ".tmp/visualcross-ml-150-750-20261003/overview-bounded-trained2/candidate.layout.json",
+  "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52",
+  "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+  "checkpoint": ".tmp/visualcross-ml-150-750-20261003/bounded-policy-training1/overview.npz",
+  "checkpointSha256": "39a135d12be3e7c76d6005b87df65226464307232782920448db1ad68c417992",
+  "nativeBinarySha256": "bc60819f4d526b92efc036567851e95110f1ed0be88706d416f531ab9fc8c986",
+  "candidateSha256": "cf20c93a3d55fb8fe1e59e0aa54db4c9a4735c1b208de4cfec75c79263b71b21",
+  "visualCrossings": 289,
+  "individualVisualCrossings": 4459,
+  "proposalAuthority": "frozen learned policy",
+  "heuristicSearchCalls": 0,
+  "frozenActionReplay": true,
+  "productFileLoadVerified": true,
+  "browserVerified": false,
+  "experimental": true,
+  "allowAreaGrowth": false,
+  "allowNeutral": true,
+  "pairPolicy": false,
+  "branchMoves": true,
+  "branchMap": {
+    "schema": "source-bound-pair-contexts-v1",
+    "branchMode": "pair-cut",
+    "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52",
+    "branchMapSha256": "54a34d09a0c71b0b62613a739afe19ed120001669be6e0f71da9dad22493a580",
+    "inputHashes": {
+      "nodes.tsv": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+      "edges.tsv": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+      "positions.tsv": "f22cbc759742ae9a2b5cc6f64f6cf02a25878fafde965f88e83161d6dce086be",
+      "routes.tsv": "107653e30b4d861d758ae1efca6a7444894939c9d6826039daa9e3c47d4f0063",
+      "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "individual.positions.tsv": "9a8f92a1e756d42a8177eca8947cd9700c0cc5e53e6a81b6d1eae37200742e72",
+      "individual.routes.tsv": "d3db0db863e5ce0042f53cd287a86aa67e9a31e55b5fc6e6acd884fadeb2d7d7",
+      "components.tsv": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+      "groups.tsv": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc"
+    },
+    "nodes": 1035,
+    "twoCoreNodes": 332,
+    "multiCardContexts": 18,
+    "maximumContextCards": 81,
+    "positionsProposed": false,
+    "contextIndexSchema": "independent-context-index-v1",
+    "contexts": 18,
+    "anchorLimit": 32,
+    "allPairsExhaustive": false
+  },
+  "branchMode": "pair-cut",
+  "areaExploration": false,
+  "explorationLimit": 0,
+  "initialTemperature": 2.0,
+  "seconds": 28.065253708977252,
+  "stages": [
+    {
+      "stage": "export",
+      "exitCode": 0,
+      "seconds": 1.1282636660034768
+    },
+    {
+      "stage": "components",
+      "exitCode": 0,
+      "seconds": 0.7401253329589963
+    },
+    {
+      "stage": "inference",
+      "exitCode": 0,
+      "seconds": 20.38904833397828
+    },
+    {
+      "stage": "replay",
+      "exitCode": 0,
+      "seconds": 1.864828625053633
+    },
+    {
+      "stage": "apply",
+      "exitCode": 0,
+      "seconds": 1.4152918750187382
+    },
+    {
+      "stage": "product",
+      "exitCode": 0,
+      "seconds": 2.5000955830328166
+    }
+  ]
+}

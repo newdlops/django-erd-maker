@@ -1,0 +1,86 @@
+{
+  "status": "pass",
+  "immutableMainManifestUnchanged": true,
+  "bindings": {
+    "manifest": {
+      "path": "data/erd-poc/experiments/independent-views-geometry-world-20261004/manifest.json",
+      "sha256": "bbb05d5525532628c58084a27999c7c69bf0d46477291732165efa35b3a48831"
+    },
+    "sealReceipt": {
+      "path": ".tmp/geometry-world-archive-seal-receipt.json",
+      "sha256": "1486da02d113cf9875466e05f61c13d0e59228c0f2cbf85341ec7248d8d18dee"
+    },
+    "restoreReceipt": {
+      "path": ".tmp/geometry-world-archive-independent-verification.json",
+      "sha256": "cbd1648550b7900d57b89efb9993b2e412d686033be6471c50bdde2805521066"
+    },
+    "sourceBinding": {
+      "path": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/source-binding.json",
+      "sha256": "c5e3001d3a14304ada656ffd7d5bdfd69ac7f56abecf77fe2a2e6623dc2ed20c"
+    },
+    "trainingModel": {
+      "path": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/training2/model.npz",
+      "sha256": "efec2a7e722662715799ecfcc75f162d32952485d8e024ef41e8fb0037f04a3c"
+    },
+    "trainingDataset": {
+      "path": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/training2/dataset.npz",
+      "sha256": "16a7253d57a49fef0a945a5151e7267a4ec2a78fe41c8012e66e5b9e714f0779"
+    },
+    "trainingProof": {
+      "path": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/training.audit.json",
+      "sha256": "e4b355e07746046f51e2517557b221f01ec40e39adb8552c3d00e97294d131b9"
+    },
+    "policyProof": {
+      "path": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/verification/policies.audit.json",
+      "sha256": "24237ea52eca7b5db14b51fe6948f325d9899efaeb9f4ea3182f05679cf6caf1"
+    },
+    "resourceLedger": {
+      "path": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/resources.json",
+      "sha256": "418f7f45b845649858eaaec9d96f79f36887f3c6a54b7edf330e04ed1255d9fc"
+    },
+    "diagnosis": {
+      "path": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/diagnosis.json",
+      "sha256": "81544a80fb2895b2d68a253494f0a6cf7f4f6924b925488a6745fe5d9111c653"
+    },
+    "candidate": {
+      "path": "data/erd-poc/candidates/captain-ml-independent-views.layout.json",
+      "sha256": "4e741de39ca655c7ff042422b9407206427f89e02ecd56b7f4a9f36f6a5cd02e"
+    },
+    "candidateAudit": {
+      "path": "data/erd-poc/candidates/captain-ml-independent-views.audit.json",
+      "sha256": "82529202dbd61798334e2c0b451c75eaa9f418c2c19b371724c76ff58dfd277e"
+    },
+    "candidateProvenance": {
+      "path": "data/erd-poc/candidates/captain-ml-independent-views.provenance.json",
+      "sha256": "bca34270005e19dc7c2c06aa8d95742fe7603c0bc8cc027e8017e0489e51d29f"
+    },
+    "sealGuardLog": {
+      "path": ".tmp/geometry-world-archive-seal.guard.log",
+      "sha256": "f7101e194da502689ee2c5db1dbf551670495df67177a2533c3e8d772fc9da01"
+    },
+    "restoreGuardLog": {
+      "path": ".tmp/geometry-world-archive-restore.guard.log",
+      "sha256": "477b508109a18c7352076d1c48c50439aec5c7d083b41077b0ba3af5768c5b90"
+    }
+  },
+  "restoreScope": {
+    "mappings": 196,
+    "distinctStoredObjects": 127,
+    "prerequisiteManifests": 7
+  },
+  "archiveSampledPeakMiB": {
+    "sealGuardLog": 25.5,
+    "restoreGuardLog": 0.2
+  },
+  "sampledPeaksAreNotHardInstantaneousMemoryBounds": true,
+  "newProductCandidatePromoted": false,
+  "overviewVisual": 285,
+  "individualVisual": 1963,
+  "targetOverview": 150,
+  "targetIndividual": 750,
+  "targetMet": false,
+  "allNumericalAndVerificationHandlesTerminal": true,
+  "goalMustRemainActive": true,
+  "browserVerified": false,
+  "finalizerSha256": "25c228dfb3324624323cddb4b55a5ebce30bf25d90a74b021b7d0e5e7ce0c813"
+}

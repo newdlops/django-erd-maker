@@ -1,0 +1,51 @@
+{
+  "checkpoint": ".tmp/visualcross-ml-targets-20261003/component-policy-v9.npz",
+  "checkpointSha256": "4d44209a31f286c035545a83910e3ef10aebf6e6e00a687a89c84b9a95ca6ed3",
+  "untrainedControl": false,
+  "sourceDirectory": ".tmp/visualcross-ml-targets-20261003/individual10",
+  "syntheticSeed": null,
+  "policyProposalSource": "conditional mixture neural network",
+  "heuristicSearchCalls": 0,
+  "overviewOnly": false,
+  "initial": {
+    "ready": true,
+    "eligible": 1244,
+    "visual": 2219,
+    "individualVisual": 2219,
+    "canonicalStart": false,
+    "sourceVisual": 2219,
+    "sourceIndividualVisual": 2219
+  },
+  "final": {
+    "initialVisual": 2219,
+    "visual": 2217,
+    "initialIndividualVisual": 2219,
+    "individualVisual": 2217,
+    "hardConditions": 0,
+    "initialHardConditions": 0,
+    "individualHardConditions": 0,
+    "initialIndividualHardConditions": 0,
+    "canonicalStart": false,
+    "rolloutInitialVisual": 2219,
+    "rolloutInitialIndividualVisual": 2219,
+    "jointMoves": false,
+    "overviewOnly": false,
+    "swapSlots": true,
+    "overlap": 0,
+    "spacing": 0,
+    "policyActionsEvaluated": 18485,
+    "acceptedActions": 2,
+    "heuristicSearchCalls": 0,
+    "proposalAuthority": "external-policy",
+    "decoder": "model desired point quantized to nearest card slot; atomic center swap with ray ports"
+  },
+  "budget": 20000,
+  "seed": 152,
+  "seconds": 20.175363791990094,
+  "observationsSha256": "3409bb46c33fa92dd0316889cbada6403d102d95f2905eea3b26e9a82acd2001",
+  "actionsSha256": "cf9fe9fc6d4b52cc288471ee6a1e6a7cd09c9d57e23ac1783c0815d1ca623d96",
+  "swapInputHashes": {
+    "nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+    "positions.tsv": "c13d7f4386176392ad24909c6fb80d7d82b99512b647be76c358656833d77621"
+  }
+}

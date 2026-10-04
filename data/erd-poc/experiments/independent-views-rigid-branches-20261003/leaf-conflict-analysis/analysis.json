@@ -1,0 +1,188 @@
+[
+  {
+    "view": "individual",
+    "crossings": 1492,
+    "cardHits": 498,
+    "degreeOneNodes": 441,
+    "exactCountMatchesNativeSource": true,
+    "ranked": [
+      {
+        "node": "db.VentureBusinessCertificationExpirationNotificationLog",
+        "edge": "edge:declared:db.VentureBusinessCertificationExpirationNotificationLog:venture_business_certification",
+        "conflicts": 4,
+        "edgeConflicts": 0,
+        "cardHits": 4
+      },
+      {
+        "node": "db.RsuPerformanceAchievementEvent",
+        "edge": "edge:inheritance:db.RsuPerformanceAchievementEvent->db.Event",
+        "conflicts": 3,
+        "edgeConflicts": 0,
+        "cardHits": 3
+      },
+      {
+        "node": "db.ElectronicCertificateFileDownloadHistory",
+        "edge": "edge:declared:db.ElectronicCertificateFileDownloadHistory:file_uploaded",
+        "conflicts": 2,
+        "edgeConflicts": 2,
+        "cardHits": 0
+      },
+      {
+        "node": "db.QuarterlyReportSettings",
+        "edge": "edge:declared:db.QuarterlyReportSettings:quarterly_report",
+        "conflicts": 2,
+        "edgeConflicts": 1,
+        "cardHits": 1
+      },
+      {
+        "node": "db.StockTransferAgreementSellerInstitution",
+        "edge": "edge:declared:db.StockTransferAgreementSellerInstitution:agreement",
+        "conflicts": 2,
+        "edgeConflicts": 0,
+        "cardHits": 2
+      },
+      {
+        "node": "db.AgendaShareholdersMeetingConvocation",
+        "edge": "edge:declared:db.DirectorsMeetingAgenda:agenda_shareholders_meeting_convocation",
+        "conflicts": 1,
+        "edgeConflicts": 0,
+        "cardHits": 1
+      },
+      {
+        "node": "db.CapitalChangeEvent",
+        "edge": "edge:inheritance:db.CapitalChangeEvent->db.Event",
+        "conflicts": 1,
+        "edgeConflicts": 1,
+        "cardHits": 0
+      },
+      {
+        "node": "db.CertificateOfCorporateSealDocument",
+        "edge": "edge:inheritance:db.CertificateOfCorporateSealDocument->db.MeetingDocument",
+        "conflicts": 1,
+        "edgeConflicts": 1,
+        "cardHits": 0
+      },
+      {
+        "node": "db.CoCeoSystemChangeEvent",
+        "edge": "edge:inheritance:db.CoCeoSystemChangeEvent->db.Event",
+        "conflicts": 1,
+        "edgeConflicts": 0,
+        "cardHits": 1
+      },
+      {
+        "node": "db.CompanyCreateAssignmentReadiness",
+        "edge": "edge:declared:db.CompanyCreateAssignmentReadiness:company",
+        "conflicts": 1,
+        "edgeConflicts": 0,
+        "cardHits": 1
+      },
+      {
+        "node": "db.CompanyGuideState",
+        "edge": "edge:declared:db.CompanyGuideState:company",
+        "conflicts": 1,
+        "edgeConflicts": 0,
+        "cardHits": 1
+      },
+      {
+        "node": "db.CompanyInvitation",
+        "edge": "edge:declared:db.CompanyInvitation:invitee",
+        "conflicts": 1,
+        "edgeConflicts": 1,
+        "cardHits": 0
+      }
+    ]
+  },
+  {
+    "view": "overview",
+    "crossings": 199,
+    "cardHits": 100,
+    "degreeOneNodes": 449,
+    "exactCountMatchesNativeSource": true,
+    "ranked": [
+      {
+        "node": "db.MeetingDraftAgendaDirectorCompensationItem",
+        "edge": "edge:declared:db.MeetingDraftAgendaDirectorCompensationItem:director_compensation",
+        "conflicts": 3,
+        "edgeConflicts": 3,
+        "cardHits": 0
+      },
+      {
+        "node": "leaf-card:8",
+        "edge": "leaf-connection:[\"db.Event\",\"leaf-card:8\"]",
+        "conflicts": 3,
+        "edgeConflicts": 2,
+        "cardHits": 1
+      },
+      {
+        "node": "leaf-card:17",
+        "edge": "leaf-connection:[\"db.AgendaHeadOfficeRelocation\",\"leaf-card:17\"]",
+        "conflicts": 2,
+        "edgeConflicts": 2,
+        "cardHits": 0
+      },
+      {
+        "node": "leaf-card:21",
+        "edge": "leaf-connection:[\"db.AgendaNewIssue\",\"leaf-card:21\"]",
+        "conflicts": 2,
+        "edgeConflicts": 1,
+        "cardHits": 1
+      },
+      {
+        "node": "leaf-card:32",
+        "edge": "leaf-connection:[\"db.DirectorsMeetingAgenda\",\"leaf-card:32\"]",
+        "conflicts": 2,
+        "edgeConflicts": 1,
+        "cardHits": 1
+      },
+      {
+        "node": "db.AgendaNewIssueNewShareClass",
+        "edge": "edge:declared:db.AgendaNewIssueNewShareClass:new_issue",
+        "conflicts": 1,
+        "edgeConflicts": 0,
+        "cardHits": 1
+      },
+      {
+        "node": "db.CreditCard",
+        "edge": "edge:declared:db.Payment:credit_card",
+        "conflicts": 1,
+        "edgeConflicts": 1,
+        "cardHits": 0
+      },
+      {
+        "node": "db.CustomOptionGrantContractTemplate",
+        "edge": "edge:inheritance:db.CustomOptionGrantContractTemplate->db.OptionGrantContractTemplate",
+        "conflicts": 1,
+        "edgeConflicts": 0,
+        "cardHits": 1
+      },
+      {
+        "node": "db.IaExpertPartnerBulkEmailTemplate",
+        "edge": "edge:inheritance:db.IaExpertPartnerBulkEmailTemplate->db.BulkEmailTemplate",
+        "conflicts": 1,
+        "edgeConflicts": 1,
+        "cardHits": 0
+      },
+      {
+        "node": "db.MeetingDraftSchedule",
+        "edge": "edge:declared:db.MeetingDraftSchedule:meeting_draft",
+        "conflicts": 1,
+        "edgeConflicts": 0,
+        "cardHits": 1
+      },
+      {
+        "node": "db.PayrollStatementPayrollInformation",
+        "edge": "edge:declared:db.PayrollStatementPayrollInformation:payroll_statement",
+        "conflicts": 1,
+        "edgeConflicts": 0,
+        "cardHits": 1
+      },
+      {
+        "node": "db.ThirdPartyArticleProvider",
+        "edge": "edge:declared:db.ThirdPartyArticleProviderUserRelation:article_provider",
+        "conflicts": 1,
+        "edgeConflicts": 0,
+        "cardHits": 1
+      }
+    ]
+  }
+]

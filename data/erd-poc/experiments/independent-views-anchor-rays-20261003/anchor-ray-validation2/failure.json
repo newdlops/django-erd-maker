@@ -1,0 +1,142 @@
+{
+  "type": "AssertionError",
+  "message": "('individual', 'w1', (np.int64(3), np.int64(47)), [0.028445431383715913, 0.10972045623611848], np.float64(3894.307211414856), 3894.416931871092)",
+  "partialReport": {
+    "nativeBinarySha256": "e2a58da4e295d6fd26f9473d1ff371f7cea7ad7e4685b786cefa3838b58d3082",
+    "views": {
+      "individual": {
+        "sourceSha256": "42adab07b311c16463bd7f5dc0ee68941d6047ac0372415393ad9355c126fe22",
+        "sourceVisual": 1964,
+        "zeroEndpointsPreserved": 3454,
+        "strictInteriorAnchors": 3454,
+        "degenerateSourceRays": 38,
+        "nativeNoncommittingBatches": [
+          {
+            "accepted": false,
+            "legal": true,
+            "visual": 1964,
+            "measureOnly": true,
+            "individualVisual": 1964,
+            "spacing": 0,
+            "hard": 0,
+            "individualHard": 0,
+            "reason": "legal"
+          },
+          {
+            "accepted": false,
+            "legal": false,
+            "visual": 1965,
+            "measureOnly": true,
+            "individualVisual": 1965,
+            "spacing": 0,
+            "hard": 2,
+            "individualHard": 2,
+            "reason": "hard"
+          },
+          {
+            "accepted": false,
+            "legal": false,
+            "visual": 2001,
+            "measureOnly": true,
+            "individualVisual": 2001,
+            "spacing": 0,
+            "hard": 18,
+            "individualHard": 18,
+            "reason": "hard"
+          },
+          {
+            "accepted": false,
+            "legal": false,
+            "visual": 2242,
+            "measureOnly": true,
+            "individualVisual": 2242,
+            "spacing": 0,
+            "hard": 111,
+            "individualHard": 111,
+            "reason": "hard"
+          },
+          {
+            "accepted": false,
+            "legal": false,
+            "visual": 2963,
+            "measureOnly": true,
+            "individualVisual": 2963,
+            "spacing": 0,
+            "hard": 243,
+            "individualHard": 243,
+            "reason": "hard"
+          },
+          {
+            "accepted": false,
+            "legal": false,
+            "visual": 4945,
+            "measureOnly": true,
+            "individualVisual": 4945,
+            "spacing": 0,
+            "hard": 590,
+            "individualHard": 590,
+            "reason": "hard"
+          }
+        ],
+        "trainableEndpointHead": false,
+        "sharedEndpointGroups": 42,
+        "sharedEndpointOutputsEqual": true,
+        "poolComparisons": [
+          {
+            "fixtureWeightStd": 1e-05,
+            "pooled": {
+              "accepted": false,
+              "legal": false,
+              "visual": 1965,
+              "measureOnly": true,
+              "individualVisual": 1965,
+              "spacing": 0,
+              "hard": 2,
+              "individualHard": 2,
+              "reason": "hard"
+            },
+            "unpooled": {
+              "accepted": false,
+              "legal": false,
+              "visual": 1974,
+              "measureOnly": true,
+              "individualVisual": 1974,
+              "spacing": 0,
+              "hard": 20,
+              "individualHard": 20,
+              "reason": "hard"
+            }
+          },
+          {
+            "fixtureWeightStd": 0.0003,
+            "pooled": {
+              "accepted": false,
+              "legal": false,
+              "visual": 2001,
+              "measureOnly": true,
+              "individualVisual": 2001,
+              "spacing": 0,
+              "hard": 18,
+              "individualHard": 18,
+              "reason": "hard"
+            },
+            "unpooled": {
+              "accepted": false,
+              "legal": false,
+              "visual": 2048,
+              "measureOnly": true,
+              "individualVisual": 2048,
+              "spacing": 0,
+              "hard": 110,
+              "individualHard": 110,
+              "reason": "hard"
+            }
+          }
+        ],
+        "anchorInset": 0.01
+      }
+    },
+    "fixturesOnly": true,
+    "strictInteriorFixtureEndpoints": 192
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "native": [
+    {
+      "selfTest": "pass",
+      "globalDeltaComparisons": 6424,
+      "acceptedSwaps": 126,
+      "acceptedNeighborMoves": 54,
+      "acceptedMovingRayMoves": 257,
+      "acceptedNeutralMoves": 126,
+      "translationInvariance": true
+    },
+    {
+      "explorationSelfTest": "pass",
+      "globalDeltaComparisons": 3072,
+      "acceptedUphillMoves": 367,
+      "restoredCheckpoints": 12,
+      "improvedCheckpoints": 70
+    },
+    {
+      "branchSelfTest": "pass",
+      "globalDeltaComparisons": 3072,
+      "acceptedMoves": 1546,
+      "acceptedGroupedMoves": 440,
+      "measurementsPreserveState": true
+    }
+  ],
+  "pythonGraph": [
+    {
+      "graphBranchFixture": "pass",
+      "cyclesTreesParallelEdgesAndDisconnectedForest": true
+    }
+  ],
+  "networkGradient": [
+    {
+      "gradientChecks": 44,
+      "maxAbsoluteError": 4.891325122713397e-10,
+      "status": "pass"
+    }
+  ],
+  "individual-branch-policy1": {
+    "sourceGraphMapParity": true,
+    "sourceVisual": 1981
+  },
+  "overview-branch-policy2": {
+    "sourceGraphMapParity": true,
+    "sourceVisual": 295
+  },
+  "implementationHashes": {
+    "ml_component_environment.cpp": "db9f67600495cd91f7adcb4911263f3f1e4d56079f419f02d9d8c3a3a3314b26",
+    "constrained_dual_node_geometry.h": "aa984669fd96ddbcd375301d564f9f511cb406549a44619a17ce80cbdbdcf692",
+    "constrained_scene.h": "ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6",
+    "constrained_boundary_sweep.h": "296dab7012fe0e0192e2d526bda778f38595f1b8d446d0e2b124d4576297aa79",
+    "learned_branch_map.py": "db098689443fc07976d69d0b5092035e14c00948106d6d496ee7917d27576b42",
+    "learned_global_replay.py": "2b17799b39d18de71af7819b586248a8167f5545cfcba9caf28ecb491debcccd",
+    "learn_card_policy.py": "3092b426a25bb43d1a5c6b0ad39eefa4eb4948ee7af44a58a2ee81ac5fa2b5ba",
+    "run_individual_policy_experiment.py": "b5d9882177e834dc095016fb9e0668f26c88a0c4515b1e510866e6115823b64e",
+    "run_learned_leaf_layout.py": "eebf6a43f71ca46a428eabc7e4f29a8f98fba308a5f40f669d39d15d0cc7aae3",
+    "run_memory_bounded.py": "7784ae78aec359887155ff86d37dd503628d490487d2a3e1f9b4e89f3c02a43d"
+  },
+  "nativeBinarySha256": "0be42b1a7a3b6f932631211e0c10dd38bf788a28f232699b0a98b25007ce063f"
+}

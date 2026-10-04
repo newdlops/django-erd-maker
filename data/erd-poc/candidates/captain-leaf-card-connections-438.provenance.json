@@ -1,0 +1,202 @@
+{
+  "sourceFile": "data/erd-poc/candidates/captain-leaf-card-connections-451.layout.json",
+  "candidateFile": "data/erd-poc/candidates/captain-leaf-card-connections-438.layout.json",
+  "sourceSha256": "d2585e3321b9836b56a2f7e3f5311d6c30895d48e6bfe6ba1cbae5a2c637b10a",
+  "candidateSha256": "00219e5cb5205462215c80f25ffbbecb7f14ebe0a3dbda48e8e96db3e4af8b43",
+  "baseline": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 296,
+    "edgeNodeIntersections": 153,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 451
+  },
+  "metrics": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 290,
+    "edgeNodeIntersections": 146,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 438
+  },
+  "originalIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 3432,
+    "edgeNodeIntersections": 1281,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 4713
+  },
+  "candidateIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 3426,
+    "edgeNodeIntersections": 1274,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 4700
+  },
+  "bboxB": 1.14915248448,
+  "changedRoutes": [
+    "edge:declared:db.OptionManagementStakeholderSeat:option_management",
+    "edge:declared:db.ShareholdersMeetingAgenda:agenda_change_of_articles_of_incorporation",
+    "edge:inheritance:db.QuestionMessageAttachment->db.FileAttachment",
+    "edge:declared:db.CompanyCreateRequest:address",
+    "edge:declared:db.ModusignAuthentication:modusign_account",
+    "edge:declared:db.OptionGrantContractTemplate:_deprecated_stakeholder",
+    "edge:declared:db.RsuGrantContract:template",
+    "edge:inheritance:db.HrmAttendanceLocation->db.HrmApprovable",
+    "edge:inheritance:db.HrmStaggeredWork->db.HrmWorkBase",
+    "edge:inheritance:db.Shareholder->db.Stakeholder",
+    "edge:declared:db.AgendaBorrowCapital:meeting_draft"
+  ],
+  "rejectedRoutes": [
+    {
+      "edgeId": "edge:inheritance:db.OptionExerciseClaimAttachment->db.FileAttachment",
+      "overviewDelta": 0,
+      "individualDelta": 1
+    },
+    {
+      "edgeId": "edge:declared:db.StockTransferAgreementManagementStakeholderSeat:stock_transfer_agreement_management",
+      "overviewDelta": -1,
+      "individualDelta": 12
+    },
+    {
+      "edgeId": "edge:declared:db.BaseModusignDocumentUsageHistory:modusign_document",
+      "overviewDelta": 0,
+      "individualDelta": 1
+    },
+    {
+      "edgeId": "edge:declared:db.OptionGrantContract:_deprecated_template",
+      "overviewDelta": -1,
+      "individualDelta": 4
+    },
+    {
+      "edgeId": "edge:declared:db.OptionGrantContract:template_revision",
+      "overviewDelta": 0,
+      "individualDelta": 2
+    },
+    {
+      "edgeId": "edge:inheritance:db.BranchInstallationEvent->db.Event",
+      "overviewDelta": 0,
+      "individualDelta": 2
+    },
+    {
+      "edgeId": "edge:declared:db.ShareholdersMeetingAgenda:agenda_branch_change",
+      "overviewDelta": 0,
+      "individualDelta": 2
+    },
+    {
+      "edgeId": "edge:inheritance:db.HrmDocument->db.HrmApprovable",
+      "overviewDelta": -1,
+      "individualDelta": 3
+    },
+    {
+      "edgeId": "edge:declared:db.PayrollDocumentSealStampSetting:_deprecated_ceo",
+      "overviewDelta": 0,
+      "individualDelta": 1
+    },
+    {
+      "edgeId": "edge:declared:db.CompanyUpdateRequest:change_detection",
+      "overviewDelta": -1,
+      "individualDelta": 1
+    }
+  ],
+  "proposedMetrics": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 296,
+    "edgeNodeIntersections": 135,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 433
+  },
+  "proposedIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 3465,
+    "edgeNodeIntersections": 1263,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 4728
+  },
+  "nodesAndSizesPreserved": true,
+  "membershipsPreserved": true,
+  "productRouteParity": true,
+  "nativeProposal": {
+    "initialVisual": 451,
+    "initialHardConditions": 8,
+    "visual": 433,
+    "cross": 296,
+    "hit": 137,
+    "hardConditions": 0,
+    "overlap": 0,
+    "spacing": 0,
+    "queries": 5664,
+    "changes": 21,
+    "intervals": 111672,
+    "selectedEdges": 160,
+    "rounds": 2,
+    "timedOut": false,
+    "seconds": 4.18359
+  },
+  "resourcePolicy": {
+    "threads": 1,
+    "rssLimitMiB": 256,
+    "maxSearchSeconds": 20,
+    "maxSelectedRoutes": 160,
+    "requestedHostCpuBudgetPercent": 20,
+    "hostLogicalCpuCount": 15,
+    "largestReportedRssMiB": 186.9,
+    "serialized": true,
+    "searchNiceIncrement": 10,
+    "jointProbes": true,
+    "nativePeakReportedRssMiB": 3.0
+  },
+  "browserVerified": false,
+  "acceptedGeometry": {
+    "initialVisual": 438,
+    "initialHardConditions": 0,
+    "visual": 438,
+    "cross": 290,
+    "hit": 148,
+    "hardConditions": 0,
+    "overlap": 0,
+    "spacing": 0,
+    "queries": 0,
+    "changes": 0,
+    "intervals": 0,
+    "selectedEdges": 160,
+    "rounds": 0,
+    "timedOut": false,
+    "seconds": 0.0693828
+  },
+  "date": "2026-10-02",
+  "productAuditFile": "data/erd-poc/candidates/captain-leaf-card-connections-438.audit.json",
+  "nativeBinarySha256": "22db910be072dfd6385ead41214dddda13de6b78d0fb43fca4e80cd4183811ee",
+  "installedAsDefault": false,
+  "freshSourceAnalysisVerified": false,
+  "sourceCodeSha256": {
+    "scripts/erd-poc/probe_overview_boundary.cjs": "59183abd1e8e65fc2c21d5c867c4f46c508ec753fabce673a6f20b383a4a76e4",
+    "scripts/erd-poc/probe_boundary_sweep.cpp": "9ddd871deb2b7d445be30f5243e261fcf5f4907e8b8d85dada28219adada0b4a",
+    "scripts/erd-poc/constrained_boundary_sweep.h": "5dc43defe7f4348d58ead6028259e12b88dcdd25740c87d5127809f51a1eef30",
+    "scripts/erd-poc/constrained_scene.h": "ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6",
+    "scripts/erd-poc/run_memory_bounded.py": "90dc1dcdf63a5ac940b7b32f4997a60b4d5f5e8d1545d905bfcfc49febe79dba",
+    "out/webview/state/createDiagramRenderModel.js": "6c39e4590a22b5ba306f9ff3f195fb4f3edf997966a05c6edf693b95edc71b69"
+  }
+}

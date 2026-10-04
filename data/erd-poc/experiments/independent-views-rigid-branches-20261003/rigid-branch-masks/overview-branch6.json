@@ -1,0 +1,22 @@
+{
+  "view": "overview",
+  "sourceSha256": "23c020f04cbc7ce41c244f70e628d8272d7fb85fa03a07c70450a36e9448fc95",
+  "sourceVisual": 299,
+  "nodeIds": [
+    "db.Stakeholder",
+    "db.IndividualStakeholder",
+    "db.InvestmentContractHolder",
+    "db.PhantomStock",
+    "db.PhantomStockGrantContract",
+    "db.PhantomStockGrantee",
+    "db.Safe",
+    "db.ShareholdersAgreementStakeholder",
+    "db.StakeholderCustodian",
+    "leaf-card:35"
+  ],
+  "coreRoot": "db.Stakeholder",
+  "rootConflictIncidences": 20,
+  "selection": "conflicted two-core root with all attached nodes outside the simple-graph two-core",
+  "positionsProposed": false,
+  "coordinatesAsTargets": false
+}

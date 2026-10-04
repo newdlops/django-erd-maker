@@ -1,0 +1,57 @@
+{
+  "views": [
+    {
+      "input": ".tmp/visualcross-ml-150-750-20261003/individual-outward-joint1",
+      "activePairLoss": true,
+      "crossingDepthWeight": 0.5,
+      "sharedSourceEndpoints": true,
+      "rayConditionedPorts": false,
+      "patchNodesSha256": "c45001a4c635db09e114dae7a90eaf3d3c48c720e32a31d3e04f58c138a6ef92",
+      "inactiveOutputsAndGradientsExactlyZero": true,
+      "activeNodeOutputs": 8,
+      "activeEndpointOutputs": 125,
+      "rigidBranchTranslationsExactlyEqual": true,
+      "spacingPadding": 0.0,
+      "sharedGroupsPreserved": 17,
+      "zeroOutputEndpointsPreserved": 3454,
+      "routeGradientChecks": 24,
+      "networkWeightGradientChecks": 28,
+      "baselineVisual": 1990,
+      "baselineHardPenalty": 0.0,
+      "frozenRoundtripExact": true,
+      "parameterCount": 8804,
+      "allChecksPassed": true
+    },
+    {
+      "input": ".tmp/visualcross-ml-150-750-20261003/overview-ray-conditioned1",
+      "activePairLoss": true,
+      "crossingDepthWeight": 0.5,
+      "sharedSourceEndpoints": true,
+      "rayConditionedPorts": false,
+      "patchNodesSha256": "6a6d95f621a9fc64634c2e3d52375d277cec2b760c7f30b3db4720e011bce86a",
+      "inactiveOutputsAndGradientsExactlyZero": true,
+      "activeNodeOutputs": 4,
+      "activeEndpointOutputs": 38,
+      "rigidBranchTranslationsExactlyEqual": true,
+      "spacingPadding": 0.0,
+      "sharedGroupsPreserved": 16,
+      "zeroOutputEndpointsPreserved": 3454,
+      "routeGradientChecks": 24,
+      "networkWeightGradientChecks": 28,
+      "baselineVisual": 299,
+      "baselineHardPenalty": 0.0,
+      "frozenRoundtripExact": true,
+      "parameterCount": 8804,
+      "allChecksPassed": true
+    }
+  ],
+  "continuousGradientChecks": true,
+  "nativeValidationStillRequired": true,
+  "implementationHashes": {
+    "validate_joint_neural_ports.py": "37b292b41fb5d03c1f032eee74144703a8fa6d66a2a664d1616e1463fd761966",
+    "joint_neural_ports.py": "1055e8811cca62268d5d326c3dbc8db60cf7def4709c2e271b3dca7d750fa7a1",
+    "joint_layout_proxy.py": "d21091db3bbde2b659cced3ed9c2161a98a69cbe4659ac4954f36cfb41176428",
+    "joint_hard_geometry.py": "ab4ef586709c39fc9f68829bc1596dbaa2c47c36b07a929d3001d3f4157e172b",
+    "joint_active_proxy.py": "4eda3b4534787e03cd5f39f0c9845ae1f015d27f4fdbc36e1d1f6407280f4666"
+  }
+}

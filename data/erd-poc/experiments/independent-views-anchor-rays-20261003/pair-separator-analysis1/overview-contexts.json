@@ -1,0 +1,457 @@
+{
+  "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52",
+  "positionsProposed": false,
+  "anchors": [
+    "db.Employee",
+    "db.BulkEmail",
+    "db.ModusignDocument",
+    "db.Address",
+    "db.FileAttachment",
+    "db.ShareholdersMeetingAgenda",
+    "db.Shareholder",
+    "db.DirectorsMeetingAgenda",
+    "db.ModusignEmbeddedDraft",
+    "db.Stakeholder",
+    "db.ESOP",
+    "db.InvestmentAssociationDocument",
+    "db.MeetingDraft",
+    "db.OptionGrantee",
+    "db.SealStampUsageHistory",
+    "db.ShareholdersMeeting",
+    "db.StockTransferAgreement",
+    "db.YetsEmployee",
+    "db.AgendaBranchChange",
+    "db.AgendaNewIssue",
+    "db.AgendaOptionCancel",
+    "db.CompanyManagingEntity",
+    "db.Event",
+    "db.IaConsentFormOrMeetingElectronicSignatureRequiredDocument",
+    "db.IaMeeting",
+    "db.OptionGrantContract",
+    "db.RsuExerciseClaim",
+    "db.ShareholdersMeetingConvocationNoticeEmail",
+    "db.ShareholdersMeetingShareholderAttendance",
+    "db.AgendaHeadOfficeRelocation",
+    "db.AgendaOptionGrant",
+    "db.AgendaOptionGrantGrantee"
+  ],
+  "contexts": [
+    {
+      "nodeIds": [
+        "db.YetsAssistance",
+        "db.YetsAssistanceCreator",
+        "db.YetsAssistanceCreatorUser",
+        "db.YetsAssistanceCreatorYetsEmployee",
+        "db.YetsAssistanceMessage",
+        "db.YetsAssistanceMessageFile",
+        "db.YetsAssistanceStaffAccessLog",
+        "db.YetsAssistanceStaffFavoriteRelation",
+        "db.YetsEmployeeResult",
+        "db.YetsEmployeeResultAssistanceMessageRelation",
+        "db.YetsEmployeeResultStatusLog",
+        "db.YetsEmployeeResultWhtReceipt"
+      ],
+      "mainBlockNodes": 8,
+      "internalEdges": 11,
+      "boundaryEdges": 5,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.FileAttachment",
+          "db.YetsEmployee"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.EmployeeOption",
+        "db.EmployeeOptionExerciseCandidate",
+        "db.EmployeeOptionExerciseCandidateFile",
+        "db.EmployeeOptionExerciseClaim",
+        "db.EmployeeOptionExerciseClaimOption",
+        "db.EmployeeOptionExerciseManagement",
+        "db.EmployeeOptionExerciseManagementEmail",
+        "db.EmployeeOptionGrantee",
+        "db.EmployeeOptionVesting",
+        "db.EmployeeOptionVestingItem",
+        "db.EmployeeOptionVestingTraceable"
+      ],
+      "mainBlockNodes": 7,
+      "internalEdges": 11,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Employee",
+          "db.BulkEmail"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.RightToConsentOrConsult",
+        "db.RtccEmail",
+        "db.RtccEmailAuthentication",
+        "db.RtccInvestor",
+        "db.RtccInvestorFile"
+      ],
+      "mainBlockNodes": 4,
+      "internalEdges": 4,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.BulkEmail",
+          "db.FileAttachment"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.NotarizationPoA",
+        "db.NotarizationPoaDirectorSigner",
+        "db.NotarizationPoaShareholderSigner",
+        "db.ShareholdersMeetingDirectorAttendance"
+      ],
+      "mainBlockNodes": 4,
+      "internalEdges": 3,
+      "boundaryEdges": 3,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.ShareholdersMeeting",
+          "db.ShareholdersMeetingShareholderAttendance"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.BulkEmailTemplate",
+        "db.BulkEmailTemplateRevision",
+        "db.CmeBulkEmailTemplate",
+        "db.CompanyBulkEmailTemplate",
+        "db.IaExpertPartnerBulkEmailTemplate"
+      ],
+      "mainBlockNodes": 3,
+      "internalEdges": 4,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.BulkEmail",
+          "db.CompanyManagingEntity"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.InstitutionStakeholder",
+        "db.InstitutionStakeholderManager",
+        "db.ShareholderInstitutionMember",
+        "db.ShareholderInstitutionMemberCeo"
+      ],
+      "mainBlockNodes": 3,
+      "internalEdges": 3,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Shareholder",
+          "db.Stakeholder"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.NonUnifiedShareCreateRequest",
+        "db.NonUnifiedShareEtcFile",
+        "db.NonUnifiedShareManagementHistory",
+        "db.NonUnifiedShareStockUnissuedConfirmationFile",
+        "db.NonUnifiedShareSucPoaDocument",
+        "db.NonUnifiedShareSucPoaModusignDocument",
+        "db.NonUnifiedShareSucRenewRequest"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 9,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.ModusignDocument",
+          "db.Address"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.IaRule",
+        "db.IaRuleCompensation",
+        "db.IaRuleDocument",
+        "db.IaRuleInvestment",
+        "db.IaRuleMeeting",
+        "db.IaRulePartner"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 5,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Address",
+          "db.InvestmentAssociationDocument"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.AvailableModusignRequest",
+        "db.ModusignAccount",
+        "db.ModusignApiLog",
+        "db.ModusignAuthentication",
+        "db.ModusignDocumentModusignAccountRelation"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 4,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.ModusignDocument",
+          "db.ModusignEmbeddedDraft"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.AgendaOptionCancelGrantee",
+        "db.AgendaOptionCancelOption",
+        "db.AgendaOptionCancelOptionDistribution"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 2,
+      "boundaryEdges": 3,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.OptionGrantee",
+          "db.AgendaOptionCancel"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.ModusignApiKey",
+        "db.ModusignDocumentModusignApiKeyRelation"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 1,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.ModusignDocument",
+          "db.ModusignEmbeddedDraft"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.RsuExerciseClaimEventRelation",
+        "db.RsuExerciseEvent"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 1,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Event",
+          "db.RsuExerciseClaim"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.WhtBook",
+        "db.WhtBookWithoutDate"
+      ],
+      "mainBlockNodes": 2,
+      "internalEdges": 1,
+      "boundaryEdges": 3,
+      "singleCutContextAlreadyExists": false,
+      "separatorPairs": [
+        [
+          "db.Employee",
+          "db.SealStampUsageHistory"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.EmploymentCertificateDocumentRequest",
+        "db.EmploymentStatusHistory",
+        "db.HrmAlpTarget",
+        "db.HrmAlpUsageDesignation",
+        "db.HrmAlpUsageDesignationDate",
+        "db.HrmAlpUsagePlan",
+        "db.HrmAnnualLeave",
+        "db.HrmAnnualLeaveConfigBase",
+        "db.HrmAnnualLeaveFiscalBasedConfig",
+        "db.HrmAnnualLeaveHireBasedConfig",
+        "db.HrmApprovable",
+        "db.HrmApproval",
+        "db.HrmApprovalLine",
+        "db.HrmApprovalReview",
+        "db.HrmApprovalTemplate",
+        "db.HrmApprovalTemplateLine",
+        "db.HrmApprovalTemplateReview",
+        "db.HrmApprover",
+        "db.HrmAttendance",
+        "db.HrmAttendanceItem",
+        "db.HrmCommonLocation",
+        "db.HrmDailyLeaveUsageItem",
+        "db.HrmDept",
+        "db.HrmDeptAbolishedEvent",
+        "db.HrmDeptCreatedEvent",
+        "db.HrmDeptEventBase",
+        "db.HrmDeptName",
+        "db.HrmDeptNameChangedEvent",
+        "db.HrmDeptNameEventBase",
+        "db.HrmDeptParent",
+        "db.HrmDeptParentChangedEvent",
+        "db.HrmDeptParentEventBase",
+        "db.HrmDeptStatus",
+        "db.HrmDeptStatusEventBase",
+        "db.HrmDocument",
+        "db.HrmDocumentDraft",
+        "db.HrmDocumentDraftFieldAttachment",
+        "db.HrmDocumentDraftFieldMultiSelectValue",
+        "db.HrmDocumentDraftFieldValue",
+        "db.HrmDocumentFieldAttachment",
+        "db.HrmDocumentFieldMultiSelectValue",
+        "db.HrmDocumentFieldValue",
+        "db.HrmDocumentForm",
+        "db.HrmDocumentFormFieldDefinition",
+        "db.HrmDocumentFormFieldSelectOption",
+        "db.HrmDocumentFormIndividualApprovalTemplateRelation",
+        "db.HrmEmpAbsenceEvent",
+        "db.HrmEmpAffiliation",
+        "db.HrmEmpAffiliationChangedEvent",
+        "db.HrmEmpAffiliationDept",
+        "db.HrmEmpAffiliationEventBase",
+        "db.HrmEmpDepartedEvent",
+        "db.HrmEmpEmploymentType",
+        "db.HrmEmpEmploymentTypeChangedEvent",
+        "db.HrmEmpEmploymentTypeEventBase",
+        "db.HrmEmpEventBase",
+        "db.HrmEmpJob",
+        "db.HrmEmpJobChangedEvent",
+        "db.HrmEmpJobEventBase",
+        "db.HrmEmpJoinedEvent",
+        "db.HrmEmpReturnToWorkEvent",
+        "db.HrmEmpStatusEventBase",
+        "db.HrmEmpWorkLocationAssignment",
+        "db.HrmEmpWorkLocationConfig",
+        "db.HrmGrantableLeave",
+        "db.HrmLeaveBase",
+        "db.HrmLeaveGrant",
+        "db.HrmLeaveUsage",
+        "db.HrmLeaveUsageAttachment",
+        "db.HrmOngoingAttendance",
+        "db.HrmOngoingAttendanceClockedSchedule",
+        "db.HrmPersonalLocation",
+        "db.HrmRequestor",
+        "db.HrmWorkLocation",
+        "db.HrmWorkLocationGpsConfig",
+        "db.HrmAttendanceLocation",
+        "db.HrmSelectiveWorkPlan",
+        "db.HrmSelectiveWorkPlanItem",
+        "leaf-card:6",
+        "leaf-card:19",
+        "leaf-card:20"
+      ],
+      "mainBlockNodes": 1,
+      "internalEdges": 94,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": true,
+      "separatorPairs": [
+        [
+          "db.Employee",
+          "db.Event"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.AgendaChangeOfAoiClassStock",
+        "db.AgendaChangeOfAoiCustom",
+        "db.AgendaChangeOfAoiDirectorCompensationRule",
+        "db.AgendaChangeOfAoiNumberOfDirectors",
+        "db.AgendaChangeOfAoiThirdPartyAllocation",
+        "db.AgendaChangeOfArticlesOfIncorporation"
+      ],
+      "mainBlockNodes": 1,
+      "internalEdges": 5,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": true,
+      "separatorPairs": [
+        [
+          "db.ShareholdersMeetingAgenda",
+          "db.MeetingDraft"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.AgendaDirectorChange",
+        "db.Registration",
+        "db.RegistrationAgenda",
+        "db.RegistrationDirector",
+        "leaf-card:43",
+        "leaf-card:45"
+      ],
+      "mainBlockNodes": 1,
+      "internalEdges": 5,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": true,
+      "separatorPairs": [
+        [
+          "db.ShareholdersMeetingAgenda",
+          "db.DirectorsMeetingAgenda"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.AgendaDirectorCompensation",
+        "db.AgendaDirectorCompensationItem"
+      ],
+      "mainBlockNodes": 1,
+      "internalEdges": 1,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": true,
+      "separatorPairs": [
+        [
+          "db.ShareholdersMeetingAgenda",
+          "db.DirectorsMeetingAgenda"
+        ]
+      ]
+    },
+    {
+      "nodeIds": [
+        "db.ShareholdersMeetingConvocationNoticeRecipient",
+        "db.ShareholdersMeetingConvocationNoticeWrittenRecipient"
+      ],
+      "mainBlockNodes": 1,
+      "internalEdges": 1,
+      "boundaryEdges": 2,
+      "singleCutContextAlreadyExists": true,
+      "separatorPairs": [
+        [
+          "db.ShareholdersMeetingConvocationNoticeEmail",
+          "db.ShareholdersMeetingShareholderAttendance"
+        ]
+      ]
+    }
+  ]
+}

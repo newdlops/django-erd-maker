@@ -1,0 +1,1125 @@
+{
+  "kind": "latest-trained-radial-checkpoint-preview-v1",
+  "candidate": "data/erd-poc/candidates/captain-ml-latest-checkpoints.layout.json",
+  "candidateSha256": "ab08dfaed8f75354f99f7f5e00697fbecbb761c04e0f806d4242169a841ea3ae",
+  "audit": "data/erd-poc/candidates/captain-ml-latest-checkpoints.audit.json",
+  "auditSha256": "62bc3e0e171629d232647a553ba47eccd066fd6af8788e65bcb8c1f8ee0ab853",
+  "bestCandidate": "data/erd-poc/candidates/captain-ml-independent-views.layout.json",
+  "bestCandidateSha256": "4e741de39ca655c7ff042422b9407206427f89e02ecd56b7f4a9f36f6a5cd02e",
+  "bestOverviewVisual": 285,
+  "bestIndividualVisual": 1963,
+  "checkpoints": {
+    "overview": {
+      "checkpoint": "data/erd-poc/checkpoints/radial-preview-20261004/overview/model-step-018.npz",
+      "checkpointSha256": "08ab8c452417681c9ea7a1cb270175ce08a5785897a9d244ee0ae342968f3001",
+      "observations": "data/erd-poc/checkpoints/radial-preview-20261004/overview/observations.npz",
+      "observationsSha256": "e97c258df5978432f72460216b1f68a716692912e8d0e587193f4f7690b3184e",
+      "trainedUpdates": 18,
+      "modelKind": "source-conditioned-shared-scalar-nn-native-reward-v1",
+      "finalForwardWireSha256": "40b5150dce797a51a75a0576b89a2ac5158c758db3cb790d2bd1679f7a0344e0",
+      "originalStage": ".tmp/visualcross-ml-150-750-20261004/radial-leaf1/overview-learning1"
+    },
+    "individual": {
+      "checkpoint": "data/erd-poc/checkpoints/radial-preview-20261004/individual/model-step-021.npz",
+      "checkpointSha256": "80985b7f4a921e994968e443398cd71cd8de3850e14d71f52bacacd18f555093",
+      "observations": "data/erd-poc/checkpoints/radial-preview-20261004/individual/observations.npz",
+      "observationsSha256": "120ebeb3ad5ff095ab49b8c5a51a0c0a1c62014381f48f7a3f2609d04cb42a64",
+      "trainedUpdates": 21,
+      "modelKind": "source-conflict-gated-radial-nn-native-reward-v1",
+      "finalForwardWireSha256": "38e556c43be1b8e0b253db793d35c093c29c302ce8a2ab2245d9b3d84dee5860",
+      "originalStage": ".tmp/visualcross-ml-150-750-20261004/radial-leaf1/individual-pressure-learning1"
+    }
+  },
+  "latestNetworkForwardExported": true,
+  "strictBestFallback": false,
+  "newTrainingUpdates": 0,
+  "coordinateSearchOrRepairs": 0,
+  "fullNativeFinalOutputMeasurements": {
+    "overview": {
+      "accepted": false,
+      "legal": true,
+      "visual": 285,
+      "measureOnly": true,
+      "individualVisual": 4445,
+      "spacing": 0,
+      "hard": 0,
+      "individualHard": 0,
+      "reason": "legal"
+    },
+    "individual": {
+      "accepted": false,
+      "legal": true,
+      "visual": 1963,
+      "measureOnly": true,
+      "individualVisual": 1963,
+      "spacing": 0,
+      "hard": 0,
+      "individualHard": 0,
+      "reason": "legal"
+    }
+  },
+  "allAdamUpdatesReplayed": 39,
+  "allRewardProbeWiresReplayed": 156,
+  "fullNativeMeasurements": 29,
+  "teacherLabelsReplayedWithoutFullRemeasurement": 140,
+  "inferenceBindings": [
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/export.json",
+      "sha256": "c1d1319dff932400b05a87653a6d2d7490856881c5b6f89f689ce6a1bccf3951",
+      "bytes": 1836
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/product.audit.json",
+      "sha256": "dfa00307c8c90f525d4c1e04e5aba8418038ac950b172c1fc1ac1b328974053f",
+      "bytes": 1166
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/report.json",
+      "sha256": "46d80f89bb01c4429d18bbcb37ce6a2ea633df2f537463692726249aafeea5fa",
+      "bytes": 5690
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/training.jsonl",
+      "sha256": "475de26864f3957c8e27371c70acbe7c1a0ca5ad3eea80c3549d761e9c23b78b",
+      "bytes": 25480
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/actions.jsonl",
+      "sha256": "52ac9b6bad5e20beb3ccce2225c898d3a306dd8851b2da93abc1f93a2ce87491",
+      "bytes": 3033
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/initial-model.npz",
+      "sha256": "99716d6bee113d643192c82e0d37d6f60e3fb777e52ab02a53490c00e10ffcaf",
+      "bytes": 81093
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/nodes.tsv",
+      "sha256": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+      "bytes": 34879
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/edges.tsv",
+      "sha256": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+      "bytes": 113471
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/positions.tsv",
+      "sha256": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+      "bytes": 60175
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/routes.tsv",
+      "sha256": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+      "bytes": 98042
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/individual.nodes.tsv",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "bytes": 43187
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/individual.edges.tsv",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "bytes": 182412
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/individual.positions.tsv",
+      "sha256": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+      "bytes": 73662
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/individual.routes.tsv",
+      "sha256": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+      "bytes": 160831
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/components.tsv",
+      "sha256": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+      "bytes": 61887
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/overview/inputs/groups.tsv",
+      "sha256": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc",
+      "bytes": 160987
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/run_scalar_source_reward.py",
+      "sha256": "730cd69e3ee0939ecf463ac808e0d78c5e585f31772908cdc9bff1ebe257d995",
+      "bytes": 8364
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/shared_card_phase_policy.py",
+      "sha256": "6d495679daef4d3374db2d315a36e536f2e9984a7c1629aea8f9d12897771431",
+      "bytes": 3449
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/radial_leaf_policy.py",
+      "sha256": "833cc81c052a3c4e9834b5de8b44b6ad620c3ce60be4359a94803a71f20322d3",
+      "bytes": 5113
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/joint_reward_training.py",
+      "sha256": "6bdb8c2f52fe27298dd5da090394d5096396e88462ce3e7a685e3b32f091d0c8",
+      "bytes": 10248
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/joint_neural_ports.py",
+      "sha256": "cde68a0ca3419df89ab6e3b369f564467edec5fea53892ff17367e1e0ee94807",
+      "bytes": 18181
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/joint_grouped_routes.py",
+      "sha256": "3b7757e76590aa0e1e935e7f757035f89a6fece56e6a10deb7791e71f1642f6f",
+      "bytes": 8165
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/run_anchor_pair_walk.py",
+      "sha256": "e73fa26e35e1d1bbdfe5f48c2e5f092e71889cf034d42a2f1aa63d52c2e142c8",
+      "bytes": 13558
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/run_anchor_pair_policy.py",
+      "sha256": "db189d196ed68a8dbcdc4c39f8a8dd4873096d1aef6c568e47511eb7eeeb63a2",
+      "bytes": 11655
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/export_latest_scalar_checkpoint.py",
+      "sha256": "960acfd0d549a4d065ad4563fd22579ca4e654a9c7df1d5b6613d38fc37d559b",
+      "bytes": 9750
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/single_owner_cached_observer_v2.py",
+      "sha256": "cb0d81952f2b0245906d10cb61cdc51135c634ffe766dee88a095d20ec3a1db1",
+      "bytes": 11419
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/materialize_latest_patch_preview.cjs",
+      "sha256": "e7c3fec8b313f0a8a12971cc39b0c289ad415c4991741205558a4d162a08d761",
+      "bytes": 4780
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/export.json",
+      "sha256": "5b53ece02a852d5322269d119a6fe4d1a534a1e3aa16a3e75d998c4f93b8b39e",
+      "bytes": 1918
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/individual.audit.json",
+      "sha256": "8e6bb3a0b297da2f811c4da717f04a65a6154d14b84ccc723be7a63a11e64ec3",
+      "bytes": 1100
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/report.json",
+      "sha256": "efa7f0e489c2cd542da774222d7bcb767d2a6ed0cff3182cf98ee7434ac1cea4",
+      "bytes": 6139
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/training.jsonl",
+      "sha256": "6cc03d69e0c18a1e6d6cf15bf5cf5bbbde0687860f586d1641e9b88144951801",
+      "bytes": 29758
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/actions.jsonl",
+      "sha256": "ac190f0ae8514918d5754b2bb86f16d31b5716e22fc705a1e50126eaabb0fc26",
+      "bytes": 4157
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/initial-model.npz",
+      "sha256": "0611f05a49400d71832c5ed131e25b985e9f8661e105bf99e51e87c08b170d67",
+      "bytes": 97354
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/nodes.tsv",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "bytes": 43187
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/edges.tsv",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "bytes": 182412
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/positions.tsv",
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "bytes": 73707
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/routes.tsv",
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "bytes": 160868
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/individual.nodes.tsv",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "bytes": 43187
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/individual.edges.tsv",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "bytes": 182412
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/individual.positions.tsv",
+      "sha256": "5869741b618f9e94d3840ff30beaa5a7775073f504c6d75445bf062e3df6f454",
+      "bytes": 73707
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/individual.routes.tsv",
+      "sha256": "b51f4bbed671edb30e737453d1168f1b8391b1043fbde0418db6bca81264ecbe",
+      "bytes": 160868
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/components.tsv",
+      "sha256": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+      "bytes": 68780
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/individual/inputs/groups.tsv",
+      "sha256": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d",
+      "bytes": 199382
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/pressure_radial_leaf_policy.py",
+      "sha256": "50684f6d8cc1abe82e3042368520e6bbc33cf9c5174752f4c9935cd8f53e238c",
+      "bytes": 1291
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/inference-code/run_pressure_radial_reward.py",
+      "sha256": "206949b87133aa974a72a641ea0f9b49f6fd0b4e6f93a678409e355c8eba9f54",
+      "bytes": 1717
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-combined-product.guard.log",
+      "sha256": "c3214d4f2f75b023a30e903c03c7193ad65eba63177f28607a3bcfb25f61c643",
+      "bytes": 1206
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-extension-build.guard.log",
+      "sha256": "d16befd67caf7a5fd47a66c17f44c774e3603abf0ed66bcaf141a93cc21e1856",
+      "bytes": 286
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-individual-export.guard.log",
+      "sha256": "8a57806f2ceb5459819f8a308a56d8881ca9a0bab70c44509b60f21d90bf1d79",
+      "bytes": 208
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-individual-product.guard.log",
+      "sha256": "94f6edf85137da606b3f9024636f26a8853e47b09b4e2d93cd516adace5d2136",
+      "bytes": 1012
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-overview-export.guard.log",
+      "sha256": "4865ce82623fbccfa10e5bdc509000e9c151038e5151ace58d180fbf99817cba",
+      "bytes": 205
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-overview-materialize.guard.log",
+      "sha256": "457641fd8bfbddf9e4362f03e3812db426b758c7667308401e4911c1b42a5c4e",
+      "bytes": 128
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-overview-product.guard.log",
+      "sha256": "da16b539baf995eac9ce286c467ec2bc064a792d2f4d83c3b4c8156d5a31d21f",
+      "bytes": 1080
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-view-tests.guard.log",
+      "sha256": "19180b7ea0e6b4d84ebdc1937dcb2c504467c91dea398a223214306a1dcc5e52",
+      "bytes": 1075
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-bundle.guard.log",
+      "sha256": "93768f46cae260e19ecd4e82f868e4915186a1d9f60c2f75f00d2fe8ebfe87e3",
+      "bytes": 263
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-extension-build-final.guard.log",
+      "sha256": "d1cb8562ad217a8c4610d1a346e079090be48582732475200f12febc2fdf064d",
+      "bytes": 286
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-loader-typecheck.guard.log",
+      "sha256": "93670182f9b8e129c0ca4d7f080b299118af899aeb9bd2d11095994973c4b586",
+      "bytes": 43
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-normal-load.guard.log",
+      "sha256": "983aa9758092c92eb391d3e02a50076ba7d298a02341d7396a3f16713b368685",
+      "bytes": 345
+    },
+    {
+      "path": "data/erd-poc/checkpoints/radial-preview-20261004/validation/captain-radial-packaging-tests.guard.log",
+      "sha256": "3ab2b20442ef208b02f7a4611c2acd986ec6ab22384b5d72c50037f8b1cfbdc6",
+      "bytes": 833
+    }
+  ],
+  "buildBindings": [
+    {
+      "path": "out/extension/activation/registerCommands.js",
+      "sha256": "f91ccb3f2b6297b2b21df06b66e2b519a619b47104ed1971e7291c101597b2da",
+      "bytes": 3072
+    },
+    {
+      "path": "out/extension/commands/openDiagram.js",
+      "sha256": "9abab0a6bf3062b7eef9979a873b7df1b64b36500b97f13e43515074c6c32009",
+      "bytes": 13526
+    },
+    {
+      "path": "out/extension/commands/refreshDiagram.js",
+      "sha256": "3d6a976ec95a859dd426737db89a9122f21005f260cf8c6db6442e10a76950b6",
+      "bytes": 1347
+    },
+    {
+      "path": "out/extension/extension.js",
+      "sha256": "501e1d9f5cfbbf3555d7f65a060ef554ce0e388221f95f54bf22b98ce2666dab",
+      "bytes": 1711
+    },
+    {
+      "path": "out/extension/panels/erdPanel.js",
+      "sha256": "356164f6b82b58124eb98f8e45a87838de004b6e3ab5ae1560586bf5ff44880f",
+      "bytes": 15235
+    },
+    {
+      "path": "out/extension/services/analyzer/resolveAnalyzerBinaryPath.js",
+      "sha256": "eec6a3afb8752664aac52260842110c766128a9562089757bfc0896981b5afaa",
+      "bytes": 3070
+    },
+    {
+      "path": "out/extension/services/analyzer/runAnalyzerBootstrap.js",
+      "sha256": "1594cd7da5b2cb21c661a8bbe6ee671a37e2d6579fb49f08beaf8c1fa2f2f0b2",
+      "bytes": 6284
+    },
+    {
+      "path": "out/extension/services/diagram/createEmptyDiagramPayload.js",
+      "sha256": "5de4997e63e4c57698e3e049dcb8bfdd721f37bba0557e5876180ccbba95faa5",
+      "bytes": 2278
+    },
+    {
+      "path": "out/extension/services/diagram/exportDiagramAnalysisArtifacts.js",
+      "sha256": "9511c2985a82f972111e78402e50cd6b64db1f8377f2fd736dbaa4756dd09b25",
+      "bytes": 46684
+    },
+    {
+      "path": "out/extension/services/diagram/loadLiveDiagram.js",
+      "sha256": "8f6844d9b449b83b922f1a3ae53e8156baccb5650d88b519a37b65d96f500432",
+      "bytes": 7334
+    },
+    {
+      "path": "out/extension/services/diagram/restoreRefreshViewState.js",
+      "sha256": "8680479be10554542a3265e03b02ef1d3e1d3a0b90c6fca26d09bdc29fb48283",
+      "bytes": 8520
+    },
+    {
+      "path": "out/extension/services/discovery/discoverApps.js",
+      "sha256": "78a230f1ec6d52742fdfe381877e9e3feb31160ef672135c7141fda0ee3a1f8e",
+      "bytes": 7393
+    },
+    {
+      "path": "out/extension/services/discovery/discoverCandidateModules.js",
+      "sha256": "25fe6188c939bc1acff838aece78b99b56ea13b6d3aebd9cf51b68611af64e8f",
+      "bytes": 1894
+    },
+    {
+      "path": "out/extension/services/discovery/discoverDjangoWorkspace.js",
+      "sha256": "e6c24b64d46285e4912ba92b7769a020b1ba4a7f086df28dc18a4be7be44ee60",
+      "bytes": 2545
+    },
+    {
+      "path": "out/extension/services/discovery/discoveryTypes.js",
+      "sha256": "2fd77e4c457dafededf9758723ece4e1f7dc0c160a8a216cac20639b686a3510",
+      "bytes": 759
+    },
+    {
+      "path": "out/extension/services/discovery/pathScanner.js",
+      "sha256": "ad3e4347f8444cce30939b0ec28ef63b7e3308eafdbd89652f210a811f825e17",
+      "bytes": 5557
+    },
+    {
+      "path": "out/extension/services/discovery/selectWorkspaceRoot.js",
+      "sha256": "81f8281b89f74d4ef1c32a3535ea8c2c8114ff11cb6041f4e4fc591709d6a2a1",
+      "bytes": 3707
+    },
+    {
+      "path": "out/extension/services/layout/bundledMlPreview.js",
+      "sha256": "ca7439b23bc48d4e28e39852d96b52abae22409828ccbdb51afbf68cc7f2965d",
+      "bytes": 3288
+    },
+    {
+      "path": "out/extension/services/layout/canonicalCrossingNonRegression.js",
+      "sha256": "218653a1e067561f5ca5a9d477a5f4594687e1724e7c14078abba2518d89d2e9",
+      "bytes": 13120
+    },
+    {
+      "path": "out/extension/services/layout/consolidateEdges.js",
+      "sha256": "591d92d8c3bc264569983e3edb18a56b35941747c55395371fbb3209f64434aa",
+      "bytes": 2169
+    },
+    {
+      "path": "out/extension/services/layout/ensureOgdfBinaryInstalled.js",
+      "sha256": "8c805d986dc954e9553dd01c0446103eb9a761c488ec2c88c7c1597f223aedba",
+      "bytes": 6481
+    },
+    {
+      "path": "out/extension/services/layout/optimizedLayoutCache.js",
+      "sha256": "4ae1ab6ed6ad6e4f8f5717ca198d51387ef23df5b7f337e08ccd26b4c5efab61",
+      "bytes": 9203
+    },
+    {
+      "path": "out/extension/services/layout/resolveOgdfLayoutBinaryPath.js",
+      "sha256": "18ecb2507a6ae4655b86438396970b63d8f456b346a28d3e63671b8a218a0afa",
+      "bytes": 2766
+    },
+    {
+      "path": "out/extension/services/layout/runOgdfLayout.js",
+      "sha256": "b0e6095e13a4394e17ba16c8e507643ea651ec559210f17a8f4aa7743583bbee",
+      "bytes": 493352
+    },
+    {
+      "path": "out/extension/services/loadPhaseOneSample.js",
+      "sha256": "d68ac88649a06cf27f8cf79189766f5b0dfe0fc99e8637c67fb38da303c4d8c1",
+      "bytes": 2027
+    },
+    {
+      "path": "out/extension/services/logging/extensionLogger.js",
+      "sha256": "42684baa77afee64676c2d16106a341ca9e093821ae1536f87ee014e5ee668b2",
+      "bytes": 3666
+    },
+    {
+      "path": "out/extension/services/logging/logger.js",
+      "sha256": "f09ff82b6f7cb318a65b520b4944d48d3e8c907ff2ba09646751f81bacd9843b",
+      "bytes": 743
+    },
+    {
+      "path": "out/extension/services/metrics/timeAsync.js",
+      "sha256": "c4981207a1b83708b13fda2396fe7297ac2f58ea94cd103cd397805488a167f9",
+      "bytes": 1204
+    },
+    {
+      "path": "out/shared/diagnostics/analyzerDiagnostic.js",
+      "sha256": "d7b3e3f1704ab130b4e58dd2c8f05789e3d095a07b68c6b1110e75937d171825",
+      "bytes": 767
+    },
+    {
+      "path": "out/shared/domain/modelIdentity.js",
+      "sha256": "b5bf00796bce0d255184e8b124019b8444fd1668c304ade4cb130de0c0779657",
+      "bytes": 1337
+    },
+    {
+      "path": "out/shared/graph/diagramGraph.js",
+      "sha256": "9b4f6a55be1f50a6f12dd32e315b3f540525b0d4096044ccde1e224e7d2bf3f8",
+      "bytes": 755
+    },
+    {
+      "path": "out/shared/graph/layoutContract.js",
+      "sha256": "07a10264be7adde0e117bf701c58c0646639ef2f0736422565ca0101ed610d15",
+      "bytes": 11913
+    },
+    {
+      "path": "out/shared/protocol/analyzerContract.js",
+      "sha256": "258819084920472006b22864d9e029fe0d0f0b635f0eff2c9946c387ce72debb",
+      "bytes": 763
+    },
+    {
+      "path": "out/shared/protocol/contractVersion.js",
+      "sha256": "409e47e9b0bab3f7f82a9fcf80dd7fd6b15e1645ceb7f18f0b8f398b622bc322",
+      "bytes": 1114
+    },
+    {
+      "path": "out/shared/protocol/decodeDiagramBootstrap.js",
+      "sha256": "26f8251427b2c781c4d2c712935fff4d11f031198d40aeb8c2e875114b2edd4a",
+      "bytes": 44936
+    },
+    {
+      "path": "out/shared/protocol/discoveryContract.js",
+      "sha256": "416cc1b9ad69e379fe878cb7bef6f3fcc5152fe69e9f9c4a04fc00d75d8fe0d0",
+      "bytes": 765
+    },
+    {
+      "path": "out/shared/protocol/fixtures/phase1-diagram.json",
+      "sha256": "97476442a12569276c803d822786d3db1d1c3e8019fc856875b5523a072fa843",
+      "bytes": 13299
+    },
+    {
+      "path": "out/shared/protocol/mergePipelineTimings.js",
+      "sha256": "3fcb502317142854ddd5a647683452503f932d53551e327e7557bedd8a93468f",
+      "bytes": 1212
+    },
+    {
+      "path": "out/shared/protocol/pipelineTimingContract.js",
+      "sha256": "8abd9c9ae71b774402400e80e4d155193ac13019e510fd4dbd9e272308b8eec6",
+      "bytes": 775
+    },
+    {
+      "path": "out/shared/protocol/runtimeGuards.js",
+      "sha256": "6a7ce785467565dbe83e22f2f36ba9caddbcb4a1d81eb5dc246d4210c078b3c2",
+      "bytes": 4993
+    },
+    {
+      "path": "out/shared/protocol/webviewContract.js",
+      "sha256": "c85306f76fdae9c7c71249d5ee152466a7275d746177085317ba88702ce76b30",
+      "bytes": 761
+    },
+    {
+      "path": "out/shared/protocol/webviewTestContract.js",
+      "sha256": "73ad84adde314597a34c3eb639c146035b92736a96eba6cfe77ab9d0b46a4398",
+      "bytes": 769
+    },
+    {
+      "path": "out/webview/app/renderDiagramDocument.js",
+      "sha256": "de79ff2da19abfe8e1ef7f3e3e339900e277be421ac1805309a59b431792ab2d",
+      "bytes": 3706
+    },
+    {
+      "path": "out/webview/interaction/browserController.js",
+      "sha256": "f021d3443fd2ef2728c0a3c17be8e48320b9f80d77ba97c982f3c1929240e0c5",
+      "bytes": 16497
+    },
+    {
+      "path": "out/webview/interaction/runtime/browserCanvasDrawSource.js",
+      "sha256": "a0abf780839bca1ab391994a4a5b6c5bd308125d114e5dad8faee5719d5591b4",
+      "bytes": 120246
+    },
+    {
+      "path": "out/webview/interaction/runtime/browserDomSource.js",
+      "sha256": "84b9c3347cf624c300541c95df8082777f7a70bf135652438a011016c653a337",
+      "bytes": 14678
+    },
+    {
+      "path": "out/webview/interaction/runtime/browserEdgePathSource.js",
+      "sha256": "fc9610a28b6abca35e8bac92d8cced89eabd78b985cf6dcd2ba5009524b67c4d",
+      "bytes": 5090
+    },
+    {
+      "path": "out/webview/interaction/runtime/browserEventSource.js",
+      "sha256": "2f57d6f6f0c4bfbafb7fba5720deeaae316ed401d15834e0b86b47dd6d91feeb",
+      "bytes": 39233
+    },
+    {
+      "path": "out/webview/interaction/runtime/browserIndependentViewSource.js",
+      "sha256": "ad56bc4b41e98b8e617d6ede442893f64b3575bf0dd12cd1da90802ac9566ca1",
+      "bytes": 4112
+    },
+    {
+      "path": "out/webview/interaction/runtime/browserLayoutSource.js",
+      "sha256": "b2f710a0566ec47d98b5665ba679191fad4d924134662ef9c8955b2fce5ef36a",
+      "bytes": 34494
+    },
+    {
+      "path": "out/webview/interaction/runtime/browserLeafCardSource.js",
+      "sha256": "b1e67685c27532859a7b9a79767e3612d831da28baf547407f114fa62fee0085",
+      "bytes": 7173
+    },
+    {
+      "path": "out/webview/interaction/runtime/browserRelatedDiagramSource.js",
+      "sha256": "0fd5b90dd68192c08e9f2b6bb06f164e5501008bdb1cde21e79152c68158ca82",
+      "bytes": 17799
+    },
+    {
+      "path": "out/webview/interaction/runtime/browserRelationshipSource.js",
+      "sha256": "6c88f3fce3ac2d5818082e7b27c05ee88d48f2123cf4ac879c8d64037b43058e",
+      "bytes": 20203
+    },
+    {
+      "path": "out/webview/interaction/runtime/browserRenderSource.js",
+      "sha256": "96f332e0c6cb07c0c35dfce4e5b0216d59f86ae4dacba2637afff1b4dd5ccb0e",
+      "bytes": 18902
+    },
+    {
+      "path": "out/webview/interaction/runtime/browserStateSource.js",
+      "sha256": "1c9ed90d8ef72791ef403f7cfaef51e9b76386aa6b133b20bf73b522865f19e9",
+      "bytes": 29948
+    },
+    {
+      "path": "out/webview/interaction/runtime/browserTestSource.js",
+      "sha256": "f954f2e75e05bfa5bb5b45bd89d0a1d857bd2751ef24e0ff713cc8ab457f41eb",
+      "bytes": 8981
+    },
+    {
+      "path": "out/webview/render/escapeHtml.js",
+      "sha256": "189fe82ebc07b589cac1e3202b41c055de1db3e5bf7be880b10f5cf187869492",
+      "bytes": 1534
+    },
+    {
+      "path": "out/webview/render/renderCanvasScene.js",
+      "sha256": "a68654ff704dc7dbf1e6e4a57d78e1206ce589cd65272810ef5d5580c85c7b29",
+      "bytes": 9132
+    },
+    {
+      "path": "out/webview/render/renderInspector.js",
+      "sha256": "7646bb41f39ce67048d21117c5636e8dc886304bbbb1c56f80649088aa1c3623",
+      "bytes": 20492
+    },
+    {
+      "path": "out/webview/render/renderSvgScene.js",
+      "sha256": "2ececc6d13e587df192b67dd427b89df742fc70177805bae92aeabf256730a73",
+      "bytes": 11469
+    },
+    {
+      "path": "out/webview/state/createDiagramRenderModel.js",
+      "sha256": "affad31e35b9715248e15da9ce7c707923404b3e5f97ea62592a429b94169790",
+      "bytes": 137711
+    },
+    {
+      "path": "out/webview/state/createJuneRelationshipOverview.js",
+      "sha256": "4f9971d0735402f7fe8b27395f6b8e5ba92f443d4442bff58441a5ab91b98c10",
+      "bytes": 3371
+    },
+    {
+      "path": "out/webview/state/createLeafCards.js",
+      "sha256": "0e85f39a8c6c1ac7e25f93b704d57d481b138129fc8335ac148e84fa1b6c144a",
+      "bytes": 2889
+    },
+    {
+      "path": "out/webview/state/diagramInteractionState.js",
+      "sha256": "0503f9127d7a550ac0959eca894a116211e9ddd7f06f2cc28cefe6c7c78d5239",
+      "bytes": 7934
+    },
+    {
+      "path": "out/webview/state/interactionSettings.js",
+      "sha256": "f9511d164b1de2c9749f3c4cd4a7f0f7c55cab7a57ee264d86b413c316e77dad",
+      "bytes": 2922
+    },
+    {
+      "path": "out/webview/state/leafCardConnections.js",
+      "sha256": "a22d7f8bc4c7672d50afd9681763a43592a3518e19cd9b0a4f1251fa9787833d",
+      "bytes": 6832
+    },
+    {
+      "path": "out/webview/state/relatedDiagram.js",
+      "sha256": "fa88ad2ae34f9e9cd37fcd9aa030a3c43644b843690af2d45be316df728c7d7b",
+      "bytes": 5142
+    },
+    {
+      "path": "out/webview/state/relationshipExplorer.js",
+      "sha256": "d525781ef2727ffefb401e11c0b871cb0774fed3399a23c9d6dd73aae83164ca",
+      "bytes": 6551
+    },
+    {
+      "path": "out/webview/state/selectedRelationshipEdges.js",
+      "sha256": "d272ce5379ffff31ea75f8a763363b4ce63f1d71fe256ec8aa9157528c26a1c1",
+      "bytes": 3712
+    },
+    {
+      "path": "out/webview/styles/documentStyles.js",
+      "sha256": "deff0bf2714efececc92887f1d6ee7084500ee4e7cf31a5614de06b072e5dbe8",
+      "bytes": 29937
+    },
+    {
+      "path": "src/extension/activation/registerCommands.ts",
+      "sha256": "01eba78c40d372deab4bf9b4bc642ea3495a1f82882136e40ff76525ddbdcf6a",
+      "bytes": 1409
+    },
+    {
+      "path": "src/extension/commands/openDiagram.ts",
+      "sha256": "2990f831f30680bc4cd5f978866eea3152a560ecf5aa9e71b86be95ff869a86b",
+      "bytes": 12661
+    },
+    {
+      "path": "src/extension/commands/refreshDiagram.ts",
+      "sha256": "39967c2202145cb56638df46c2e1d6342058ef99b6feea92778813a8e6e320d7",
+      "bytes": 316
+    },
+    {
+      "path": "src/extension/extension.ts",
+      "sha256": "265eb15118f4462b4a5554ff630eb947d5e88955a37aff8e225605780afb1835",
+      "bytes": 611
+    },
+    {
+      "path": "src/extension/panels/erdPanel.ts",
+      "sha256": "838c085a8550574aadd8ba57d292f41106475b6a1b8a21b25fad8a7d4d9e42ce",
+      "bytes": 16493
+    },
+    {
+      "path": "src/extension/services/analyzer/resolveAnalyzerBinaryPath.ts",
+      "sha256": "fb83f27ca6445aa443021732bbc57159cc3689ed22b78fa59863f363b332e749",
+      "bytes": 1342
+    },
+    {
+      "path": "src/extension/services/analyzer/runAnalyzerBootstrap.ts",
+      "sha256": "2bc8f274af04338636908825767d41867dd25ecff89e442d02c3ff1ad59f008e",
+      "bytes": 5042
+    },
+    {
+      "path": "src/extension/services/diagram/createEmptyDiagramPayload.ts",
+      "sha256": "251abd3a274e508fd0492c7215485f793ccee4e80740233eafa730b4c960bb76",
+      "bytes": 1554
+    },
+    {
+      "path": "src/extension/services/diagram/exportDiagramAnalysisArtifacts.ts",
+      "sha256": "765ce9525edfe58a3159fdfb1bc07681dadf74710cfe19f20f876ce81ef8444b",
+      "bytes": 60925
+    },
+    {
+      "path": "src/extension/services/diagram/loadLiveDiagram.ts",
+      "sha256": "cf9a0182f4f5b4b22794897dad037f853157f9c5181d10ec28cefee4b9a7f82b",
+      "bytes": 7459
+    },
+    {
+      "path": "src/extension/services/diagram/restoreRefreshViewState.ts",
+      "sha256": "e7400d94af4d2d805e8526417e1be411a0f34f1dc5da3773b09698b27d210d03",
+      "bytes": 8807
+    },
+    {
+      "path": "src/extension/services/discovery/discoverApps.ts",
+      "sha256": "28ea5603393512971bf67a1da1d01333460f93568b71a01e320bc73aceaf86ab",
+      "bytes": 6291
+    },
+    {
+      "path": "src/extension/services/discovery/discoverCandidateModules.ts",
+      "sha256": "5f7b5b2e1203fe18b512bf4fddfd65731477431b9c313f88ecc1e50d072b178b",
+      "bytes": 1047
+    },
+    {
+      "path": "src/extension/services/discovery/discoverDjangoWorkspace.ts",
+      "sha256": "a1114a512b7f9ae221c2dac4159fdfd618b6785e3e7f8ce4947b8a65bbaa471e",
+      "bytes": 1446
+    },
+    {
+      "path": "src/extension/services/discovery/discoveryTypes.ts",
+      "sha256": "907e59f09f61aebe367aef5fff68d744dc610c9bc97e0dd46d3cde4293fad888",
+      "bytes": 285
+    },
+    {
+      "path": "src/extension/services/discovery/pathScanner.ts",
+      "sha256": "09bd88c4d1df0f418dfebdb986466385f71ab346bb1b79f3530aad9e4f0a96cb",
+      "bytes": 4814
+    },
+    {
+      "path": "src/extension/services/discovery/selectWorkspaceRoot.ts",
+      "sha256": "ace006ef8a744421a674437eaa2412c9eaa5e8a25df19f113c10eb2fe7228401",
+      "bytes": 2429
+    },
+    {
+      "path": "src/extension/services/layout/bundledMlPreview.ts",
+      "sha256": "e8ad4daf299004613a13ff5ebb283ba0ae8197bf552491b83a45a21e74144fbf",
+      "bytes": 1992
+    },
+    {
+      "path": "src/extension/services/layout/canonicalCrossingNonRegression.ts",
+      "sha256": "4c129db6cada6ccd191a3ea6553bc893fcaed1289679ed4a682d74efc9afa1bc",
+      "bytes": 14263
+    },
+    {
+      "path": "src/extension/services/layout/consolidateEdges.ts",
+      "sha256": "fb5d533b9907481383059a7e0178d695019a7ca4e657c8feaa7a6e70f3c2bb65",
+      "bytes": 2241
+    },
+    {
+      "path": "src/extension/services/layout/ensureOgdfBinaryInstalled.ts",
+      "sha256": "107ba9ed2112ec0b44b315d98ae54676783797a0d981d96f09846316d775ad81",
+      "bytes": 5003
+    },
+    {
+      "path": "src/extension/services/layout/optimizedLayoutCache.ts",
+      "sha256": "0a983209272c5b677583462e5f3b5ebdbada206b0821164a34c34484ea6b452b",
+      "bytes": 11084
+    },
+    {
+      "path": "src/extension/services/layout/resolveOgdfLayoutBinaryPath.ts",
+      "sha256": "9529e0d49ed15be386097c4fa519c00010f7a795bb52d344f53dcc9f19a8edf5",
+      "bytes": 1042
+    },
+    {
+      "path": "src/extension/services/layout/runOgdfLayout.ts",
+      "sha256": "316cd556905eb64cd2701372a004cf9c3330ebd3fa3395e3d84dab12cf0943cc",
+      "bytes": 565064
+    },
+    {
+      "path": "src/extension/services/loadPhaseOneSample.ts",
+      "sha256": "eeab695c2ce8542057faabe1e81a327095d33df46289ef8400634fa1c83acf18",
+      "bytes": 400
+    },
+    {
+      "path": "src/extension/services/logging/extensionLogger.ts",
+      "sha256": "80937d216f3f1dfc61e961e90b23980824aa069704bd63cb6c0e562fa7e9081f",
+      "bytes": 2209
+    },
+    {
+      "path": "src/extension/services/logging/logger.ts",
+      "sha256": "3688f9f59f80cdbebbe4dd826cc6cc2d2486985d3836f09e1d94ac9c1dd1f601",
+      "bytes": 139
+    },
+    {
+      "path": "src/extension/services/metrics/timeAsync.ts",
+      "sha256": "771f1483b526cf67bf98256313b02e28739af5a9e8834ea5ab4f9e521f4f786b",
+      "bytes": 240
+    },
+    {
+      "path": "src/shared/diagnostics/analyzerDiagnostic.ts",
+      "sha256": "1b490a0fa72555ad0d11b2fcb5e9646f138a3f4b9949a23c7e35c71f7db3b116",
+      "bytes": 643
+    },
+    {
+      "path": "src/shared/domain/modelIdentity.ts",
+      "sha256": "370c460b7b5ef144dcfef962570459db768fb70d262ac299ff0998a91cd32153",
+      "bytes": 472
+    },
+    {
+      "path": "src/shared/graph/diagramGraph.ts",
+      "sha256": "120bc9dab871fba9e2bfc5d36a1d9d03359a426fe403ea446efd125eef791e61",
+      "bytes": 947
+    },
+    {
+      "path": "src/shared/graph/layoutContract.ts",
+      "sha256": "52353dcefb3449c973b9e100c8637ce62aecbb78533857376a67c19f259cbc47",
+      "bytes": 17462
+    },
+    {
+      "path": "src/shared/protocol/analyzerContract.ts",
+      "sha256": "a8dc8de9f450f963fb9f60d38040391cc7a3dadf97454fcdf58fb7bff4a9de6e",
+      "bytes": 2462
+    },
+    {
+      "path": "src/shared/protocol/contractVersion.ts",
+      "sha256": "e2fdd93d830881e05690bd36cb20c13224d76c340faebfc71c38a3e3cefb7c11",
+      "bytes": 104
+    },
+    {
+      "path": "src/shared/protocol/decodeDiagramBootstrap.ts",
+      "sha256": "569a6e758dddf5b18ae539a770188b4a9d263def8eb55ffc07892b77d4d44ea8",
+      "bytes": 39885
+    },
+    {
+      "path": "src/shared/protocol/discoveryContract.ts",
+      "sha256": "1f6697afe83b8da96e735ab77c336458027927bbf5091ef5e654d025334b3798",
+      "bytes": 1277
+    },
+    {
+      "path": "src/shared/protocol/fixtures/phase1-diagram.json",
+      "sha256": "09687f25297584190b73fee84830e141400795da70133f74585122cbe605d3c1",
+      "bytes": 10021
+    },
+    {
+      "path": "src/shared/protocol/mergePipelineTimings.ts",
+      "sha256": "ef3880975dce94c3ab6f88b719156918437faa5ed76f512ea2262ec4eb736e45",
+      "bytes": 247
+    },
+    {
+      "path": "src/shared/protocol/pipelineTimingContract.ts",
+      "sha256": "cab75a4d944ee9605236ab8e917186745987c1053676c311227208b7b5430c11",
+      "bytes": 230
+    },
+    {
+      "path": "src/shared/protocol/runtimeGuards.ts",
+      "sha256": "6dd4bada29d915cbedab12786bcbdd5dd3c57554d050ffbc70540560b9cb2bb0",
+      "bytes": 4114
+    },
+    {
+      "path": "src/shared/protocol/webviewContract.ts",
+      "sha256": "f0bc9aa6cd3d2a38334925f861a614d2ad2ce189c1ab1bac176c14cfff44b0e5",
+      "bytes": 3290
+    },
+    {
+      "path": "src/shared/protocol/webviewTestContract.ts",
+      "sha256": "752f298339876c75dc6c269fdd77cbefed44c39d46fb57a86ab3e0ccb9ad6f9f",
+      "bytes": 2633
+    },
+    {
+      "path": "src/types/globals.d.ts",
+      "sha256": "232b7deebb94ba1614c1c1206b86b8921b89a1a58f23d91d526ad889620a58af",
+      "bytes": 322
+    },
+    {
+      "path": "src/types/node-runtime.d.ts",
+      "sha256": "b1b5822063469656b25803708352202346b13a984b140a7b8c5f9172e74f2f30",
+      "bytes": 769
+    },
+    {
+      "path": "src/types/node.d.ts",
+      "sha256": "7b20c191e811bfaedf1229210eefc71f4e3995b32b6b60259bd747eef67ec175",
+      "bytes": 1300
+    },
+    {
+      "path": "src/types/vscode.d.ts",
+      "sha256": "4f3ad6bca7da0a5ce40850002c9cf3bee3e6d61603736d69538b1589403b584f",
+      "bytes": 1987
+    },
+    {
+      "path": "src/webview/app/renderDiagramDocument.ts",
+      "sha256": "b9be92cfadb47cb2f1e3a95ab9b090ca25ccf96e47bd3cfd10e0488c4afd2d4c",
+      "bytes": 2141
+    },
+    {
+      "path": "src/webview/interaction/browserController.ts",
+      "sha256": "41b73bcfa98b5aab5e651b86b2ff16c889e1944481e6aa44d39e8535e0af47fd",
+      "bytes": 14951
+    },
+    {
+      "path": "src/webview/interaction/runtime/browserCanvasDrawSource.ts",
+      "sha256": "a35605d241286718a0edee79914a91fac972cb7466b3412ab06288b971cf2c4d",
+      "bytes": 119118
+    },
+    {
+      "path": "src/webview/interaction/runtime/browserDomSource.ts",
+      "sha256": "5cf5d064c745210f77584c978d119f2f1eebdc16fafe23ea47f9add054c009be",
+      "bytes": 13593
+    },
+    {
+      "path": "src/webview/interaction/runtime/browserEdgePathSource.ts",
+      "sha256": "0d04e385b81cadfe4172bc9983f2dcb16ca580a295d2cbf939f2f5fbd1580ec0",
+      "bytes": 3981
+    },
+    {
+      "path": "src/webview/interaction/runtime/browserEventSource.ts",
+      "sha256": "6f88d13746ca8d2bb30bd1f2672455b680af3c79ec9f29ffcd6e3406c4d7783f",
+      "bytes": 38142
+    },
+    {
+      "path": "src/webview/interaction/runtime/browserIndependentViewSource.ts",
+      "sha256": "58f6d76fd114ca2ba84c660af8737768bb2479e2bb1a481b97bebefc9b312d22",
+      "bytes": 3039
+    },
+    {
+      "path": "src/webview/interaction/runtime/browserLayoutSource.ts",
+      "sha256": "3febcb1ea1c9e0de4a7d5a5e56e6748d9675078a842ad69e7ce1768906e515d0",
+      "bytes": 33334
+    },
+    {
+      "path": "src/webview/interaction/runtime/browserLeafCardSource.ts",
+      "sha256": "65243d63145897aa7fe6c550e8352d4c40c10f6366e4b63017ff99067ebd092e",
+      "bytes": 6040
+    },
+    {
+      "path": "src/webview/interaction/runtime/browserRelatedDiagramSource.ts",
+      "sha256": "ba75de2fcc7130766a2523f5c5eb35914357cd903b344f850f58da595ed90b18",
+      "bytes": 16602
+    },
+    {
+      "path": "src/webview/interaction/runtime/browserRelationshipSource.ts",
+      "sha256": "8cc46ced0cc225f392cf51332f4b69615c32c522bbab0120495f2feb57c5baad",
+      "bytes": 19045
+    },
+    {
+      "path": "src/webview/interaction/runtime/browserRenderSource.ts",
+      "sha256": "11469a5be18ee1b7d1db5bc3235a2d325914473b29f9e9bed721510d061d6a50",
+      "bytes": 17788
+    },
+    {
+      "path": "src/webview/interaction/runtime/browserStateSource.ts",
+      "sha256": "7f0389057d92502ec5d0d162810cfc80e58c3955c8e38d706a02f01ee1631d16",
+      "bytes": 28838
+    },
+    {
+      "path": "src/webview/interaction/runtime/browserTestSource.ts",
+      "sha256": "8fc1f2b27b382ff520314f97a4fcbc422359508fc6a747a84c16e9b7cdcbdd0f",
+      "bytes": 7896
+    },
+    {
+      "path": "src/webview/render/escapeHtml.ts",
+      "sha256": "730cfd7b867da667c6c36e03523a7bede07620753cd40fc1b5d2db6cbb77bd2b",
+      "bytes": 492
+    },
+    {
+      "path": "src/webview/render/renderCanvasScene.ts",
+      "sha256": "62d3d5792b58be7b9e5bf9d7fcad77af284141c1f519782c5b8a8dfefcf8eb7e",
+      "bytes": 8194
+    },
+    {
+      "path": "src/webview/render/renderInspector.ts",
+      "sha256": "2948121a2c07a13510948c398121e02f603a21edce35ddaeb9460a1221989bbc",
+      "bytes": 19841
+    },
+    {
+      "path": "src/webview/render/renderSvgScene.ts",
+      "sha256": "b7a0a9db3f8f9c2a6a48dc5a9b7b8305110da03ccb4b3e9c8d826dfa76e50849",
+      "bytes": 10589
+    },
+    {
+      "path": "src/webview/state/createDiagramRenderModel.ts",
+      "sha256": "f74410798e7a6a2dc567eb0868f7eb00426e977f2eb46726912972708c39b48c",
+      "bytes": 165879
+    },
+    {
+      "path": "src/webview/state/createJuneRelationshipOverview.ts",
+      "sha256": "527adc8cc76e27df00920b88596d587157071d006597a47c9f189c2815360c5e",
+      "bytes": 3090
+    },
+    {
+      "path": "src/webview/state/createLeafCards.ts",
+      "sha256": "08744f9905e18d026e18bd9dbbd78381b508a9258a808700831e578fbaca39f3",
+      "bytes": 2598
+    },
+    {
+      "path": "src/webview/state/diagramInteractionState.ts",
+      "sha256": "c7dbaa454024fc4bf5dd2fc85b6e36e9edf8b65884093be56374101e5d877041",
+      "bytes": 8810
+    },
+    {
+      "path": "src/webview/state/interactionSettings.ts",
+      "sha256": "7310174349f7d1a214fa3ccbb10c0836d895b4b8cd72d3fa345705c351b847b7",
+      "bytes": 2051
+    },
+    {
+      "path": "src/webview/state/leafCardConnections.ts",
+      "sha256": "6d1cb73cd8c9514cf874f52d3ffac48494836315962b6f8b5761b7e70097c537",
+      "bytes": 6824
+    },
+    {
+      "path": "src/webview/state/relatedDiagram.ts",
+      "sha256": "9124b067ab0088f8f7b6b68b0dd0885425b92d39c27eae077bd4c2ac88f126b8",
+      "bytes": 4692
+    },
+    {
+      "path": "src/webview/state/relationshipExplorer.ts",
+      "sha256": "abb1c7673055951a4fe96828ed79bd391524c0c4447fc6bdd1fa9fd95606fe8a",
+      "bytes": 6445
+    },
+    {
+      "path": "src/webview/state/selectedRelationshipEdges.ts",
+      "sha256": "526132a2df6a6e155da9a1b55f322ee55c4a991844307616cb10ba432083dfe7",
+      "bytes": 2873
+    },
+    {
+      "path": "src/webview/styles/documentStyles.ts",
+      "sha256": "509373e0b45b2b9366cc4f60728c1cd20091440ecd9e00abe16f0afb015ab04b",
+      "bytes": 28870
+    },
+    {
+      "path": "tsconfig.json",
+      "sha256": "bbaa1dd51f3a77cb9596c0b85657d5cf9725ddf02755365aa85762f096c5ed32",
+      "bytes": 502
+    }
+  ],
+  "build": {
+    "mode": "transformation-only",
+    "freshAppSourcesBuilt": true,
+    "fullTypecheckPassed": false
+  },
+  "tests": {
+    "passed": 4,
+    "failed": 0
+  },
+  "browserVerified": false,
+  "resourcePolicy": {
+    "mathThreads": 1,
+    "niceIncrement": 10,
+    "sampledRssGuardMiB": 128,
+    "maxCompletedJobSampledRssMiB": 121.0
+  },
+  "extensionVersion": "0.0.1069",
+  "deploymentBindings": [
+    {
+      "path": "media/ml-preview/individual.npz",
+      "sha256": "80985b7f4a921e994968e443398cd71cd8de3850e14d71f52bacacd18f555093",
+      "bytes": 97455
+    },
+    {
+      "path": "media/ml-preview/layout.json",
+      "sha256": "683774cefc4690313e8451ec60ca5e733304b61cb509efc26d5503c1f02e46ec",
+      "bytes": 1426125
+    },
+    {
+      "path": "media/ml-preview/manifest.json",
+      "sha256": "80b58b6f1b5f56487489e14a9e2375bd26e682e45156179fd135541a0281561a",
+      "bytes": 1066
+    },
+    {
+      "path": "media/ml-preview/overview.npz",
+      "sha256": "08ab8c452417681c9ea7a1cb270175ce08a5785897a9d244ee0ae342968f3001",
+      "bytes": 81193
+    }
+  ],
+  "normalInstalledLoadingWithoutDeveloperOverridesVerified": true,
+  "limitedLoaderTypecheckPassed": true
+}

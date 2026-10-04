@@ -1,0 +1,124 @@
+{
+  "individual-bounded-trained1": {
+    "initial": 1966,
+    "visual": 1965,
+    "actualActions": 10662,
+    "rejectionsAndAdmissions": {
+      "overview-hard": 4323,
+      "overview-regression": 5396,
+      "accepted-neutral": 942,
+      "accepted": 1
+    },
+    "acceptedGroupActions": 189,
+    "improvements": [
+      {
+        "nodeIndex": 130,
+        "root": "db.CompanyAddressChangeEvent",
+        "cards": 1,
+        "gain": 1,
+        "delta": [
+          -76.82,
+          5.72
+        ]
+      }
+    ]
+  },
+  "overview-bounded-trained1": {
+    "initial": 291,
+    "visual": 290,
+    "actualActions": 7761,
+    "rejectionsAndAdmissions": {
+      "overview-hard": 1820,
+      "accepted-neutral": 773,
+      "individual-hard": 1715,
+      "overview-regression": 3358,
+      "projection": 94,
+      "accepted": 1
+    },
+    "acceptedGroupActions": 369,
+    "improvements": [
+      {
+        "nodeIndex": 6,
+        "root": "db.AgendaBranchChange",
+        "cards": 1,
+        "gain": 1,
+        "delta": [
+          5.9,
+          1.41
+        ]
+      }
+    ]
+  },
+  "individual-bounded-port1": {
+    "initial": 1965,
+    "visual": 1964,
+    "actualActions": 20000,
+    "rejectionsAndAdmissions": {
+      "overview-hard": 12139,
+      "accepted-neutral": 3562,
+      "overview-regression": 3627,
+      "equal": 671,
+      "accepted": 1
+    },
+    "acceptedGroupActions": 0,
+    "improvements": [
+      {
+        "nodeIndex": 1440,
+        "root": null,
+        "cards": null,
+        "gain": 1,
+        "delta": null
+      }
+    ]
+  },
+  "overview-bounded-port1": {
+    "initial": 290,
+    "visual": 289,
+    "actualActions": 14271,
+    "rejectionsAndAdmissions": {
+      "accepted-neutral": 3286,
+      "individual-hard": 4019,
+      "overview-hard": 4037,
+      "overview-regression": 1896,
+      "equal": 1031,
+      "accepted": 1,
+      "projection": 1
+    },
+    "acceptedGroupActions": 0,
+    "improvements": [
+      {
+        "nodeIndex": 930,
+        "root": null,
+        "cards": null,
+        "gain": 1,
+        "delta": null
+      }
+    ]
+  },
+  "individual-bounded-trained2": {
+    "initial": 1964,
+    "visual": 1964,
+    "actualActions": 8284,
+    "rejectionsAndAdmissions": {
+      "overview-hard": 3395,
+      "overview-regression": 4212,
+      "accepted-neutral": 677
+    },
+    "acceptedGroupActions": 137,
+    "improvements": []
+  },
+  "overview-bounded-trained2": {
+    "initial": 289,
+    "visual": 289,
+    "actualActions": 6382,
+    "rejectionsAndAdmissions": {
+      "accepted-neutral": 602,
+      "individual-hard": 1467,
+      "overview-hard": 1387,
+      "overview-regression": 2840,
+      "projection": 86
+    },
+    "acceptedGroupActions": 291,
+    "improvements": []
+  }
+}

@@ -2,10 +2,11 @@
 """v34 prototype: exact-verified generic move search for ERD layouts.
 
 This is intentionally not a §13 clone. It uses generic move primitives
-(node nudges, cluster translations, local swaps), ranks candidates by exact
-straight-line crossing / rectangle-overlap / bbox score, and accepts only
-measured improvements. The next step is to log these counterfactuals and
-train an ML scorer to rank candidates before exact verification.
+(node nudges, cluster translations, rigid cluster orientations, local swaps),
+ranks candidates by exact straight-line crossing / rectangle-overlap / bbox
+score, and accepts only measured improvements. The next step is to log these
+counterfactuals and train an ML scorer to rank candidates before exact
+verification.
 """
 
 from __future__ import annotations
@@ -17,11 +18,12 @@ import re
 import subprocess
 import tempfile
 import time
-from collections import Counter, defaultdict
+from collections import Counter, defaultdict, deque
 from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
+import networkx as nx
 
 # Directory of this file — used to locate sibling modules (e.g.,
 # metrics_extended) when composite-weighted scoring is enabled.
@@ -162,6 +164,11 @@ def candidate_priority(cand: Candidate, node_counts: np.ndarray) -> float:
         "edge_node_group_translate",
         "edge_node_edge_translate",
         "edge_node_endpoint_translate",
+        "cluster_orient",
+        "hub_bundle_orient",
+        "planar_hub_order",
+        "hub_spoke_chain_pack",
+        "hub_spoke_orbit_pack",
     }:
         crossing_priority *= 4.0
         crossing_priority = max(
@@ -266,6 +273,11 @@ ACTION_TYPES = {
     "edge_node_edge_translate": "edge_node_edge_translate",
     "edge_node_endpoint_translate": "edge_node_endpoint_translate",
     "cluster": "group_translate",
+    "cluster_orient": "group_rigid_orient",
+    "hub_bundle_orient": "hub_node_bundle_rigid_orient",
+    "planar_hub_order": "planar_backbone_hub_node_order",
+    "hub_spoke_chain_pack": "hub_spoke_chain_pack",
+    "hub_spoke_orbit_pack": "hub_spoke_orbit_pack",
     "group_anchor": "group_anchor_to_neighbors",
     "component_anchor": "component_anchor_to_neighbors",
     "cluster_swap": "group_centroid_swap",
@@ -407,14 +419,18 @@ def read_positions_tsv(path: Path, layout: dict) -> np.ndarray:
         parts = line.split("\t")
         if len(parts) < 3:
             continue
-        if parts[0] == "modelId":
+        if parts[0] == "N" and len(parts) >= 4:
+            model_id, x_raw, y_raw = parts[1], parts[2], parts[3]
+        else:
+            model_id, x_raw, y_raw = parts[0], parts[1], parts[2]
+        if model_id == "modelId":
             continue
-        idx = id2.get(parts[0])
+        idx = id2.get(model_id)
         if idx is None:
             continue
         try:
-            base[idx, 0] = float(parts[1])
-            base[idx, 1] = float(parts[2])
+            base[idx, 0] = float(x_raw)
+            base[idx, 1] = float(y_raw)
         except ValueError:
             continue
     return base
@@ -516,12 +532,17 @@ def bundle_leaf_index_sets(layout: dict) -> tuple[set[str], list[dict]]:
     return leaf_ids, bundles
 
 
-def render_node_sizes(layout: dict, edges: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def render_node_sizes(
+    layout: dict,
+    edges: np.ndarray,
+    direct_scene: bool = False,
+) -> tuple[np.ndarray, np.ndarray]:
     """Return webview-visible sizes for original layout nodes only.
 
     This mirrors createDiagramRenderModel.ts for the pieces the scorer can
-    know from layout JSON: catalog-mode compact table sizing and bundled leaf
-    tiles. Synthetic bundle tables are represented by CollisionGeometry.
+    know from layout JSON: catalog-mode compact table sizing and, for legacy
+    carrier scenes only, bundled leaf tiles. In a direct scene leafBundles are
+    node-group metadata, so every member keeps its real catalog card size.
     """
     raw_w, raw_h = node_sizes(layout)
     n_nodes = len(layout["nodes"])
@@ -534,7 +555,7 @@ def render_node_sizes(layout: dict, edges: np.ndarray) -> tuple[np.ndarray, np.n
     catalog_mode = n_nodes > MODEL_CATALOG_MODE_THRESHOLD
     for idx, nd in enumerate(layout["nodes"]):
         model_id = str(nd.get("modelId") or "")
-        if model_id in leaf_ids:
+        if model_id in leaf_ids and not direct_scene:
             widths[idx] = LEAF_CELL_W
             heights[idx] = LEAF_CELL_H
         elif catalog_mode:
@@ -585,12 +606,13 @@ def build_render_collision_geometry(
     layout: dict,
     edges: np.ndarray,
     count_bundle_nodes: bool = False,
+    direct_scene: bool = False,
 ) -> CollisionGeometry:
     """Build render-faithful rectangles for overlap / edge-node scoring."""
     nodes = layout["nodes"]
     n_nodes = len(nodes)
     raw_w, raw_h = node_sizes(layout)
-    render_w, render_h = render_node_sizes(layout, edges)
+    render_w, render_h = render_node_sizes(layout, edges, direct_scene)
     id_to_idx = {str(nd.get("modelId") or ""): idx for idx, nd in enumerate(nodes)}
     leaf_ids, bundles = bundle_leaf_index_sets(layout)
 
@@ -620,7 +642,10 @@ def build_render_collision_geometry(
         rect_edge_exempt_nodes.append(frozenset({idx}))
         rect_overlap_active.append(True)
 
-    for bundle in bundles:
+    # A direct scene renders only real model cards. Keep leafBundles available
+    # to node-group move generators, but never invent an outer proxy rectangle
+    # or replacement leaf tiles for collision scoring.
+    for bundle in [] if direct_scene else bundles:
         leaf_indices = np.array(
             [
                 id_to_idx[str(mid)]
@@ -1803,22 +1828,25 @@ def measure_candidate_incremental(
             if remaining.get(key, current_carrier_counts.get(key, 0)) <= 0:
                 cross += 1
     if collision_geometry is None:
-        overlap_mask = impacted_overlap_pair_mask(
-            moved_nodes, overlap_pairs[0], overlap_pairs[1], base_positions.shape[0]
-        )
-        old_overlap_local = int(current_overlap_flags[overlap_mask].sum())
-        new_overlap_local = int(
-            overlap_flags_for_pairs(
-                moved_positions,
-                widths,
-                heights,
-                overlap_margin,
-                overlap_pairs[0],
-                overlap_pairs[1],
-                overlap_mask,
-            ).sum()
-        )
-        overlaps = current.overlaps - old_overlap_local + new_overlap_local
+        if overlap_weight <= 0.0:
+            overlaps = current.overlaps
+        else:
+            overlap_mask = impacted_overlap_pair_mask(
+                moved_nodes, overlap_pairs[0], overlap_pairs[1], base_positions.shape[0]
+            )
+            old_overlap_local = int(current_overlap_flags[overlap_mask].sum())
+            new_overlap_local = int(
+                overlap_flags_for_pairs(
+                    moved_positions,
+                    widths,
+                    heights,
+                    overlap_margin,
+                    overlap_pairs[0],
+                    overlap_pairs[1],
+                    overlap_mask,
+                ).sum()
+            )
+            overlaps = current.overlaps - old_overlap_local + new_overlap_local
         if edge_node_pairs is None:
             edge_node = current.edge_node
         else:
@@ -1870,24 +1898,29 @@ def measure_candidate_incremental(
             collision_geometry,
             impacted_rects,
         )
-        rect_pair_i, rect_pair_j = collision_geometry.overlap_pairs
-        overlap_mask = impacted_rects[rect_pair_i] | impacted_rects[rect_pair_j]
-        old_overlap_local = int(current_overlap_flags[overlap_mask].sum())
-        new_overlap_local = int(
-            overlap_flags_for_pairs(
-                moved_rect_positions,
-                collision_geometry.rect_widths,
-                collision_geometry.rect_heights,
-                overlap_margin,
-                rect_pair_i,
-                rect_pair_j,
-                overlap_mask,
-            ).sum()
-        )
-        overlaps = current.overlaps - old_overlap_local + new_overlap_local
+        if overlap_weight <= 0.0:
+            overlaps = current.overlaps
+        else:
+            rect_pair_i, rect_pair_j = collision_geometry.overlap_pairs
+            overlap_mask = impacted_rects[rect_pair_i] | impacted_rects[rect_pair_j]
+            old_overlap_local = int(current_overlap_flags[overlap_mask].sum())
+            new_overlap_local = int(
+                overlap_flags_for_pairs(
+                    moved_rect_positions,
+                    collision_geometry.rect_widths,
+                    collision_geometry.rect_heights,
+                    overlap_margin,
+                    rect_pair_i,
+                    rect_pair_j,
+                    overlap_mask,
+                ).sum()
+            )
+            overlaps = current.overlaps - old_overlap_local + new_overlap_local
 
         edge_pair, rect_pair = collision_geometry.edge_node_pairs
-        if edge_pair.size == 0:
+        if edge_node_weight <= 0.0:
+            edge_node = current.edge_node
+        elif edge_pair.size == 0:
             edge_node = current.edge_node
         else:
             moved_edge_nodes = np.zeros(base_positions.shape[0], dtype=bool)
@@ -2705,6 +2738,494 @@ def generate_candidates(
             reverse=True,
         )
         candidates = candidates[:max_candidates]
+    return candidates
+
+
+def cluster_orientation_candidates(
+    positions: np.ndarray,
+    node_counts: np.ndarray,
+    clusters: dict[str, np.ndarray],
+    max_groups: int,
+    max_group_size: int,
+    rotations: int,
+    cooldown: np.ndarray | None,
+) -> list[Candidate]:
+    """Rotate/reflect whole semantic clusters around their current centroid.
+
+    This is the transferable part of the historical cluster-orient pass.  It
+    preserves every member's distance to every other member, so it can escape
+    a single-node local minimum without compacting or expanding the cluster.
+    Candidates are still accepted only by the exact direct-scene objective.
+    """
+    if max_groups <= 0 or rotations <= 0:
+        return []
+
+    ranked: list[tuple[int, str, np.ndarray]] = []
+    for cid, members in clusters.items():
+        if group_is_pseudo(cid) or group_is_component(cid):
+            continue
+        if members.shape[0] < 2:
+            continue
+        if max_group_size > 0 and members.shape[0] > max_group_size:
+            continue
+        if cooldown is not None and np.any(cooldown[members] > 0):
+            continue
+        incident = int(node_counts[members].sum())
+        if incident <= 0:
+            continue
+        ranked.append((incident, cid, members))
+    ranked.sort(reverse=True, key=lambda item: item[0])
+
+    candidates: list[Candidate] = []
+    for incident, cid, members in ranked[:max_groups]:
+        centroid = positions[members].mean(axis=0)
+        centered = positions[members] - centroid
+        for reflected in (False, True):
+            reflected_points = centered.copy()
+            if reflected:
+                reflected_points[:, 0] *= -1.0
+            for rotation_idx in range(rotations):
+                if not reflected and rotation_idx == 0:
+                    continue
+                angle = 2.0 * math.pi * rotation_idx / rotations
+                cos_a = math.cos(angle)
+                sin_a = math.sin(angle)
+                matrix = np.array(
+                    [[cos_a, -sin_a], [sin_a, cos_a]],
+                    dtype=np.float64,
+                )
+                targets = reflected_points @ matrix.T + centroid
+                candidates.append(
+                    Candidate(
+                        "cluster_orient",
+                        members,
+                        targets=targets,
+                        group_key=cid,
+                        semantic_target_cross_incident=float(incident),
+                    )
+                )
+    return candidates
+
+
+def hub_spoke_pack_candidates(
+    positions: np.ndarray,
+    node_counts: np.ndarray,
+    edge_counts: np.ndarray,
+    edges: np.ndarray,
+    adjacency: list[np.ndarray],
+    max_hubs: int,
+    min_hub_degree: int,
+    max_spoke_degree: int,
+    max_spokes_per_hub: int,
+    radii: list[float],
+    fractions: list[float],
+) -> list[Candidate]:
+    """Batch-align real low-degree neighbours around crossing-heavy hubs.
+
+    A degree-2 model between a hub and one other model is placed on that
+    semantic path, turning its two relationships into a continuous straight
+    chain without hiding either relationship or creating a proxy.  Leaf-like
+    neighbours without another anchor are packed on a real-node orbit.
+    """
+    if max_hubs <= 0 or max_spokes_per_hub <= 0:
+        return []
+    degree = np.asarray([row.size for row in adjacency], dtype=np.int32)
+    incident_edges: list[list[int]] = [[] for _ in adjacency]
+    for edge_idx, (s_raw, t_raw) in enumerate(edges):
+        incident_edges[int(s_raw)].append(edge_idx)
+        incident_edges[int(t_raw)].append(edge_idx)
+
+    ranked_hubs: list[tuple[int, int]] = []
+    for hub in range(len(adjacency)):
+        if degree[hub] < min_hub_degree:
+            continue
+        pressure = int(edge_counts[incident_edges[hub]].sum())
+        if pressure > 0:
+            ranked_hubs.append((pressure, hub))
+    ranked_hubs.sort(reverse=True)
+
+    candidates: list[Candidate] = []
+    for hub_pressure, hub in ranked_hubs[:max_hubs]:
+        rows: list[tuple[float, int]] = []
+        for edge_idx in incident_edges[hub]:
+            s, t = (int(value) for value in edges[edge_idx])
+            spoke = t if s == hub else s
+            if degree[spoke] > max_spoke_degree:
+                continue
+            pressure = (
+                float(edge_counts[edge_idx]) * 12.0
+                + float(node_counts[spoke]) * 2.0
+                + max(0.0, float(max_spoke_degree + 1 - degree[spoke]))
+            )
+            if pressure > 0.0:
+                rows.append((pressure, spoke))
+        rows.sort(reverse=True)
+        rows = rows[:max_spokes_per_hub]
+        if len(rows) < 2:
+            continue
+
+        batch_sizes = sorted(
+            {
+                min(len(rows), size)
+                for size in (3, 5, 8, 12, 20, 32, max_spokes_per_hub)
+                if min(len(rows), size) >= 2
+            }
+        )
+        hub_center = positions[hub]
+        for batch_size in batch_sizes:
+            batch = rows[:batch_size]
+            spokes = np.asarray([spoke for _score, spoke in batch], dtype=np.int32)
+            priority = float(hub_pressure) + sum(score for score, _spoke in batch)
+
+            anchored: list[int] = []
+            anchor_centers: list[np.ndarray] = []
+            orbit: list[int] = []
+            for spoke_raw in spokes:
+                spoke = int(spoke_raw)
+                external = adjacency[spoke][adjacency[spoke] != hub]
+                if external.size > 0:
+                    anchored.append(spoke)
+                    anchor_centers.append(positions[external].mean(axis=0))
+                else:
+                    orbit.append(spoke)
+
+            if anchored and fractions:
+                anchored_arr = np.asarray(anchored, dtype=np.int32)
+                anchors = np.asarray(anchor_centers, dtype=np.float64)
+                for fraction in fractions:
+                    if fraction <= 0.0 or fraction >= 1.0:
+                        continue
+                    targets = hub_center + (anchors - hub_center) * float(fraction)
+                    candidates.append(
+                        Candidate(
+                            "hub_spoke_chain_pack",
+                            anchored_arr,
+                            targets=targets,
+                            group_key=f"hub:{hub}",
+                            semantic_target_cross_incident=priority,
+                        )
+                    )
+
+            if len(orbit) >= 2 and radii:
+                orbit_arr = np.asarray(orbit, dtype=np.int32)
+                current = positions[orbit_arr] - hub_center
+                angles = np.arctan2(current[:, 1], current[:, 0])
+                order = np.argsort(angles)
+                center_angle = float(np.angle(np.exp(1j * angles).sum()))
+                spread = min(math.pi * 1.65, max(math.pi / 3.0, 0.23 * len(orbit)))
+                for radius in radii:
+                    if radius <= 0.0:
+                        continue
+                    targets = np.zeros((orbit_arr.size, 2), dtype=np.float64)
+                    for rank, local_idx_raw in enumerate(order):
+                        local_idx = int(local_idx_raw)
+                        offset = 0.0 if order.size == 1 else rank / (order.size - 1) - 0.5
+                        angle = center_angle + offset * spread
+                        targets[local_idx] = hub_center + np.array(
+                            [math.cos(angle) * radius, math.sin(angle) * radius],
+                            dtype=np.float64,
+                        )
+                    candidates.append(
+                        Candidate(
+                            "hub_spoke_orbit_pack",
+                            orbit_arr,
+                            targets=targets,
+                            group_key=f"hub:{hub}",
+                            semantic_target_cross_incident=priority,
+                        )
+                    )
+    return candidates
+
+
+def hub_node_bundle_orientation_candidates(
+    positions: np.ndarray,
+    node_counts: np.ndarray,
+    adjacency: list[np.ndarray],
+    max_hubs: int,
+    min_hub_degree: int,
+    rotations: int,
+    radius_scales: list[float],
+) -> list[Candidate]:
+    """Rotate direct-neighbour node bundles rigidly around their real hub.
+
+    Every non-hub node is owned by at most one adjacent hub (the highest
+    degree one), so candidates never duplicate a model across bundles.  The
+    hub remains fixed and every member preserves its identity and relationships.
+    """
+    if max_hubs <= 0 or rotations <= 0:
+        return []
+    degree = np.asarray([row.size for row in adjacency], dtype=np.int32)
+    hubs = np.flatnonzero(degree >= min_hub_degree)
+    if hubs.size == 0:
+        return []
+    hub_set = {int(hub) for hub in hubs}
+    owner_members: dict[int, list[int]] = defaultdict(list)
+    for node, neighbors in enumerate(adjacency):
+        if node in hub_set:
+            continue
+        adjacent_hubs = [int(neighbor) for neighbor in neighbors if int(neighbor) in hub_set]
+        if not adjacent_hubs:
+            continue
+        owner = max(adjacent_hubs, key=lambda hub: (int(degree[hub]), -hub))
+        owner_members[owner].append(node)
+
+    ranked: list[tuple[int, int, np.ndarray]] = []
+    for hub, raw_members in owner_members.items():
+        if len(raw_members) < 2:
+            continue
+        members = np.asarray(raw_members, dtype=np.int32)
+        pressure = int(node_counts[members].sum())
+        if pressure > 0:
+            ranked.append((pressure, hub, members))
+    ranked.sort(reverse=True, key=lambda item: (item[0], item[2].size))
+
+    candidates: list[Candidate] = []
+    for pressure, hub, members in ranked[:max_hubs]:
+        centered = positions[members] - positions[hub]
+        for radius_scale in radius_scales:
+            if radius_scale <= 0.0:
+                continue
+            for reflected in (False, True):
+                transformed = centered.copy()
+                if reflected:
+                    transformed[:, 0] *= -1.0
+                for rotation_idx in range(rotations):
+                    if (
+                        not reflected
+                        and rotation_idx == 0
+                        and abs(radius_scale - 1.0) <= 1e-12
+                    ):
+                        continue
+                    angle = 2.0 * math.pi * rotation_idx / rotations
+                    cos_a = math.cos(angle)
+                    sin_a = math.sin(angle)
+                    matrix = np.array(
+                        [[cos_a, -sin_a], [sin_a, cos_a]],
+                        dtype=np.float64,
+                    )
+                    targets = transformed @ matrix.T * radius_scale + positions[hub]
+                    candidates.append(
+                        Candidate(
+                            "hub_bundle_orient",
+                            members,
+                            targets=targets,
+                            group_key=f"hub_bundle:{hub}",
+                            semantic_target_cross_incident=float(pressure),
+                        )
+                    )
+    return candidates
+
+
+def hub_node_bundle_swap_candidates(
+    positions: np.ndarray,
+    node_counts: np.ndarray,
+    adjacency: list[np.ndarray],
+    max_pairs: int,
+    min_hub_degree: int,
+) -> list[Candidate]:
+    """Swap complete real-hub constellations while preserving their shape."""
+    if max_pairs <= 0:
+        return []
+    degree = np.asarray([row.size for row in adjacency], dtype=np.int32)
+    hubs = np.flatnonzero(degree >= min_hub_degree)
+    hub_set = {int(hub) for hub in hubs}
+    owner_members: dict[int, list[int]] = {
+        int(hub): [int(hub)] for hub in hubs
+    }
+    for node, neighbors in enumerate(adjacency):
+        if node in hub_set:
+            continue
+        adjacent_hubs = [int(neighbor) for neighbor in neighbors if int(neighbor) in hub_set]
+        if not adjacent_hubs:
+            continue
+        owner = max(adjacent_hubs, key=lambda hub: (int(degree[hub]), -hub))
+        owner_members[owner].append(node)
+
+    groups = [
+        (hub, np.asarray(members, dtype=np.int32))
+        for hub, members in owner_members.items()
+        if len(members) >= 2
+    ]
+    pair_rows: list[tuple[float, int, int]] = []
+    for a_idx in range(len(groups)):
+        for b_idx in range(a_idx + 1, len(groups)):
+            a_members = groups[a_idx][1]
+            b_members = groups[b_idx][1]
+            pressure = (
+                float(node_counts[a_members].sum())
+                + float(node_counts[b_members].sum())
+            ) / math.sqrt(max(1, a_members.size + b_members.size))
+            pair_rows.append((pressure, a_idx, b_idx))
+    pair_rows.sort(reverse=True)
+
+    candidates: list[Candidate] = []
+    for pressure, a_idx, b_idx in pair_rows[:max_pairs]:
+        a_hub, a_members = groups[a_idx]
+        b_hub, b_members = groups[b_idx]
+        candidates.append(
+            Candidate(
+                "cluster_swap",
+                a_members,
+                other=b_members,
+                group_key=f"hub_bundle:{a_hub}",
+                other_group_key=f"hub_bundle:{b_hub}",
+                semantic_target_cross_incident=pressure,
+            )
+        )
+    return candidates
+
+
+def hub_voronoi_bundle_swap_candidates(
+    node_counts: np.ndarray,
+    adjacency: list[np.ndarray],
+    max_pairs: int,
+    min_hub_degree: int,
+) -> list[Candidate]:
+    """Swap disjoint graph-Voronoi bundles seeded by real high-degree nodes."""
+    if max_pairs <= 0:
+        return []
+    degree = np.asarray([row.size for row in adjacency], dtype=np.int32)
+    hubs = [int(hub) for hub in np.flatnonzero(degree >= min_hub_degree)]
+    if len(hubs) < 2:
+        return []
+    owner = np.full(len(adjacency), -1, dtype=np.int32)
+    distance = np.full(len(adjacency), np.iinfo(np.int32).max, dtype=np.int32)
+    queue: deque[int] = deque()
+    for hub in sorted(hubs, key=lambda value: (-int(degree[value]), value)):
+        owner[hub] = hub
+        distance[hub] = 0
+        queue.append(hub)
+    while queue:
+        node = queue.popleft()
+        proposed_distance = int(distance[node]) + 1
+        proposed_owner = int(owner[node])
+        for neighbor_raw in adjacency[node]:
+            neighbor = int(neighbor_raw)
+            if proposed_distance < int(distance[neighbor]):
+                distance[neighbor] = proposed_distance
+                owner[neighbor] = proposed_owner
+                queue.append(neighbor)
+            elif proposed_distance == int(distance[neighbor]):
+                current_owner = int(owner[neighbor])
+                if current_owner < 0 or (
+                    int(degree[proposed_owner]), -proposed_owner
+                ) > (int(degree[current_owner]), -current_owner):
+                    owner[neighbor] = proposed_owner
+                    queue.append(neighbor)
+
+    groups = [
+        (hub, np.flatnonzero(owner == hub).astype(np.int32))
+        for hub in hubs
+    ]
+    groups = [(hub, members) for hub, members in groups if members.size >= 2]
+    pair_rows: list[tuple[float, int, int]] = []
+    for a_idx in range(len(groups)):
+        for b_idx in range(a_idx + 1, len(groups)):
+            a_members = groups[a_idx][1]
+            b_members = groups[b_idx][1]
+            pressure = (
+                float(node_counts[a_members].sum())
+                + float(node_counts[b_members].sum())
+            ) / math.sqrt(max(1, a_members.size + b_members.size))
+            pair_rows.append((pressure, a_idx, b_idx))
+    pair_rows.sort(reverse=True)
+    candidates: list[Candidate] = []
+    for pressure, a_idx, b_idx in pair_rows[:max_pairs]:
+        a_hub, a_members = groups[a_idx]
+        b_hub, b_members = groups[b_idx]
+        candidates.append(
+            Candidate(
+                "cluster_swap",
+                a_members,
+                other=b_members,
+                group_key=f"hub_voronoi:{a_hub}",
+                other_group_key=f"hub_voronoi:{b_hub}",
+                semantic_target_cross_incident=pressure,
+            )
+        )
+    return candidates
+
+
+def planar_backbone_hub_order_candidates(
+    positions: np.ndarray,
+    node_counts: np.ndarray,
+    edges: np.ndarray,
+    adjacency: list[np.ndarray],
+    max_hubs: int,
+    min_hub_degree: int,
+    alignments_per_orientation: int,
+) -> list[Candidate]:
+    """Reorder real hub-neighbour nodes by a planar-backbone rotation system."""
+    if max_hubs <= 0 or alignments_per_orientation <= 0:
+        return []
+    degree = np.asarray([row.size for row in adjacency], dtype=np.int32)
+    graph = nx.Graph()
+    graph.add_nodes_from(range(len(adjacency)))
+    unique_edges = {
+        tuple(sorted((int(source), int(target))))
+        for source, target in edges
+        if int(source) != int(target)
+    }
+    ordered_edges = sorted(
+        unique_edges,
+        key=lambda edge: (
+            max(int(degree[edge[0]]), int(degree[edge[1]])),
+            int(degree[edge[0]]) + int(degree[edge[1]]),
+            -edge[0],
+            -edge[1],
+        ),
+        reverse=True,
+    )
+    for source, target in ordered_edges:
+        graph.add_edge(source, target)
+        planar, _embedding = nx.check_planarity(graph, counterexample=False)
+        if not planar:
+            graph.remove_edge(source, target)
+    planar, embedding = nx.check_planarity(graph, counterexample=False)
+    if not planar:
+        return []
+
+    hub_rows: list[tuple[int, int]] = []
+    for hub in range(len(adjacency)):
+        if degree[hub] < min_hub_degree or graph.degree(hub) < 4:
+            continue
+        pressure = int(node_counts[adjacency[hub]].sum())
+        if pressure > 0:
+            hub_rows.append((pressure, hub))
+    hub_rows.sort(reverse=True)
+
+    candidates: list[Candidate] = []
+    for pressure, hub in hub_rows[:max_hubs]:
+        planar_order = list(embedding.neighbors_cw_order(hub))
+        if len(planar_order) < 4:
+            continue
+        relevant = np.asarray(planar_order, dtype=np.int32)
+        vectors = positions[relevant] - positions[hub]
+        angles = np.arctan2(vectors[:, 1], vectors[:, 0])
+        angle_order = np.argsort(angles)
+        slot_nodes = relevant[angle_order]
+        slot_positions = positions[slot_nodes].copy()
+        for reflected in (False, True):
+            ordered = relevant[::-1].copy() if reflected else relevant.copy()
+            alignment_rows: list[tuple[float, int]] = []
+            for shift in range(ordered.size):
+                targets = np.roll(slot_positions, shift, axis=0)
+                cost = float(np.square(positions[ordered] - targets).sum())
+                alignment_rows.append((cost, shift))
+            alignment_rows.sort()
+            for _cost, shift in alignment_rows[:alignments_per_orientation]:
+                targets = np.roll(slot_positions, shift, axis=0)
+                if np.array_equal(positions[ordered], targets):
+                    continue
+                candidates.append(
+                    Candidate(
+                        "planar_hub_order",
+                        ordered,
+                        targets=targets,
+                        group_key=f"planar_hub:{hub}",
+                        semantic_target_cross_incident=float(pressure),
+                    )
+                )
     return candidates
 
 
@@ -4395,6 +4916,12 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--layout", type=Path, required=True)
     parser.add_argument("--positions", type=Path, default=None)
+    parser.add_argument(
+        "--initial-scale",
+        type=float,
+        default=1.0,
+        help="isotropically scale the starting centers around their centroid",
+    )
     parser.add_argument("--out-tsv", type=Path, required=True)
     parser.add_argument("--rounds", type=int, default=12)
     parser.add_argument("--top-nodes", type=int, default=28)
@@ -4427,6 +4954,33 @@ def main() -> None:
     parser.add_argument("--cross-pair-endpoint-swaps", type=int, default=0)
     parser.add_argument("--swap-pairs", type=int, default=20)
     parser.add_argument("--cluster-swap-pairs", type=int, default=20)
+    parser.add_argument(
+        "--cluster-orient-groups",
+        type=int,
+        default=0,
+        help="number of hottest semantic clusters to rotate/reflect rigidly",
+    )
+    parser.add_argument("--cluster-orient-max-size", type=int, default=120)
+    parser.add_argument(
+        "--cluster-orient-rotations",
+        type=int,
+        default=12,
+        help="evenly spaced orientations per reflection state",
+    )
+    parser.add_argument("--hub-spoke-hubs", type=int, default=0)
+    parser.add_argument("--hub-spoke-min-degree", type=int, default=12)
+    parser.add_argument("--hub-spoke-max-degree", type=int, default=3)
+    parser.add_argument("--hub-spoke-max-neighbors", type=int, default=32)
+    parser.add_argument("--hub-spoke-radii", default="600,1000,1600,2400,3600")
+    parser.add_argument("--hub-spoke-fractions", default="0.12,0.2,0.32,0.5,0.68")
+    parser.add_argument("--hub-bundle-orient-hubs", type=int, default=0)
+    parser.add_argument("--hub-bundle-min-degree", type=int, default=10)
+    parser.add_argument("--hub-bundle-rotations", type=int, default=16)
+    parser.add_argument("--hub-bundle-radius-scales", default="0.8,1.0,1.2")
+    parser.add_argument("--hub-bundle-swap-pairs", type=int, default=0)
+    parser.add_argument("--hub-voronoi-swap-pairs", type=int, default=0)
+    parser.add_argument("--planar-hub-order-hubs", type=int, default=0)
+    parser.add_argument("--planar-hub-order-alignments", type=int, default=8)
     parser.add_argument("--overlap-candidates", type=int, default=0)
     parser.add_argument("--overlap-spread-components", type=int, default=0)
     parser.add_argument("--overlap-spread-spacing-scale", type=float, default=1.6)
@@ -4469,6 +5023,12 @@ def main() -> None:
     parser.add_argument("--cooldown-rounds", type=int, default=0)
     parser.add_argument("--full-candidate-measure", action="store_true")
     parser.add_argument(
+        "--direct-scene",
+        action="store_true",
+        help="score every real model and relationship directly while retaining "
+             "leafBundles strictly as node-group move metadata",
+    )
+    parser.add_argument(
         "--count-bundle-nodes",
         action="store_true",
         help="count all node pairs for overlap repair instead of skipping "
@@ -4491,12 +5051,19 @@ def main() -> None:
     args = parser.parse_args()
 
     layout = load_layout(args.layout)
+    if args.direct_scene:
+        args.count_bundle_nodes = True
     model_ids = node_model_ids(layout)
     positions = (
         read_positions_tsv(args.positions, layout)
         if args.positions
         else layout_positions(layout)
     )
+    if args.initial_scale <= 0.0:
+        raise ValueError("--initial-scale must be positive")
+    if abs(args.initial_scale - 1.0) > 1e-12:
+        centroid = positions.mean(axis=0)
+        positions = centroid + (positions - centroid) * args.initial_scale
     edges = graph_edges(layout)
     missing_endpoint_routes = [
         str(route.get("edgeId", "<unknown>"))
@@ -4509,12 +5076,13 @@ def main() -> None:
             f"{len(missing_endpoint_routes)} routed edges are missing logical "
             f"sourceModelId/targetModelId endpoints (first: {preview})"
         )
-    widths, heights = render_node_sizes(layout, edges)
+    widths, heights = render_node_sizes(layout, edges, args.direct_scene)
     active_mask = render_active_overlap_mask(layout, args.count_bundle_nodes)
     collision_geometry = build_render_collision_geometry(
         layout,
         edges,
         args.count_bundle_nodes,
+        args.direct_scene,
     )
     overlap_pairs = collision_geometry.overlap_pairs
     evaluator = fce.FastCrossEval(edges, positions.shape[0])
@@ -4539,6 +5107,9 @@ def main() -> None:
     group_anchor_radii = parse_steps(args.group_anchor_radii)
     component_anchor_radii = parse_steps(args.component_anchor_radii)
     bundle_orbit_radius_scales = parse_steps(args.bundle_orbit_radius_scales)
+    hub_spoke_radii = parse_steps(args.hub_spoke_radii)
+    hub_spoke_fractions = parse_steps(args.hub_spoke_fractions)
+    hub_bundle_radius_scales = parse_steps(args.hub_bundle_radius_scales)
     edge_node_relief_steps = (
         parse_steps(args.edge_node_relief_steps)
         if args.edge_node_relief_steps.strip()
@@ -4591,15 +5162,19 @@ def main() -> None:
             else None
         )
         current_rect_positions = collision_positions(positions, collision_geometry)
-        current_edge_node_flags = edge_rect_intersection_flags(
-            positions,
-            current_rect_positions,
-            collision_geometry.rect_widths,
-            collision_geometry.rect_heights,
-            edges,
-            collision_geometry.edge_node_pairs[0],
-            collision_geometry.edge_node_pairs[1],
-            args.edge_node_margin,
+        current_edge_node_flags = (
+            edge_rect_intersection_flags(
+                positions,
+                current_rect_positions,
+                collision_geometry.rect_widths,
+                collision_geometry.rect_heights,
+                edges,
+                collision_geometry.edge_node_pairs[0],
+                collision_geometry.edge_node_pairs[1],
+                args.edge_node_margin,
+            )
+            if args.edge_node_weight > 0.0 or args.edge_node_relief_hits > 0
+            else None
         )
         candidates = generate_candidates(
             positions,
@@ -4618,6 +5193,77 @@ def main() -> None:
             args.max_candidates,
             cooldown if args.cooldown_rounds > 0 else None,
         )
+        if args.cluster_orient_groups > 0:
+            candidates.extend(
+                cluster_orientation_candidates(
+                    positions,
+                    node_counts,
+                    clusters,
+                    args.cluster_orient_groups,
+                    args.cluster_orient_max_size,
+                    args.cluster_orient_rotations,
+                    cooldown if args.cooldown_rounds > 0 else None,
+                )
+            )
+        if args.hub_spoke_hubs > 0:
+            candidates.extend(
+                hub_spoke_pack_candidates(
+                    positions,
+                    node_counts,
+                    edge_counts,
+                    edges,
+                    adjacency,
+                    args.hub_spoke_hubs,
+                    args.hub_spoke_min_degree,
+                    args.hub_spoke_max_degree,
+                    args.hub_spoke_max_neighbors,
+                    hub_spoke_radii,
+                    hub_spoke_fractions,
+                )
+            )
+        if args.hub_bundle_orient_hubs > 0:
+            candidates.extend(
+                hub_node_bundle_orientation_candidates(
+                    positions,
+                    node_counts,
+                    adjacency,
+                    args.hub_bundle_orient_hubs,
+                    args.hub_bundle_min_degree,
+                    args.hub_bundle_rotations,
+                    hub_bundle_radius_scales,
+                )
+            )
+        if args.hub_bundle_swap_pairs > 0:
+            candidates.extend(
+                hub_node_bundle_swap_candidates(
+                    positions,
+                    node_counts,
+                    adjacency,
+                    args.hub_bundle_swap_pairs,
+                    args.hub_bundle_min_degree,
+                )
+            )
+        if args.hub_voronoi_swap_pairs > 0:
+            candidates.extend(
+                hub_voronoi_bundle_swap_candidates(
+                    node_counts,
+                    adjacency,
+                    args.hub_voronoi_swap_pairs,
+                    args.hub_bundle_min_degree,
+                )
+            )
+        if args.planar_hub_order_hubs > 0:
+            candidates.extend(
+                planar_backbone_hub_order_candidates(
+                    positions,
+                    node_counts,
+                    edges,
+                    adjacency,
+                    args.planar_hub_order_hubs,
+                    args.hub_bundle_min_degree,
+                    args.planar_hub_order_alignments,
+                )
+            )
         if args.cross_pair_candidates > 0:
             candidates.extend(
                 crossing_pair_candidates(
@@ -4851,13 +5497,17 @@ def main() -> None:
             if carrier_pair_keys is not None
             else None
         )
-        current_overlap_flags = overlap_flags_for_pairs(
-            current_rect_positions,
-            collision_geometry.rect_widths,
-            collision_geometry.rect_heights,
-            args.overlap_margin,
-            overlap_pairs[0],
-            overlap_pairs[1],
+        current_overlap_flags = (
+            overlap_flags_for_pairs(
+                current_rect_positions,
+                collision_geometry.rect_widths,
+                collision_geometry.rect_heights,
+                args.overlap_margin,
+                overlap_pairs[0],
+                overlap_pairs[1],
+            )
+            if args.overlap_weight > 0.0
+            else np.zeros(overlap_pairs[0].shape[0], dtype=bool)
         )
         best_candidate: Candidate | None = None
         best_candidate_metrics: Metrics | None = None

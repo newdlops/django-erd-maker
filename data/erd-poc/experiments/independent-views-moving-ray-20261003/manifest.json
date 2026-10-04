@@ -1,0 +1,140 @@
+{
+  "scope": "isolated view experiments; no product view-switch integration",
+  "promoted": false,
+  "targetMet": false,
+  "browserVerified": false,
+  "best": {
+    "individual": {
+      "candidate": "data/erd-poc/experiments/independent-views-moving-ray-20261003/individual17/candidate.individual.layout.json",
+      "sha256": "60376dcc5e32403674667d2e367b61826933f153505b77487fe3dedd1b441526",
+      "visualCrossings": 2159
+    },
+    "overview": {
+      "candidate": "data/erd-poc/experiments/independent-views-moving-ray-20261003/overview-moving-ray1/candidate.layout.json",
+      "sha256": "9382bf40f766e977f830ee1840ac65287a5e94e1b4ef16e8f24c7806118436d4",
+      "visualCrossings": 332
+    }
+  },
+  "stages": [
+    {
+      "name": "individual17",
+      "policySha256": "7a4d719749f5a72b44bec095e32c6434f177139fc1df1564b0447b330924a5f1",
+      "actionsArchived": 20000,
+      "acceptedActions": 1,
+      "fileSha256": {
+        "learned.tsv.policy.json": "7a4d719749f5a72b44bec095e32c6434f177139fc1df1564b0447b330924a5f1",
+        "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+        "learned.tsv.stats.json": "b291766b120cac2046ce5b5329709d87b824db51c6a0991be6c2095929f6dc37",
+        "workflow.log": "5344e9a97420c31be8c2b611a9747330c3dc5e19b9f4f1a7cabb6c4708a20a15",
+        "edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+        "learned.tsv.individual": "b95800e16402b64eeb9841e06d7ceb00e78f6ef8dada9b294e6641a43950d279",
+        "positions.tsv": "4d7b37d0279ea52d1a414c5a187d1ffe27a3b738686da8c7265b14115cb35cc0",
+        "workflow.audit.json": "47f13b5805d57612808e9072903e2f563e6aae0cc93a525f9fdeea33afd56773",
+        "learned.tsv.observations.jsonl": "176479ec0cf014e13125179545c422e48ace0b6c216a4c5fa34c19b4ecee821a",
+        "learned.tsv.routes.tsv": "08bf61c96587b8ca5ad57c6c69e478457a4336ab3cded1cc6ad6f2669cc843bb",
+        "individual.routes.tsv": "91db4a5dc58da6c4a8e9f084b55aef7d8f67b033f3c70f4fe7d926823ad5fb47",
+        "individual.positions.tsv": "4d7b37d0279ea52d1a414c5a187d1ffe27a3b738686da8c7265b14115cb35cc0",
+        "routes.tsv": "91db4a5dc58da6c4a8e9f084b55aef7d8f67b033f3c70f4fe7d926823ad5fb47",
+        "experiment.json": "aaaf6e601490b860aa3e5e2cbb850084a01cc780010a4c854293438bf0f09b12",
+        "components.tsv": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+        "learned.tsv.individual.routes.tsv": "08bf61c96587b8ca5ad57c6c69e478457a4336ab3cded1cc6ad6f2669cc843bb",
+        "learned.tsv.actions.jsonl": "6d9de5d8c1daae6d551e3ab038382ddcfc4f9ea8d1ae7791fbcc494a68535829",
+        "nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+        "candidate.individual.layout.json": "60376dcc5e32403674667d2e367b61826933f153505b77487fe3dedd1b441526",
+        "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+        "individual.audit.json": "c7de29d3ff5b84ce740fe3c4aa71336b9c094351604a2c2d7d29052388e97d09",
+        "learned.tsv": "b95800e16402b64eeb9841e06d7ceb00e78f6ef8dada9b294e6641a43950d279",
+        "groups.tsv": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d"
+      }
+    },
+    {
+      "name": "overview-moving-ray1",
+      "policySha256": "1f435fe3d3a210d9bc6f188d498139151d374ed98754c745e16fc9d125ffc7f8",
+      "actionsArchived": 20000,
+      "acceptedActions": 1,
+      "fileSha256": {
+        "learned.tsv.policy.json": "1f435fe3d3a210d9bc6f188d498139151d374ed98754c745e16fc9d125ffc7f8",
+        "workflow.json": "d33ecefdaf41b70ad3cde001e5cb4c962d0492ba6223a883ee5e26de8cfde154",
+        "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+        "product.audit.json": "e9b8fe85c8c7ec3f7729c6abdc9e103a8312c03d3d2ad286e29f94655aee7328",
+        "learned.tsv.stats.json": "20722e6d119182586d007582bf8bc0c2092c578b86f49143d41ab65baf0410dd",
+        "replay.stdout": "3e103a1c3c06df24a8135704365586bd50b56b99ee68326cdd0768798e70479c",
+        "edges.tsv": "4f1168994b557fb53e5957c04ba483768cbe3f4ede9bab0d28e4df6f23b5325a",
+        "export.json": "d89c6babcff5f8889a55b8128f5ce3c47c9e4cbbeacb9fd5251f6ff5bcf815c3",
+        "learned.tsv.individual": "3af49ded28728124ddf66a5f257fdd8773a88e37467548b55f3ae12d96aba0f6",
+        "positions.tsv": "68749ec0e8a178bff8e36146d2801a2f7f657a3a79792d59e9b8e865bfc88fc0",
+        "learned.tsv.observations.jsonl": "e49baf11e64ddfe93e812c673add840abe00fbecff33859df3f11007d23e14d4",
+        "learned.tsv.routes.tsv": "838baaeb0f591c64e0dc8b896b0bbe717f79cfe84856b511c82fcae71469176d",
+        "replay.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "individual.routes.tsv": "6832b0d08e073da33ad6e0097513ca02e6b9d1af26399013c114fac41981dc84",
+        "individual.positions.tsv": "bd2c99c9c8bd2c46bd688a06b3763b950141aebdb47cd36d247e05fd23f9f379",
+        "product.scene.json": "eaa3cb4a8bf7e4f4a5f8a02d60028ac790afa5a1181cd834124aa404cc8f711a",
+        "components.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "inference.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "routes.tsv": "01fb611b43b2191ec591dabe55c03ca3bf27157cf097a859050e8692021ce24c",
+        "export.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "product.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "components.tsv": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+        "candidate.layout.json": "9382bf40f766e977f830ee1840ac65287a5e94e1b4ef16e8f24c7806118436d4",
+        "apply.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "learned.tsv.individual.routes.tsv": "20dfec4e1f666854fa85f66a5f9db3c0ef62c171d0beddefd4a2000d4b646154",
+        "proposal.audit.json": "c0cf7457efc2e5d5e02e4ed72c599721558fdda2315b61555cbf473604e20194",
+        "learned.tsv.actions.jsonl": "9bcccd270b51c2b6caa7aec98ce7fc29ebfcccdc8ce61d3e4169d4acc0feab41",
+        "nodes.tsv": "78173dfe1dcc8ac875d86b1819760977d3a78cd4356a464919f4e9ea98c71a80",
+        "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+        "product.product-load.log": "5b50179070ee085305e26b1135453a3b0bfc7d9892ece77d52f4e1e426e68682",
+        "learned.tsv": "0ab2a1e89ebf5064c09e795ae9e7da0d3d942660711c562dd850c9f7e2df1841",
+        "groups.tsv": "7f813b81625ab99a22e0e8bdc7a321358386423dff97c74a1a5e5c51b544d68f"
+      }
+    }
+  ],
+  "models": [
+    {
+      "checkpoint": "data/erd-poc/checkpoints/leaf-component-policy-v15.npz",
+      "sha256": "0dbb227368f10b06bd2b0d9ab3f2a776b0c7c48384696dbcc39967e8030fc2d7",
+      "datasetSha256": "12bc2b63fdbcc5181b9cbfa1cda76ac5607487725ff590732125257aa66c8e8a"
+    }
+  ],
+  "sourceSharedCandidate": "data/erd-poc/candidates/captain-leaf-card-connections-ml-386.layout.json",
+  "resourcePolicy": {
+    "serialized": true,
+    "mathThreads": 1,
+    "rssGuardMiB": 256,
+    "inferenceSecondsPerRun": 20
+  },
+  "binarySha256": {
+    "component-environment-v18": "415c8eee1066035ea62cefe2a013d9f6f8686986037833210ddfeef6cbca9dc8",
+    "port-environment-v3": "f1fb74481aaed5ec0868f2f44523de6ab863760eb40085f8202eeaaa32f8e8ea"
+  },
+  "codeSha256": {
+    "constrained_crossover_solver.h": "bce67aa5a6896251a99d1d1c60a3e35fb965533cf467402e89d1c3cc89c4e80e",
+    "constrained_group_repair.h": "0c71c47e17ef452f8d88a1da01b29b2da35bc5af22847486f67d447386f47322",
+    "constrained_dual_boundary_sweep.h": "b435671ec4c35d4b51557ad847f4809e54f53af64e16e76021608cd0c44e4c7e",
+    "constrained_port_search.h": "ded340aca6a8337f4fdd60910f39c55d1ef7dc50dbe368134885e105fd11d48f",
+    "constrained_linear_search.h": "d7ff255a91c39bf7bf00a7e2a64dda03dcfe6a3b364186cc8dd0c6f2ba929577",
+    "constrained_patch_reinsertion.h": "380f47826cddaad94c67fd12977f56df6451668da56ffc09a846e0dcd4e35a6d",
+    "constrained_scene.h": "ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6",
+    "constrained_slot_assignment.h": "e053b9234b313a44795d91352c5364e60abeef2617203f2670d84e9c80511a4b",
+    "constrained_dual_node_geometry.h": "aa984669fd96ddbcd375301d564f9f511cb406549a44619a17ce80cbdbdcf692",
+    "constrained_boundary_sweep.h": "5dc43defe7f4348d58ead6028259e12b88dcdd25740c87d5127809f51a1eef30",
+    "constrained_factor_graph.h": "33b5ce7239cb8f02bf1e8b495ab471b3aa2362b8f626f923c6bb07da3bad9631",
+    "constrained_global_search.h": "200a25437ec18029aaaf9df18832323a6d9d1f3170950c6f440fdec386e789d4",
+    "constrained_joint_search.h": "f7a62bd6a6097d92136f4b7a0b2842ab2bb1dc9e36e821a10ccaf0a92ca2173e",
+    "constrained_crossover_search.h": "feb47cd80e4b640c0a8d20bd9c13f01554aefa1a6d659422ae63bb80198ccb6c",
+    "constrained_adaptive_port_search.h": "5d2b0a35ca773c22987c486c2bf3001b7b750b9c779f6a1efbc89314df272695",
+    "constrained_detour_search.h": "28ee515f9f534b0754b2bed1f4eab4d16ed41c47b786e419ceab1b992ba1fd77",
+    "constrained_neighborhood_search.h": "dc297e3aeb4e131ef58ce974cd13871ce8913292e1511db837ed9c837f0ef964",
+    "constrained_hub_relocation.h": "87710e0e622f9d439dfa98363e229acc6b4bd62151e067bdd1b4d94464e7b65c",
+    "ml_component_environment.cpp": "1906701a2bafc2d886512ef071b757c9bf9f3b84f2ab9c3a2d1ac2775d4b2d39",
+    "ml_port_environment.cpp": "8c43ebfde9ddbba52afd98696263c171116084624e142cb65bf3be71e3e38a46",
+    "ml_global_environment.cpp": "a530c338e2d0d81335388f0c52ff88071e02be42f19900a39831cede141d177c",
+    "learn_card_policy.py": "e827b9699450ae0150a83f4ee890edc5a05d86fdbd05d494780e308279b862cd",
+    "learned_global_replay.py": "ebb423aa8ceb35f5b02cae50cc1b5f9c4ca70fe722eb72de43b3d0f339e20e29",
+    "run_memory_bounded.py": "90dc1dcdf63a5ac940b7b32f4997a60b4d5f5e8d1545d905bfcfc49febe79dba",
+    "run_individual_policy_experiment.py": "8cb24a3ff214664d22acbd04c4b7473f6797be40768c89ea695af987593923df",
+    "audit_individual_policy_experiment.cjs": "a7b6e40b5957b13a7ce8c92a5f858254292b33584396fec3913b504bceaa7ed7",
+    "run_learned_leaf_layout.py": "dc3735e2a901a2656e77397db2a0ece004a60e76b0d6086595d432c36999b345",
+    "apply_learned_components.cjs": "fe787406d88ebd45a03b37dfa7785f2ab3f85afab5e1e8bf2745b9cdd8cd4125"
+  },
+  "allCompressedFilesRoundTripHashVerified": true
+}

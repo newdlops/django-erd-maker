@@ -1,0 +1,22 @@
+{
+  "surfaceConfirmedByUser": "terminal Codex CLI",
+  "diagnosticMethod": "Read-only indexed SQLite, 1 MiB cache, one-second query guard; current-thread latest responses_retry warning",
+  "latestLogKstAtQuery": "2026-10-04T03:26:37+09:00",
+  "examinedRecentWarningErrorRows": 11,
+  "currentThreadTransportEvent": {
+    "timeKst": "2026-10-04T03:12:43+09:00",
+    "reason": "idle timeout waiting for SSE",
+    "retry": 1,
+    "maximumRetries": 5,
+    "reportedResponseBodyDecodeErrorMatched": false
+  },
+  "configuredCustomProvider": false,
+  "environmentProxyOrApiBaseOverrides": [],
+  "standardTuiLogPresent": false,
+  "memoryEstablishedAsCause": false,
+  "recoveryGuidance": "codex resume; choose affected saved conversation",
+  "recoveryExecuted": false,
+  "settingsAuthenticationOrCliChanged": false,
+  "rawCredentialsOrTranscriptsStored": false,
+  "officialReference": "https://learn.chatgpt.com/docs/developer-commands#codex-resume"
+}

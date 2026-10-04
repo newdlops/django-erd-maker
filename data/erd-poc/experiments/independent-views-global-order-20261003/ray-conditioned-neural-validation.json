@@ -1,0 +1,47 @@
+{
+  "views": [
+    {
+      "input": ".tmp/visualcross-ml-150-750-20261003/individual-outward-joint1",
+      "activePairLoss": true,
+      "crossingDepthWeight": 0.5,
+      "sharedSourceEndpoints": false,
+      "rayConditionedPorts": true,
+      "spacingPadding": 0.0,
+      "sharedGroupsPreserved": null,
+      "zeroOutputEndpointsPreserved": 3454,
+      "routeGradientChecks": 24,
+      "networkWeightGradientChecks": 28,
+      "baselineVisual": 1990,
+      "baselineHardPenalty": 0.0,
+      "frozenRoundtripExact": true,
+      "parameterCount": 8804,
+      "allChecksPassed": true
+    },
+    {
+      "input": ".tmp/visualcross-ml-150-750-20261003/overview-hard1",
+      "activePairLoss": true,
+      "crossingDepthWeight": 0.5,
+      "sharedSourceEndpoints": false,
+      "rayConditionedPorts": true,
+      "spacingPadding": 0.0,
+      "sharedGroupsPreserved": null,
+      "zeroOutputEndpointsPreserved": 3454,
+      "routeGradientChecks": 24,
+      "networkWeightGradientChecks": 28,
+      "baselineVisual": 299,
+      "baselineHardPenalty": 0.0,
+      "frozenRoundtripExact": true,
+      "parameterCount": 8804,
+      "allChecksPassed": true
+    }
+  ],
+  "continuousGradientChecks": true,
+  "nativeValidationStillRequired": true,
+  "implementationHashes": {
+    "validate_joint_neural_ports.py": "71206ee618cd6f9f528a2f2ffc0f00e15219b680ebb2cf26abff9a9c7aed48b3",
+    "joint_neural_ports.py": "78c9e6691f3f5924f3d5ce12169658b5f8b44b6b27a3cbcfdac2419f49f98b8c",
+    "joint_layout_proxy.py": "d21091db3bbde2b659cced3ed9c2161a98a69cbe4659ac4954f36cfb41176428",
+    "joint_hard_geometry.py": "ab4ef586709c39fc9f68829bc1596dbaa2c47c36b07a929d3001d3f4157e172b",
+    "joint_active_proxy.py": "4eda3b4534787e03cd5f39f0c9845ae1f015d27f4fdbc36e1d1f6407280f4666"
+  }
+}

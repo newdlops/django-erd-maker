@@ -1,0 +1,232 @@
+{
+  "sourceFile": ".tmp/visualcross-ml-targets-20261003/overview-only2/candidate.layout.json",
+  "candidateFile": ".tmp/visualcross-ml-targets-20261003/overview-only4/candidate.layout.json",
+  "sourceSha256": "8c044736890d5c2cabfb4b15543201b32277fb41a71921a3b4f706d053b16429",
+  "candidateSha256": "9fac1d0bd508c8cc8cc5dbf89fb60af3db7499d1de7e67c53a217c5574aa722c",
+  "baseline": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 246,
+    "edgeNodeIntersections": 114,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 362
+  },
+  "metrics": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 245,
+    "edgeNodeIntersections": 108,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 355
+  },
+  "originalIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 2510,
+    "edgeNodeIntersections": 1139,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 3649
+  },
+  "candidateIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 2613,
+    "edgeNodeIntersections": 1162,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 3775
+  },
+  "changedNodes": [
+    {
+      "modelId": "db.HrmAttendanceItem",
+      "before": {
+        "x": 8428.03,
+        "y": 17620.83
+      },
+      "after": {
+        "x": 9242.11,
+        "y": 17630.85
+      }
+    },
+    {
+      "modelId": "db.IaQuestionThread",
+      "before": {
+        "x": 24091.64,
+        "y": 13364.9
+      },
+      "after": {
+        "x": 21727.63,
+        "y": 11429.04
+      }
+    },
+    {
+      "modelId": "db.LegalPartner",
+      "before": {
+        "x": 21412.71,
+        "y": 14631.67
+      },
+      "after": {
+        "x": 21463.74,
+        "y": 14904.31
+      }
+    },
+    {
+      "modelId": "db.Option",
+      "before": {
+        "x": 17406.93,
+        "y": 17313.47
+      },
+      "after": {
+        "x": 16734.46,
+        "y": 15884.48
+      }
+    },
+    {
+      "modelId": "db.QuestionMessageAttachment",
+      "before": {
+        "x": 21287.935533239,
+        "y": 15069.232729256
+      },
+      "after": {
+        "x": 19559.805533239,
+        "y": 18859.712729256
+      }
+    },
+    {
+      "modelId": "db.VentureCapitalQuarterlyReportContentTemplate",
+      "before": {
+        "x": 27488.86,
+        "y": 13675.96
+      },
+      "after": {
+        "x": 26833.55,
+        "y": 14867.31
+      }
+    }
+  ],
+  "changedRoutes": [
+    "edge:declared:db.CompanyLegalPartnerRelation:legal_partner",
+    "edge:declared:db.CompanyManagingEntity:expert_partner",
+    "edge:declared:db.CompanyQuestionThread:expert_partner",
+    "edge:declared:db.CreditCard:legal_partner",
+    "edge:declared:db.ExpertClientTaxServiceSettings:legal_partner",
+    "edge:declared:db.HelpTemplate:partners_to_share",
+    "edge:declared:db.HrmAttendanceItem:attendance",
+    "edge:declared:db.HrmAttendanceItem:emp",
+    "edge:declared:db.HrmAttendanceLocation:attendance_item",
+    "edge:declared:db.IaExpertPartnerBulkEmailTemplate:legal_partner",
+    "edge:declared:db.IaLegalPartnerRelation:legal_partner",
+    "edge:declared:db.IaQuestionThread:investment_association",
+    "edge:declared:db.IncorporationBenefitRequest:tax_partner",
+    "edge:declared:db.IncorporationRequestAssistance:legal_partner",
+    "edge:declared:db.LegalPartner:address_for_express_delivery",
+    "edge:declared:db.LegalPartner:logo",
+    "edge:declared:db.LegalPartnerEmail:legal_partner",
+    "edge:declared:db.LegalPartnerPaypleSettings:legal_partner",
+    "edge:declared:db.LegalPartnerRegistrationAssistanceSettings:legal_partner",
+    "edge:declared:db.LegalPartnerSignupChannel:legal_partner",
+    "edge:declared:db.LegalPartnerSlackChannels:legal_partner",
+    "edge:declared:db.LegalPartnerUserRelation:legal_partner",
+    "edge:declared:db.Option:company",
+    "edge:declared:db.Option:grantee",
+    "edge:declared:db.Option:sealed_contract_file",
+    "edge:declared:db.Option:source_meeting",
+    "edge:declared:db.PaymentStore:legal_partner",
+    "edge:declared:db.Purchase:_payment_store_legal_partner",
+    "edge:declared:db.QuestionMessageAttachment:message",
+    "edge:declared:db.RegistrationAssistance:legal_partner",
+    "edge:declared:db.SalesMetric:legal_partner",
+    "edge:declared:db.TaxPartnerTbkContract:legal_partner",
+    "edge:declared:db.TaxPartnerTbkSettings:legal_partner",
+    "edge:declared:db.VentureCapitalQuarterlyReport:content_template",
+    "edge:declared:db.VentureCapitalQuarterlyReportContentTemplate:venture_capital",
+    "edge:inheritance:db.IaQuestionThread->db.QuestionThread",
+    "edge:inheritance:db.QuestionMessageAttachment->db.FileAttachment"
+  ],
+  "sizesPreserved": true,
+  "membershipsPreserved": true,
+  "rigidLeafGeometryPreserved": true,
+  "productRouteParity": true,
+  "nativeProposal": {
+    "initialVisual": 362,
+    "visual": 355,
+    "initialIndividualVisual": 3649,
+    "individualVisual": 3775,
+    "hardConditions": 0,
+    "initialHardConditions": 0,
+    "individualHardConditions": 46,
+    "initialIndividualHardConditions": 46,
+    "canonicalStart": false,
+    "rolloutInitialVisual": 362,
+    "rolloutInitialIndividualVisual": 3649,
+    "jointMoves": false,
+    "overviewOnly": true,
+    "overlap": 0,
+    "spacing": 0,
+    "policyActionsEvaluated": 20000,
+    "acceptedActions": 6,
+    "heuristicSearchCalls": 0,
+    "proposalAuthority": "external-policy",
+    "decoder": "rigid component translation plus center-ray incident ports"
+  },
+  "learnedPolicy": {
+    "checkpoint": ".tmp/visualcross-ml-targets-20261003/component-policy-v3.npz",
+    "checkpointSha256": "d702424921d8c8f777d87603600fec03002d3fe28330219517277e23b550e1bf",
+    "untrainedControl": false,
+    "sourceDirectory": ".tmp/visualcross-ml-targets-20261003/overview-only4",
+    "syntheticSeed": null,
+    "policyProposalSource": "conditional mixture neural network",
+    "heuristicSearchCalls": 0,
+    "overviewOnly": true,
+    "initial": {
+      "ready": true,
+      "eligible": 1035,
+      "visual": 362,
+      "individualVisual": 3649,
+      "canonicalStart": false,
+      "sourceVisual": 362,
+      "sourceIndividualVisual": 3649
+    },
+    "final": {
+      "initialVisual": 362,
+      "visual": 355,
+      "initialIndividualVisual": 3649,
+      "individualVisual": 3775,
+      "hardConditions": 0,
+      "initialHardConditions": 0,
+      "individualHardConditions": 46,
+      "initialIndividualHardConditions": 46,
+      "canonicalStart": false,
+      "rolloutInitialVisual": 362,
+      "rolloutInitialIndividualVisual": 3649,
+      "jointMoves": false,
+      "overviewOnly": true,
+      "overlap": 0,
+      "spacing": 0,
+      "policyActionsEvaluated": 20000,
+      "acceptedActions": 6,
+      "heuristicSearchCalls": 0,
+      "proposalAuthority": "external-policy",
+      "decoder": "rigid component translation plus center-ray incident ports"
+    },
+    "budget": 20000,
+    "seed": 148,
+    "seconds": 17.208868457993958,
+    "observationsSha256": "f5d2ca73c824a7d2f65c79c2b13e4860961aeb04fe4650c68d2f9705901e4f90",
+    "actionsSha256": "f29a826fdae4996b070d0456f33a2facebb9f9d76790fc7d4fa6aa32455bcb15"
+  },
+  "browserVerified": false,
+  "experimental": true,
+  "dominatesSource": false
+}

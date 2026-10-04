@@ -1,0 +1,63 @@
+{
+  "status": "pass",
+  "verifiedManifestSha256": "a0da64aeb05303c238f8c7e76c9510508afb528a27442a8c5fd5aa4d198830e7",
+  "restoredMappingsAtSeal": 300,
+  "distinctStoredObjects": 214,
+  "currentBindingsMatched": 299,
+  "currentNumericCodeCheckpointAndSourceBindingsUnchanged": true,
+  "postSealDocumentationCorrection": {
+    "source": "context.md",
+    "correctedTrainedOutputVisuals": [
+      2243,
+      2227,
+      2220,
+      2217
+    ],
+    "priorApproximateRange": [
+      2217,
+      2227
+    ],
+    "archivedNumericalRollupAlreadyCorrect": true
+  },
+  "extraFiles": [
+    {
+      "source": "context.md",
+      "archive": "closure/context.md.gz",
+      "sha256": "e51567c66ddb8b889888d4b6b2448a99ec3c94e4e9f231e170c06f08debfdd05"
+    },
+    {
+      "source": "/Users/lky/project/django-erd-maker/.tmp/finalize_common_star_fields.py",
+      "archive": "closure/finalizer.py.gz",
+      "sha256": "387f53ad60cd450a965d3a5b11958a8e47e4de74968165db7d6c3257d18c46e8"
+    },
+    {
+      "source": ".tmp/common-star-fields-archive-independent-verification.json",
+      "archive": "closure/independent-restore.json.gz",
+      "sha256": "585fac0225feb9fceb918d3b72804d883b4d3ef0e2b71096c95c602b5ecb8059"
+    },
+    {
+      "source": ".tmp/common-star-fields-archive-seal2.guard.log",
+      "archive": "closure/archive-seal2.guard.log.gz",
+      "sha256": "0dad62927076742d2c31b09620add1b66a420a34ecf9e2d8e1df189fc169b6e6"
+    },
+    {
+      "source": ".tmp/common-star-fields-archive-restore.guard.log",
+      "archive": "closure/archive-restore.guard.log.gz",
+      "sha256": "d478e8953afd8fc39b47fa0f5ef37cb0cedaba157867d8758d10f8b6dfbcd66b"
+    }
+  ],
+  "reviewCandidateSha256": "f2c090d646986401a8827c3d82f14b568fe6c3cc512761b769f502749603285b",
+  "bestCandidateSha256": "4e741de39ca655c7ff042422b9407206427f89e02ecd56b7f4a9f36f6a5cd02e",
+  "strictImprovements": 0,
+  "overviewVisual": 285,
+  "individualVisual": 1963,
+  "reviewOverviewVisual": 287,
+  "reviewIndividualVisual": 1963,
+  "targetMet": false,
+  "goalContinues": true,
+  "allRequiredVerificationJobsTerminal": true,
+  "browserVerified": false,
+  "fullTypecheckPassed": false,
+  "memoryLimitMiB": 128,
+  "nextStep": "Prove a nontrivial legal response of a source-preserving, tied original-card phase field before longer reward learning"
+}

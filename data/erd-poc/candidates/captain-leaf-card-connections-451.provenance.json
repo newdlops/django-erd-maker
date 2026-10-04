@@ -1,0 +1,178 @@
+{
+  "sourceFile": "data/erd-poc/candidates/captain-leaf-card-connections-459.layout.json",
+  "candidateFile": "data/erd-poc/candidates/captain-leaf-card-connections-451.layout.json",
+  "sourceSha256": "7de02a0e2dd30d167d053e9e3ada5e555370bf37b976ae8c49a2b2a3acdb940e",
+  "candidateSha256": "d2585e3321b9836b56a2f7e3f5311d6c30895d48e6bfe6ba1cbae5a2c637b10a",
+  "baseline": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 295,
+    "edgeNodeIntersections": 162,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 459
+  },
+  "metrics": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 296,
+    "edgeNodeIntersections": 153,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 451
+  },
+  "originalIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 3427,
+    "edgeNodeIntersections": 1290,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 4717
+  },
+  "candidateIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 3432,
+    "edgeNodeIntersections": 1281,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 4713
+  },
+  "bboxB": 1.14915248448,
+  "changedRoutes": [
+    "edge:declared:db.StockTransferAgreementManagement:stock_transfer_agreement",
+    "edge:declared:db.StockTransferAgreement:seller",
+    "edge:declared:db.AgendaBranchChange:address",
+    "edge:inheritance:db.NewIssueNoticeEmail->db.BulkEmail",
+    "edge:declared:db.AgendaRsuGrantGrantee:rsu",
+    "edge:declared:db.BulkEmailTemplateRevision:template",
+    "edge:inheritance:db.HrmPersonalLocation->db.HrmApprovable",
+    "edge:declared:db.DirectorsMeetingAgenda:agenda_director_change"
+  ],
+  "rejectedRoutes": [
+    {
+      "edgeId": "edge:inheritance:db.OptionExerciseClaimAttachment->db.FileAttachment",
+      "overviewDelta": 0,
+      "individualDelta": 1
+    },
+    {
+      "edgeId": "edge:declared:db.StockTransferAgreementManagementStakeholderSeat:stock_transfer_agreement_management",
+      "overviewDelta": -1,
+      "individualDelta": 12
+    },
+    {
+      "edgeId": "edge:declared:db.BaseModusignDocumentUsageHistory:modusign_document",
+      "overviewDelta": 0,
+      "individualDelta": 1
+    },
+    {
+      "edgeId": "edge:declared:db.OptionGrantContract:_deprecated_template",
+      "overviewDelta": -1,
+      "individualDelta": 4
+    },
+    {
+      "edgeId": "edge:declared:db.OptionGrantContract:template_revision",
+      "overviewDelta": 0,
+      "individualDelta": 2
+    },
+    {
+      "edgeId": "edge:inheritance:db.BranchInstallationEvent->db.Event",
+      "overviewDelta": 0,
+      "individualDelta": 2
+    }
+  ],
+  "proposedMetrics": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 300,
+    "edgeNodeIntersections": 147,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 449
+  },
+  "proposedIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 3460,
+    "edgeNodeIntersections": 1275,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 4735
+  },
+  "nodesAndSizesPreserved": true,
+  "membershipsPreserved": true,
+  "productRouteParity": true,
+  "nativeProposal": {
+    "initialVisual": 459,
+    "initialHardConditions": 12,
+    "visual": 449,
+    "cross": 300,
+    "hit": 149,
+    "hardConditions": 8,
+    "overlap": 0,
+    "spacing": 0,
+    "queries": 2880,
+    "changes": 15,
+    "intervals": 64642,
+    "selectedEdges": 80,
+    "rounds": 2,
+    "timedOut": false,
+    "seconds": 4.97233
+  },
+  "resourcePolicy": {
+    "threads": 1,
+    "rssLimitMiB": 256,
+    "maxSearchSeconds": 20,
+    "requestedHostCpuBudgetPercent": 20,
+    "hostLogicalCpuCount": 15,
+    "largestReportedRssMiB": 165.7,
+    "serialized": true,
+    "searchNiceIncrement": 10,
+    "jointProbes": true,
+    "nativePeakReportedRssMiB": 3.1
+  },
+  "browserVerified": false,
+  "acceptedGeometry": {
+    "initialVisual": 451,
+    "initialHardConditions": 8,
+    "visual": 451,
+    "cross": 296,
+    "hit": 155,
+    "hardConditions": 8,
+    "overlap": 0,
+    "spacing": 0,
+    "queries": 0,
+    "changes": 0,
+    "intervals": 0,
+    "selectedEdges": 80,
+    "rounds": 0,
+    "timedOut": false,
+    "seconds": 0.0916804
+  },
+  "date": "2026-10-02",
+  "productAuditFile": "data/erd-poc/candidates/captain-leaf-card-connections-451.audit.json",
+  "nativeBinarySha256": "22db910be072dfd6385ead41214dddda13de6b78d0fb43fca4e80cd4183811ee",
+  "installedAsDefault": false,
+  "freshSourceAnalysisVerified": false,
+  "sourceCodeSha256": {
+    "scripts/erd-poc/probe_overview_boundary.cjs": "28d074a8e2234d7a537cf7e0bb005c70386e6997561c5a12e1bbe65abb3d8849",
+    "scripts/erd-poc/probe_boundary_sweep.cpp": "9ddd871deb2b7d445be30f5243e261fcf5f4907e8b8d85dada28219adada0b4a",
+    "scripts/erd-poc/constrained_boundary_sweep.h": "5dc43defe7f4348d58ead6028259e12b88dcdd25740c87d5127809f51a1eef30",
+    "scripts/erd-poc/constrained_scene.h": "ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6",
+    "scripts/erd-poc/run_memory_bounded.py": "90dc1dcdf63a5ac940b7b32f4997a60b4d5f5e8d1545d905bfcfc49febe79dba",
+    "out/webview/state/createDiagramRenderModel.js": "6c39e4590a22b5ba306f9ff3f195fb4f3edf997966a05c6edf693b95edc71b69"
+  }
+}

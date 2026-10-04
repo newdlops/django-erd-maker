@@ -1,0 +1,39 @@
+{
+  "views": [
+    {
+      "input": ".tmp/visualcross-ml-150-750-20261003/individual-outward-joint1",
+      "activePairLoss": true,
+      "crossingDepthWeight": 0.5,
+      "zeroOutputEndpointsPreserved": 3454,
+      "routeGradientChecks": 24,
+      "networkWeightGradientChecks": 28,
+      "baselineVisual": 1990,
+      "baselineHardPenalty": 0.0,
+      "frozenRoundtripExact": true,
+      "parameterCount": 8804,
+      "allChecksPassed": true
+    },
+    {
+      "input": ".tmp/visualcross-ml-150-750-20261003/overview-hard1",
+      "activePairLoss": true,
+      "crossingDepthWeight": 0.5,
+      "zeroOutputEndpointsPreserved": 3454,
+      "routeGradientChecks": 24,
+      "networkWeightGradientChecks": 28,
+      "baselineVisual": 299,
+      "baselineHardPenalty": 0.0,
+      "frozenRoundtripExact": true,
+      "parameterCount": 8804,
+      "allChecksPassed": true
+    }
+  ],
+  "continuousGradientChecks": true,
+  "nativeValidationStillRequired": true,
+  "implementationHashes": {
+    "validate_joint_neural_ports.py": "2a795c1eb256a8c4be14c6dad8c92e8acd0346d2ad8aab5336998e3a9f7b785c",
+    "joint_neural_ports.py": "6a54cc90ac60d5435a39dfcc5e63e55ffa02e82040c210b36318bd093f47f94d",
+    "joint_layout_proxy.py": "5eff6bd20e5fae3f4073fc90f843f42f65dcbd9f99f55008aedde7fe8de10b4c",
+    "joint_hard_geometry.py": "ab4ef586709c39fc9f68829bc1596dbaa2c47c36b07a929d3001d3f4157e172b",
+    "joint_active_proxy.py": "b240be06f3c7a047feea0e64b5aa9cbdb20da5435f147362580ce92200c511ad"
+  }
+}

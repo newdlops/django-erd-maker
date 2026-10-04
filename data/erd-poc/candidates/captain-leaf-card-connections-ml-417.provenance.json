@@ -1,0 +1,807 @@
+{
+  "sourceFile": "data/erd-poc/candidates/captain-leaf-card-connections-418.layout.json",
+  "candidateFile": "data/erd-poc/candidates/captain-leaf-card-connections-ml-417.layout.json",
+  "sourceSha256": "d28edb3108fe652e22d406f222a8a56eaab83411e3fca415b1bd04ca9b6a6511",
+  "candidateSha256": "32df3d9061ab4ef3e308ec7e670ca0180459370e9b79e5a239add7941d48b73c",
+  "baseline": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 287,
+    "edgeNodeIntersections": 129,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 418
+  },
+  "metrics": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 2,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1039,
+    "edgeCrossings": 286,
+    "edgeNodeIntersections": 129,
+    "nodeOverlaps": 0,
+    "routeSegments": 1039,
+    "visualCrossings": 417
+  },
+  "originalIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 3356,
+    "edgeNodeIntersections": 1235,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 4591
+  },
+  "candidateIndividual": {
+    "bundleBundleOverlaps": 0,
+    "bundleEdgeIntersections": 0,
+    "bundleNodeOverlaps": 0,
+    "edgeCount": 1727,
+    "edgeCrossings": 3350,
+    "edgeNodeIntersections": 1235,
+    "nodeOverlaps": 0,
+    "routeSegments": 1727,
+    "visualCrossings": 4585
+  },
+  "bboxB": 1.14915248448,
+  "changedNodes": [
+    {
+      "modelId": "db.InvestmentSimulationInvestor",
+      "before": {
+        "x": 16605.16,
+        "y": 4821.54
+      },
+      "after": {
+        "x": 16901.33,
+        "y": 4974.37
+      },
+      "distance": 333.2771786366434
+    },
+    {
+      "modelId": "db.RegistrationFormCaptableDocument",
+      "before": {
+        "x": 18488.52,
+        "y": 23334.16
+      },
+      "after": {
+        "x": 18251.35,
+        "y": 23167.88
+      },
+      "distance": 289.65263213028203
+    },
+    {
+      "modelId": "db.SignupChannel",
+      "before": {
+        "x": 23615.8,
+        "y": 14718.13
+      },
+      "after": {
+        "x": 23308.26,
+        "y": 14548.57
+      },
+      "distance": 351.185770212861
+    }
+  ],
+  "changedRoutes": [
+    "edge:declared:db.InvestmentSimulationInvestor:simulation_round",
+    "edge:declared:db.InvestmentSimulationNewIssueInvestment:investor",
+    "edge:declared:db.InvestmentSimulationPurchaseInvestment:investor",
+    "edge:declared:db.RegistrationFormCaptableDocument:captable",
+    "edge:inheritance:db.ExpertClientSignupChannel->db.SignupChannel",
+    "edge:inheritance:db.IBKSignupChannel->db.SignupChannel",
+    "edge:inheritance:db.InputSignupChannel->db.SignupChannel",
+    "edge:inheritance:db.LegalPartnerSignupChannel->db.SignupChannel",
+    "edge:inheritance:db.NcpSignupChannel->db.SignupChannel",
+    "edge:inheritance:db.QuarterlyReportSignupChannel->db.SignupChannel",
+    "edge:inheritance:db.RegistrationFormCaptableDocument->db.MeetingDocument"
+  ],
+  "sizesPreserved": true,
+  "membershipsPreserved": true,
+  "leafCardGeometryPreserved": true,
+  "productRouteParity": true,
+  "nativeProposal": {
+    "initialVisual": 418,
+    "visual": 417,
+    "cross": 286,
+    "hit": 131,
+    "initialIndividualVisual": 4591,
+    "individualVisual": 4585,
+    "initialHardConditions": 0,
+    "hardConditions": 0,
+    "initialIndividualHardConditions": 174,
+    "individualHardConditions": 174,
+    "overlap": 0,
+    "spacing": 0,
+    "maxDisplacement": 384,
+    "policyActionsEvaluated": 12000,
+    "acceptedActions": 3,
+    "heuristicSearchCalls": 0,
+    "proposalAuthority": "external-policy"
+  },
+  "learnedPolicy": {
+    "checkpoint": "data/erd-poc/checkpoints/leaf-card-policy-v1.npz",
+    "checkpointSha256": "1e47c740fc9fba00535ef6a02bb143902f5273e00261d2fa0c3b071996d0b147",
+    "untrainedControl": false,
+    "sourceDirectory": ".tmp/visualcross-ml-20261002/autonomous",
+    "syntheticSeed": null,
+    "policyProposalSource": "conditional mixture neural network",
+    "heuristicSearchCalls": 0,
+    "initial": {
+      "ready": true,
+      "eligible": 652,
+      "visual": 418,
+      "individualVisual": 4591
+    },
+    "final": {
+      "initialVisual": 418,
+      "visual": 417,
+      "cross": 286,
+      "hit": 131,
+      "initialIndividualVisual": 4591,
+      "individualVisual": 4585,
+      "initialHardConditions": 0,
+      "hardConditions": 0,
+      "initialIndividualHardConditions": 174,
+      "individualHardConditions": 174,
+      "overlap": 0,
+      "spacing": 0,
+      "maxDisplacement": 384,
+      "policyActionsEvaluated": 12000,
+      "acceptedActions": 3,
+      "heuristicSearchCalls": 0,
+      "proposalAuthority": "external-policy"
+    },
+    "budget": 12000,
+    "seed": 123,
+    "seconds": 6.578750416985713,
+    "observationsSha256": "5fdc48ac506e879d8528fc4dccabf3685835d36920600bd174797eadb5595f0d",
+    "actionsSha256": "29f9b2135d317f916ca3cf8029f7b7a85436c00b0398375901ba191f613c61cc"
+  },
+  "resourcePolicy": {
+    "threads": 1,
+    "rssLimitMiB": 256,
+    "maxSearchSeconds": 20,
+    "withIndividual": true,
+    "maxPolicyProposals": 12000,
+    "maxNodeDisplacement": 384,
+    "requestedHostCpuBudgetPercent": 20,
+    "hostLogicalCpuCount": 15,
+    "serialized": true,
+    "searchNiceIncrement": 10,
+    "cpuUsagePercentMeasured": false,
+    "largestReportedRssMiB": 241.3,
+    "trainingProcessGroupPeakRssMiB": 114.2,
+    "directInferenceProcessGroupPeakRssMiB": 41.6,
+    "completeWorkflowSeconds": 19.258747416024562,
+    "trainingSeconds": 4.979976625007112,
+    "directLearnedInferenceSeconds": 5.085404084005859
+  },
+  "browserVerified": false,
+  "date": "2026-10-03",
+  "productAuditFile": "data/erd-poc/candidates/captain-leaf-card-connections-ml-417.audit.json",
+  "installedAsDefault": false,
+  "freshSourceAnalysisVerified": false,
+  "workflow": {
+    "source": "data/erd-poc/candidates/captain-leaf-card-connections-418.layout.json",
+    "sourceSha256": "d28edb3108fe652e22d406f222a8a56eaab83411e3fca415b1bd04ca9b6a6511",
+    "payloadSha256": "ced2067ed644248ec230d36275ffe7d6043753196933c50779d6137c174e80ce",
+    "checkpoint": "data/erd-poc/checkpoints/leaf-card-policy-v1.npz",
+    "checkpointSha256": "1e47c740fc9fba00535ef6a02bb143902f5273e00261d2fa0c3b071996d0b147",
+    "nativeBinarySha256": "93b40709e785c8c48768d3279db025b3c1510200c0c607b08a159bd1bbd8b17d",
+    "candidateSha256": "32df3d9061ab4ef3e308ec7e670ca0180459370e9b79e5a239add7941d48b73c",
+    "visualCrossings": 417,
+    "individualVisualCrossings": 4585,
+    "proposalAuthority": "frozen learned policy",
+    "heuristicSearchCalls": 0,
+    "frozenActionReplay": true,
+    "productFileLoadVerified": true,
+    "browserVerified": false,
+    "seconds": 19.258747416024562,
+    "stages": [
+      {
+        "stage": "compile",
+        "exitCode": 0,
+        "seconds": 3.2790424169506878
+      },
+      {
+        "stage": "export",
+        "exitCode": 0,
+        "seconds": 1.609638374997303
+      },
+      {
+        "stage": "inference",
+        "exitCode": 0,
+        "seconds": 7.03273687500041
+      },
+      {
+        "stage": "replay",
+        "exitCode": 0,
+        "seconds": 1.405350333021488
+      },
+      {
+        "stage": "apply",
+        "exitCode": 0,
+        "seconds": 2.4576674590352923
+      },
+      {
+        "stage": "product",
+        "exitCode": 0,
+        "seconds": 3.470600500004366
+      }
+    ]
+  },
+  "modelTraining": {
+    "kind": "conditional-mixture-card-policy-v1",
+    "schema": "relative-card-context-v1-58",
+    "features": 58,
+    "mixtures": 4,
+    "actionScale": 384,
+    "trainedUpdates": 11400,
+    "bestEpoch": 6,
+    "seed": 37,
+    "trainingGraphIds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50
+    ],
+    "validationGraphIds": [
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63
+    ],
+    "datasetSha256": "33d256a497e248d22f303b0b6db834b4170ed9f0157b9cb45e16e875fe717955",
+    "trainingData": "procedural synthetic graphs only",
+    "captainTrainingExamples": 0,
+    "absoluteCoordinatesAsInput": false,
+    "modelNamesAsInput": false,
+    "checkpoint": "data/erd-poc/checkpoints/leaf-card-policy-v1.npz",
+    "checkpointSha256": "1e47c740fc9fba00535ef6a02bb143902f5273e00261d2fa0c3b071996d0b147",
+    "states": 1897,
+    "trainingActions": 48480,
+    "validationActions": 12224,
+    "positiveTrainingActions": 6046,
+    "initialValidationNll": -0.00523704616051144,
+    "bestValidationNll": -0.4919450136135518,
+    "parameterCount": 9301,
+    "seconds": 4.979976625007112,
+    "history": [
+      {
+        "epoch": 1,
+        "updates": 190,
+        "validationNll": -0.41137126442788463,
+        "seconds": 0.14393012499203905
+      },
+      {
+        "epoch": 2,
+        "updates": 380,
+        "validationNll": -0.4595111064697592,
+        "seconds": 0.28208562498912215
+      },
+      {
+        "epoch": 3,
+        "updates": 570,
+        "validationNll": -0.48317015004947966,
+        "seconds": 0.3830945839872584
+      },
+      {
+        "epoch": 4,
+        "updates": 760,
+        "validationNll": -0.4702405692008887,
+        "seconds": 0.4777399169979617
+      },
+      {
+        "epoch": 5,
+        "updates": 950,
+        "validationNll": -0.4786112008739656,
+        "seconds": 0.5698076669941656
+      },
+      {
+        "epoch": 6,
+        "updates": 1140,
+        "validationNll": -0.4919450136135518,
+        "seconds": 0.6716614590259269
+      },
+      {
+        "epoch": 7,
+        "updates": 1330,
+        "validationNll": -0.4574446198337645,
+        "seconds": 0.7679387090029195
+      },
+      {
+        "epoch": 8,
+        "updates": 1520,
+        "validationNll": -0.4227151019236093,
+        "seconds": 0.8466111670131795
+      },
+      {
+        "epoch": 9,
+        "updates": 1710,
+        "validationNll": -0.44148937440733516,
+        "seconds": 0.9244883339852095
+      },
+      {
+        "epoch": 10,
+        "updates": 1900,
+        "validationNll": -0.3847302780282267,
+        "seconds": 1.0071690420154482
+      },
+      {
+        "epoch": 11,
+        "updates": 2090,
+        "validationNll": -0.34789725549290684,
+        "seconds": 1.093772959022317
+      },
+      {
+        "epoch": 12,
+        "updates": 2280,
+        "validationNll": -0.32694262898690446,
+        "seconds": 1.1805894590215757
+      },
+      {
+        "epoch": 13,
+        "updates": 2470,
+        "validationNll": -0.31387681564150915,
+        "seconds": 1.254250125028193
+      },
+      {
+        "epoch": 14,
+        "updates": 2660,
+        "validationNll": -0.317932928854026,
+        "seconds": 1.337065417028498
+      },
+      {
+        "epoch": 15,
+        "updates": 2850,
+        "validationNll": -0.28295054768179395,
+        "seconds": 1.4170685000135563
+      },
+      {
+        "epoch": 16,
+        "updates": 3040,
+        "validationNll": -0.2575939645604982,
+        "seconds": 1.4974444590043277
+      },
+      {
+        "epoch": 17,
+        "updates": 3230,
+        "validationNll": -0.24450917392135163,
+        "seconds": 1.5825369589729235
+      },
+      {
+        "epoch": 18,
+        "updates": 3420,
+        "validationNll": -0.21515991460691308,
+        "seconds": 1.6610301249893382
+      },
+      {
+        "epoch": 19,
+        "updates": 3610,
+        "validationNll": -0.1843250224522191,
+        "seconds": 1.7374289170256816
+      },
+      {
+        "epoch": 20,
+        "updates": 3800,
+        "validationNll": -0.1709407240386196,
+        "seconds": 1.8128649999853224
+      },
+      {
+        "epoch": 21,
+        "updates": 3990,
+        "validationNll": -0.041604102686944325,
+        "seconds": 1.9020137499901466
+      },
+      {
+        "epoch": 22,
+        "updates": 4180,
+        "validationNll": -0.05840061141699262,
+        "seconds": 1.9791871670167893
+      },
+      {
+        "epoch": 23,
+        "updates": 4370,
+        "validationNll": 0.06595652866647167,
+        "seconds": 2.0588233749731444
+      },
+      {
+        "epoch": 24,
+        "updates": 4560,
+        "validationNll": 0.003312002912816539,
+        "seconds": 2.147035167028662
+      },
+      {
+        "epoch": 25,
+        "updates": 4750,
+        "validationNll": 0.012500709583995628,
+        "seconds": 2.2331558750011027
+      },
+      {
+        "epoch": 26,
+        "updates": 4940,
+        "validationNll": 0.05814315909997149,
+        "seconds": 2.313877834007144
+      },
+      {
+        "epoch": 27,
+        "updates": 5130,
+        "validationNll": 0.087539311055947,
+        "seconds": 2.400098624988459
+      },
+      {
+        "epoch": 28,
+        "updates": 5320,
+        "validationNll": 0.10935612955858956,
+        "seconds": 2.4851425000233576
+      },
+      {
+        "epoch": 29,
+        "updates": 5510,
+        "validationNll": 0.3265217913111282,
+        "seconds": 2.564223834022414
+      },
+      {
+        "epoch": 30,
+        "updates": 5700,
+        "validationNll": 0.23116264221553334,
+        "seconds": 2.6431179590290412
+      },
+      {
+        "epoch": 31,
+        "updates": 5890,
+        "validationNll": 0.26036891235024984,
+        "seconds": 2.7204281670274213
+      },
+      {
+        "epoch": 32,
+        "updates": 6080,
+        "validationNll": 0.17480246837724228,
+        "seconds": 2.7984468750073574
+      },
+      {
+        "epoch": 33,
+        "updates": 6270,
+        "validationNll": 0.28023105878534027,
+        "seconds": 2.873153041990008
+      },
+      {
+        "epoch": 34,
+        "updates": 6460,
+        "validationNll": 0.25320816483436404,
+        "seconds": 2.9749673340120353
+      },
+      {
+        "epoch": 35,
+        "updates": 6650,
+        "validationNll": 0.3940133803829385,
+        "seconds": 3.0676804590038955
+      },
+      {
+        "epoch": 36,
+        "updates": 6840,
+        "validationNll": 0.38879872059463405,
+        "seconds": 3.148070666997228
+      },
+      {
+        "epoch": 37,
+        "updates": 7030,
+        "validationNll": 0.3767618295078134,
+        "seconds": 3.2263227090006694
+      },
+      {
+        "epoch": 38,
+        "updates": 7220,
+        "validationNll": 0.50915310329912,
+        "seconds": 3.304350125021301
+      },
+      {
+        "epoch": 39,
+        "updates": 7410,
+        "validationNll": 0.45017242282705594,
+        "seconds": 3.3784101249766536
+      },
+      {
+        "epoch": 40,
+        "updates": 7600,
+        "validationNll": 0.6083172713668195,
+        "seconds": 3.4595576249994338
+      },
+      {
+        "epoch": 41,
+        "updates": 7790,
+        "validationNll": 0.6092323361968255,
+        "seconds": 3.533828750019893
+      },
+      {
+        "epoch": 42,
+        "updates": 7980,
+        "validationNll": 0.48209772965226244,
+        "seconds": 3.6103357499814592
+      },
+      {
+        "epoch": 43,
+        "updates": 8170,
+        "validationNll": 0.712486633770032,
+        "seconds": 3.6814514590078034
+      },
+      {
+        "epoch": 44,
+        "updates": 8360,
+        "validationNll": 0.8011148787582774,
+        "seconds": 3.7531923340284266
+      },
+      {
+        "epoch": 45,
+        "updates": 8550,
+        "validationNll": 0.7544157711292512,
+        "seconds": 3.8248349169734865
+      },
+      {
+        "epoch": 46,
+        "updates": 8740,
+        "validationNll": 0.9246336962107256,
+        "seconds": 3.902786125021521
+      },
+      {
+        "epoch": 47,
+        "updates": 8930,
+        "validationNll": 0.5749759859620143,
+        "seconds": 3.974899374996312
+      },
+      {
+        "epoch": 48,
+        "updates": 9120,
+        "validationNll": 0.8762704446809584,
+        "seconds": 4.056454083998688
+      },
+      {
+        "epoch": 49,
+        "updates": 9310,
+        "validationNll": 0.9787199026035701,
+        "seconds": 4.146937666984741
+      },
+      {
+        "epoch": 50,
+        "updates": 9500,
+        "validationNll": 0.8639628951187511,
+        "seconds": 4.219560209021438
+      },
+      {
+        "epoch": 51,
+        "updates": 9690,
+        "validationNll": 0.9501581212272495,
+        "seconds": 4.301895999989938
+      },
+      {
+        "epoch": 52,
+        "updates": 9880,
+        "validationNll": 0.7805995818026744,
+        "seconds": 4.3771561670000665
+      },
+      {
+        "epoch": 53,
+        "updates": 10070,
+        "validationNll": 0.883810648558196,
+        "seconds": 4.451524792006239
+      },
+      {
+        "epoch": 54,
+        "updates": 10260,
+        "validationNll": 0.974965376589354,
+        "seconds": 4.52746162499534
+      },
+      {
+        "epoch": 55,
+        "updates": 10450,
+        "validationNll": 1.108383106184316,
+        "seconds": 4.600891291978769
+      },
+      {
+        "epoch": 56,
+        "updates": 10640,
+        "validationNll": 1.2284213506852462,
+        "seconds": 4.673844459000975
+      },
+      {
+        "epoch": 57,
+        "updates": 10830,
+        "validationNll": 1.1337930771224025,
+        "seconds": 4.747360749985091
+      },
+      {
+        "epoch": 58,
+        "updates": 11020,
+        "validationNll": 1.2116642114832916,
+        "seconds": 4.82101379201049
+      },
+      {
+        "epoch": 59,
+        "updates": 11210,
+        "validationNll": 1.1035348787999606,
+        "seconds": 4.895941334019881
+      },
+      {
+        "epoch": 60,
+        "updates": 11400,
+        "validationNll": 1.0736380909416352,
+        "seconds": 4.971259624988306
+      }
+    ],
+    "checkpointUpdates": 1140,
+    "datasetFile": "data/erd-poc/checkpoints/leaf-card-policy-v1.training-data.jsonl.gz",
+    "trainingCodeSha256": {
+      "scripts/erd-poc/learn_card_policy.py": "83d48fb36a1177cad102190a16f6581bdb7de6503893e4d95e60a9389d89871c",
+      "scripts/erd-poc/ml_card_environment.cpp": "cb1b861c8f1f675d03b668f80730aa7358add1551ff334fc79968618b4c238e9",
+      "scripts/erd-poc/constrained_dual_node_geometry.h": "aa984669fd96ddbcd375301d564f9f511cb406549a44619a17ce80cbdbdcf692"
+    }
+  },
+  "frozenActionReplay": {
+    "frozenCheckpointActionReplay": "pass",
+    "actions": 12000,
+    "untrainedControl": false
+  },
+  "untrainedControl": {
+    "checkpoint": "data/erd-poc/checkpoints/leaf-card-policy-v1.npz",
+    "checkpointSha256": "1e47c740fc9fba00535ef6a02bb143902f5273e00261d2fa0c3b071996d0b147",
+    "untrainedControl": true,
+    "sourceDirectory": ".tmp/visualcross-ml-20261002",
+    "syntheticSeed": null,
+    "policyProposalSource": "conditional mixture neural network",
+    "heuristicSearchCalls": 0,
+    "initial": {
+      "ready": true,
+      "eligible": 652,
+      "visual": 418,
+      "individualVisual": 4591
+    },
+    "final": {
+      "initialVisual": 418,
+      "visual": 418,
+      "cross": 287,
+      "hit": 131,
+      "initialIndividualVisual": 4591,
+      "individualVisual": 4590,
+      "initialHardConditions": 0,
+      "hardConditions": 0,
+      "initialIndividualHardConditions": 174,
+      "individualHardConditions": 174,
+      "overlap": 0,
+      "spacing": 0,
+      "maxDisplacement": 384,
+      "policyActionsEvaluated": 12000,
+      "acceptedActions": 1,
+      "heuristicSearchCalls": 0,
+      "proposalAuthority": "external-policy"
+    },
+    "budget": 12000,
+    "seed": 123,
+    "seconds": 5.325984707975294,
+    "observationsSha256": "bcdd1fd31c30c2c54bf25503fb55760c4c4224f6482e00a2b3cafc5bd9797af4",
+    "actionsSha256": "cb9a30b31f32eec0a0df66c5289e14d16aba0f4e662b356ecb86474589db8aab"
+  },
+  "heldoutEvaluation": {
+    "heldOutSyntheticGraphs": [
+      {
+        "seed": 28182,
+        "control": 76,
+        "initial": 91,
+        "learned": 71
+      },
+      {
+        "seed": 28183,
+        "control": 152,
+        "initial": 178,
+        "learned": 148
+      },
+      {
+        "seed": 28184,
+        "control": 77,
+        "initial": 94,
+        "learned": 83
+      },
+      {
+        "seed": 28185,
+        "control": 160,
+        "initial": 196,
+        "learned": 150
+      }
+    ],
+    "equalProposalsPerCase": 512,
+    "initialTotal": 559,
+    "untrainedTotal": 465,
+    "learnedTotal": 452
+  },
+  "independentInferenceReproduced": true,
+  "learnedActionTrace": {
+    "actions": "data/erd-poc/candidates/captain-leaf-card-connections-ml-417.actions.jsonl.gz",
+    "observations": "data/erd-poc/candidates/captain-leaf-card-connections-ml-417.observations.jsonl.gz",
+    "actionsArchiveSha256": "68f49366aac3ed73def0cbe3068934834dcf600fa7d1cc364d48fd7aa00e8c2b",
+    "observationsArchiveSha256": "dcbfa71a4b6ed825df702c88b8ae3f6eb054db0a7fe3e65242d3a4cf8689ef1a",
+    "rawActionsSha256": "29f9b2135d317f916ca3cf8029f7b7a85436c00b0398375901ba191f613c61cc",
+    "rawObservationsSha256": "5fdc48ac506e879d8528fc4dccabf3685835d36920600bd174797eadb5595f0d"
+  },
+  "sourceCodeSha256": {
+    "scripts/erd-poc/learn_card_policy.py": "83d48fb36a1177cad102190a16f6581bdb7de6503893e4d95e60a9389d89871c",
+    "scripts/erd-poc/ml_card_environment.cpp": "cb1b861c8f1f675d03b668f80730aa7358add1551ff334fc79968618b4c238e9",
+    "scripts/erd-poc/constrained_dual_node_geometry.h": "aa984669fd96ddbcd375301d564f9f511cb406549a44619a17ce80cbdbdcf692",
+    "scripts/erd-poc/run_learned_leaf_layout.py": "3d855d5b9efc8dd314b4912a323b580ad8dbcb7883071fecb356bef2e2c92cc6",
+    "scripts/erd-poc/probe_overview_boundary.cjs": "350d252f0553e1e2ce19be6ae1fa432869830fd09185578fb5de2f6160db01f0",
+    "scripts/erd-poc/apply_dual_node_proposal.cjs": "7ab932b30fd15b3a5da365bc26e661e817f2a08891964f70294e3e0b520c4921",
+    "scripts/erd-poc/audit_leaf_card_connections.cjs": "7870841810547d295a1a7648d26d7e465d71027fbae517b74e7003233df82517",
+    "scripts/erd-poc/constrained_scene.h": "ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6",
+    "scripts/erd-poc/constrained_boundary_sweep.h": "5dc43defe7f4348d58ead6028259e12b88dcdd25740c87d5127809f51a1eef30",
+    "scripts/erd-poc/run_memory_bounded.py": "90dc1dcdf63a5ac940b7b32f4997a60b4d5f5e8d1545d905bfcfc49febe79dba",
+    "out/webview/state/createDiagramRenderModel.js": "6c39e4590a22b5ba306f9ff3f195fb4f3edf997966a05c6edf693b95edc71b69",
+    "out/extension/services/layout/runOgdfLayout.js": "837f11cb58d5ee72aa83631bb00750512cf0fbe96357306644038afa2a478580",
+    "out/extension/services/layout/consolidateEdges.js": "802da9d4fa3d445535c46238846c15200c09e92c977492100d0ab0b6971af600",
+    "out/webview/interaction/runtime/browserLeafCardSource.js": "becaa5c4237df44fcdd20ad2d8de6dff4df3243c4747fbee9daecd433ef1348b",
+    "out/webview/interaction/runtime/browserLayoutSource.js": "9a736ac2049e7e4a5e3d056f3c570a7391e266966b831e316fb8058eabe1d112"
+  },
+  "nativeGeometryValidation": {
+    "globalDeltaComparisons": 4096,
+    "featureTranslationInvariance": true,
+    "gradientChecks": 44,
+    "gradientMaxAbsoluteError": 4.891325122713397e-10
+  }
+}

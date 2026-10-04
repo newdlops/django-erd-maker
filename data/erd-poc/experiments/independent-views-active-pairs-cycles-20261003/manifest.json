@@ -1,0 +1,1051 @@
+{
+  "scope": "full-context critic adaptation, unmeasured active pairs and neural factor-ranked three-card cycles",
+  "retainedCandidate": "data/erd-poc/candidates/captain-ml-independent-views.layout.json",
+  "retainedCandidateSha256": "da2317d3d9fe72181587f543843bfdde3cc7030ca328e93c4f627ae21ec356e7",
+  "promotedCandidateChanged": false,
+  "overviewVisual": 289,
+  "individualVisual": 1964,
+  "targetOverview": 150,
+  "targetIndividual": 750,
+  "targetMet": false,
+  "browserVerified": false,
+  "newExperimentalCandidates": 0,
+  "newTrainingUpdates": 4380,
+  "selectedCheckpointUpdates": 3942,
+  "newUniqueMeasuredPairTrainingRows": 1948,
+  "trainingRows": 3985,
+  "validationRows": 486,
+  "actualImprovementTrainingExamples": 0,
+  "nativePairProposals": 2048,
+  "nativeCycleProposals": 2048,
+  "strictImprovements": 0,
+  "cycleCriticTrainedOnCycles": false,
+  "pairFactorsAreTrainedNeuralPredictions": true,
+  "neuralPairScoresReplayed": 50311,
+  "neuralCycleProxyScoresReplayed": 16384,
+  "repeatedPreviouslyMeasuredPairActions": 0,
+  "sourceSavedGeometryByteIdentical": true,
+  "nativeScoresRecomputedByReplay": false,
+  "causalAblationVerified": false,
+  "globalTargetImpossibleProved": false,
+  "cycleValidation": {
+    "status": "pass",
+    "views": [
+      {
+        "view": "individual",
+        "cycles": 128,
+        "decodedCyclesVerified": 32,
+        "uniformVocabularySeedReplay": true,
+        "sameSizeAndDirectConflictSupport": true,
+        "threeCardPermutationDecoded": true,
+        "directionInverseProducesDistinctOutput": true,
+        "factorScoreMeaningVerified": true
+      },
+      {
+        "view": "overview",
+        "cycles": 128,
+        "decodedCyclesVerified": 32,
+        "uniformVocabularySeedReplay": true,
+        "sameSizeAndDirectConflictSupport": true,
+        "threeCardPermutationDecoded": true,
+        "directionInverseProducesDistinctOutput": true,
+        "factorScoreMeaningVerified": true
+      }
+    ],
+    "maximumScalarFactorScoreError": 3.552713678800501e-15,
+    "nativeGeometryNotInvoked": true,
+    "criticTrainedOnCycles": false
+  },
+  "recordsVerification": {
+    "status": "pass",
+    "datasetReconstructedFromMeasuredSources": true,
+    "rows": 3985,
+    "newUniqueMeasuredPairs": 1948,
+    "duplicatesRemoved": 100,
+    "validationPairsAbsentFromCompleteParentDataset": true,
+    "unseenGraphValidation": false,
+    "trainingUpdatesReplayed": 4380,
+    "selectedCheckpointUpdates": 3942,
+    "selectedWeightsBitwiseReproduced": true,
+    "normalizationUnchanged": true,
+    "parameterGroupChangesL2": {
+      "w1": 8.126172802103477,
+      "b1": 0.14038811533665746,
+      "w2": 4.936988978714711,
+      "b2": 0.22752565804823077,
+      "wo": 0.9275538662726667,
+      "bo": 0.00291725608879294
+    },
+    "actualImprovementTrainingExamples": 0,
+    "stages": [
+      {
+        "stage": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-active1",
+        "view": "individual",
+        "family": "active",
+        "replay": {
+          "status": "pass",
+          "allUnmeasuredNeuralScoresReplayed": 43788,
+          "modelRankedActionsReplayed": 1024,
+          "accepted": 0,
+          "repeatedMeasuredActions": 0,
+          "savedGeometryMatchesModelOutput": true,
+          "nativeScoresRecomputed": false
+        },
+        "savedGeometryByteIdenticalToReference": true,
+        "bestLegalMeasuredVisual": 1964,
+        "equalVisualActions": 3,
+        "reasons": {
+          "legal": 605,
+          "hard": 419
+        },
+        "positiveProxyPredictions": 109,
+        "nonIsolatedSingleOwnersPerProposal": {
+          "1": 430,
+          "2": 594
+        },
+        "directlyConflictingOwnersPerProposal": {
+          "1": 994,
+          "2": 30
+        }
+      },
+      {
+        "stage": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-active1",
+        "view": "overview",
+        "family": "active",
+        "replay": {
+          "status": "pass",
+          "allUnmeasuredNeuralScoresReplayed": 6523,
+          "modelRankedActionsReplayed": 1024,
+          "accepted": 0,
+          "repeatedMeasuredActions": 0,
+          "savedGeometryMatchesModelOutput": true,
+          "nativeScoresRecomputed": false
+        },
+        "savedGeometryByteIdenticalToReference": true,
+        "bestLegalMeasuredVisual": 291,
+        "equalVisualActions": 0,
+        "reasons": {
+          "legal": 653,
+          "hard": 352,
+          "projection": 19
+        },
+        "positiveProxyPredictions": 57,
+        "nonIsolatedSingleOwnersPerProposal": {
+          "1": 159,
+          "2": 865
+        },
+        "directlyConflictingOwnersPerProposal": {
+          "1": 978,
+          "2": 46
+        }
+      },
+      {
+        "stage": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-cycles1",
+        "view": "individual",
+        "family": "cycles",
+        "replay": {
+          "status": "pass",
+          "cycleNeuralScoresReplayed": 8192,
+          "modelActionsReplayed": 1024,
+          "accepted": 0,
+          "savedGeometryMatchesModelOutput": true,
+          "nativeScoresRecomputed": false
+        },
+        "savedGeometryByteIdenticalToReference": true,
+        "bestLegalMeasuredVisual": 1977,
+        "equalVisualActions": 0,
+        "reasons": {
+          "hard": 585,
+          "legal": 439
+        },
+        "positiveProxyPredictions": 2,
+        "nonIsolatedSingleOwnersPerProposal": {
+          "1": 90,
+          "2": 510,
+          "3": 424
+        },
+        "directlyConflictingOwnersPerProposal": {
+          "1": 952,
+          "2": 70,
+          "3": 2
+        }
+      },
+      {
+        "stage": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-cycles1",
+        "view": "overview",
+        "family": "cycles",
+        "replay": {
+          "status": "pass",
+          "cycleNeuralScoresReplayed": 8192,
+          "modelActionsReplayed": 1024,
+          "accepted": 0,
+          "savedGeometryMatchesModelOutput": true,
+          "nativeScoresRecomputed": false
+        },
+        "savedGeometryByteIdenticalToReference": true,
+        "bestLegalMeasuredVisual": 298,
+        "equalVisualActions": 0,
+        "reasons": {
+          "legal": 769,
+          "hard": 255
+        },
+        "positiveProxyPredictions": 16,
+        "nonIsolatedSingleOwnersPerProposal": {
+          "1": 92,
+          "2": 382,
+          "3": 550
+        },
+        "directlyConflictingOwnersPerProposal": {
+          "1": 1008,
+          "2": 14,
+          "3": 2
+        }
+      }
+    ],
+    "nativeScoresRecomputed": false,
+    "modelActionsReplayed": 4096
+  },
+  "resources": {
+    "policy": "serialized numerical jobs; one math thread; nice +10; 256 MiB process-group RSS guard; no hard CPU-percent quota",
+    "trainingPeakMiB": 113.4,
+    "cycleValidationPeakMiB": 46.5,
+    "inferencePeakMiB": {
+      "individual-active1": 112.4,
+      "overview-active1": 73.6,
+      "individual-cycles1": 71.1,
+      "overview-cycles1": 61.8
+    },
+    "initialSeparateReplayProcessVerificationPeakMiB": 249.3,
+    "finalSingleProcessVerificationPeakMiB": 143.2,
+    "bothVerificationModesPassed": true,
+    "recordedFromSuccessfulToolOutputs": true
+  },
+  "prerequisiteManifests": [
+    {
+      "path": "data/erd-poc/experiments/independent-views-anchor-pairs-20261003/manifest.json",
+      "sha256": "665f7d88ea6c816e0da21a50a8390f916cb4e4e3be86ca5739632114bd1b31e8"
+    },
+    {
+      "path": "data/erd-poc/experiments/independent-views-pair-walk-20261003/manifest.json",
+      "sha256": "418e96cec17920817e0a9c50b064b88d0d256df5f8fc1181a5614872523276f0"
+    },
+    {
+      "path": "data/erd-poc/experiments/independent-views-full-context-pairs-20261003/manifest.json",
+      "sha256": "6d999d68bba87603e5316f04ffcbc9d4d0d33f01f746e727802dfbd8c96148c1"
+    }
+  ],
+  "referencedFiles": [
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/full-pair-model1/individual-full1/actions.jsonl",
+      "archive": "data/erd-poc/experiments/independent-views-full-context-pairs-20261003/run/individual-full1/actions.jsonl.gz",
+      "sha256": "6c34a652564a18e57aa346a82cae7c22efbe41451e1901fabc213a8bd6e302dc",
+      "bytes": 338756,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/full-pair-model1/individual-full1/observations.npz",
+      "archive": "data/erd-poc/experiments/independent-views-full-context-pairs-20261003/run/individual-full1/observations.npz.gz",
+      "sha256": "8e7dec745ad5b206b262af9a81b9b7c2b5cb0923352dbba6f875e32977f47ede",
+      "bytes": 683162,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/full-pair-model1/individual-full1/report.json",
+      "archive": "data/erd-poc/experiments/independent-views-full-context-pairs-20261003/run/individual-full1/report.json.gz",
+      "sha256": "73755a557e0a8530050d6f65e5e532d94536aceed1712ef030635f5ff1145f53",
+      "bytes": 9600,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/full-pair-model1/overview-full1/actions.jsonl",
+      "archive": "data/erd-poc/experiments/independent-views-full-context-pairs-20261003/run/overview-full1/actions.jsonl.gz",
+      "sha256": "6347d5cbdbf1b6e04dc6e5ccb93be04108eda3d69e31570629b03db5ec663b33",
+      "bytes": 337092,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/full-pair-model1/overview-full1/observations.npz",
+      "archive": "data/erd-poc/experiments/independent-views-full-context-pairs-20261003/run/overview-full1/observations.npz.gz",
+      "sha256": "5c0ef20212e583cb1900b4eec322b454ea357bc5928c8a8ceb8996b907652378",
+      "bytes": 306863,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/full-pair-model1/overview-full1/report.json",
+      "archive": "data/erd-poc/experiments/independent-views-full-context-pairs-20261003/run/overview-full1/report.json.gz",
+      "sha256": "3ea563ad8545039eb299a0461e5595459a8c10dc12cfeac3c1d382e84d7d816b",
+      "bytes": 8244,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/full-pair-model1/training1/dataset.npz",
+      "archive": "data/erd-poc/experiments/independent-views-full-context-pairs-20261003/run/training1/dataset.npz.gz",
+      "sha256": "db88bd45a25607807fbd3c342ebf7d8d0304bf35a730c2c23a5ce682a617983c",
+      "bytes": 514206,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/full-pair-model1/training1/model.npz",
+      "archive": "data/erd-poc/experiments/independent-views-full-context-pairs-20261003/run/training1/model.npz.gz",
+      "sha256": "d82cd4d2dc81a5f5a8bb972a8db0e7c2bdd4560c1f6144e5d4babb4c0a2e46cb",
+      "bytes": 171165,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/full-pair-model1/training1/training.json",
+      "archive": "data/erd-poc/experiments/independent-views-full-context-pairs-20261003/run/training1/training.json.gz",
+      "sha256": "b1ae2a2c5039c54ea80cac8d1b6c0708d7ada046a29c58b49c254611c8983812",
+      "bytes": 15268,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-slot-cached1/components.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/individual/components.tsv.gz",
+      "sha256": "6c48a21d396a392cf1219197465407f5dae5bcbf04e87d2c86cc030abcf18b30",
+      "bytes": 68780,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-slot-cached1/edges.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/individual/edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "bytes": 182412,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-slot-cached1/groups.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/individual/groups.tsv.gz",
+      "sha256": "8008a474f067e2d30cea527e75fb6169e7e9b8aa65eceb389bc05b3bcdff390d",
+      "bytes": 199382,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-slot-cached1/individual.edges.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/individual/individual.edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "bytes": 182412,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-slot-cached1/individual.nodes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/individual/individual.nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "bytes": 43187,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-slot-cached1/individual.positions.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/individual/individual.positions.tsv.gz",
+      "sha256": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+      "bytes": 73707,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-slot-cached1/individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/individual/individual.routes.tsv.gz",
+      "sha256": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+      "bytes": 160868,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-slot-cached1/nodes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/individual/nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "bytes": 43187,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-slot-cached1/positions.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/individual/positions.tsv.gz",
+      "sha256": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+      "bytes": 73707,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/individual-slot-cached1/routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/individual/routes.tsv.gz",
+      "sha256": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+      "bytes": 160868,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-slot-cached1/components.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/overview/components.tsv.gz",
+      "sha256": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+      "bytes": 61887,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-slot-cached1/edges.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/overview/edges.tsv.gz",
+      "sha256": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+      "bytes": 113471,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-slot-cached1/groups.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/overview/groups.tsv.gz",
+      "sha256": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc",
+      "bytes": 160987,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-slot-cached1/individual.edges.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/overview/individual.edges.tsv.gz",
+      "sha256": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+      "bytes": 182412,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-slot-cached1/individual.nodes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/overview/individual.nodes.tsv.gz",
+      "sha256": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+      "bytes": 43187,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-slot-cached1/individual.positions.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/overview/individual.positions.tsv.gz",
+      "sha256": "9a8f92a1e756d42a8177eca8947cd9700c0cc5e53e6a81b6d1eae37200742e72",
+      "bytes": 55981,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-slot-cached1/individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/overview/individual.routes.tsv.gz",
+      "sha256": "d3db0db863e5ce0042f53cd287a86aa67e9a31e55b5fc6e6acd884fadeb2d7d7",
+      "bytes": 160158,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-slot-cached1/nodes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/overview/nodes.tsv.gz",
+      "sha256": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+      "bytes": 34879,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-slot-cached1/positions.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/overview/positions.tsv.gz",
+      "sha256": "f22cbc759742ae9a2b5cc6f64f6cf02a25878fafde965f88e83161d6dce086be",
+      "bytes": 45439,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/overview-slot-cached1/routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/fixtures/overview/routes.tsv.gz",
+      "sha256": "107653e30b4d861d758ae1efca6a7444894939c9d6826039daa9e3c47d4f0063",
+      "bytes": 97586,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-anchor-sparse1/actual-validation/individual-sparse.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-anchor-pairs-20261003/run/actual-validation/individual-sparse.tsv.gz",
+      "sha256": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+      "bytes": 73707,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-anchor-sparse1/actual-validation/individual-sparse.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-anchor-pairs-20261003/run/actual-validation/individual-sparse.tsv.individual.gz",
+      "sha256": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+      "bytes": 73707,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-anchor-sparse1/actual-validation/individual-sparse.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-anchor-pairs-20261003/run/actual-validation/individual-sparse.tsv.individual.routes.tsv.gz",
+      "sha256": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+      "bytes": 160868,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-anchor-sparse1/actual-validation/individual-sparse.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-anchor-pairs-20261003/run/actual-validation/individual-sparse.tsv.routes.tsv.gz",
+      "sha256": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+      "bytes": 160868,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-anchor-sparse1/actual-validation/overview-sparse.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-anchor-pairs-20261003/run/actual-validation/overview-sparse.tsv.gz",
+      "sha256": "ee097292d8553d695fa8867eab8be9741131f28288588e4340fc103be802e5d6",
+      "bytes": 60175,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-anchor-sparse1/actual-validation/overview-sparse.tsv.individual",
+      "archive": "data/erd-poc/experiments/independent-views-anchor-pairs-20261003/run/actual-validation/overview-sparse.tsv.individual.gz",
+      "sha256": "bf0484d0c034c2aa2dfa8d341263750bc7a6923e20e90e18ddb309994c23e7f2",
+      "bytes": 73662,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-anchor-sparse1/actual-validation/overview-sparse.tsv.individual.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-anchor-pairs-20261003/run/actual-validation/overview-sparse.tsv.individual.routes.tsv.gz",
+      "sha256": "dd4b962cab5d0b2e7389a09bb1286ca7ff76b30ecf74399aeb8e2bee369cdbcf",
+      "bytes": 160831,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-anchor-sparse1/actual-validation/overview-sparse.tsv.routes.tsv",
+      "archive": "data/erd-poc/experiments/independent-views-anchor-pairs-20261003/run/actual-validation/overview-sparse.tsv.routes.tsv.gz",
+      "sha256": "cb6d17a73f96259285cef08dba715d6a2d4c94dbfdcc0a74de93a8d6cd60295a",
+      "bytes": 98042,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-anchor-sparse1/individual-adapted1/report.json",
+      "archive": "data/erd-poc/experiments/independent-views-anchor-pairs-20261003/run/individual-adapted1/report.json.gz",
+      "sha256": "4ea4524f379d9b26bb7e59f811ccc9d3b5c1289839ffcef99ad5b8f652e289f0",
+      "bytes": 7273,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-anchor-sparse1/individual-transfer1/report.json",
+      "archive": "data/erd-poc/experiments/independent-views-anchor-pairs-20261003/run/individual-transfer1/report.json.gz",
+      "sha256": "05e33f5e863bb2f0808e1b4356f0dc9eb1d7b250b1e5cf068d54efe4364d8074",
+      "bytes": 5329,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-anchor-sparse1/overview-adapted1/report.json",
+      "archive": "data/erd-poc/experiments/independent-views-anchor-pairs-20261003/run/overview-adapted1/report.json.gz",
+      "sha256": "c3145b13d4db899786da3a2b4fee1de027580d4fcaeedd19351e84afd7604de1",
+      "bytes": 7284,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-anchor-sparse1/overview-transfer1/report.json",
+      "archive": "data/erd-poc/experiments/independent-views-anchor-pairs-20261003/run/overview-transfer1/report.json.gz",
+      "sha256": "f658026343ff025eeab864264d7c97fb93c71c4f1c2b0a1c5fd891fa7c23e022",
+      "bytes": 5339,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/constrained_boundary_sweep.h",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/run/build-inputs/constrained_boundary_sweep.h.gz",
+      "sha256": "296dab7012fe0e0192e2d526bda778f38595f1b8d446d0e2b124d4576297aa79",
+      "bytes": 9566,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/constrained_dual_node_geometry.h",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/run/build-inputs/constrained_dual_node_geometry.h.gz",
+      "sha256": "aa984669fd96ddbcd375301d564f9f511cb406549a44619a17ce80cbdbdcf692",
+      "bytes": 6646,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/constrained_scene.h",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/run/build-inputs/constrained_scene.h.gz",
+      "sha256": "ff7dd08b8ac7c64d6d65ff22c92d38d290ab1c28a031daf26e4ee87544699fc6",
+      "bytes": 9252,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/learned_pair_contexts.h",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/run/build-inputs/learned_pair_contexts.h.gz",
+      "sha256": "70231fb76081d97c6fe749bbf590a87fb7d57de30eec299a9c3cdb57def8017f",
+      "bytes": 3627,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/ml_component_environment.cpp",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/run/build-inputs/ml_component_environment.cpp.gz",
+      "sha256": "930e1170deae7e393b09034be95b636c5afc13d7e67d3f275688dbda9a6d9443",
+      "bytes": 66996,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/build-inputs/ml_joint_batch_environment.cpp",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/run/build-inputs/ml_joint_batch_environment.cpp.gz",
+      "sha256": "0bf63bb9502dfbfcea70f09a4db09a30885f35a022324f54da85f75f01bd1301",
+      "bytes": 15178,
+      "restoreHashVerified": true
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/environment",
+      "archive": "data/erd-poc/experiments/independent-views-pair-walk-20261003/run/environment.gz",
+      "sha256": "b5c355b2675d225114279549051ef201d84d6e56dbe8658810cc9705004f5514",
+      "bytes": 749496,
+      "restoreHashVerified": true
+    }
+  ],
+  "referencedLogicalBytes": 6276699,
+  "allReferencedFilesRestoreHashVerified": true,
+  "logicalFiles": 67,
+  "logicalBytes": 6132636,
+  "allCompressedFilesRoundTripHashVerified": true,
+  "files": [
+    {
+      "source": ".tmp/seal_active_pair_research.py",
+      "archive": "tools/seal_active_pair_research.py.gz",
+      "sha256": "8193e5855df9721af1f3e7e57af4c398b38a6d833dc9d6903f44790a1d4b0375",
+      "bytes": 8460,
+      "compressedBytes": 3204
+    },
+    {
+      "source": ".tmp/validate_neural_cycles.py",
+      "archive": "tools/validate_neural_cycles.py.gz",
+      "sha256": "3af25eba758f8d7fa24a0fe394c8ed4285609ff1f29c256dafdf3ec7db4f570a",
+      "bytes": 3230,
+      "compressedBytes": 1439
+    },
+    {
+      "source": ".tmp/verify_active_pair_records.py",
+      "archive": "tools/verify_active_pair_records.py.gz",
+      "sha256": "ab3e0b50758908a14c5024e1288a164f72d8ffa0f9091922c1faae807593a658",
+      "bytes": 7663,
+      "compressedBytes": 2985
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/cycle-validation.json",
+      "archive": "run/cycle-validation.json.gz",
+      "sha256": "5cfafb67cf5af0db1b9fc3e2eafeb23891ee95173c948982f29d253fb6a36563",
+      "bytes": 818,
+      "compressedBytes": 339
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-active1/actions.jsonl",
+      "archive": "run/individual-active1/actions.jsonl.gz",
+      "sha256": "f919bc8a7923839faf4a5765057f87241a8ba76abbb67b0f7848c827999bfbda",
+      "bytes": 339021,
+      "compressedBytes": 84573
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-active1/learned.tsv",
+      "archive": "run/individual-active1/learned.tsv.gz",
+      "sha256": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+      "bytes": 73707,
+      "compressedBytes": 24683
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-active1/learned.tsv.individual",
+      "archive": "run/individual-active1/learned.tsv.individual.gz",
+      "sha256": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+      "bytes": 73707,
+      "compressedBytes": 24683
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-active1/learned.tsv.individual.routes.tsv",
+      "archive": "run/individual-active1/learned.tsv.individual.routes.tsv.gz",
+      "sha256": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+      "bytes": 160868,
+      "compressedBytes": 52440
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-active1/learned.tsv.routes.tsv",
+      "archive": "run/individual-active1/learned.tsv.routes.tsv.gz",
+      "sha256": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+      "bytes": 160868,
+      "compressedBytes": 52440
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-active1/learned.tsv.stats.json",
+      "archive": "run/individual-active1/learned.tsv.stats.json.gz",
+      "sha256": "538352ec0a668e1efdb27b1823bfff0206ae8f6e35b51c227cbcc5a5457cf047",
+      "bytes": 969,
+      "compressedBytes": 455
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-active1/observations.npz",
+      "archive": "run/individual-active1/observations.npz.gz",
+      "sha256": "e9e17575b4bfea75cdfdb7e596e90768ebf85d8c6398370ba94d32557dc1aec3",
+      "bytes": 670146,
+      "compressedBytes": 630118
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-active1/replay.json",
+      "archive": "run/individual-active1/replay.json.gz",
+      "sha256": "81379a4741d69657742bd4f932072fd576a8d577f1f10d87f4698d939a68f958",
+      "bytes": 234,
+      "compressedBytes": 178
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-active1/report.json",
+      "archive": "run/individual-active1/report.json.gz",
+      "sha256": "287f58c07ebcb6cdce7b7192ea6c78198ab8ed43eba7e23ed04ab563c44d3061",
+      "bytes": 11468,
+      "compressedBytes": 4839
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-cycles1/actions.jsonl",
+      "archive": "run/individual-cycles1/actions.jsonl.gz",
+      "sha256": "82185f7ce34289bb61c0cba6bdee90463bca6431ba1b5d4d503bef2e4c8a8595",
+      "bytes": 334642,
+      "compressedBytes": 80027
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-cycles1/learned.tsv",
+      "archive": "run/individual-cycles1/learned.tsv.gz",
+      "sha256": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+      "bytes": 73707,
+      "compressedBytes": 24683
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-cycles1/learned.tsv.individual",
+      "archive": "run/individual-cycles1/learned.tsv.individual.gz",
+      "sha256": "3d52d27a37b3d45c9108ee3894240ae22d230f25898a33447581f3dc79faae12",
+      "bytes": 73707,
+      "compressedBytes": 24683
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-cycles1/learned.tsv.individual.routes.tsv",
+      "archive": "run/individual-cycles1/learned.tsv.individual.routes.tsv.gz",
+      "sha256": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+      "bytes": 160868,
+      "compressedBytes": 52440
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-cycles1/learned.tsv.routes.tsv",
+      "archive": "run/individual-cycles1/learned.tsv.routes.tsv.gz",
+      "sha256": "e4227f769424dbef2689da75bf64ff442aafc2213bf8669c1556ad752e195cf9",
+      "bytes": 160868,
+      "compressedBytes": 52440
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-cycles1/learned.tsv.stats.json",
+      "archive": "run/individual-cycles1/learned.tsv.stats.json.gz",
+      "sha256": "538352ec0a668e1efdb27b1823bfff0206ae8f6e35b51c227cbcc5a5457cf047",
+      "bytes": 969,
+      "compressedBytes": 455
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-cycles1/observations.npz",
+      "archive": "run/individual-cycles1/observations.npz.gz",
+      "sha256": "a6aa37c877c4672462f66fdf8efec8f69702d0203232ad97438e03ffddca2275",
+      "bytes": 328142,
+      "compressedBytes": 327675
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-cycles1/replay.json",
+      "archive": "run/individual-cycles1/replay.json.gz",
+      "sha256": "8746798f8dce78c94f8c18b08d8fb38f521aa1484537447f719eea188e368830",
+      "bytes": 187,
+      "compressedBytes": 154
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/individual-cycles1/report.json",
+      "archive": "run/individual-cycles1/report.json.gz",
+      "sha256": "cbb553dc05d26ad139a64944d90d20cd0e1dac72bb1074180b1d655ecfde9b3e",
+      "bytes": 10437,
+      "compressedBytes": 4310
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-active1/actions.jsonl",
+      "archive": "run/overview-active1/actions.jsonl.gz",
+      "sha256": "0caa3f1206c7bcd44c16979667a68df1a6fdeec22a6ecad34f64b7db381034bf",
+      "bytes": 337002,
+      "compressedBytes": 85057
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-active1/learned.tsv",
+      "archive": "run/overview-active1/learned.tsv.gz",
+      "sha256": "ee097292d8553d695fa8867eab8be9741131f28288588e4340fc103be802e5d6",
+      "bytes": 60175,
+      "compressedBytes": 20221
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-active1/learned.tsv.individual",
+      "archive": "run/overview-active1/learned.tsv.individual.gz",
+      "sha256": "bf0484d0c034c2aa2dfa8d341263750bc7a6923e20e90e18ddb309994c23e7f2",
+      "bytes": 73662,
+      "compressedBytes": 23634
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-active1/learned.tsv.individual.routes.tsv",
+      "archive": "run/overview-active1/learned.tsv.individual.routes.tsv.gz",
+      "sha256": "dd4b962cab5d0b2e7389a09bb1286ca7ff76b30ecf74399aeb8e2bee369cdbcf",
+      "bytes": 160831,
+      "compressedBytes": 51785
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-active1/learned.tsv.routes.tsv",
+      "archive": "run/overview-active1/learned.tsv.routes.tsv.gz",
+      "sha256": "cb6d17a73f96259285cef08dba715d6a2d4c94dbfdcc0a74de93a8d6cd60295a",
+      "bytes": 98042,
+      "compressedBytes": 33968
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-active1/learned.tsv.stats.json",
+      "archive": "run/overview-active1/learned.tsv.stats.json.gz",
+      "sha256": "76f03facdfb5b0c4d1f1222c5cadf4abbdfa9d460f6e607b244017f26ce352ca",
+      "bytes": 965,
+      "compressedBytes": 461
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-active1/observations.npz",
+      "archive": "run/overview-active1/observations.npz.gz",
+      "sha256": "5e09f099f21234aa38a6671b376317c25dcf7429906e58b3abc5396b21e6587e",
+      "bytes": 296853,
+      "compressedBytes": 294782
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-active1/replay.json",
+      "archive": "run/overview-active1/replay.json.gz",
+      "sha256": "109181eb825da2a15c73a88e0375f8e5dc13f84995b4c8ddde76b444cbd813a7",
+      "bytes": 233,
+      "compressedBytes": 177
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-active1/report.json",
+      "archive": "run/overview-active1/report.json.gz",
+      "sha256": "262211f87e517045b016347b2f4daa168acb8c069f70322fe7effa142fd19912",
+      "bytes": 10185,
+      "compressedBytes": 4104
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-cycles1/actions.jsonl",
+      "archive": "run/overview-cycles1/actions.jsonl.gz",
+      "sha256": "65cd7bf50f9628735107871b5342aef35c19d0bcd7ba6c1be9d8780de740f861",
+      "bytes": 333061,
+      "compressedBytes": 78178
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-cycles1/learned.tsv",
+      "archive": "run/overview-cycles1/learned.tsv.gz",
+      "sha256": "ee097292d8553d695fa8867eab8be9741131f28288588e4340fc103be802e5d6",
+      "bytes": 60175,
+      "compressedBytes": 20221
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-cycles1/learned.tsv.individual",
+      "archive": "run/overview-cycles1/learned.tsv.individual.gz",
+      "sha256": "bf0484d0c034c2aa2dfa8d341263750bc7a6923e20e90e18ddb309994c23e7f2",
+      "bytes": 73662,
+      "compressedBytes": 23634
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-cycles1/learned.tsv.individual.routes.tsv",
+      "archive": "run/overview-cycles1/learned.tsv.individual.routes.tsv.gz",
+      "sha256": "dd4b962cab5d0b2e7389a09bb1286ca7ff76b30ecf74399aeb8e2bee369cdbcf",
+      "bytes": 160831,
+      "compressedBytes": 51785
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-cycles1/learned.tsv.routes.tsv",
+      "archive": "run/overview-cycles1/learned.tsv.routes.tsv.gz",
+      "sha256": "cb6d17a73f96259285cef08dba715d6a2d4c94dbfdcc0a74de93a8d6cd60295a",
+      "bytes": 98042,
+      "compressedBytes": 33968
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-cycles1/learned.tsv.stats.json",
+      "archive": "run/overview-cycles1/learned.tsv.stats.json.gz",
+      "sha256": "76f03facdfb5b0c4d1f1222c5cadf4abbdfa9d460f6e607b244017f26ce352ca",
+      "bytes": 965,
+      "compressedBytes": 461
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-cycles1/observations.npz",
+      "archive": "run/overview-cycles1/observations.npz.gz",
+      "sha256": "621c43299b3e95f1f5d04a63b01e6e3f270daa1dee112af7547bfb2070185a08",
+      "bytes": 301471,
+      "compressedBytes": 301233
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-cycles1/replay.json",
+      "archive": "run/overview-cycles1/replay.json.gz",
+      "sha256": "8746798f8dce78c94f8c18b08d8fb38f521aa1484537447f719eea188e368830",
+      "bytes": 187,
+      "compressedBytes": 154
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/overview-cycles1/report.json",
+      "archive": "run/overview-cycles1/report.json.gz",
+      "sha256": "c6000ed9b05f7dd9d26dce5ff31699a9fdaafacf926f27ce8fa450d735976835",
+      "bytes": 10431,
+      "compressedBytes": 4358
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/records-verification.json",
+      "archive": "run/records-verification.json.gz",
+      "sha256": "a4ecca9678921976637f25ca15297988161b5b1a71bde9bd6130babbab4b4b77",
+      "bytes": 4193,
+      "compressedBytes": 1120
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/resources.json",
+      "archive": "run/resources.json.gz",
+      "sha256": "0c25a31c5101ccaa84776f3fcd69f2c2f96038f9824c6d1005ffddcdfbd62d6b",
+      "bytes": 540,
+      "compressedBytes": 335
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/training1/dataset.npz",
+      "archive": "run/training1/dataset.npz.gz",
+      "sha256": "ac76748525a7ba0afa56d28d6a815b9d6ee2c3ddda1f2e06fae75fec18f11055",
+      "bytes": 938065,
+      "compressedBytes": 925148
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/training1/model.npz",
+      "archive": "run/training1/model.npz.gz",
+      "sha256": "0d2e71959ef3d8c889a0954885f52ce390974ff20c89a87a7ade11a023d4f985",
+      "bytes": 207270,
+      "compressedBytes": 206543
+    },
+    {
+      "source": ".tmp/visualcross-ml-150-750-20261003/active-pair-model1/training1/training.json",
+      "archive": "run/training1/training.json.gz",
+      "sha256": "d286ed6afc743bbe7c952b78443bfc42357851a1ee6a806fb0ae2d97a2955aa9",
+      "bytes": 10702,
+      "compressedBytes": 3495
+    },
+    {
+      "source": "scripts/erd-poc/full_context_pair_model.py",
+      "archive": "code/full_context_pair_model.py.gz",
+      "sha256": "c898871704ed29f77498c05527a1345259eacc3cf66405fc5788f3952b281a7d",
+      "bytes": 10153,
+      "compressedBytes": 4006
+    },
+    {
+      "source": "scripts/erd-poc/joint_anchor_ray_policy.py",
+      "archive": "code/joint_anchor_ray_policy.py.gz",
+      "sha256": "f292ed184dc7c4e24ec19b78f86f10bdff1ee4fc2fe2407f904347684b500877",
+      "bytes": 5379,
+      "compressedBytes": 1985
+    },
+    {
+      "source": "scripts/erd-poc/joint_grouped_routes.py",
+      "archive": "code/joint_grouped_routes.py.gz",
+      "sha256": "3b7757e76590aa0e1e935e7f757035f89a6fece56e6a10deb7791e71f1642f6f",
+      "bytes": 8165,
+      "compressedBytes": 2743
+    },
+    {
+      "source": "scripts/erd-poc/joint_layout_proxy.py",
+      "archive": "code/joint_layout_proxy.py.gz",
+      "sha256": "d21091db3bbde2b659cced3ed9c2161a98a69cbe4659ac4954f36cfb41176428",
+      "bytes": 21160,
+      "compressedBytes": 6727
+    },
+    {
+      "source": "scripts/erd-poc/joint_neural_ports.py",
+      "archive": "code/joint_neural_ports.py.gz",
+      "sha256": "cde68a0ca3419df89ab6e3b369f564467edec5fea53892ff17367e1e0ee94807",
+      "bytes": 18181,
+      "compressedBytes": 5855
+    },
+    {
+      "source": "scripts/erd-poc/joint_relaxed_slot_policy.py",
+      "archive": "code/joint_relaxed_slot_policy.py.gz",
+      "sha256": "cd5f7b274b28a103c31868c9eff48991969887664db93f775be5c750167d616c",
+      "bytes": 5996,
+      "compressedBytes": 2409
+    },
+    {
+      "source": "scripts/erd-poc/joint_separation_policy.py",
+      "archive": "code/joint_separation_policy.py.gz",
+      "sha256": "045b9552977486eb1b7e0f5fdb8a04968f97cd6ff706c3e9d917a04d14083b34",
+      "bytes": 8883,
+      "compressedBytes": 3158
+    },
+    {
+      "source": "scripts/erd-poc/joint_slot_anchor_policy.py",
+      "archive": "code/joint_slot_anchor_policy.py.gz",
+      "sha256": "58d2e290ff6d18dce7e8bc46734ae2f21b89d7e901b0da2978ff8e9ad63b863b",
+      "bytes": 1142,
+      "compressedBytes": 571
+    },
+    {
+      "source": "scripts/erd-poc/joint_slot_policy.py",
+      "archive": "code/joint_slot_policy.py.gz",
+      "sha256": "f3d1e5e3fb9732eba5a8867f315625295e1bb4ee9afdc065938808ce2f5b317e",
+      "bytes": 4506,
+      "compressedBytes": 2043
+    },
+    {
+      "source": "scripts/erd-poc/learn_card_policy.py",
+      "archive": "code/learn_card_policy.py.gz",
+      "sha256": "2447e4aae172b46d8c4f07fb7b774aebc1444adaafff5d87fe077ee0a885ba37",
+      "bytes": 43351,
+      "compressedBytes": 12905
+    },
+    {
+      "source": "scripts/erd-poc/learn_pair_policy.py",
+      "archive": "code/learn_pair_policy.py.gz",
+      "sha256": "b7e04b52ab78592075979de28baaa4eb61432cecb32b8f9b40f5182468b85d2e",
+      "bytes": 14619,
+      "compressedBytes": 5326
+    },
+    {
+      "source": "scripts/erd-poc/learned_bounded_replay.py",
+      "archive": "code/learned_bounded_replay.py.gz",
+      "sha256": "dfe26868cf25d6d3c8039d5e481142d8a64b45a775c15f061da31760dcf932ae",
+      "bytes": 4793,
+      "compressedBytes": 1952
+    },
+    {
+      "source": "scripts/erd-poc/learned_global_replay.py",
+      "archive": "code/learned_global_replay.py.gz",
+      "sha256": "38bccbe20b4fb7cf4c548b8648f79f977b05d61e1391150b679c6d527d2d6f92",
+      "bytes": 11116,
+      "compressedBytes": 3159
+    },
+    {
+      "source": "scripts/erd-poc/learned_pair_contexts.py",
+      "archive": "code/learned_pair_contexts.py.gz",
+      "sha256": "3d0361196361e07cdd20b1e6d55072bf58f906de50f3acf5e9a2b657d98ab607",
+      "bytes": 4518,
+      "compressedBytes": 1739
+    },
+    {
+      "source": "scripts/erd-poc/run_active_pair_policy.py",
+      "archive": "code/run_active_pair_policy.py.gz",
+      "sha256": "4b582195534d85e1c0bf85fb3bb8f83f1e4e1713f8f272852019ceb6b84cf1d0",
+      "bytes": 8886,
+      "compressedBytes": 3218
+    },
+    {
+      "source": "scripts/erd-poc/run_anchor_pair_policy.py",
+      "archive": "code/run_anchor_pair_policy.py.gz",
+      "sha256": "db189d196ed68a8dbcdc4c39f8a8dd4873096d1aef6c568e47511eb7eeeb63a2",
+      "bytes": 11655,
+      "compressedBytes": 4540
+    },
+    {
+      "source": "scripts/erd-poc/run_anchor_pair_walk.py",
+      "archive": "code/run_anchor_pair_walk.py.gz",
+      "sha256": "e73fa26e35e1d1bbdfe5f48c2e5f092e71889cf034d42a2f1aa63d52c2e142c8",
+      "bytes": 13558,
+      "compressedBytes": 4702
+    },
+    {
+      "source": "scripts/erd-poc/run_full_context_pairs.py",
+      "archive": "code/run_full_context_pairs.py.gz",
+      "sha256": "687f9ae989fbe72a9fa76f42053e6cb7b6cade85dbb222dfeb48d3f64c971436",
+      "bytes": 8826,
+      "compressedBytes": 3455
+    },
+    {
+      "source": "scripts/erd-poc/run_memory_bounded.py",
+      "archive": "code/run_memory_bounded.py.gz",
+      "sha256": "7784ae78aec359887155ff86d37dd503628d490487d2a3e1f9b4e89f3c02a43d",
+      "bytes": 5742,
+      "compressedBytes": 2310
+    },
+    {
+      "source": "scripts/erd-poc/run_neural_cycle_policy.py",
+      "archive": "code/run_neural_cycle_policy.py.gz",
+      "sha256": "7ed8a0ec5ea60ff317dfae87a673f7b2e89e3249856d5c03c0f0ac3472d4cf1c",
+      "bytes": 11170,
+      "compressedBytes": 4235
+    },
+    {
+      "source": "scripts/erd-poc/train_active_pair_outcomes.py",
+      "archive": "code/train_active_pair_outcomes.py.gz",
+      "sha256": "b67c45c19b6fc762a0586625309e65546e7a760588e4355292a32627d63369f9",
+      "bytes": 10990,
+      "compressedBytes": 3960
+    },
+    {
+      "source": "scripts/erd-poc/train_anchor_pair_outcomes.py",
+      "archive": "code/train_anchor_pair_outcomes.py.gz",
+      "sha256": "8531625e603af3b7a066dd48d8bbc9d950febf652d2c66b2361dc5f53fc6aefc",
+      "bytes": 7618,
+      "compressedBytes": 3172
+    }
+  ]
+}

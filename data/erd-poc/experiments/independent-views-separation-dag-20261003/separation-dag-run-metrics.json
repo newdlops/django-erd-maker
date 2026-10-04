@@ -1,0 +1,44 @@
+{
+  "source": "observed memory-guard command outputs",
+  "serializedJobs": true,
+  "mathThreads": 1,
+  "niceIncrement": 10,
+  "processGroupRssLimitMiB": 256,
+  "hardCpuQuotaPercent": null,
+  "diagnosticCompilePeakMiB": 220.2,
+  "routeDiagnosisPeakMiB": 50.2,
+  "failedFirstValidationPeakMiB": 189.3,
+  "dagValidationPeakMiB": 181.3,
+  "individualNodeValidationPeakMiB": 90.8,
+  "overviewNodeValidationPeakMiB": 98.2,
+  "canonicalOverviewProbePeakMiB": 5.1,
+  "stagePeakMiB": {
+    "individual-separation-dag1": 157.6,
+    "overview-separation-dag1": 178.7,
+    "individual-separation-canonical1": 145.6,
+    "individual-separation-port1": 140.1,
+    "individual-separation-canonical2": 149.2,
+    "individual-separation-port2-venv": 142.8,
+    "overview-separation-canonical1": 183.4,
+    "overview-separation-port1": 185.7,
+    "overview-separation-canonical2": 178.9
+  },
+  "canonicalOverviewProbe": {
+    "command": "component-environment-v26 --canonical-audit separation-dag-validation2/overview",
+    "sourceVisual": 289,
+    "sourceIndividualVisual": 4447,
+    "canonicalVisual": 365,
+    "canonicalIndividualVisual": 4560,
+    "canonicalHard": 0,
+    "canonicalIndividualHard": 0,
+    "readOnly": true
+  },
+  "failedPortInvocation": {
+    "directory": "individual-separation-port2",
+    "reason": "system Python lacks numpy; failed before inference",
+    "exitCode": 1,
+    "sampledPeakMiB": 0.2,
+    "correctedDirectory": "individual-separation-port2-venv",
+    "correction": "used existing .venv-ml/bin/python; no dependency installation"
+  }
+}

@@ -10,6 +10,13 @@ analyzer/target
 .venv-ml/
 .venv*/
 scripts/__pycache__/
+__pycache__/
+*.py[cod]
+dist/
+/dist/
+/bin/analyzer/
+/sources/
+*.vsix
 
 # Local diagnostics and generated layout exports
 log*.txt

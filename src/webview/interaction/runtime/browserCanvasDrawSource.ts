@@ -739,7 +739,11 @@ export function getBrowserCanvasDrawSource(): string {
                   points: getStaticOrLiveEdgePath(entry),
                 }));
           }
-
+          if (!collapseEnabled) renderedEdges = projectLeafCardEdges(nextScene, renderedEdges);
+          if (typeof buildConnectionPreviewRoutes === "function") {
+            const preview = buildConnectionPreviewRoutes(nextScene);
+            if (preview) renderedEdges = preview;
+          }
           for (const edge of renderedEdges) {
             const straight = createStraightEdgePath(
               edge.points,
@@ -832,6 +836,17 @@ export function getBrowserCanvasDrawSource(): string {
             return;
           }
 
+          if (leafCardsVisible) {
+            for (const record of createLeafCardRecords(renderModel.leafCards || [], scene.tablesById, state.selectedModelId)) {
+              const index = scene.leafBundles.length;
+              scene.leafBundles.push(record);
+              addToBuckets(scene.leafBundleBuckets, {
+                bottom: record.y + record.height, left: record.x,
+                right: record.x + record.width, top: record.y,
+              }, index);
+            }
+          }
+
           const selectedTable = scene.tablesById.get(state.selectedModelId);
           const selectedClusterId =
             selectedTable && selectedTable.meta && selectedTable.meta.clusterId;
@@ -843,7 +858,7 @@ export function getBrowserCanvasDrawSource(): string {
             (renderModel.clusterOutlines || []).map((outline) => [outline.clusterId, outline]),
           );
           const members = scene.tables.filter((table) =>
-            String(table.modelId).indexOf("__leafbundle.") !== 0
+            !isSyntheticBundleModelId(table.modelId)
             && table.meta
             && table.meta.clusterId === selectedClusterId
           );
@@ -883,7 +898,7 @@ export function getBrowserCanvasDrawSource(): string {
           addToBuckets(
             scene.leafBundleBuckets,
             { bottom, left, right, top },
-            0,
+            scene.leafBundles.length - 1,
           );
         }
 
@@ -911,19 +926,21 @@ export function getBrowserCanvasDrawSource(): string {
         }
 
         function isSyntheticBundleModelId(modelId) {
-          return String(modelId || "").indexOf("__leafbundle.") === 0;
+          const value = String(modelId || "");
+          return value.indexOf("__leafbundle.") === 0 || value.indexOf("leaf-card:") === 0;
         }
 
         function isEdgeEndpointTable(meta, modelId) {
-          const endpointIds = Array.isArray(meta.physicalEndpointModelIds)
-            && meta.physicalEndpointModelIds.length > 0
+          if (meta.leafCardEndpointIds && meta.leafCardEndpointIds.includes(modelId)) return true;
+          const hasExplicitPhysicalEndpoints =
+            Array.isArray(meta.physicalEndpointModelIds);
+          const endpointIds = hasExplicitPhysicalEndpoints
             ? meta.physicalEndpointModelIds
             : [meta.sourceModelId, meta.targetModelId];
-          if (
-            modelId === meta.sourceModelId
-            || modelId === meta.targetModelId
-            || endpointIds.includes(modelId)
-          ) {
+          // A semantic branch/trunk still carries real source/target IDs for
+          // visibility and selection, but only one end physically touches a
+          // table. Exempting both logical IDs would hide a genuine collision.
+          if (endpointIds.includes(modelId)) {
             return true;
           }
           if (!isSyntheticBundleModelId(modelId)) {
@@ -946,6 +963,14 @@ export function getBrowserCanvasDrawSource(): string {
               continue;
             }
             recordsById.set(table.modelId, table);
+          }
+          if (scene.leafCardMemberIds && scene.leafCardMemberIds.size) {
+            for (const id of scene.leafCardMemberIds) recordsById.delete(id);
+            for (const card of scene.leafBundles) {
+              if (card.kind === "leaf-card" && rectIntersectsBounds(card.x, card.y, card.width, card.height, bounds, GPU_EDGE_TABLE_CLEARANCE)) {
+                recordsById.set(card.id, {...card, modelId: card.id, maxX: card.x + card.width, maxY: card.y + card.height});
+              }
+            }
           }
           if (overrideById) {
             for (const table of overrideById.values()) {
@@ -1123,13 +1148,16 @@ export function getBrowserCanvasDrawSource(): string {
           const visibleBounds = getVisibleWorldBounds(96);
           const visibleTables = collectVisibleTables(scene, visibleBounds);
           const visibleSegments = collectVisibleSegments(scene, visibleBounds);
-          const visibleOverlays = collectVisibleOverlaySegments(visibleBounds);
+          const previewingConnection = typeof getPreviewRelationship === "function" && getPreviewRelationship();
+          const visibleOverlays = previewingConnection ? [] : collectVisibleOverlaySegments(visibleBounds);
           const visibleLeafBundles = collectVisibleLeafBundles(scene, visibleBounds);
           const visibleLeafTiles = collectVisibleLeafTiles(scene, visibleBounds);
           const cullMs = performance.now() - cullStartedAt;
           const labelStartedAt = performance.now();
-          const labels = collectVisibleLabels(visibleTables);
-          appendLeafBundleLabels(labels, visibleLeafBundles);
+          const labels = collectVisibleLabels(typeof getPreviewRelationship === "function" && getPreviewRelationship()
+            ? visibleTables.filter(table => isConnectionEndpoint(table.modelId)) : visibleTables);
+          appendLeafBundleLabels(labels, previewingConnection
+            ? visibleLeafBundles.filter(record => (record.memberModelIds || []).some(isConnectionEndpoint)) : visibleLeafBundles);
           appendLeafTileLabels(labels, visibleLeafTiles);
           const labelMs = performance.now() - labelStartedAt;
           const drawStartedAt = performance.now();
@@ -1396,6 +1424,7 @@ export function getBrowserCanvasDrawSource(): string {
         }
 
         function getActiveTableDrag() {
+          if (leafCardsVisible && (renderModel.leafCards || []).length) return null;
           return drag && drag.kind === "table" && drag.currentPosition ? drag : null;
         }
 
@@ -1481,8 +1510,7 @@ export function getBrowserCanvasDrawSource(): string {
 
           const filteredRecords = records.filter(
             (record) =>
-              !movedModelIds.has(record.meta.sourceModelId) &&
-              !movedModelIds.has(record.meta.targetModelId),
+              !edgeMovesWithAnyModel(record.meta, movedModelIds),
           );
 
           const liveRecords = collectLiveDragEdgeSegments(
@@ -1495,6 +1523,13 @@ export function getBrowserCanvasDrawSource(): string {
           return filteredRecords.concat(liveRecords);
         }
 
+        function edgeMovesWithAnyModel(meta, movedModelIds) {
+          const endpointIds = Array.isArray(meta.physicalEndpointModelIds)
+            ? meta.physicalEndpointModelIds
+            : [meta.sourceModelId, meta.targetModelId];
+          return endpointIds.some((modelId) => movedModelIds.has(modelId));
+        }
+
         function collectLiveDragEdgeSegments(
           activeDrag,
           movedModelIds,
@@ -1503,10 +1538,7 @@ export function getBrowserCanvasDrawSource(): string {
         ) {
           const visibleEdgeEntries = [];
           for (const meta of getActiveEdgeMeta()) {
-            if (
-              !movedModelIds.has(meta.sourceModelId) &&
-              !movedModelIds.has(meta.targetModelId)
-            ) {
+            if (!edgeMovesWithAnyModel(meta, movedModelIds)) {
               continue;
             }
 
@@ -1538,11 +1570,7 @@ export function getBrowserCanvasDrawSource(): string {
           latestLiveDragEdgeCount = visibleEdgeEntries.length;
 
           const routedEdges = renderModel.modelCatalogMode
-            ? routeCatalogEdgesWithPorts(visibleEdgeEntries).map((routed) => ({
-                edgeId: routed.entry.meta.edgeId,
-                meta: routed.entry.meta,
-                points: routed.points,
-              }))
+            ? routeLiveCatalogEdges(visibleEdgeEntries)
             : visibleEdgeEntries.map((entry) => ({
                 edgeId: entry.meta.edgeId,
                 meta: entry.meta,
@@ -1595,6 +1623,53 @@ export function getBrowserCanvasDrawSource(): string {
           return records;
         }
 
+        function routeLiveCatalogEdges(entries) {
+          const semanticEdges = [];
+          const directEntries = [];
+          for (const entry of entries) {
+            if (
+              !Array.isArray(entry.meta.physicalEndpointModelIds)
+              || (entry.meta.carrierRole !== "semantic-branch"
+                && entry.meta.carrierRole !== "semantic-trunk")
+            ) {
+              directEntries.push(entry);
+              continue;
+            }
+            const points = parseEdgePoints(entry.meta.points);
+            if (points.length < 2) {
+              directEntries.push(entry);
+              continue;
+            }
+            const lastIndex = points.length - 1;
+            if (entry.meta.physicalEndpointModelIds.includes(entry.meta.sourceModelId)) {
+              points[0] = computeRenderedEndpointPort(
+                entry.sourcePosition,
+                entry.sourceTable,
+                points[1],
+              );
+            }
+            if (entry.meta.physicalEndpointModelIds.includes(entry.meta.targetModelId)) {
+              points[lastIndex] = computeRenderedEndpointPort(
+                entry.targetPosition,
+                entry.targetTable,
+                points[lastIndex - 1],
+              );
+            }
+            semanticEdges.push({
+              edgeId: entry.meta.edgeId,
+              meta: entry.meta,
+              points,
+            });
+          }
+          return semanticEdges.concat(
+            routeCatalogEdgesWithPorts(directEntries).map((routed) => ({
+              edgeId: routed.entry.meta.edgeId,
+              meta: routed.entry.meta,
+              points: routed.points,
+            })),
+          );
+        }
+
         function collectVisibleOverlaySegments(bounds) {
           return renderedOverlays
             .filter((overlay) => overlay.active)
@@ -1644,11 +1719,23 @@ export function getBrowserCanvasDrawSource(): string {
             }
             const selectedClusterId = getSelectedClusterId();
             const clusterMember = isModelInSelectedCluster(record.modelId);
-            const dimmed = Boolean(selectedClusterId && !clusterMember);
+            const dimmed = Boolean(selectedClusterId && !clusterMember && !(typeof isConnectionEndpoint === "function" && isConnectionEndpoint(record.modelId)));
             const titleColor = dimmed ? "#708087" : "#f4f7f1";
             const subtitleColor = dimmed ? "#5f7076" : "#9fb7b0";
+            const selfRelationshipCount = Number(record.meta.selfRelationshipCount || 0);
+            const selfBadgeWidth = selfRelationshipCount > 0 ? 76 : 0;
 
-            labels.push(createLabelDescriptor(table.modelName, "700 14px Georgia, serif", titleColor, record.x + 14, record.y + 14, Math.max(40, record.width - 28)));
+            labels.push(createLabelDescriptor(table.modelName, "700 14px Georgia, serif", titleColor, record.x + 14, record.y + 14, Math.max(40, record.width - 28 - selfBadgeWidth)));
+            if (selfRelationshipCount > 0) {
+              labels.push(createLabelDescriptor(
+                "↻ " + selfRelationshipCount + " self",
+                "700 12px Georgia, serif",
+                dimmed ? "#796b57" : "#ffbf66",
+                record.x + record.width - 72,
+                record.y + 15,
+                62,
+              ));
+            }
             if (zoom >= GPU_TABLE_SUBTITLE_ZOOM) {
               labels.push(createLabelDescriptor(table.databaseTableName, "500 12px Georgia, serif", subtitleColor, record.x + 14, record.y + 34, Math.max(40, record.width - 28)));
             }
@@ -1997,6 +2084,7 @@ export function getBrowserCanvasDrawSource(): string {
               continue;
             }
             const isClusterOutline = record.kind === "cluster-outline";
+            const isLeafCard = record.kind === "leaf-card";
             const title = isClusterOutline
               ? titleSource + " · " + record.leafCount + " members"
               : titleSource + " · " + record.leafCount + " leaves";
@@ -2004,18 +2092,51 @@ export function getBrowserCanvasDrawSource(): string {
             labels.push(createLabelDescriptor(
               title,
               isClusterOutline ? "700 16px Georgia, serif" : "700 14px Georgia, serif",
-              isClusterOutline ? "#b9d6e8" : "#f4f7f1",
+              isLeafCardDimmed(record) ? "#708087" : isClusterOutline ? "#b9d6e8" : "#f4f7f1",
               record.x + 14,
-              isClusterOutline
-                ? record.y + 10
+              isClusterOutline || isLeafCard
+                ? record.y + (isLeafCard ? 4 : 10)
                 : record.y + Math.max(12, (record.height - 16) / 2),
               titleMaxWidth,
             ));
           }
         }
 
+        function isLeafCardDimmed(record) {
+          if (record.kind !== "leaf-card") return false;
+          const members = record.memberModelIds || [];
+          if (typeof getPreviewRelationship === "function" && getPreviewRelationship()) {
+            return !members.some(isConnectionEndpoint);
+          }
+          const selectedClusterId = getSelectedClusterId();
+          return Boolean(selectedClusterId && !members.some(modelId => modelId === state.selectedModelId
+            || tableMetaById.get(modelId)?.clusterId === selectedClusterId));
+        }
+
         function leafBundleColors(record) {
           const stroke = record.appLabel ? appStrokeColor(record.appLabel) : [0.66, 0.85, 1.0, 0.7];
+          if (typeof getPreviewRelationship === "function" && getPreviewRelationship()) {
+            const endpoint = (record.memberModelIds || []).some(isConnectionEndpoint);
+            return {borderWidth: Math.max(endpoint ? 3 : 1, (endpoint ? 1.8 : 0.6) / Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM)),
+              cornerRadius: 16, fill: [0.06, 0.12, 0.18, endpoint ? 0.96 : 0.18],
+              stroke: endpoint ? [0.38, 0.88, 0.66, 1] : [stroke[0], stroke[1], stroke[2], 0.08]};
+          }
+          if (record.kind === "leaf-card") {
+            const active = record.selected || record.id === hoveredLeafCardId;
+            const dimmed = isLeafCardDimmed(record);
+            const relatedKinds = new Set((record.memberModelIds || []).flatMap(relationshipKindsForRelatedModel));
+            const relatedStroke = relationshipColor([...relatedKinds], 0.96);
+            const emphasized = active || relatedStroke;
+            return {
+              borderWidth: Math.max(emphasized ? 3 : 2, (emphasized ? 1.8 : 1.2) / Math.max(state.viewport.zoom, MIN_VIEWPORT_ZOOM)),
+              cornerRadius: 16,
+              fill: record.selected ? [0.15, 0.24, 0.22, 0.99]
+                : dimmed ? [0.035, 0.065, 0.09, 0.72]
+                : getSelectedClusterId() ? [0.075, 0.17, 0.19, 0.98] : [0.06, 0.12, 0.18, 0.96],
+              stroke: record.selected ? [1.0, 0.75, 0.41, 0.92] : relatedStroke
+                || [stroke[0], stroke[1], stroke[2], dimmed ? 0.14 : active ? 1 : 0.85],
+            };
+          }
           if (record.kind === "cluster-outline") {
             return {
               borderWidth: 3.0,
@@ -2537,6 +2658,13 @@ export function getBrowserCanvasDrawSource(): string {
         }
 
         function tableColors(record) {
+          if (typeof getPreviewRelationship === "function" && getPreviewRelationship()) {
+            const endpoint = isConnectionEndpoint(record.modelId);
+            const selected = state.selectedModelId === record.modelId;
+            return {borderWidth: endpoint ? 3.4 : 1,
+              fill: endpoint ? [0.10, 0.20, 0.23, 0.99] : [0.035, 0.065, 0.09, 0.40],
+              stroke: endpoint ? selected ? [1.0, 0.75, 0.41, 1] : [0.38, 0.88, 0.66, 1] : [0.46, 0.58, 0.61, 0.08]};
+          }
           const selected = state.selectedModelId === record.modelId;
           const methodTarget = isMethodTarget(record.modelId);
           const dragging = drag && drag.kind === "table" && drag.modelId === record.modelId;
@@ -2553,9 +2681,10 @@ export function getBrowserCanvasDrawSource(): string {
             relationshipKindsForRelatedModel(record.modelId),
             0.96,
           );
-
           return {
-            borderWidth: selected || dragging ? 3.4 : relatedStroke ? 3.0 : clusterMember ? 2.8 : 2.0,
+            borderWidth: selected || dragging
+              ? 3.4
+              : relatedStroke ? 3.0 : clusterMember ? 2.8 : 2.0,
             fill: selected
               ? [0.15, 0.24, 0.22, 0.99]
               : clusterMember
@@ -2579,7 +2708,20 @@ export function getBrowserCanvasDrawSource(): string {
           };
         }
 
+        function edgeContainsRevealedRelationship(meta) {
+          return Boolean(
+            revealedRelationshipEdgeId
+            && Array.isArray(meta.memberEdgeIds)
+            && meta.memberEdgeIds.includes(revealedRelationshipEdgeId)
+          );
+        }
+
         function edgeColor(meta) {
+          if (edgeContainsRevealedRelationship(meta)) {
+            const relationship = relationshipByEdgeId.get(revealedRelationshipEdgeId);
+            return relationshipColor(relationship ? [relationship.kind] : [], 1)
+              || [1.0, 0.75, 0.41, 1.0];
+          }
           const selectedKinds = edgeRelationshipKinds(meta, state.selectedModelId || "");
           const selectedRelationshipColor = relationshipColor(selectedKinds, 0.96);
           if (selectedRelationshipColor) {
@@ -2624,6 +2766,9 @@ export function getBrowserCanvasDrawSource(): string {
         }
 
         function edgeWidth(meta) {
+          if (edgeContainsRevealedRelationship(meta)) {
+            return 6.4;
+          }
           if (edgeRelationshipKinds(meta, state.selectedModelId || "").length > 0) {
             return 5.2;
           }
@@ -2637,11 +2782,18 @@ export function getBrowserCanvasDrawSource(): string {
           if (clusterRelation === "unrelated") {
             return 2.2;
           }
-          if (meta.carrierRole === "semantic-tree") {
+          if (
+            meta.carrierRole === "overview"
+            || meta.carrierRole === "semantic-tree"
+            || meta.carrierRole === "semantic-trunk"
+          ) {
             const relationshipCount = Array.isArray(meta.memberEdgeIds)
               ? meta.memberEdgeIds.length
               : 1;
             return Math.min(7.2, 3.0 + Math.log2(Math.max(1, relationshipCount)) * 0.55);
+          }
+          if (meta.carrierRole === "semantic-branch") {
+            return (meta.cssKind || "").includes("many-to-many") ? 3.8 : 3.0;
           }
           return (meta.cssKind || "").includes("many-to-many") ? 4.2 : 3.2;
         }

@@ -1,0 +1,63 @@
+{
+  "kind": "shared-card-phase-fixed-parameter-controls-v1",
+  "view": "overview",
+  "seed": 118307,
+  "span": 0.005,
+  "sourceDirectory": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/overview-source285",
+  "sourceInputs": {
+    "nodes.tsv": "5f9241452fe3b764cc9f67900de501fb97b68edc852b95d8cee82b65468ae050",
+    "edges.tsv": "ec2814dcab9d2498157e7870ad9a86979407c27a8aef7faca6a85bdd375ed072",
+    "positions.tsv": "5b65d19de56526a3c20d3dbb73d2d79b0adff89664e84acffbd2b20c67539a79",
+    "routes.tsv": "9755f816cb75ced6c50b9f351cf3dda1e2ccf9d32f93c824c5793fd429c4ea2a",
+    "individual.nodes.tsv": "22fce5e1a33f7f01f78d6a39b0a05453fa19e89d50061a6fe3ebae6f5e6b2581",
+    "individual.edges.tsv": "5cccddbd581a0b00fcf49a2cb49e69bc13d31ebe4db547be2af7f41cf3687a00",
+    "individual.positions.tsv": "ce47fd67fda5e6ea92f1757ead71cd17446effa220d9f93c8b3786796543d757",
+    "individual.routes.tsv": "4f630cab74b86ccb5486081639f966595547b88bd0f28cc2b1e24e392bb81c40",
+    "components.tsv": "4be896b8a5d6efc33261645c4c44e4187982287678d92419b90e2abda441824e",
+    "groups.tsv": "c20a2d5fb71be55ac211b387812a742aa752a36abb150794217e1a68045a0dfc"
+  },
+  "sourceBinding": ".tmp/visualcross-ml-150-750-20261004/geometry-world1/source-binding.json",
+  "sourceBindingSha256": "c5e3001d3a14304ada656ffd7d5bdfd69ac7f56abecf77fe2a2e6623dc2ed20c",
+  "environment": ".tmp/visualcross-ml-150-750-20261003/pair-neutral-walk1/environment",
+  "environmentSha256": "b5c355b2675d225114279549051ef201d84d6e56dbe8658810cc9705004f5514",
+  "zeroHeadControl": {
+    "accepted": false,
+    "legal": true,
+    "visual": 285,
+    "measureOnly": true,
+    "individualVisual": 4445,
+    "spacing": 0,
+    "hard": 0,
+    "individualHard": 0,
+    "reason": "legal"
+  },
+  "controls": 12,
+  "legalControls": 3,
+  "minimumLegalVisual": 285,
+  "maximumLegalEndpointPixels": 1.5,
+  "observedHardValues": [
+    0,
+    1,
+    3,
+    4
+  ],
+  "fullNativeMeasurements": 13,
+  "newTrainingUpdates": 0,
+  "nativeTryCalls": 0,
+  "candidatePromoted": false,
+  "geometryRepairs": 0,
+  "futureMetricsUsedForInference": false,
+  "controlScheduleIndependentOfNativeMetrics": true,
+  "observationsSha256": "e97c258df5978432f72460216b1f68a716692912e8d0e587193f4f7690b3184e",
+  "initialModelSha256": "01a2e85285389022de8916b1cffb237e56c2303a386f08e218317565a7af7352",
+  "controlsSha256": "27d00e3fbfdcae56016d353d97bd8a760b6f5c992e3761e32ce9aa842de2b294",
+  "codeSha256": {
+    "probe_shared_card_phase.py": "58887176ba94043f296609f62d33b2068ef100ce8c19cd7b6fee46479500bdf3",
+    "shared_card_phase_policy.py": "6d495679daef4d3374db2d315a36e536f2e9984a7c1629aea8f9d12897771431",
+    "joint_reward_training.py": "6bdb8c2f52fe27298dd5da090394d5096396e88462ce3e7a685e3b32f091d0c8",
+    "joint_neural_ports.py": "cde68a0ca3419df89ab6e3b369f564467edec5fea53892ff17367e1e0ee94807",
+    "joint_grouped_routes.py": "3b7757e76590aa0e1e935e7f757035f89a6fece56e6a10deb7791e71f1642f6f",
+    "run_anchor_pair_walk.py": "e73fa26e35e1d1bbdfe5f48c2e5f092e71889cf034d42a2f1aa63d52c2e142c8",
+    "run_anchor_pair_policy.py": "db189d196ed68a8dbcdc4c39f8a8dd4873096d1aef6c568e47511eb7eeeb63a2"
+  }
+}

@@ -1,0 +1,407 @@
+{
+  "allChecksPassed": true,
+  "implementationHashes": {
+    "joint_relaxed_slot_policy.py": "cd5f7b274b28a103c31868c9eff48991969887664db93f775be5c750167d616c",
+    "joint_slot_anchor_policy.py": "58d2e290ff6d18dce7e8bc46734ae2f21b89d7e901b0da2978ff8e9ad63b863b",
+    "joint_slot_policy.py": "f3d1e5e3fb9732eba5a8867f315625295e1bb4ee9afdc065938808ce2f5b317e",
+    "joint_anchor_ray_policy.py": "f292ed184dc7c4e24ec19b78f86f10bdff1ee4fc2fe2407f904347684b500877",
+    "joint_neural_ports.py": "cde68a0ca3419df89ab6e3b369f564467edec5fea53892ff17367e1e0ee94807",
+    "joint_layout_proxy.py": "d21091db3bbde2b659cced3ed9c2161a98a69cbe4659ac4954f36cfb41176428",
+    "joint_grouped_routes.py": "3b7757e76590aa0e1e935e7f757035f89a6fece56e6a10deb7791e71f1642f6f",
+    "joint_active_proxy.py": "4eda3b4534787e03cd5f39f0c9845ae1f015d27f4fdbc36e1d1f6407280f4666",
+    "run_joint_neural_layout.py": "2ee2c32b04ec180a0826b85941bb1cfeec40208071a26374bc177c18653cb0ca"
+  },
+  "views": {
+    "individual": {
+      "sourceSha256": "42adab07b311c16463bd7f5dc0ee68941d6047ac0372415393ad9355c126fe22",
+      "sourceWorkflowSha256": "e5a6466e40eb910edd634c6dca5b209ebd5542e2e32bfe8db7171a04b90f384f",
+      "zeroTemperatures": [
+        0.1,
+        0.5,
+        2.0
+      ],
+      "actionDerivatives": [
+        {
+          "parameter": "w1",
+          "index": [
+            17,
+            5
+          ],
+          "analytic": -5.281916678783089,
+          "numeric": -5.281948833868455,
+          "step": 1e-08
+        },
+        {
+          "parameter": "w1",
+          "index": [
+            60,
+            0
+          ],
+          "analytic": -5.677532366949903,
+          "numeric": -5.677569259177062,
+          "step": 1e-08
+        },
+        {
+          "parameter": "b1",
+          "index": [
+            33
+          ],
+          "analytic": 1.1136846840518417,
+          "numeric": 1.113571546085268,
+          "step": 1e-08
+        },
+        {
+          "parameter": "b1",
+          "index": [
+            27
+          ],
+          "analytic": 1.2273721910704307,
+          "numeric": 1.227409374138233,
+          "step": 1e-08
+        },
+        {
+          "parameter": "w2",
+          "index": [
+            57,
+            12
+          ],
+          "analytic": -3.5828475862868925,
+          "numeric": -3.582814400715506,
+          "step": 1e-08
+        },
+        {
+          "parameter": "w2",
+          "index": [
+            57,
+            22
+          ],
+          "analytic": -3.883475774405587,
+          "numeric": -3.8835581861462742,
+          "step": 1e-08
+        },
+        {
+          "parameter": "b2",
+          "index": [
+            24
+          ],
+          "analytic": -1.0598634452641906,
+          "numeric": -1.0598760979974031,
+          "step": 1e-08
+        },
+        {
+          "parameter": "b2",
+          "index": [
+            0
+          ],
+          "analytic": 1.1707769102851506,
+          "numeric": 1.1706892344420794,
+          "step": 1e-08
+        },
+        {
+          "parameter": "wo",
+          "index": [
+            26,
+            0
+          ],
+          "analytic": -13738.002218049556,
+          "numeric": -13738.002205254674,
+          "step": 1e-08
+        },
+        {
+          "parameter": "wo",
+          "index": [
+            24,
+            0
+          ],
+          "analytic": -16252.538098639625,
+          "numeric": -16252.538122341064,
+          "step": 1e-08
+        },
+        {
+          "parameter": "bo",
+          "index": [
+            0
+          ],
+          "analytic": 0.0,
+          "numeric": -2.3003821070233244e-05,
+          "step": 1e-08
+        }
+      ],
+      "geometryDerivatives": [
+        {
+          "parameter": "w1",
+          "index": [
+            25,
+            45
+          ],
+          "analytic": -32490.246485181047,
+          "numeric": -32488.22577006649,
+          "step": 1e-09
+        },
+        {
+          "parameter": "w2",
+          "index": [
+            25,
+            9
+          ],
+          "analytic": -22252.531205690106,
+          "numeric": -22250.24400104303,
+          "step": 1e-09
+        },
+        {
+          "parameter": "wo",
+          "index": [
+            24,
+            0
+          ],
+          "analytic": -70279381.27414575,
+          "numeric": -70279381.19244936,
+          "step": 1e-09
+        }
+      ],
+      "hardPathUnchanged": true,
+      "frozenHardAndRelaxedRoundtripsExact": true,
+      "hardActionSha256": "5f17836d9fa49c48812a410e86ca7ceb8e7b506d83e7ff23d44af74dbbfb0939",
+      "legacySlotActionReplayed": true,
+      "relaxedGeometryLoss": {
+        "softCrossingCount": 1654.7098022964162,
+        "crossingDepthPenalty": 0.0,
+        "softCardHitCount": 731.3268902761572,
+        "spacingPenalty": 28822.256096563688,
+        "movementPenalty": 0.026274144120754794,
+        "representationPenalty": 0.0,
+        "total": 31208.31906328038,
+        "binaryCrossings": 1651,
+        "binaryCardHits": 732,
+        "activeCrossPairs": 14542,
+        "activeHitPairs": 9822
+      },
+      "allChecksPassed": true
+    },
+    "overview": {
+      "sourceSha256": "cc5280600ef544385910bf38575903997b09ffaba1d124cd54164eb7f72f9a52",
+      "sourceWorkflowSha256": "f99d894ef42ad79f5f54600c274bb61bb7a31c1b073bf04221c9d63ac1dff9c5",
+      "zeroTemperatures": [
+        0.1,
+        0.5,
+        2.0
+      ],
+      "actionDerivatives": [
+        {
+          "parameter": "w1",
+          "index": [
+            24,
+            42
+          ],
+          "analytic": -2.8513875998243656,
+          "numeric": -2.8513466698854018,
+          "step": 1e-08
+        },
+        {
+          "parameter": "w1",
+          "index": [
+            24,
+            58
+          ],
+          "analytic": 2.891438313429594,
+          "numeric": 2.8914141081415323,
+          "step": 1e-08
+        },
+        {
+          "parameter": "b1",
+          "index": [
+            2
+          ],
+          "analytic": -0.5921549053602413,
+          "numeric": -0.5921638956962738,
+          "step": 1e-08
+        },
+        {
+          "parameter": "b1",
+          "index": [
+            13
+          ],
+          "analytic": -0.6078651187804219,
+          "numeric": -0.6078356262761986,
+          "step": 1e-08
+        },
+        {
+          "parameter": "w2",
+          "index": [
+            9,
+            22
+          ],
+          "analytic": 2.9354468547930246,
+          "numeric": 2.9354059849495684,
+          "step": 1e-08
+        },
+        {
+          "parameter": "w2",
+          "index": [
+            1,
+            22
+          ],
+          "analytic": -3.02924046080318,
+          "numeric": -3.029227224615738,
+          "step": 1e-08
+        },
+        {
+          "parameter": "b2",
+          "index": [
+            19
+          ],
+          "analytic": -0.5074817741872799,
+          "numeric": -0.5074709319430326,
+          "step": 1e-08
+        },
+        {
+          "parameter": "b2",
+          "index": [
+            9
+          ],
+          "analytic": -0.7125641523792566,
+          "numeric": -0.7125594336798713,
+          "step": 1e-08
+        },
+        {
+          "parameter": "wo",
+          "index": [
+            11,
+            0
+          ],
+          "analytic": 7931.563270050892,
+          "numeric": 7931.563268903652,
+          "step": 1e-08
+        },
+        {
+          "parameter": "wo",
+          "index": [
+            16,
+            0
+          ],
+          "analytic": 8358.378751055143,
+          "numeric": 8358.378734829586,
+          "step": 1e-08
+        },
+        {
+          "parameter": "bo",
+          "index": [
+            0
+          ],
+          "analytic": 6.821210263296962e-13,
+          "numeric": 1.0302869668521453e-05,
+          "step": 1e-08
+        }
+      ],
+      "geometryDerivatives": [
+        {
+          "parameter": "w1",
+          "index": [
+            15,
+            42
+          ],
+          "analytic": 36756.72792765992,
+          "numeric": 36757.14287965093,
+          "step": 1e-09
+        },
+        {
+          "parameter": "w2",
+          "index": [
+            33,
+            22
+          ],
+          "analytic": 34501.88722107613,
+          "numeric": 34499.14220254868,
+          "step": 1e-09
+        },
+        {
+          "parameter": "wo",
+          "index": [
+            5,
+            0
+          ],
+          "analytic": 98977509.6848614,
+          "numeric": 98977508.82737455,
+          "step": 1e-09
+        }
+      ],
+      "hardPathUnchanged": true,
+      "frozenHardAndRelaxedRoundtripsExact": true,
+      "hardActionSha256": "0963374709cde0713bd943eae0cd5f18848673d322b04d60d5d29498d8468915",
+      "legacySlotActionReplayed": true,
+      "relaxedGeometryLoss": {
+        "softCrossingCount": 225.51086421229013,
+        "crossingDepthPenalty": 0.0,
+        "softCardHitCount": 161.61945376711049,
+        "spacingPenalty": 17296.379128383953,
+        "movementPenalty": 0.008842832813975576,
+        "representationPenalty": 0.0,
+        "total": 17683.518289196167,
+        "binaryCrossings": 226,
+        "binaryCardHits": 162,
+        "activeCrossPairs": 2323,
+        "activeHitPairs": 2061
+      },
+      "allChecksPassed": true
+    }
+  },
+  "assignmentChecks": [
+    {
+      "size": 3,
+      "temperature": 0.2,
+      "finiteDifferences": 3,
+      "maximumAbsoluteError": 3.820626711596546e-11,
+      "rowMassVerified": true,
+      "commonScoreShiftInvariant": true,
+      "columnMassError": 2.258571107915941e-11
+    },
+    {
+      "size": 7,
+      "temperature": 0.7,
+      "finiteDifferences": 7,
+      "maximumAbsoluteError": 3.889961686098786e-10,
+      "rowMassVerified": true,
+      "commonScoreShiftInvariant": true,
+      "columnMassError": 0.0011620444045671308
+    },
+    {
+      "size": 13,
+      "temperature": 2.0,
+      "finiteDifferences": 13,
+      "maximumAbsoluteError": 7.0330163914889e-10,
+      "rowMassVerified": true,
+      "commonScoreShiftInvariant": true,
+      "columnMassError": 0.00040437890207922766
+    }
+  ],
+  "hardSortingDerivativeClaimed": false,
+  "newNativeGeometryEvaluations": 0,
+  "nonuniformRankHardLimitFixture": {
+    "maximumAssignmentError": 8.69557699794824e-17,
+    "passed": true
+  },
+  "legacyRelaxationSourceSha256": "c4947e7679db367cd68f636387d601963ab917bd92f103d07d36d7d3f8649b51",
+  "legacyRelaxedOutputsReplayed": [
+    {
+      "view": "individual",
+      "temperature": 0.1,
+      "checkpointSha256": "7909bd93c517c699e61ace5f65e11efd71e47030b1d99f18053cd40e1fd33a2c"
+    },
+    {
+      "view": "individual",
+      "temperature": 0.05,
+      "checkpointSha256": "7909bd93c517c699e61ace5f65e11efd71e47030b1d99f18053cd40e1fd33a2c"
+    },
+    {
+      "view": "overview",
+      "temperature": 0.1,
+      "checkpointSha256": "b1622df1d7955668133589d226c712e9b886fbf3487705a6ab16098318d456da"
+    },
+    {
+      "view": "overview",
+      "temperature": 0.05,
+      "checkpointSha256": "b1622df1d7955668133589d226c712e9b886fbf3487705a6ab16098318d456da"
+    }
+  ],
+  "seconds": 3.6364024590002373
+}
