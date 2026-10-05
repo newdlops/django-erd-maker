@@ -18,6 +18,11 @@ void minimizeClusterKnots(
           "DJERD_KNOT_SWAP_BUDGET_MS", 5000.0, 0.0, 60000.0);
         const bool unlimitedSwaps = readBoolEnv(
           "DJERD_DISABLE_WALL_CLOCK_BUDGETS", false);
+        const std::size_t maxSwapEvaluations = static_cast<std::size_t>(
+          std::round(readDoubleEnv(
+            "DJERD_KNOT_SWAP_MAX_EVALUATIONS", 45000.0, 0.0, 1000000000.0)));
+        std::size_t swapCandidateEvaluations = 0;
+        bool swapEvaluationLimitHit = false;
         bool swapBudgetHit = false;
         auto swapExpired = [&]() {
           swapBudgetHit = !unlimitedSwaps
@@ -25,6 +30,21 @@ void minimizeClusterKnots(
                  std::chrono::steady_clock::now() - swapBudgetStart).count()
                  >= swapBudgetMs;
           return swapBudgetHit;
+        };
+        auto swapWorkExpired = [&]() {
+          if (maxSwapEvaluations > 0
+              && swapCandidateEvaluations >= maxSwapEvaluations) {
+            swapEvaluationLimitHit = true;
+            return true;
+          }
+          return swapExpired();
+        };
+        auto recordSwapEvaluation = [&]() {
+          ++swapCandidateEvaluations;
+          if (maxSwapEvaluations > 0
+              && swapCandidateEvaluations >= maxSwapEvaluations) {
+            swapEvaluationLimitHit = true;
+          }
         };
         const bool directScene = readBoolEnv("DJERD_NO_CARRIER_CROSS", false);
         std::unordered_set<std::string> bundleAbsorbedKM;
@@ -246,7 +266,7 @@ void minimizeClusterKnots(
           : static_cast<int>(std::round(readDoubleEnv(
               "DJERD_KNOT_GREEDY_ROUNDS", 12.0, 0.0, 100.0)));
         std::size_t totalAccepted = 0;
-        for (int iter = 0; iter < kKnotMaxIters && !swapExpired(); ++iter) {
+        for (int iter = 0; iter < kKnotMaxIters && !swapWorkExpired(); ++iter) {
           std::size_t accepted = 0;
           // Rebuild bins each iter (positions changed).
           if (iter > 0) {
@@ -257,18 +277,21 @@ void minimizeClusterKnots(
             }
           }
           for (std::size_t m1 : swappable) {
-            if (swapExpired()) break;
+            if (swapWorkExpired()) break;
             const auto k = binKeyKM(attributes.x(nodes[m1].handle),
                                      attributes.y(nodes[m1].handle));
-            for (long long dx = -1; dx <= 1 && !swapBudgetHit; ++dx) {
-              for (long long dy = -1; dy <= 1 && !swapBudgetHit; ++dy) {
+            for (long long dx = -1; dx <= 1
+                 && !swapBudgetHit && !swapEvaluationLimitHit; ++dx) {
+              for (long long dy = -1; dy <= 1
+                   && !swapBudgetHit && !swapEvaluationLimitHit; ++dy) {
                 auto bIt = binsKM.find({k.first + dx, k.second + dy});
                 if (bIt == binsKM.end()) continue;
                 for (std::size_t m2 : bIt->second) {
                   if (m2 <= m1) continue;
                   // Stop between complete candidates so tentative swaps have
                   // already been accepted or fully reverted.
-                  if (swapExpired()) break;
+                  if (swapWorkExpired()) break;
+                  recordSwapEvaluation();
                   const std::size_t beforeC = localCrossCount(m1, m2);
                   const std::size_t beforeO = localOverlapCount(m1, m2);
                   const double x1 = attributes.x(nodes[m1].handle);
@@ -310,7 +333,7 @@ void minimizeClusterKnots(
         // DJERD_KNOT_SA=1 to enable for experimentation.
         const char* knotSaEnv = std::getenv("DJERD_KNOT_SA");
         if (!skipKnot && knotSaEnv && std::strcmp(knotSaEnv, "0") != 0
-            && !swapExpired()) {
+            && !swapWorkExpired()) {
           std::mt19937 rng(0xC0FFEEu);
           std::uniform_int_distribution<std::size_t> distIdx(
             0, swappable.size() ? swappable.size() - 1 : 0);
@@ -327,7 +350,8 @@ void minimizeClusterKnots(
           std::size_t saAccepted = 0;
           std::size_t saUphill = 0;
           for (int k = 0; k < kSaAttempts && swappable.size() >= 2
-               && !swapExpired(); ++k) {
+               && !swapWorkExpired(); ++k) {
+            recordSwapEvaluation();
             const std::size_t saI = distIdx(rng);
             const std::size_t m1 = swappable[saI];
             // Pick m2 from m1's spatial bin ring.
@@ -405,7 +429,7 @@ void minimizeClusterKnots(
           : static_cast<int>(std::round(readDoubleEnv(
               "DJERD_KNOT_TWO_OPT_ROUNDS", 8.0, 0.0, 100.0)));
         for (int outerIter = 0; outerIter < knotTwoOptRounds
-             && !swapExpired(); ++outerIter) {
+             && !swapWorkExpired(); ++outerIter) {
           // Find all current crossings.
           std::vector<std::pair<std::size_t, std::size_t>> crossings;
           for (std::size_t i = 0; i < edges.size(); ++i) {
@@ -416,7 +440,7 @@ void minimizeClusterKnots(
           if (crossings.empty()) break;
           std::size_t innerAccepted = 0;
           for (const auto& [e1, e2] : crossings) {
-            if (swapExpired()) break;
+            if (swapWorkExpired()) break;
             if (!segmentsCross(e1, e2)) continue;  // already resolved
             const auto& p1 = edgePairs[e1];
             const auto& p2 = edgePairs[e2];
@@ -433,7 +457,8 @@ void minimizeClusterKnots(
             for (const auto& [m1, m2] : candidates) {
               if (m1 == m2) continue;
               if (!swappableSet.count(m1) || !swappableSet.count(m2)) continue;
-              if (swapExpired()) break;
+              if (swapWorkExpired()) break;
+              recordSwapEvaluation();
               const std::size_t beforeC = localCrossCount(m1, m2);
               const std::size_t beforeO = localOverlapCount(m1, m2);
               const double x1 = attributes.x(nodes[m1].handle);
@@ -923,7 +948,7 @@ void minimizeClusterKnots(
           !skipKnot && knot2ndEnv && std::strcmp(knot2ndEnv, "0") != 0;
         std::size_t totalAccepted2 = 0;
         for (int iter = 0; runKnot2nd && iter < kKnotMaxIters
-             && !swapExpired(); ++iter) {
+             && !swapWorkExpired(); ++iter) {
           std::size_t accepted = 0;
           binsKM.clear();
           for (std::size_t i : swappable) {
@@ -931,16 +956,19 @@ void minimizeClusterKnots(
                             attributes.y(nodes[i].handle))].push_back(i);
           }
           for (std::size_t m1 : swappable) {
-            if (swapExpired()) break;
+            if (swapWorkExpired()) break;
             const auto k = binKeyKM(attributes.x(nodes[m1].handle),
                                      attributes.y(nodes[m1].handle));
-            for (long long dx = -1; dx <= 1 && !swapBudgetHit; ++dx) {
-              for (long long dy = -1; dy <= 1 && !swapBudgetHit; ++dy) {
+            for (long long dx = -1; dx <= 1
+                 && !swapBudgetHit && !swapEvaluationLimitHit; ++dx) {
+              for (long long dy = -1; dy <= 1
+                   && !swapBudgetHit && !swapEvaluationLimitHit; ++dy) {
                 auto bIt = binsKM.find({k.first + dx, k.second + dy});
                 if (bIt == binsKM.end()) continue;
                 for (std::size_t m2 : bIt->second) {
                   if (m2 <= m1) continue;
-                  if (swapExpired()) break;
+                  if (swapWorkExpired()) break;
+                  recordSwapEvaluation();
                   const std::size_t beforeC = localCrossCount(m1, m2);
                   const std::size_t beforeO = localOverlapCount(m1, m2);
                   const double x1 = attributes.x(nodes[m1].handle);
@@ -973,8 +1001,11 @@ void minimizeClusterKnots(
             totalAccepted2);
         }
         if (!skipKnot) {
-          std::fprintf(stderr, "[knot-min] budgetMs=%.0f budgetHit=%d.\n",
-            swapBudgetMs, swapBudgetHit ? 1 : 0);
+          std::fprintf(stderr,
+            "[knot-min] budgetMs=%.0f budgetHit=%d "
+            "candidateEvaluations=%zu evaluationLimitHit=%d.\n",
+            swapBudgetMs, swapBudgetHit ? 1 : 0, swapCandidateEvaluations,
+            swapEvaluationLimitHit ? 1 : 0);
         }
       }
 }

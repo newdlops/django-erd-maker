@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.0.1074 — Bounded knot search work (2026-10-05)
+
+- Stop cluster knot swaps after 45,000 candidate evaluations, while retaining
+  the existing 5-second wall-clock safety limit.
+- On the same 1,247-model / 1,732-route source project, uncached optimized
+  analysis through HTML took 83.65 seconds and peaked at 123.9 MiB. Actual
+  rendered overview visualCross was 2,912 and individual visualCross was 2,922,
+  compared with 2,945 / 2,954 for 0.0.1073. The BBOX decreased from 7.669B to
+  6.714B; rendered node overlaps remained zero.
+- The result remains `quality-degraded`; overview ≤200 and individual <500
+  remain unmet. This is one default-budget source run; see measurement limits
+  in [performance notes](docs/PERFORMANCE.ko.md).
+
 ## 0.0.1073 — Bounded straight-line escape (2026-10-05)
 
 - Reserve up to 10 seconds within the shared 40-second position budget for

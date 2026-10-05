@@ -38,13 +38,15 @@ test('an exhausted cluster swap budget preserves accepted positions and all new 
     '--positions-tsv', positionsPath];
   const environment = {...process.env, DJERD_LAYOUT_THREADS: '1',
     DJERD_CANONICAL_CROSSING_CACHE: '0', DJERD_DISABLE_WALL_CLOCK_BUDGETS: '0',
-    DJERD_KNOT_SWAP_BUDGET_MS: '0', DJERD_KNOT_RELOCATE: '0',
+    DJERD_KNOT_SWAP_BUDGET_MS: '0', DJERD_KNOT_SWAP_MAX_EVALUATIONS: '0',
+    DJERD_KNOT_RELOCATE: '0',
     DJERD_SKIP_CG_OPT: '1', DJERD_NO_PD_KNOT: '1', DJERD_VISUAL_KNOT: '0',
     DJERD_FACE_RASTER: '0', DJERD_FACE_UNTANGLE: '0', DJERD_XINGS_DETOUR: '0',
     DJERD_XINGS_DETOUR_FINAL: '0', DJERD_CANONICAL_ROUTE_REPAIR: '0'};
-  const run = enabled => {
+  const run = (enabled, extraEnvironment = {}) => {
     const result = spawnSync(binary, arguments_, {cwd: root, encoding: 'utf8',
-      env: {...environment, DJERD_NO_KNOT_MIN: enabled ? '0' : '1'}, timeout: 5000});
+      env: {...environment, ...extraEnvironment,
+        DJERD_NO_KNOT_MIN: enabled ? '0' : '1'}, timeout: 5000});
     assert.equal(result.status, 0, result.stderr);
     return {layout: JSON.parse(result.stdout), stderr: result.stderr};
   };
@@ -55,6 +57,10 @@ test('an exhausted cluster swap budget preserves accepted positions and all new 
     assert.deepEqual(bounded.layout.routedEdges, baseline.layout.routedEdges);
     assert.equal(bounded.layout.routedEdges.length, relationships.length);
     assert.ok(bounded.layout.routedEdges.every(route => route.points.length >= 2));
+    const capped = run(true, {DJERD_KNOT_SWAP_BUDGET_MS: '5000',
+      DJERD_KNOT_SWAP_MAX_EVALUATIONS: '1'});
+    assert.match(capped.stderr, /candidateEvaluations=1\b/);
+    assert.match(capped.stderr, /evaluationLimitHit=1\b/);
   } finally {
     fs.rmSync(directory, {recursive: true, force: true});
   }
