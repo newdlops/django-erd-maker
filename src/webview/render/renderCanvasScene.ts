@@ -5,6 +5,7 @@ import {
 import type { DiagramRenderModel } from "../state/createDiagramRenderModel";
 import { createSceneTransportTools } from "../state/sceneTransport";
 import { escapeHtml, serializeSceneForScriptTag } from "./escapeHtml";
+import { renderCircularDiagram } from "./renderCircularDiagram";
 
 export function renderCanvasScene(viewModel: DiagramRenderModel, appVersion: string): string {
   const layoutFailureByMode = new Map(
@@ -39,6 +40,7 @@ export function renderCanvasScene(viewModel: DiagramRenderModel, appVersion: str
           <span class="erd-search__count" data-erd-search-count aria-live="polite"></span>
         </div>
         <button type="button" class="erd-tool erd-related-open" data-related-diagram-open ${viewModel.inspector.selectedModelId ? '' : 'disabled'}>Related diagram</button>
+        <button type="button" class="erd-tool" data-circular-open aria-pressed="false" aria-controls="erd-circular-diagram">Circular view</button>
         <div class="erd-toolbar-group erd-full-diagram-tools">
           <button type="button" class="erd-tool erd-tool--zoom" data-zoom-action="in" aria-label="Zoom in" title="Zoom in (+)">+</button>
           <button type="button" class="erd-tool erd-tool--zoom" data-zoom-action="out" aria-label="Zoom out" title="Zoom out (−)">−</button>
@@ -79,6 +81,7 @@ export function renderCanvasScene(viewModel: DiagramRenderModel, appVersion: str
       </div>
       <section class="erd-connection-context" data-connection-context aria-label="Selected connection" hidden></section>
       <section class="erd-related-diagram" data-related-diagram aria-label="Related models diagram" hidden></section>
+      ${renderCircularDiagram()}
       <div class="erd-canvas" data-erd-canvas>
         <canvas
           class="erd-scene erd-drawing-canvas"

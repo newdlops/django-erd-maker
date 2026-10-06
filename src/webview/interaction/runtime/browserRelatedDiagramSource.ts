@@ -21,6 +21,7 @@ export function getBrowserRelatedDiagramSource(): string {
         }
         function openRelatedDiagram(edgeId) {
           if (!inspectorModelById.has(state.selectedModelId)) return;
+          if (typeof isCircularDiagramOpen === 'function' && isCircularDiagramOpen()) closeCircularDiagram();
           const wasOpen = isRelatedDiagramOpen();
           if (!relatedDiagramOrigin) {
             relatedDiagramOrigin = {modelId: state.selectedModelId, viewport: {...(connectionOverviewViewport || state.viewport)},

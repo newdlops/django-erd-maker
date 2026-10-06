@@ -76,7 +76,7 @@ export function getBrowserEventSource(): string {
             resizeRenderFrame = 0;
             cancelViewportRender();
             applyState();
-            if (!(typeof isRelatedDiagramOpen === 'function' && isRelatedDiagramOpen()) && typeof getPreviewRelationship === "function" && getPreviewRelationship()) fitConnectionPreview();
+            if (!(typeof isRelatedDiagramOpen === 'function' && isRelatedDiagramOpen()) && !(typeof isCircularDiagramOpen === 'function' && isCircularDiagramOpen()) && typeof getPreviewRelationship === "function" && getPreviewRelationship()) fitConnectionPreview();
           });
         }
 
@@ -261,6 +261,7 @@ export function getBrowserEventSource(): string {
             return;
           }
 
+          if (typeof handleCircularAction === "function" && handleCircularAction(button)) return;
           if (typeof handleConnectionAction === "function" && handleConnectionAction(button)) return;
 
           if (button.matches("[data-method-button]")) {
@@ -899,6 +900,7 @@ export function getBrowserEventSource(): string {
         // Keyboard navigation: arrow keys pan; +/- zoom; shift = 5x pan.
         window.addEventListener("keydown", (event) => {
           const target = event.target;
+          if (typeof isCircularDiagramOpen === 'function' && isCircularDiagramOpen()) return;
           if (typeof isRelatedDiagramOpen === 'function' && isRelatedDiagramOpen()) {
             if (event.key === 'Escape' && !(target instanceof HTMLInputElement)) {event.preventDefault(); closeRelatedDiagram();}
             return;

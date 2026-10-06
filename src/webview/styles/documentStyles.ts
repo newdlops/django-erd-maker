@@ -527,6 +527,37 @@ export function getDocumentStyles(): string {
     .erd-related-card__member { display: block; padding: 0 8px 8px; }
     .erd-related-card__member select { display: block; width: 100%; min-width: 0; min-height: 34px; padding: 5px; border: 1px solid var(--panel-border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 12px; }
     .erd-related-empty { padding: 16px; font-size: 13px; color: var(--muted); }
+    .erd-circular-diagram { grid-row: 3; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; }
+    .is-circular-diagram .erd-full-diagram-tools,
+    .is-circular-diagram .erd-layout-options,
+    .is-circular-diagram .erd-connection-context,
+    .is-circular-diagram [data-related-diagram-open] { display: none; }
+    .erd-circular-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px 8px; min-width: 0; }
+    .erd-circular-header > div { min-width: 0; }
+    .erd-circular-header h2 { margin: 0 0 4px; font-size: 18px; line-height: 1.35; }
+    .erd-circular-header .erd-panel__hint { font-variant-numeric: tabular-nums; }
+    .erd-circular-diagram .erd-tool { min-height: 44px; padding: 8px 10px; border-radius: 8px; font-size: 12px; justify-content: center; }
+    .erd-circular-header .erd-tool { flex-shrink: 0; }
+    .erd-circular-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 0 16px 12px; }
+    .erd-circular-picker { display: flex; align-items: center; gap: 8px; flex: 1 1 220px; min-width: 0; font-size: 12px; color: var(--muted); }
+    .erd-circular-picker select { width: 100%; min-width: 0; min-height: 44px; padding: 8px; border: 1px solid var(--panel-border); border-radius: 8px; background: var(--table); color: var(--text); }
+    [data-circular-zoom] { min-width: 44px; }
+    .erd-circular-plot { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--bg); margin: 0 12px; border-radius: 12px; touch-action: none; cursor: grab; }
+    .erd-circular-plot.is-panning { cursor: grabbing; }
+    .erd-circular-plot:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+    .erd-circular-plot canvas { width: 100%; height: 100%; display: block; }
+    .erd-circular-center { position: absolute; transform: translate(-50%, -50%); display: grid; gap: 6px; width: min(220px, 45%); padding: 12px; border-radius: 8px; background: var(--bg); text-align: center; pointer-events: none; overflow-wrap: anywhere; }
+    .erd-circular-center strong { font-size: 16px; line-height: 1.4; }
+    .erd-circular-center span { font-size: 12px; line-height: 1.5; color: var(--muted); }
+    .erd-circular-footer { padding: 10px 16px; font-size: 12px; line-height: 1.5; color: var(--muted); max-height: 24dvh; overflow: auto; }
+    .erd-circular-footer p { margin: 0 0 6px; overflow-wrap: anywhere; }
+    .erd-circular-footer [data-circular-status] { color: var(--text); }
+    .erd-circular-footer summary { cursor: pointer; width: fit-content; padding: 4px 0; }
+    .erd-circular-footer details p { margin-top: 6px; max-width: 70ch; }
+    .erd-circular-empty { position: absolute; inset: 0; display: grid; place-content: center; padding: 24px; margin: 0; color: var(--muted); text-align: center; font-size: 14px; line-height: 1.5; cursor: default; }
+    [data-circular-open][aria-pressed="true"] { background: var(--table-header); border-color: var(--accent); }
+    .erd-stage__toolbar [data-circular-open] { min-height: 44px; }
+    .erd-circular-plot.is-panning { user-select: none; }
     .erd-related-graph.is-narrow { grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr); padding: 16px; }
     .erd-related-graph.is-narrow .erd-related-wing--left { display: none; }
     .erd-related-graph.is-narrow .erd-related-wing--right { grid-column: 3; }
@@ -813,6 +844,10 @@ export function getDocumentStyles(): string {
       .erd-panel__header { position: static; }
       .erd-canvas { margin: 6px; border-radius: 12px; }
       .erd-stage__toolbar { padding: 8px; gap: 5px; }
+      .erd-circular-header { padding: 10px 12px 8px; }
+      .erd-circular-controls { padding: 0 12px 10px; }
+      .erd-circular-plot { margin: 0 6px; }
+      .erd-circular-footer { padding: 8px 12px; }
       .erd-layout-options summary { padding: 3px 2px; }
       .erd-minimap { width: 110px; height: 78px; top: 6px; right: 6px; padding: 5px; }
       .erd-connection-context { max-height: 20dvh; padding: 6px 8px; }

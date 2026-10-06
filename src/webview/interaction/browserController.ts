@@ -6,6 +6,7 @@ import { getBrowserLeafCardSource } from "./runtime/browserLeafCardSource";
 import { getBrowserIndependentViewSource } from "./runtime/browserIndependentViewSource";
 import { getBrowserRelationshipSource } from "./runtime/browserRelationshipSource";
 import { getBrowserRelatedDiagramSource } from "./runtime/browserRelatedDiagramSource";
+import { getBrowserCircularDiagramSource } from "./runtime/browserCircularDiagramSource";
 import { getBrowserRenderSource } from "./runtime/browserRenderSource";
 import { getBrowserStateSource } from "./runtime/browserStateSource";
 import { getBrowserTestSource } from "./runtime/browserTestSource";
@@ -238,6 +239,7 @@ ${getBrowserLayoutSource()}
 
 ${getBrowserRelationshipSource()}
 ${getBrowserRelatedDiagramSource()}
+${getBrowserCircularDiagramSource()}
 ${getBrowserDomSource()}
 ${getBrowserLeafCardSource()}
 ${getBrowserIndependentViewSource()}

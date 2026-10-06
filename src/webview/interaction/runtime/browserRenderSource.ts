@@ -30,20 +30,22 @@ export function getBrowserRenderSource(): string {
         }
 
         function applyState() {
-          const related = typeof renderRelatedDiagram === 'function' && renderRelatedDiagram();
-          if (!related && typeof renderConnectionContext === "function") renderConnectionContext();
+          const circular = typeof renderCircularDiagram === 'function' && renderCircularDiagram();
+          const related = !circular && typeof renderRelatedDiagram === 'function' && renderRelatedDiagram();
+          if (!circular && !related && typeof renderConnectionContext === "function") renderConnectionContext();
           renderSummary();
           renderSetupControls();
           renderOverlays();
           renderPanels();
           renderHiddenTableList();
-          if (related) return;
+          if (circular || related) return;
           drawCanvas("full");
           if (typeof renderConnectionAnchors === "function") renderConnectionAnchors();
           renderMinimap("full");
         }
 
         function applyViewportState() {
+          if (typeof isCircularDiagramOpen === 'function' && isCircularDiagramOpen()) {renderCircularDiagram(); return;}
           if (typeof isRelatedDiagramOpen === 'function' && isRelatedDiagramOpen()) {renderRelatedDiagram(); return;}
           drawCanvas("viewport");
           if (typeof renderConnectionAnchors === "function") renderConnectionAnchors();
@@ -71,6 +73,8 @@ export function getBrowserRenderSource(): string {
         }
 
         function dispatch(action) {
+          const circularFocus = typeof isCircularDiagramOpen === 'function' && isCircularDiagramOpen() && action.type === 'focus-model';
+          if (circularFocus) action = {...action, type: 'select-model'};
           if (typeof isRelatedDiagramOpen === 'function' && isRelatedDiagramOpen() && action.type === 'focus-model') action = {...action, type: 'select-model'};
           if (typeof rememberModelNavigation === "function") rememberModelNavigation(action);
           state = reduceState(state, action);
@@ -112,6 +116,7 @@ export function getBrowserRenderSource(): string {
 
           cancelViewportRender();
           applyState();
+          if (circularFocus && typeof ensureCircularModelVisible === 'function') ensureCircularModelVisible(action.modelId);
         }
 
         function renderMinimap(renderMode) {

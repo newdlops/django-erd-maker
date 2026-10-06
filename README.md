@@ -14,6 +14,8 @@ connections.
 - Search models, highlight their direct connections, and pan or zoom the diagram.
 - Open **Related diagram** to read a model's immediate neighbors in a compact,
   paginated view. Follow another model and return with **Back**.
+- Open **Circular view** to place every model on an app-ordered ring. Trace a
+  model's connections, inspect individual fields, and zoom or pan independently.
 - Inspect grouped leaf models through one card and one connection per external
   peer when the layout contains leaf groups.
 - Refresh the diagram after changing source files and inspect discovery or
@@ -55,6 +57,8 @@ If a release has not been published yet, see the repository's
 | Focus search | Cmd+F on macOS, Ctrl+F on other development hosts |
 | Inspect connections | Select a model, then use the model panel's search and direction filters |
 | Read a compact neighborhood | Choose Related diagram or select a connection row |
+| Explore the entire catalog on a ring | Choose Circular view; search or use the Model picker |
+| Navigate the circular graph | Left/Right selects models; Shift+arrows pans; +/− zooms; Fit restores the whole ring |
 | Follow a model | Choose Explore model, or Explore a member on a grouped card |
 | Return through exploration | Back |
 | Return to the original overview | Full diagram; Escape outside text inputs also exits the related view |

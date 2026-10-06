@@ -143,6 +143,7 @@ export function getBrowserRelationshipSource(): string {
 
         function previewRelationship(edgeId) {
           if (!relationshipByEdgeId.has(edgeId)) return;
+          if (typeof isCircularDiagramOpen === 'function' && isCircularDiagramOpen()) {selectCircularEdge(edgeId); return;}
           if (!revealedRelationshipEdgeId) {
             connectionOverviewViewport = {...state.viewport};
             connectionOverviewCollapse = state.collapseClusters;
@@ -153,6 +154,7 @@ export function getBrowserRelationshipSource(): string {
         }
 
         function clearConnectionPreview() {
+          if (typeof isCircularDiagramOpen === 'function' && isCircularDiagramOpen()) {revealedRelationshipEdgeId = ''; applyState(); return;}
           const previousEdgeId = revealedRelationshipEdgeId;
           revealedRelationshipEdgeId = "";
           if (connectionOverviewViewport) {
@@ -246,6 +248,7 @@ export function getBrowserRelationshipSource(): string {
         function handleConnectionAction(button) {
           if (typeof handleRelatedDiagramAction === 'function' && handleRelatedDiagramAction(button)) return true;
           if (button.matches("[data-preview-relationship]")) {
+            if (typeof isCircularDiagramOpen === 'function' && isCircularDiagramOpen()) {selectCircularEdge(button.dataset.relationshipEdgeId); return true;}
             if (typeof openRelatedDiagram === 'function') openRelatedDiagram(button.dataset.relationshipEdgeId);
             else previewRelationship(button.dataset.relationshipEdgeId);
             return true;

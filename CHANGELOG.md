@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.0.1077 — Circular relationship view (2026-10-07)
+
+- Add Circular view for the entire model catalog, ordered by app, with one mark
+  per model and separate curves for parallel, reverse and self relationships.
+- Search or select a model to highlight its connections; select a curve or field
+  to inspect the declared relationship in the existing model panel.
+- Add independent zoom, drag, Fit and keyboard navigation. Returning to Full
+  diagram preserves the ERD viewport and model positions.
+- Build the view from the current analysis without another layout computation.
+  Native model weights and straight-route crossing metrics are unchanged.
+
 ## 0.0.1076 — Fresh source model and card clearance (2026-10-06)
 
 - Predict new positions from current source names, actual card dimensions and
