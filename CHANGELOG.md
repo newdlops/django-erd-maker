@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.0.1076 — Fresh source model and card clearance (2026-10-06)
+
+- Predict new positions from current source names, actual card dimensions and
+  original relations using a shared portable native model. Each analysis builds
+  its own inputs; saved layout coordinates and preview results are not read.
+- Preserve horizontal 56px / vertical 42px card clearance during both position
+  search phases, retaining all original cards and independent straight routes.
+- On the same 1,247-model / 1,732-route source project, analysis through HTML
+  took 48.86 seconds with a combined host/worker peak of 119.0 MiB. Both rendered
+  views scored 2,049 visualCross, with zero card overlaps or spacing violations
+  and a BBOX of 1.448B. The complete native position phase took 33.66 seconds.
+- Reserve 20% of the original position allowance for refiner cleanup, independent
+  audits and serialization. A prior installation trial exceeded the 40-second
+  closeout deadline and fell back; its result is excluded from quality claims.
+- Keep the result `quality-degraded`: overview ≤200 and individual <500 remain
+  unmet. Prior held-out testing showed weak generalization; the final refit loss
+  is training loss. See [performance notes](docs/PERFORMANCE.ko.md).
+- Keep connection filter counts on one line at narrow inspector widths.
+
+## 0.0.1075 — Local integration candidate (2026-10-06)
+
+- Initial local source-model candidate; a subsequent installed analysis exceeded
+  the complete position deadline. Its timed-out fallback is excluded from quality
+  claims. The corrected deliverable is 0.0.1076.
+
 ## 0.0.1074 — Bounded knot search work (2026-10-05)
 
 - Stop cluster knot swaps after 45,000 candidate evaluations, while retaining

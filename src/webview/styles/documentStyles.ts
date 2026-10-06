@@ -348,7 +348,7 @@ export function getDocumentStyles(): string {
       border-color: var(--accent); background: rgba(109, 208, 176, 0.12); color: var(--text);
     }
     .erd-connections__filters button:hover { background: rgba(109, 208, 176, 0.12); }
-    .erd-connections__filters span { font-variant-numeric: tabular-nums; }
+    .erd-connections__filters span { font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; }
     .erd-connections__count { margin: 0; font-size: 12px; color: var(--muted); }
     .erd-connections__list { display: grid; gap: 0; list-style: none; padding: 0; margin: 0; }
     .erd-connection-row {

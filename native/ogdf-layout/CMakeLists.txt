@@ -41,6 +41,8 @@ add_executable(django-erd-ogdf-layout
   src/routeBoundsIndex.cpp
   src/straightVisualOptimization.cpp
   src/straightVisualPlacement.cpp
+  src/sourceInputLayout.cpp
+  src/sourceInputLayoutPipeline.cpp
   src/renderedMetrics.cpp
   src/layoutTopology.cpp
   src/layoutGeometry.cpp
@@ -55,7 +57,7 @@ add_executable(django-erd-ogdf-layout
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
   set_source_files_properties(
     src/main.cpp src/renderedMetrics.cpp src/layoutTopology.cpp
-    src/layoutGeometry.cpp src/layoutRouting.cpp
+    src/layoutGeometry.cpp src/layoutRouting.cpp src/sourceInputLayoutPipeline.cpp
     PROPERTIES COMPILE_OPTIONS "-O0"
   )
   set_source_files_properties(src/clusterGraph.cpp PROPERTIES COMPILE_OPTIONS "-O0")
@@ -63,7 +65,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     src/visualKnot.cpp src/segmentGeometry.cpp src/clusterCrossingOptimization.cpp
     src/clusterOrientation.cpp
     src/clusterKnotOptimization.cpp
-    src/straightVisualOptimization.cpp src/straightVisualPlacement.cpp
+    src/straightVisualOptimization.cpp src/straightVisualPlacement.cpp src/sourceInputLayout.cpp
     PROPERTIES COMPILE_OPTIONS "-O2;-ffp-contract=off"
   )
 endif()

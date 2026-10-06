@@ -23,6 +23,17 @@ used by separate research work and is neither needed by nor included in the
 extension runtime. The TypeScript compiler emits CommonJS modules with no npm
 runtime dependencies.
 
+Fresh optimized layouts use the bundled `media/source-layout/model.bin` shared
+predictor in the portable C++ executable. It has 8,450 parameters and no per-model
+coordinate table. Native inference reconstructs features from current model
+names, card dimensions and original relationships on every request, without
+Torch, ONNX Runtime, Accelerate or a separate Python process. Its manifest records
+the training provenance and the limits of prior held-out testing.
+`DJERD_SOURCE_LAYOUT_MODEL=0` disables the predictor; `DJERD_SOURCE_LAYOUT_MODEL_PATH`
+selects an alternate model for development. Missing, malformed, unsupported or
+expired inference falls back to the existing native layout within the remaining
+position budget.
+
 ## Developer build
 
 ```sh

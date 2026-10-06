@@ -1,0 +1,31 @@
+{
+  "schema": "source-input-layout-v1",
+  "architecture": [
+    64,
+    64,
+    64,
+    2
+  ],
+  "sharedParameters": 8450,
+  "featureColumns": 64,
+  "byteLength": 68648,
+  "sha256": "6955490a0e7575be15faca5eb1e464bbde250e4f819a2a5a3fdfeeca1fc912aa",
+  "perModelEmbeddingsOrCoordinateLookupStored": false,
+  "runtimeInputs": [
+    "current model names",
+    "current rendered card dimensions",
+    "current original relations"
+  ],
+  "training": {
+    "historicalTeacherModels": 1244,
+    "completeUpdates": 2500,
+    "fixedSeed": 42,
+    "finalTrainingLoss": 7.441851512798719e-07,
+    "formerlyHeldOutRowsIncludedInFinalTraining": 214,
+    "priorFamilyHeldOutLoss": 0.465702766347732,
+    "priorFamilyHeldOutEvaluationShowsWeakGeneralization": true,
+    "finalRefitLossIsTrainingLoss": true
+  },
+  "qualityTargetsAchieved": false,
+  "license": "GPL-3.0-only"
+}

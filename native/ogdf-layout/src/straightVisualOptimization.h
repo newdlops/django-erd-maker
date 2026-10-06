@@ -39,6 +39,12 @@ class StraightVisualState {
   void swap(std::size_t first, std::size_t second);
   StraightVisualScore evaluateMoves(const std::vector<StraightVisualMove>& moves) const;
   void moveMany(const std::vector<StraightVisualMove>& moves);
+  // Check the real card rectangles before changing routes or accepting a
+  // candidate. Moving members are tested against their simultaneous poses.
+  bool canMoveWithCardClearance(std::size_t node, double x, double y, double minimumX, double minimumY) const;
+  bool canSwapWithCardClearance(std::size_t first, std::size_t second, double minimumX, double minimumY) const;
+  bool canMoveManyWithCardClearance(const std::vector<StraightVisualMove>& moves, double minimumX, double minimumY) const;
+  bool allCardsHaveClearance(double minimumX, double minimumY) const;
   std::vector<std::int64_t> pressure() const;
 
  private:
@@ -53,6 +59,9 @@ struct StraightVisualPlacementOptions {
   int maxRounds = 100, angularSamples = 8, nodeLimit = 0, swapLimit = 80;
   std::size_t maxEscapeIterations = 1000000;
   std::uint64_t seed = 42;
+  // Zero preserves ordinary/offline placement. Source predictions start with
+  // readable gaps and require every accepted move to retain those gaps.
+  double cardGapX = 0, cardGapY = 0;
 };
 struct StraightVisualPlacementResult {
   std::vector<StraightVisualNode> nodes;

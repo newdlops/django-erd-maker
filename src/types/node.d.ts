@@ -32,6 +32,7 @@ declare module "node:fs/promises" {
   export function stat(path: string): Promise<{
     mtimeMs: number;
     size: number;
+    isFile(): boolean;
   }>;
   export function writeFile(
     path: string,

@@ -20,7 +20,7 @@ def allowed(name):
         return False
     relative = name[len("extension/"):]
     return relative.lower() in root_docs or bool(re.fullmatch(
-        r"(?:media/icon\.png|media/ml-preview/(?:layout\.json|manifest\.json|overview\.npz|individual\.npz)|scripts/vscode-uninstall\.mjs|"
+        r"(?:media/icon\.png|media/ml-preview/(?:layout\.json|manifest\.json|overview\.npz|individual\.npz)|media/source-layout/(?:model\.bin|manifest\.json)|scripts/vscode-uninstall\.mjs|"
         r"out/(?:extension|shared|webview)/.+\.js|"
         r"bin/analyzer/darwin-arm64/django-erd-maker-analyzer|"
         r"bin/ogdf/darwin-arm64/django-erd-ogdf-layout|"

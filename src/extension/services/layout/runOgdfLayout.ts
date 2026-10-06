@@ -89,6 +89,7 @@ import {
   preserveBestOptimizedLayoutCache,
 } from "./optimizedLayoutCache";
 import { resolveOgdfLayoutBinaryPath } from "./resolveOgdfLayoutBinaryPath";
+import { resolveSourceInputLayoutModelPath } from "./sourceInputLayoutModel";
 import { loadBundledMlPreview } from "./bundledMlPreview";
 import {
   LAYOUT_COMPUTATION_BUDGET_MS,
@@ -4231,6 +4232,8 @@ export async function runOgdfLayout(
               initialLayoutBudgetedTimeout.timeoutMs * 0.5,
               readFloatEnv("DJERD_STRAIGHT_VISUAL_POSITION_BUDGET_MS", 40_000))))
           : 0;
+        const sourceModelPath = await resolveSourceInputLayoutModelPath(
+          extensionRootPath, freshPositionBudgetMs > 0 && !bubbleLayout);
         ({ stderr, stdout } = await execFileAsync(
           binaryPath,
           [
@@ -4255,6 +4258,7 @@ export async function runOgdfLayout(
               {
                 ...(progressPath ? { DJERD_PROGRESS_FILE: progressPath } : {}),
                 ...(freshAnalysis ? {
+                  DJERD_SOURCE_LAYOUT_MODEL_PATH: sourceModelPath,
                   DJERD_DISABLE_WALL_CLOCK_BUDGETS: "0",
                   // This auxiliary search grid shares the 128 MiB budget with
                   // the fresh analyzer payload. Final geometry is still scored

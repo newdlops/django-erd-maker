@@ -69,7 +69,7 @@ export function renderCanvasScene(viewModel: DiagramRenderModel, appVersion: str
           <button type="button" class="erd-tool" data-cluster-collapse-toggle title="Collapse clusters into super-nodes; aggregate edges between clusters">Collapse</button>
           <button type="button" class="erd-tool" data-cluster-graph-toggle title="Cluster-graph layout: per-cluster radial inner (root + leaf/internal/bridge rings) with super-graph cross-min. Connectors are pulled out of clusters and placed on inter-cluster edges.">ClusterGraph</button>
           <button type="button" class="erd-tool" data-bubble-toggle title="Bubble layout: each cluster forms a circular bubble with root at centre and ALL members (leaves, wings, internals, bridges) packed in concentric rings (full 360°). Bubbles may overlap based on inter-cluster connectivity.">Bubble</button>
-          <button type="button" class="erd-tool" data-optimized-toggle title="ML-optimized layout: v36 pure action scorer ranks relation-preserving moves, then exact verification accepts only measured improvements before rigid reroute.">ML Optimized</button>
+          <button type="button" class="erd-tool" data-optimized-toggle title="Compute a fresh model-based layout from current source, then refine and verify the original straight relationships and table spacing.">ML Optimized</button>
           <button type="button" class="erd-tool" data-panel-refresh>Refresh</button>
           <button type="button" class="erd-tool" data-zoom-action="center">Move To Center</button>
           <button type="button" class="erd-tool" data-reset-view>Reset View</button>

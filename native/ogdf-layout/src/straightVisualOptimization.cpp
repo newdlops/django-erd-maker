@@ -15,6 +15,12 @@ Rect rect(const StraightVisualNode& node, double margin = 0) {
   return {node.y + node.height / 2 + margin, node.x - node.width / 2 - margin,
           node.x + node.width / 2 + margin, node.y - node.height / 2 - margin};
 }
+Rect cardGapRect(const StraightVisualNode& node, double gapX, double gapY) {
+  auto box = rect(node);
+  const double x = std::max(0.0, gapX - 1e-7), y = std::max(0.0, gapY - 1e-7);
+  box.left -= x; box.right += x; box.top -= y; box.bottom += y;
+  return box;
+}
 Rect bounds(const StraightVisualRoute& route) {
   return {std::max(route.sourceY, route.targetY), std::min(route.sourceX, route.targetX),
           std::max(route.sourceX, route.targetX), std::min(route.sourceY, route.targetY)};
@@ -391,6 +397,65 @@ void StraightVisualState::moveMany(const std::vector<StraightVisualMove>& moves)
   s.current = score;
   s.preparedNode = std::numeric_limits<std::size_t>::max();
 }
+bool StraightVisualState::canMoveWithCardClearance(
+    std::size_t node, double x, double y, double minimumX, double minimumY) const {
+  const auto& s = *storage_;
+  if (node >= s.nodes.size() || !std::isfinite(x) || !std::isfinite(y)
+      || !std::isfinite(minimumX) || minimumX < 0 || !std::isfinite(minimumY) || minimumY < 0) return false;
+  auto candidate = s.nodes[node]; candidate.x = x; candidate.y = y;
+  // Allow only floating arithmetic roundoff; the source seed retains a
+  // 0.04-pixel guard above the product's 42-pixel serialization target.
+  const auto padded = cardGapRect(candidate, minimumX, minimumY);
+  for (const auto other : s.nodeIndex.query(padded))
+    if (other != node && rectsOverlap(padded, rect(s.nodes[other]))) return false;
+  return true;
+}
+bool StraightVisualState::canSwapWithCardClearance(
+    std::size_t first, std::size_t second, double minimumX, double minimumY) const {
+  const auto& s = *storage_;
+  if (first >= s.nodes.size() || second >= s.nodes.size() || first == second
+      || !std::isfinite(minimumX) || minimumX < 0 || !std::isfinite(minimumY) || minimumY < 0) return false;
+  auto a = s.nodes[first], b = s.nodes[second];
+  std::swap(a.x, b.x); std::swap(a.y, b.y);
+  if (rectsOverlap(cardGapRect(a, minimumX, minimumY), rect(b))) return false;
+  const auto allowed = [&](const StraightVisualNode& card) {
+    const auto padded = cardGapRect(card, minimumX, minimumY);
+    for (const auto other : s.nodeIndex.query(padded))
+      if (other != first && other != second && rectsOverlap(padded, rect(s.nodes[other]))) return false;
+    return true;
+  };
+  return allowed(a) && allowed(b);
+}
+bool StraightVisualState::canMoveManyWithCardClearance(
+    const std::vector<StraightVisualMove>& moves, double minimumX, double minimumY) const {
+  const auto& s = *storage_;
+  if (!std::isfinite(minimumX) || minimumX < 0 || !std::isfinite(minimumY) || minimumY < 0) return false;
+  std::vector<unsigned char> moving(s.nodes.size(), 0);
+  std::vector<StraightVisualNode> changed; changed.reserve(moves.size());
+  for (const auto& move : moves) {
+    if (move.node >= s.nodes.size() || moving[move.node]
+        || !std::isfinite(move.x) || !std::isfinite(move.y)) return false;
+    moving[move.node] = 1;
+    auto card = s.nodes[move.node]; card.x = move.x; card.y = move.y;
+    changed.push_back(card);
+  }
+  for (std::size_t i = 0; i < changed.size(); ++i) {
+    const auto padded = cardGapRect(changed[i], minimumX, minimumY);
+    for (const auto other : s.nodeIndex.query(padded))
+      if (!moving[other] && rectsOverlap(padded, rect(s.nodes[other]))) return false;
+    for (std::size_t j = 0; j < i; ++j)
+      if (rectsOverlap(padded, rect(changed[j]))) return false;
+  }
+  return true;
+}
+bool StraightVisualState::allCardsHaveClearance(double minimumX, double minimumY) const {
+  if (!std::isfinite(minimumX) || minimumX < 0 || !std::isfinite(minimumY) || minimumY < 0) return false;
+  const auto& s = *storage_;
+  for (std::size_t n = 0; n < s.nodes.size(); ++n)
+    if (!canMoveWithCardClearance(n, s.nodes[n].x, s.nodes[n].y, minimumX, minimumY)) return false;
+  return true;
+}
+
 std::vector<std::int64_t> StraightVisualState::pressure() const {
   const auto& s = *storage_;
   std::vector<std::int64_t> result(s.nodes.size(), 0);

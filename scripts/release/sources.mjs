@@ -19,6 +19,8 @@ const sourceFiles = [
   "scripts/erd-poc/ogdf_general_layout_probe.cpp", "test/integration/release-packaging.test.mjs",
   "scripts/erd-poc/straight_visual_optimizer.cpp",
   "test/integration/straight-visual-state.test.mjs", "test/integration/straight-visual-state.cpp",
+  "test/integration/source-input-layout.test.mjs", "test/integration/source-input-layout.cpp",
+  "test/integration/source-card-clearance.cpp",
   "test/integration/bundled-ml-preview.test.mjs",
   "test/integration/fresh-analysis-latency.test.mjs",
   "test/integration/owned-bootstrap-decoding.test.mjs",

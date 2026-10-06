@@ -65,6 +65,10 @@ try {
     archives: await digestFiles(path.join(repoRoot, "sources"), sourceArchives),
     binaries: await digestFiles(repoRoot, binaryPaths),
     runtimeFiles: await digestFiles(repoRoot, runtimeFiles),
+    assets: await digestFiles(repoRoot, [
+      ...["layout.json", "manifest.json", "overview.npz", "individual.npz"].map(file => `media/ml-preview/${file}`),
+      "media/source-layout/model.bin", "media/source-layout/manifest.json",
+    ]),
     projectSourceFiles: sourceFiles,
   };
   await fs.writeFile(path.join(repoRoot, "sources/manifest.json"), JSON.stringify(releaseManifest, null, 2) + "\n");

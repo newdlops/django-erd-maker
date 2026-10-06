@@ -112,6 +112,10 @@ EscapeStats escapeStraightPlacement(
       for (const auto member : owned[n]) group.push_back({member, state.nodes()[member].x + dx, state.nodes()[member].y + dy});
     } else { x += normal(random) * diagonal * .04; y += normal(random) * diagonal * .04; }
     if (!inBounds(x, y) || std::any_of(group.begin(), group.end(), [&](const auto& move) { return !inBounds(move.x, move.y); })) continue;
+    if ((options.cardGapX > 0 || options.cardGapY > 0) && !(!group.empty()
+        ? state.canMoveManyWithCardClearance(group, options.cardGapX, options.cardGapY)
+        : (partner != n ? state.canSwapWithCardClearance(n, partner, options.cardGapX, options.cardGapY)
+          : state.canMoveWithCardClearance(n, x, y, options.cardGapX, options.cardGapY)))) continue;
     const auto score = !group.empty() ? state.evaluateMoves(group)
       : (partner != n ? state.evaluateSwap(n, partner) : state.evaluateMove(n, x, y));
     ++stats.evaluations;
@@ -148,6 +152,8 @@ StraightVisualPlacementResult optimizeStraightVisualPlacement(
   const StraightVisualPlacementOptions& options) {
     if (!std::isfinite(options.budgetMs) || options.budgetMs < 0
         || !std::isfinite(options.escapeBudgetMs) || options.escapeBudgetMs < 0
+        || !std::isfinite(options.cardGapX) || options.cardGapX < 0
+        || !std::isfinite(options.cardGapY) || options.cardGapY < 0
         || !std::isfinite(options.groupBudgetMs) || ids.size() != nodes.size())
       throw std::invalid_argument("invalid placement options or identity coverage");
     std::vector<unsigned char> grouped(nodes.size(), 0);
@@ -179,6 +185,8 @@ StraightVisualPlacementResult optimizeStraightVisualPlacement(
     });
     const auto started = std::chrono::steady_clock::now();
     StraightVisualState state(nodes, edges);
+    if ((options.cardGapX > 0 || options.cardGapY > 0) && !state.allCardsHaveClearance(options.cardGapX, options.cardGapY))
+      throw std::invalid_argument("initial source cards do not have required clearance");
     const auto before = state.score();
     const auto elapsed = [&]() { return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count(); };
     double left = 0, right = 0, top = 0, bottom = 0;
@@ -223,6 +231,8 @@ StraightVisualPlacementResult optimizeStraightVisualPlacement(
           if (mass) { external.x /= mass; external.y /= mass; } else external = center;
           const auto consider = [&](std::vector<StraightVisualMove> trial) {
             if (elapsed() >= groupEnd) return;
+            if ((options.cardGapX > 0 || options.cardGapY > 0)
+                && !state.canMoveManyWithCardClearance(trial, options.cardGapX, options.cardGapY)) return;
             const auto score = state.evaluateMoves(trial); ++evaluations;
             if (cost(score) < cost(bestScore)) { bestScore = score; best = std::move(trial); }
           };
@@ -325,6 +335,8 @@ StraightVisualPlacementResult optimizeStraightVisualPlacement(
           if (elapsed() >= greedyBudgetMs) break;
           if (candidate.x < left - spanX * .2 || candidate.x > right + spanX * .2
               || candidate.y < top - spanY * .2 || candidate.y > bottom + spanY * .2) continue;
+          if ((options.cardGapX > 0 || options.cardGapY > 0)
+              && !state.canMoveWithCardClearance(node, candidate.x, candidate.y, options.cardGapX, options.cardGapY)) continue;
           const auto score = state.evaluateMove(node, candidate.x, candidate.y); ++evaluations;
           if (cost(score) > cost(bestScore)) continue;
           double length = 0;
@@ -357,6 +369,8 @@ StraightVisualPlacementResult optimizeStraightVisualPlacement(
           for (std::size_t j = i + 1; j < count; ++j) partners.push_back(order[j]);
           for (const auto other : partners) {
             if (elapsed() >= greedyBudgetMs) break;
+            if ((options.cardGapX > 0 || options.cardGapY > 0)
+                && !state.canSwapWithCardClearance(node, other, options.cardGapX, options.cardGapY)) continue;
             const auto score = state.evaluateSwap(node, other); ++evaluations;
             if (cost(score) < cost(bestScore)) { bestScore = score; best = other; }
           }
@@ -376,6 +390,8 @@ StraightVisualPlacementResult optimizeStraightVisualPlacement(
     if (audited.edgeCrossings != state.score().edgeCrossings || audited.edgeNodeIntersections != state.score().edgeNodeIntersections
         || audited.nodeOverlaps != state.score().nodeOverlaps || audited.invalidRoutes != state.score().invalidRoutes) throw std::runtime_error("final scene audit mismatch");
 
+    if ((options.cardGapX > 0 || options.cardGapY > 0) && !state.allCardsHaveClearance(options.cardGapX, options.cardGapY))
+      throw std::runtime_error("final source card clearance invariant violated");
     StraightVisualPlacementResult result;
     result.nodes = state.nodes(); result.routes = state.routes();
     result.before = before; result.after = audited;

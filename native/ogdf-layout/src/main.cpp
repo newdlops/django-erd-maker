@@ -45,6 +45,7 @@
 
 #include "layoutPipeline.h"
 #include "faceRasterGrid.h"
+#include "sourceInputLayoutPipeline.h"
 
 int main(int argc, char** argv) {
   using namespace djerd;
@@ -68,6 +69,21 @@ int main(int argc, char** argv) {
       std::fprintf(stderr,
         "[canonical-crossing] certifier unavailable: %s\n",
         error.what());
+    }
+    const char* sourceModelPath = std::getenv("DJERD_SOURCE_LAYOUT_MODEL_PATH");
+    const double sourcePositionBudget = readDoubleEnv(
+      "DJERD_STRAIGHT_VISUAL_POSITION_BUDGET_MS", 0.0, 0.0, 40000.0);
+    if (sourceModelPath != nullptr && sourceModelPath[0] != '\0'
+        && arguments.edgeRouting == "straight" && arguments.positionsTsv.empty()
+        && !arguments.rigidPositions && !arguments.bubble && sourcePositionBudget > 0
+        && readBoolEnv("DJERD_NO_CARRIER_CROSS", false)) {
+      const auto attempt = tryWriteSourceInputLayout(arguments, nodes, edges,
+        attributes, metadata, canonicalCrossing, sourceModelPath, sourcePositionBudget, std::cout);
+      if (attempt.applied) return 0;
+      // Failed inference/audits and legacy refinement share the original
+      // reservation. A fallback cannot start another full position budget.
+      const auto remaining = std::to_string(std::max(0.0, sourcePositionBudget - attempt.elapsedMs));
+      ::setenv("DJERD_STRAIGHT_VISUAL_POSITION_BUDGET_MS", remaining.c_str(), 1);
     }
     // State carried out of the cluster-graph branch into the final spine
     // flatten pass (after all post-passes). Empty when not running

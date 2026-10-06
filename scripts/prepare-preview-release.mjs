@@ -25,7 +25,8 @@ const runtime=[];
 for(const folder of ['out/extension','out/shared','out/webview'])
   for(const file of await collectFiles(path.join(repoRoot,folder)))
     if(file.endsWith('.js'))runtime.push(path.posix.join(folder,file));
-const assets=['layout.json','manifest.json','overview.npz','individual.npz'].map(file=>'media/ml-preview/'+file);
+const assets=[...['layout.json','manifest.json','overview.npz','individual.npz'].map(file=>'media/ml-preview/'+file),
+  'media/source-layout/model.bin','media/source-layout/manifest.json'];
 const result={...previous,version:manifest.version,createdAt:new Date().toISOString(),
   archives:await digestFiles(path.join(repoRoot,'sources'),sourceArchives),
   runtimeFiles:await digestFiles(repoRoot,runtime),assets:await digestFiles(repoRoot,assets),
